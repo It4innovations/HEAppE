@@ -27,7 +27,7 @@ sshagent_build:
         - master
         - Develop
     tags:
-        - docker
-        - Centos
+        - Docker
+        - HEAppE
     script:
         - docker build -f ./SshAgent/Dockerfile -t ${SSHAGENT_CONTAINER_NAME} .
