@@ -1,0 +1,26 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AssemblyName>HpcConnectionFramework</AssemblyName>
+    <RootNamespace>HEAppE.HpcConnectionFramework</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="WindowsHpc\**" />
+    <EmbeddedResource Remove="WindowsHpc\**" />
+    <None Remove="WindowsHpc\**" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="log4net" Version="2.0.12" />
+    <PackageReference Include="SSH.NET" Version="2020.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ConnectionPool\ConnectionPool.csproj" />
+    <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+    <ProjectReference Include="..\MiddlewareUtils\MiddlewareUtils.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,138 @@
+﻿@page
+@model IndexModel
+@{
+    ViewData["Title"] = "RestSharp Web Client";
+}
+
+<div id="testPageBox" class="row">
+    <div class="col-md-4">
+        <h2 style="text-decoration: underline;">OpenId-Connect</h2>
+        <div class="row">
+            <div class="col">
+                <a href="@Url.Action("Index", "OpenIdConnect")" class="btn btn-info">Go to OpenId test page</a>
+            </div>
+        </div>
+
+        <div class="row mt-5 mb-3">
+            <div class="col">
+                <h2 style="text-decoration: underline;">HEAppE Requests</h2>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <h3>ClusterInformation</h3>
+                <form asp-page-handler="ListAvailableClusters" method="post">
+                    <button class="btn btn-light btn-outline-dark">ListAvailableClusters</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <h3>DataTransfer</h3>
+
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="CreateAndSubmitASBJob" method="post">
+                            <button class="btn btn-light btn-outline-dark">CreateAndSubmitAsbJob</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="CreateSshTunnelASBJob" method="post">
+                            <button class="btn btn-light btn-outline-dark">CreateSshTunnelAsbJob</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="HttpGetToJobNode" method="post">
+                            <input id="httpGetRequest" name="httpGetRequest" type="text" value="/?service=WPS&request=GetCapabilities" style="width:350px;" />
+                            <input id="httpGetHeaders" name="httpGetHeaders" type="text" value="User-Agent: Heappe" style="width:350px;" />
+                            <button class="btn btn-light btn-outline-dark">HttpGetToJobNode</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="HttpPostToJobNode" method="post">
+                            <input id="httpPostRequest" name="httpPostRequest" type="text" value="" style="width:350px;" />
+                            <input id="httpPostHeaders" name="httpPostHeaders" type="text" value="User-Agent: Heappe" style="width:350px;" />
+                            <textarea name="httpPostPayload" cols="47" rows="20"></textarea>
+                            <button class="btn btn-light btn-outline-dark">HttpPostToJobNode</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="CancelASBJob" method="post">
+                            <button class="btn btn-light btn-outline-dark">CancelASBJob</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <h3>JobManagement</h3>
+
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="CreateAndSubmitTestJob" method="post">
+                            <button class="btn btn-light btn-outline-dark">CreateAndSubmitTestJob</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="TestSubmitAndCancelJob" method="post">
+                            <button class="btn btn-danger">TestSubmitAndCancelJob</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="GetCurrentInfoForJob" method="post">
+                            <button class="btn btn-light btn-outline-dark">GetCurrentInfoForJob</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col">
+                <h3>JobReporting</h3>
+
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="GetUserResourceUsageReport" method="post">
+                            <button class="btn btn-light btn-outline-dark">GetUserResourceUsageReport</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="GetUserGroupResourceUsageReport" method="post">
+                            <button class="btn btn-light btn-outline-dark">GetUserGroupResourceUsageReport</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <form asp-page-handler="GetResourceUsageReportForJob" method="post">
+                            <button class="btn btn-light btn-outline-dark">GetResourceUsageReportForJob</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-8 bg-light">
+        <h2>Response Output</h2>
+        <pre>@Model.ResponseContent</pre>
+    </div>
+</div>

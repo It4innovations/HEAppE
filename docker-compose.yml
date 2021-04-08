@@ -1,0 +1,62 @@
+version: '3.4'
+
+services:
+  sshagent:
+    image: ${DOCKER_REGISTRY-}sshagent
+    build:
+      context: .
+      dockerfile: SshAgent/Dockerfile
+    restart: unless-stopped
+    volumes:
+      - app_volume:/app/shared
+    environment:
+      TZ: "Europe/Prague" 
+      SSH_AUTH_SOCK: "/app/shared/agentsocket" 
+    networks:
+      - sshagent_internal_network
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    restart: unless-stopped
+    volumes:
+      - sql_volume:/var/opt/mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+      TZ: "Europe/Prague" 
+    networks:
+      - db_internal_network
+      - external_network
+
+  heappe:
+    image: ${DOCKER_REGISTRY-}heappe
+    build:
+      context: .
+      dockerfile: RestApi/Dockerfile
+    depends_on:
+      - mssql
+      - sshagent
+    restart: unless-stopped
+    volumes:
+      - app_sftp_temp_volume:/sftp
+      - app_volume:/app/shared
+    environment:
+      ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
+      SSH_AUTH_SOCK: "/app/shared/agentsocket"
+      TZ: "Europe/Prague" 
+    networks:
+      - sshagent_internal_network
+      - db_internal_network
+      - external_network
+      
+volumes:
+  app_volume:
+  app_sftp_temp_volume:
+  sql_volume:
+
+networks:
+  external_network:
+  sshagent_internal_network:
+    internal: true
+  db_internal_network:
+    internal: true

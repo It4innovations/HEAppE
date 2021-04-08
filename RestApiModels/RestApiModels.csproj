@@ -1,0 +1,13 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AssemblyName>RestApiModels</AssemblyName>
+    <RootNamespace>HEAppE.RestApiModels</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ExtModels\ExtModels.csproj" />
+  </ItemGroup>
+
+</Project>

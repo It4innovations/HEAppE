@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <AssemblyName>FileTransferFramework</AssemblyName>
+    <RootNamespace>HEAppE.FileTransferFramework</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="log4net" Version="2.0.12" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
+    <PackageReference Include="SSH.NET" Version="2020.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ConnectionPool\ConnectionPool.csproj" />
+    <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+    <ProjectReference Include="..\MiddlewareUtils\MiddlewareUtils.csproj" />
+    <ProjectReference Include="..\Utils\Utils.csproj" />
+  </ItemGroup>
+
+</Project>

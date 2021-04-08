@@ -1,0 +1,41 @@
+﻿using System;
+using System.Linq;
+using System.Collections.Generic;
+using System.Text;
+using System.Threading;
+using Castle.DynamicProxy.Generators.Emitters;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.Notifications;
+using HEAppE.DomainObjects.OpenStack;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+
+namespace HEAppE.DataAccessTier
+{
+    public class MiddlewareContextSettings
+    {
+        public static string ConnectionString { get; set; }
+        public static List<AdaptorUser> AdaptorUsers { get; set; }
+        public static List<AdaptorUserRole> AdaptorUserRoles { get; set; }
+        public static List<AdaptorUserGroup> AdaptorUserGroups { get; set; }
+        public static List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; }
+        public static List<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; }
+
+        public static List<OpenStackInstance> OpenStackInstances { get; set; }
+        public static List<OpenStackAuthenticationCredentials> OpenStackAuthenticationCredentials { get; set; }
+        public static List<Cluster> Clusters { get; set; }
+        public static List<ClusterAuthenticationCredentials> ClusterAuthenticationCredentials { get; set; }
+        public static List<ClusterNodeType> ClusterNodeTypes { get; set; }
+
+        public static List<CommandTemplate> CommandTemplates { get; set; }
+        public static List<CommandTemplateParameter> CommandTemplateParameters { get; set; }
+
+        public static List<FileTransferMethod> FileTransferMethods { get; set; }
+        public static List<JobTemplate> JobTemplates { get; set; }
+        public static List<TaskTemplate> TaskTemplates { get; set; }
+
+        public static List<Language> Languages { get; set; }
+        public static List<PropertyChangeSpecification> PropertyChangeSpecifications { get; set; }
+    }
+}

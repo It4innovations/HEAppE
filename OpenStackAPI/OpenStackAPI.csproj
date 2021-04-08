@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net5.0</TargetFramework>
+        <AssemblyName>OpenStackAPI</AssemblyName>
+        <RootNamespace>HEAppE.OpenStackAPI</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
+      <PackageReference Include="RestSharp" Version="106.11.7" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\MiddlewareUtils\MiddlewareUtils.csproj" />
+      <ProjectReference Include="..\RestUtils\RestUtils.csproj" />
+    </ItemGroup>
+
+</Project>

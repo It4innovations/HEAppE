@@ -1,0 +1,219 @@
+﻿{
+  "MiddlewareContextSettings": {
+    "AdaptorUsers": [
+      {
+        "Id": 1,
+        "Username": "{UserName}",
+        "Password": "{Password}"
+      }
+    ],
+    "AdaptorUserRoles": [
+      { 
+        "Id": 1,
+        "Name": "List",
+        "Description": "Reporting role"
+      },
+      { 
+        "Id": 2,
+        "Name": "Read",
+        "Description": "Can extract job information"
+      },
+      { 
+        "Id": 3,
+        "Name": "Write",
+        "Description": "Can execute and retrieve job information"
+      }
+    ],
+    "AdaptorUserGroups": [
+      {
+        "Id": 1,
+        "Name": "{GroupName},
+        "Description": "{GroupDescription}",
+        "AccountingString": "{AccountingString}"
+      },
+      {
+        "Id": 2,
+        "Name": "KeycloakGroup",
+        "Description": "{KeyCloakGroupDescription},
+        "AccountingString": "{KeycloakAccountingString}"
+      }
+    ],
+    "AdaptorUserRoles": [
+      {
+        "Id": 1,
+        "Name": "{UserRoleName}",
+        "Description": "{UserRoleDescription}"
+      }
+    ],
+    "AdaptorUserUserGroups": [
+      {
+        "AdaptorUserId": 1,
+        "AdaptorUserGroupId": 1
+      }
+    ],
+    "Clusters": [
+      {
+        "Id": 1,
+        "Name": "{ClusterName}",
+        "Description": "{ClusterDescription}",
+        "MasterNodeName": "{ClusterLoginURL}",
+        "LocalBasepath": "{LocalBasePath}",
+        "TimeZone": "CET",
+        "SchedulerType": 2,
+        "ConnectionProtocol": 2,
+        "ServiceAccountCredentialsId": 1
+      }
+    ],
+    "ClusterAuthenticationCredentials": [
+      {
+        "Id": 1,
+        "Username": "{UserName}",
+        "Password": null,
+        "PrivateKeyFile": "{PrivateKeyFile}",
+        "PrivateKeyPassword": "{PrivateKeyPassword}",
+        "ClusterId": 1
+      },
+      {
+        "Id": 2,
+        "Username": "{UserName}",
+        "Password": null,
+        "PrivateKeyFile": "{PrivateKeyFile}",
+        "PrivateKeyPassword": "{PrivateKeyPassword}",
+        "ClusterId": 1
+      }
+    ],
+    "ClusterNodeTypes": [
+      {
+        "Id": 1,
+        "Name": "{Name}",
+        "Description": "{Description}",
+        "NumberOfNodes": {NumberOfNodes},
+        "CoresPerNode": {CoresPerNode},
+        "Queue": "{Queue}",
+        "RequestedNodeGroups": null,
+        "MaxWalltime": {MaxWalltime},
+        "ClusterId": 1,
+        "FileTransferMethodId": 1,
+        "JobTemplateId": 1
+      }
+    ],
+    "CommandTemplates": [
+      {
+        "Id": 1,
+        "Name": "TestTemplate",
+        "Description": "TestTemplate",
+        "Code": "TestTemplate",
+        "ExecutableFile": "{ExecutableFilePath},
+        "CommandParameters": "{CommandParameters}",
+        "PreparationScript": null,
+        "ClusterNodeTypeId": 1
+      }
+    ],
+    "CommandTemplateParameters": [
+      {
+        "Id": 1,
+        "Identifier": "inputParam",
+        "Query": "",
+        "Description": "inputParam",
+        "CommandTemplateId": 1
+      }
+    ],
+    "FileTransferMethods": [
+      {
+        "Id": 1,
+        "ClusterId": 1,
+        "SharedBasepath": "{ClusterBasePath}",
+        "Protocol": 2
+      }
+    ],
+    "JobTemplates": [
+      {
+        "Id": 1,
+        "Name": "{DefaultName}",
+        "MinCores":{MinCores},
+        "MaxCores":{MaxCores},
+        "Priority":{Priority},
+        "Project": "{Project}",
+        "WalltimeLimit": {WalltimeLimit}
+      }
+    ],
+	"TaskTemplates": [
+      {
+        "Id": 1,
+        "Name": "{Name}",
+        "MinCores": {MinCores},
+        "MaxCores": {MaxCores},
+        "Priority": {Priority},
+        "Project": "{Project}",
+        "WalltimeLimit": {WalltimeLimit}
+      }
+    ],
+
+    "Languages": [
+      {
+        "Id": 1,
+        "IsoCode": "en-GB",
+        "Name": "English"
+      }
+    ],
+    "PropertyChangeSpecifications": [
+      {
+        "Id": 1,
+        "PropertyName": "EnvironmentVariables",
+        "ChangeMethod": 1,
+        "JobTemplateId": 1,
+        "TaskTemplateId": 1
+      },
+      {
+        "Id": 2,
+        "PropertyName": "Name",
+        "ChangeMethod": 2,
+        "JobTemplateId": 1,
+        "TaskTemplateId": 1
+      },
+      {
+        "Id": 3,
+        "PropertyName": "MinCores",
+        "ChangeMethod": 2,
+        "JobTemplateId": 1,
+        "TaskTemplateId": 1
+      },
+      {
+        "Id": 4,
+        "PropertyName": "MaxCores",
+        "ChangeMethod": 2,
+        "JobTemplateId": 1,
+        "TaskTemplateId": 1
+      },
+      {
+        "Id": 5,
+        "PropertyName": "Project",
+        "ChangeMethod": 2,
+        "JobTemplateId": 1,
+        "TaskTemplateId": 1
+      },
+      {
+        "Id": 6,
+        "PropertyName": "WalltimeLimit",
+        "ChangeMethod": 2,
+        "JobTemplateId": 1,
+        "TaskTemplateId": 1
+      }
+    ],
+    "OpenStackInstances": [
+      {
+        "Id": 1,
+        "Name": "",
+        "InstanceUrl": "",
+        "Domain": ""
+      }
+    ],
+    "OpenStackAuthenticationCredentials": [
+      {
+        "Username": "",
+        "Password": "",
+        "OpenStackInstanceId": 1
+      }
+    ]
+  }
+}
