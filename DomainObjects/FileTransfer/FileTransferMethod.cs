@@ -1,0 +1,37 @@
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+
+namespace HEAppE.DomainObjects.FileTransfer {
+	[Table("FileTransferMethod")]
+	public class FileTransferMethod : IdentifiableDbEntity {
+		[Required]
+		[StringLength(50)]
+		public string ServerHostname { get; set; }
+
+		public FileTransferProtocol Protocol { get; set; }
+
+		[ForeignKey("Cluster")]
+		public long ClusterId { get; set; }
+
+		[Required]
+		public virtual Cluster Cluster { get; set; }
+
+		[NotMapped]
+		public string SharedBasePath { get; set; }
+
+		[NotMapped]
+		public AuthenticationCredentials Credentials { get; set; }
+
+        [NotMapped]
+        public List<FileTransferMethod> Tasks { get; set; }
+
+        public override string ToString()
+        {
+			return $"Cluster: Id={Id}, ServerHostname={ServerHostname}, Protocol={Protocol}, Cluster={Cluster}, Credentials={Credentials}";
+        }
+    }
+}

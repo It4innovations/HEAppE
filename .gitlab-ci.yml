@@ -1,0 +1,33 @@
+image: docker:latest
+
+services:
+  - docker:dind
+
+stages:
+    - build     
+
+heappe_build:
+    stage: build
+    before_script:
+        - docker --version
+    only:
+        - master
+        - Develop
+    tags:
+        - Docker
+        - HEAppE
+    script:
+        - docker build -f ./RestApi/Dockerfile -t ${HEAPPE_CONTAINER_NAME} .
+
+sshagent_build:
+    stage: build
+    before_script:
+        - docker --version
+    only:
+        - master
+        - Develop
+    tags:
+        - docker
+        - Centos
+    script:
+        - docker build -f ./SshAgent/Dockerfile -t ${SSHAGENT_CONTAINER_NAME} .

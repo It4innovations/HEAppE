@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>HEAppE.BackgroundThread</RootNamespace>
+    <AssemblyName>BackgroundThread</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj" />
+    <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
+    <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+    <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />
+  </ItemGroup>
+
+</Project>

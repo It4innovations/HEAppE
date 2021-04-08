@@ -1,0 +1,22 @@
+﻿using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using System;
+using System.Runtime.Serialization;
+
+namespace HEAppE.ExtModels.FileTransfer.Models
+{
+    [DataContract(Name = "AsymmetricKeyCredentialsExt")]
+    public class AsymmetricKeyCredentialsExt : AuthenticationCredentialsExt
+    {
+        //public string username { get; set; }
+        [DataMember(Name = "PrivateKey")]
+        public string PrivateKey { get; set; }
+
+        [DataMember(Name = "PublicKey")]
+        public string PublicKey { get; set; }
+
+        public override string ToString()
+        {
+            return $"AsymmetricKeyCredentialsExt({base.ToString()}; privateKey={PrivateKey}; publicKey={PublicKey})";
+        }
+    }
+}
