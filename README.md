@@ -62,13 +62,45 @@ This work was supported by The Ministry of Education, Youth and Sports from the 
 
 ## REST API
 
-Main API endpoints
-- UserAndLimitationManagement
-- ClusterInformation
-- JobManagement
-- FileTransfer
-- DataTransfer
-- JobReporting
+Each deployed HEAppE instance contains its own interactive Swagger REST API documentation with endpoint descriptions and parameter examples.
+
+REST API endpoints:
+
+- UserAndLimitationManagement<br/>
+-- AuthenticateUserOpenId<br/>
+-- AuthenticateUserOpenStack<br/>
+-- AuthenticateUserPassword<br/>
+-- AuthenticateUserDigitalSignature<br/>
+-- GetCurrentUsageAndLimitationsForCurrentUser<br/>
+- ClusterInformation<br/>
+-- ListAvailableClusters<br/>
+-- CurrentClusterNodeUsage<br/>
+- JobManagement<br/>
+-- CreateJob<br/>
+-- SubmitJob<br/>
+-- CancelJob<br/>
+-- DeleteJob<br/>
+-- ListJobsForCurrentUser<br/>
+-- GetCurrentInfoForJob<br/>
+-- CopyJobDataToTemp<br/>
+-- CopyJobDataFromTemp<br/>
+-- GetAllocatedNodesIPs<br/>
+- FileTransfer<br/>
+-- GetFileTransferMethod<br/>
+-- EndFileTransfer<br/>
+-- DownloadPartsOfJobFilesFromCluster<br/>
+-- ListChangedFilesForJob<br/>
+-- DownloadFileFromCluster<br/>
+- DataTransfer<br/>
+-- GetDataTransferMethod<br/>
+-- EndDataTransfer<br/>
+-- HttpGetToJobNode<br/>
+-- HttpPostToJobNode<br/>
+- JobReporting<br/>
+-- GetUserResourceUsageReport<br/>
+-- GetUserGroupResourceUsageReport<br/>
+-- GetResourceUsageReportForJob<br/>
+
 
 ## Command Template Preparation
 
@@ -111,66 +143,33 @@ For security purposes *HEAppE* enables the users to run only pre-prepared set of
 -> GetResourceUsageReportForJob - generate job's report<br/>
 <- resource usage report
 
-## HEAppE Integration Example (C#)
+## HEAppE Job Specification Example (C#)
 
-TODO update to the latest version
+```csharp
+        //each submitted job must contain at least one task
+        TaskSpecificationExt testTask = new TaskSpecificationExt();
+        testTask.name = "TestJob";
+        testTask.minCores = 1;		//minimum number of cores required
+        testTask.maxCores = 36;		//maximum number of cores required
+        testTask.walltimeLimit = 600;	//maximum time for task to run (seconds)
+        testTask.standardOutputFile = "console_Stdout";
+        testTask.standardErrorFile = "console_Stderr";
+        testTask.progressFile = "console_Stdprog";
+        testTask.logFile = "console_Stdlog";
+        testTask.ClusterNodeTypeId = 2;         //selected cluster's queue listed in cluster information
+        testTask.commandTemplateId = 1;	        //commandTemplateID
+        //fill the command template parameters (see Table1 for “inputParam”)
+        testTask.templateParameterValues = new CommandTemplateParameterValueExt[] { 
+        new CommandTemplateParameterValueExt() { commandParameterIdentifier =
+                "inputParam", parameterValue = "someStringParam" } 
+           };
 
-## Sample Template Output
-
-```
-Authenticating user [testuser]...
-        Auth OK (Session GUID: 4a5d7017-1992-45b1-8b07-43cf5d421f50)
-Created job ID 71.
-Uploading file: someInputFile1.txt
-File uploaded.
-Uploading file: someInputFile2.txt
-File uploaded.
-Submitted job ID: 71
-Queued
-File: StandardErrorFile, console_Stderr
-TaskInfoId: 71
-Offset: 0
-Content:
-File: StandardOutputFile, console_Stdout
-TaskInfoId: 71
-Offset: 0
-Content: Input param: someStringParam
-Iteration: 01
-
-Running
-File: StandardErrorFile, console_Stderr
-TaskInfoId: 71
-Offset: 0
-Content:
-File: StandardOutputFile, console_Stdout
-TaskInfoId: 71
-Offset: 0
-Content: Input param: someStringParam
-Iteration: 01
-Iteration: 02
-
-Finished
-File: StandardErrorFile, console_Stderr
-TaskInfoId: 71
-Offset: 0
-Content:
-File: StandardOutputFile, console_Stdout
-TaskInfoId: 71
-Offset: 0
-Content: Input param: someStringParam
-Iteration: 01
-Iteration: 02
-Iteration: 03
-Iteration: 04
-Iteration: 05
-Iteration: 06
-Iteration: 07
-Iteration: 08
-Iteration: 09
-Iteration: 10
-
-Downloading file: /resultFile.txt
-Downloading file: /console_Stdout
-Downloading file: /console_Stderr
-Press any key to continue . . .
+        //create job specification with the task above
+        JobSpecificationExt testJob = new JobSpecificationExt();
+        testJob.name = "TestJob";	//job name
+        testJob.project = "ExpTests";	//accounting project ID
+        testJob.waitingLimit = 0;	//limit for the waiting time in cluster queue 
+        testJob.clusterId = 1;	        //Selected cluster system
+        //assign created task to job specification
+        testJob.tasks = new TaskSpecificationExt[] { testTask };
 ```
