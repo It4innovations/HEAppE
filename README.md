@@ -1,3 +1,7 @@
+<img src="https://code.it4i.cz/ADAS/HEAppE/Middleware/-/wikis/uploads/a2477b110aa6b992103972748944854a/HEAppE_seda.png" alt="heappe" height="75" align="left"/>
+<img src="https://code.it4i.cz/ADAS/HEAppE/Middleware/-/wikis/uploads/daff3c4fcf40f18878bf0f42a79fa85f/it4i-logo-new.png" alt="it4i" height="70" align="right"/>
+<br/><br/><br/>
+
 # HEAppE Middleware
 _High-End Application Execution Middleware_
 
@@ -6,11 +10,15 @@ HPC-as-a-Service is a well known term in the area of high performance computing.
 To provide this simple and intuitive access to the supercomputing infrastructure an in-house application framework called HEAppE has been developed. This framework is utilizing a mid-layer principle, in software terminology also known as middleware. Middleware manages and provides information about submitted and running jobs and their data between the client application and the HPC infrastructure. HEAppE is able to submit required computation or simulation on HPC infrastructure, monitor the progress and notify the user should the need arise. It provides necessary functions for job management, monitoring and reporting, user authentication and authorization, file transfer, encryption, and various notification mechanisms.
 
 Major changes in the latest release includes
-- multi-platform .NET Core version 
-- OpenAPI REST API 
-- dockerized deployment and management 
-- updated PBS and new Slurm workload manager adapter 
-- SSH Agent support 
+- multi-platform **.NET Core** version 
+- **OpenAPI** REST API 
+- **dockerized** deployment and management 
+- updated **PBS** and **Slurm** workload manager adapter 
+- **SSH Agent** support
+- **multiple tasks** within single computational jobs
+- **job arrays** support and **job dependency** support
+- extremely **long running** job support
+- **OpenID** and **OpenStack** authentication support
 - various functional and security updates
 
 # References
@@ -50,6 +58,8 @@ This work was supported by The Ministry of Education, Youth and Sports from the 
 ## Middleware Architecture
 *HEAppE's* universally designed software architecture enables unified access to different HPC systems through a simple object-oriented client-server interface using standard REST API. Thus providing HPC capabilities to the users but without the necessity to manage the running jobs form the command-line interface of the HPC scheduler directly on the cluster.
 
+<img src="https://code.it4i.cz/ADAS/HEAppE/Middleware/-/wikis/uploads/b369a9145503d97a242466b06c65c223/architecture.png" alt="architecture" width="75%" align="center"/>
+
 ## REST API
 
 Main API endpoints
@@ -66,13 +76,40 @@ For security purposes *HEAppE* enables the users to run only pre-prepared set of
 
 | Id | Name | Description | Code | Executable File | Command Parameters | Preparation Script | Cluster Node Type |
 |----|------|-------------|------|------|------|------|------|
-| 1 | TestTemplate  | Desc | Code | /scratch/temp/ HaasTestScript/test.sh | "%%{inputParam}" | module load Python/2.7.9-intel-2015b; | 7 |
+| 1 | TestTemplate  | Desc | Code | /scratch/temp/Heappe/test.sh | "%%{inputParam}" | module load Python/2.7.9-intel-2015b; | 7 |
 
-{: .custom-class #custom-id}
 
 ## Workflow
 
-TBD
+1. **UserAndLimitationManagement**<br/>
+-> AuthenticateUserPassword - authentication method request<br/>
+<- session-code
+2. **ClusterInformation**<br/>
+-> ListAvailableClusters - get cluster information<br/>
+<- General information about cluster, command templates, etc.
+3. **JobManagement**<br/>
+-> CreateJob - cluster and job specification<br/>
+<- job information
+4. **FileTransfer**<br/>
+-> GetFileTransferMethod - request access to job's storage<br/>
+<- FileTransferMethod - information how to access the storage<br/>
+-> upload input files<br/>
+-> EndFileTransfer - remove storage access<br/>
+<- storage access removed
+5. **JobManagement**<br/>
+-> SubmitJob - submit the job to the cluster's processing queue<br/>
+<- job information<br/>
+-> GetCurrentInfoForJob - monitor the state of the specified job (queued, running, finished, failed, etc.)<br/>
+<- job information
+6. **FileTransfer**<br/>
+-> GetFileTransferMethod - request access to job's storage<br/>
+<- FileTransferMethod - information how to access the storage<br/>
+-> download output files<br/>
+-> EndFileTransfer - remove storage access<br/>
+<- storage access removed
+7. **JobReporting**<br/>
+-> GetResourceUsageReportForJob - generate job's report<br/>
+<- resource usage report
 
 ## HEAppE Integration Example (C#)
 
