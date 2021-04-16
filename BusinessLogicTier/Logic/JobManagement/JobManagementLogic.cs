@@ -29,9 +29,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         private readonly object _lockCreateJobObj = new();
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected readonly IUnitOfWork _unitOfWork;
-        private static readonly List<TaskSpecification> _tasksToDeleteFromSpec = new();
-        private static readonly List<TaskSpecification> _tasksToAddToSpec = new();
-        private static readonly Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency = new();
+        private static List<TaskSpecification> _tasksToDeleteFromSpec = new();
+        private static List<TaskSpecification> _tasksToAddToSpec = new();
+        private static Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency = new();
 
         internal JobManagementLogic(IUnitOfWork unitOfWork)
         {
@@ -74,6 +74,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 if (isExtraLong)
                 {
+                    _tasksToDeleteFromSpec = new List<TaskSpecification>();
+                    _tasksToAddToSpec = new List<TaskSpecification>();
                     DecomposeExtraLongTask(specification, task);
                 }
             }
@@ -89,6 +91,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 {
                     specification.Tasks.Add(task);
                 }
+            }
+
+            ValidationResult jobValidation = new JobManagementValidator(specification, _unitOfWork).Validate();
+            if (!jobValidation.IsValid)
+            {
+                _logger.ErrorFormat("Validation error: {0}", jobValidation.Message);
+                ExceptionHandler.ThrowProperExternalException(new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message));
             }
 
             lock (_lockCreateJobObj)
