@@ -26,7 +26,7 @@ namespace HEAppE.RestApi.InputValidator
                     clusterModel),
                 ListChangedFilesForJobModel jobModel => ValidateListChangedFilesForJobModel(jobModel),
                 DownloadFileFromClusterModel clusterModel => ValidateDownloadFileFromClusterModel(clusterModel),
-                _ => ""
+                _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
@@ -89,6 +89,8 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(taskFileOffset.SubmittedTaskInfoId)));
             if(taskFileOffset.Offset.HasValue && taskFileOffset.Offset.Value < 0)
                 _messageBuilder.AppendLine("Offset must be positive number");
+
+            //TODO check enum
             return _messageBuilder.ToString();
         }
 
@@ -99,7 +101,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine(credentialsValidator.Message);
 
             if (string.IsNullOrEmpty(fileTransferMethod.ServerHostname))
-                _messageBuilder.AppendLine("ServerHostname cannot be empty");
+                _messageBuilder.AppendLine("ServerHostname cannot be empty"); //Validace IP(vs 4,6) OR DNS
             if (string.IsNullOrEmpty(fileTransferMethod.SharedBasepath))
                 _messageBuilder.AppendLine("SharedBasepath cannot be empty");
             else
@@ -108,6 +110,7 @@ namespace HEAppE.RestApi.InputValidator
                 if (!pathValidator.IsValid)
                     _messageBuilder.AppendLine(pathValidator.Message);
             }
+            //TODO Validation enum (check value for non-exist value)
 
             return _messageBuilder.ToString();
         }

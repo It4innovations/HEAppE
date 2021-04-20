@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.JobManagement.Models
@@ -7,6 +8,8 @@ namespace HEAppE.ExtModels.JobManagement.Models
     public class JobSpecificationExt
     {
         [DataMember(Name = "Name")]
+        //TODO
+        [StringLength(50)]
         public string Name { get; set; }
 
         [DataMember(Name = "Project")]
