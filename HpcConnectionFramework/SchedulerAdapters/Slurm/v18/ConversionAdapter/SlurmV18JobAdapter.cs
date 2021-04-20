@@ -204,7 +204,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// <param name="tasks">Tasks</param>
         public void SetTasks(List<object> tasks)
         {
-            _jobCommandBuilder.Append((string)tasks.First());
+            foreach (var task in tasks)
+            {
+                _jobCommandBuilder.Append((string)task);
+            }
         }
         #endregion
     }

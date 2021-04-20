@@ -87,7 +87,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// </summary>
         public bool CpuHyperThreading
         {
-            set { }
+            set
+            {
+                if (value)
+                {
+                    _jobTaskBuilder.Append(" --hint=multithread");
+                }
+                else
+                {
+                    _jobTaskBuilder.Append(" --hint=nomultithread");
+                }
+                    
+            }
         }
 
         /// <summary>
@@ -196,7 +207,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// </summary>
         public bool IsRerunnable
         {
-            get { return _taskParameters.Requeue > 0 ? true : false; }
+            get { return _taskParameters.Requeue > 0; }
             set { _jobTaskBuilder.Append(value ? " --requeue" : " --no-requeue"); }
         }
 
@@ -210,7 +221,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
             set
             {
                 TimeSpan wallTime = TimeSpan.FromSeconds(value);
-                _jobTaskBuilder.Append($" -t { wallTime.ToString(@"dd\-hh\:mm\:ss")}");
+                _jobTaskBuilder.Append($" -t { wallTime:dd\\-hh\\:mm\\:ss}");
             }
         }
 
@@ -303,7 +314,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
             //TODO paralizationSpecs for SLURM options
             string alocatedString = string.Empty;
             int nodesCount = maxCores / coresPerNode;
-            nodesCount += maxCores % coresPerNode > 0 ? 1 : 0; ;
+            nodesCount += maxCores % coresPerNode > 0 ? 1 : 0;
+
+            //Placement policy
+            //allocationCmdBuilder.Append(string.IsNullOrEmpty(placementPolicy) ? string.Empty : $" --constraint={placementPolicy}");
+
+            // Single allocation 
+            //--nodes=1 --cpus-per-task=24  || --nodes=1 ||--nodes=1 --ntask=24
+
+
+
+            //--nodes=2 --ntasks-per-node=24  ---ntask=21 --cpus-per-task=10(maxCores) (mpiprocs = 21)
+
+            //--nodes=2 --ntasks-per-node=24  ---ntask=21 --cpus-per-task=10 (mpiprocs=21:ompthreads=10)
+
 
             if (nodesCount >= 1)
             {
@@ -351,9 +375,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// <returns></returns>
         private static string PrepareNameOfNodesGroup(ICollection<string> requestedNodeGroups)
         {
-            if (requestedNodeGroups != null && requestedNodeGroups.Count > 0)
+            if (requestedNodeGroups?.Count > 0)
             {
-                StringBuilder builder = new StringBuilder($" --partition={requestedNodeGroups.First()}");
+                var builder = new StringBuilder($" --partition={requestedNodeGroups.First()}");
                 foreach (string nodeGroup in requestedNodeGroups.Skip(1))
                 {
                     builder.Append($",{nodeGroup}");
@@ -372,9 +396,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// <param name="variables"></param>
         public void SetEnvironmentVariablesToTask(ICollection<EnvironmentVariable> variables)
         {
-            if (variables != null && variables.Count > 0)
+            if (variables?.Count > 0)
             {
-                StringBuilder builder = new StringBuilder(" --export ");
+                var builder = new StringBuilder(" --export ");
                 foreach (EnvironmentVariable variable in variables)
                 {
                     builder.Append($"{variable.Name} = {variable.Value},");
@@ -399,16 +423,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
             _jobTaskBuilder.Append(
                 string.IsNullOrEmpty(preparationScript)
                     ? string.Empty
-                    : preparationScript.Last().Equals(';')
-                        ? preparationScript
-                        : $"{preparationScript};");
+                    : preparationScript.Last().Equals(';') ? preparationScript : $"{preparationScript};");
             _jobTaskBuilder.Append(
                 string.IsNullOrEmpty(commandLine)
                     ? string.Empty
-                    : commandLine.Last().Equals(';')
-                        ? commandLine
-                        : $"{commandLine};");
-            _jobTaskBuilder.Append("\'");
+                    : commandLine.Last().Equals(';') ? commandLine : $"{commandLine};");
+            _jobTaskBuilder.Append('\'');
         }
         #endregion
     }

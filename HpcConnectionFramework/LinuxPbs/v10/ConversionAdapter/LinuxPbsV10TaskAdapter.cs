@@ -170,7 +170,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             set
             {
                 if (value)
-                    taskSource += " -l place=free:excl"; //" -W x=NACCESSPOLICY:SINGLEJOB";
+                    taskSource += " -l place=free:excl";
             }
         }
 
