@@ -22,11 +22,29 @@ namespace HEAppE.RestApi.InputValidator
                 EndDataTransferModel model => ValidateEndDataTransferModel(model),
                 HttpGetToJobNodeModel model => ValidateHttpGetToJobNodeModel(model),
                 HttpPostToJobNodeModel model => ValidateHttpPostToJobNodeModel(model),
-                //TODO ,ReadDataFromJobNodeModel, WriteDataToJobNodeModel
+                ReadDataFromJobNodeModel model => ValidateReadDataFromJobNodeModel(model),
+                //TODO ,, WriteDataToJobNodeModel
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateReadDataFromJobNodeModel(ReadDataFromJobNodeModel model)
+        {
+            ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
+
+            if (string.IsNullOrEmpty(model.IpAddress))//todo: implement regex for IP
+            {
+                _messageBuilder.AppendLine("IpAddress must be set");
+            }
+
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
         }
 
         private string ValidateHttpPostToJobNodeModel(HttpPostToJobNodeModel model)
