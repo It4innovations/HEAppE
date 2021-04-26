@@ -21,11 +21,45 @@ namespace HEAppE.RestApi.InputValidator
                 GetDataTransferMethodModel model => ValidateGetDataTransferMethodModel(model),
                 EndDataTransferModel model => ValidateEndDataTransferModel(model),
                 HttpGetToJobNodeModel model => ValidateHttpGetToJobNodeModel(model),
-                //TODO HttpPostToJobNodeModel,ReadDataFromJobNodeModel, WriteDataToJobNodeModel
+                HttpPostToJobNodeModel model => ValidateHttpPostToJobNodeModel(model),
+                //TODO ,ReadDataFromJobNodeModel, WriteDataToJobNodeModel
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateHttpPostToJobNodeModel(HttpPostToJobNodeModel model)
+        {
+            if (string.IsNullOrEmpty(model.HttpRequest))
+            {
+                _messageBuilder.AppendLine("HttpRequest must be set");
+            }
+
+            if(model.HttpHeaders.Any(string.IsNullOrEmpty))
+            {
+                _messageBuilder.AppendLine("HttpHeader cannot be empty");
+            }
+
+            if (string.IsNullOrEmpty(model.HttpPayload))
+            {
+                _messageBuilder.AppendLine("HttpPayload must be set");
+            }
+
+            ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
+
+            if (string.IsNullOrEmpty(model.IpAddress))//todo: implement regex for IP
+            {
+                _messageBuilder.AppendLine("IpAddress must be set");
+            }
+
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            return _messageBuilder.ToString();
         }
 
         private string ValidateHttpGetToJobNodeModel(HttpGetToJobNodeModel validationObj)
