@@ -98,7 +98,10 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("Offset must be positive number");
             }
 
-            //TODO check enum
+            if (!taskFileOffset.FileType.HasValue)
+            {
+                _messageBuilder.AppendLine($"Protocol must be set");
+            }
             return _messageBuilder.ToString();
         }
 
@@ -117,7 +120,7 @@ namespace HEAppE.RestApi.InputValidator
 
             if (string.IsNullOrEmpty(fileTransferMethod.SharedBasepath))
             {
-                _messageBuilder.AppendLine("SharedBasepath cannot be empty");
+                _messageBuilder.AppendLine("SharedBasePath cannot be empty");
             }
             else
             {
@@ -127,7 +130,11 @@ namespace HEAppE.RestApi.InputValidator
                     _messageBuilder.AppendLine(pathValidator.Message);
                 }
             }
-            //TODO Validation enum (check value for non-exist value)
+
+            if (!fileTransferMethod.Protocol.HasValue)
+            {
+                _messageBuilder.AppendLine($"Protocol must be set");
+            }
 
             return _messageBuilder.ToString();
         }
