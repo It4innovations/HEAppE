@@ -17,7 +17,9 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = string.Empty;
             if(_validationObject is string validationObject)
+            {
                 message = ValidateSessionCode(validationObject);
+            }
             return new ValidationResult(string.IsNullOrEmpty(message), message);
         }
 
@@ -29,12 +31,17 @@ namespace HEAppE.RestApi.InputValidator
         protected string ValidateSessionCode(string sessionCode)
         {
             if (string.IsNullOrEmpty(sessionCode))
+            {
                 _messageBuilder.AppendLine("SessionCode cannot be empty.");
+            }
             else if (!IsSessionCode(sessionCode))
+            {
                 _messageBuilder.AppendLine("SessionCode has wrong format.");
+            }
             else if (ContainsIllegalCharacters(sessionCode))
-                _messageBuilder.AppendLine("SesssionCode contains illegal characters.");
-
+            {
+                _messageBuilder.AppendLine("SessionCode contains illegal characters.");
+            }
             return _messageBuilder.ToString();
         }
     }

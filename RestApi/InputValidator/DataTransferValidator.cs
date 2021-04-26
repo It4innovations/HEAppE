@@ -31,13 +31,19 @@ namespace HEAppE.RestApi.InputValidator
         private string ValidateHttpGetToJobNodeModel(HttpGetToJobNodeModel validationObj)
         {
             if (string.IsNullOrEmpty(validationObj.IpAddress))//todo: implement regex for IP
+            {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
 
             if (string.IsNullOrEmpty(validationObj.HttpRequest))//todo: implement regex for HttpRequest
+            {
                 _messageBuilder.AppendLine("HttpRequest must be set");
+            }
 
             if(validationObj.HttpHeaders.Length == 0)
+            {
                 _messageBuilder.AppendLine("HttpHeader must be set");
+            }
 
             if (validationObj.HttpHeaders.Any(httpHeader => string.IsNullOrEmpty(httpHeader)))
             {
@@ -71,7 +77,9 @@ namespace HEAppE.RestApi.InputValidator
         private string ValidateGetDataTransferMethodModel(GetDataTransferMethodModel validationObj)
         {
             if (string.IsNullOrEmpty(validationObj.IpAddress))//todo: implement regex for IP (IPv4 and IPv6)
+            {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
 
             if (validationObj.Port <= 0)
             {
@@ -92,10 +100,14 @@ namespace HEAppE.RestApi.InputValidator
         private string ValidateDataTransferMethodExt(DataTransferMethodExt dataTransferMethodExt)
         {
             if (string.IsNullOrEmpty(dataTransferMethodExt.IpAddress))//todo: implement regex for IP
+            {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
 
             if (dataTransferMethodExt.Port <= 0)
+            {
                 _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("Port"));
+            }
 
             ValidateId(dataTransferMethodExt.SubmittedJobId, nameof(dataTransferMethodExt.SubmittedJobId));
 

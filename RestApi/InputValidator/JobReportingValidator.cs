@@ -34,7 +34,9 @@ namespace HEAppE.RestApi.InputValidator
 
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
             if (!validationResult.IsValid)
+            {
                 _messageBuilder.AppendLine(validationResult.Message);
+            }
 
             return _messageBuilder.ToString();
         }
@@ -44,12 +46,16 @@ namespace HEAppE.RestApi.InputValidator
             ValidateId(validationObj.UserId, nameof(validationObj.UserId));
 
             if (validationObj.StartTime > validationObj.EndTime)
+            {
                 _messageBuilder.AppendLine("StartTime must be before EndTime");
+            }
 
             //TODO check if possible send without some of Date
 
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
-            _messageBuilder.AppendLine(validationResult.Message);
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
 
             return _messageBuilder.ToString();
         }

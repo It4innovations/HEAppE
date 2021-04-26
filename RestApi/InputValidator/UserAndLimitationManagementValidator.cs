@@ -34,7 +34,9 @@ namespace HEAppE.RestApi.InputValidator
         {
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
             if (!validationResult.IsValid)
+            {
                 _messageBuilder.AppendLine(validationResult.Message);
+            }
             return _messageBuilder.ToString();
         }
 
@@ -42,7 +44,9 @@ namespace HEAppE.RestApi.InputValidator
         {
             ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
             if (!validationResult.IsValid)
+            {
                 _messageBuilder.AppendLine(validationResult.Message);
+            }
             return _messageBuilder.ToString();
         }
 
@@ -50,7 +54,9 @@ namespace HEAppE.RestApi.InputValidator
         {
             ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
             if (!validationResult.IsValid)
+            {
                 _messageBuilder.AppendLine(validationResult.Message);
+            }
             return _messageBuilder.ToString();
         }
 
@@ -58,7 +64,9 @@ namespace HEAppE.RestApi.InputValidator
         {
             ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
             if (!validationResult.IsValid)
+            {
                 _messageBuilder.AppendLine(validationResult.Message);
+            }
             return _messageBuilder.ToString();
         }
     }
