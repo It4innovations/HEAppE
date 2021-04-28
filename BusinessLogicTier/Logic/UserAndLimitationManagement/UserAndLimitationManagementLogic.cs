@@ -187,9 +187,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>New or existing user.</returns>
         private AdaptorUser HandleOpenIdAuthentication(OpenIdCredentials openIdCredentials)
         {
-            if (string.IsNullOrWhiteSpace(openIdCredentials.OpenIdAccessToken) || string.IsNullOrWhiteSpace(openIdCredentials.OpenIdRefreshToken))
+            if (string.IsNullOrWhiteSpace(openIdCredentials.OpenIdAccessToken))
             {
-                string error = "Empty access_token or refresh_token in HandleOpenIdAuthentication.";
+                string error = "Empty access_token in HandleOpenIdAuthentication.";
                 log.Error(error);
                 throw new OpenIdAuthenticationException(error);
             }
@@ -199,24 +199,23 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             OpenIdUserAuthenticationResult refreshedUser;
             try
             {
+               keycloak.TokenIntrospection(openIdCredentials.OpenIdAccessToken);
+               keycloak.ExchangeToken(openIdCredentials.OpenIdAccessToken);
+                //keycloak.GetUserInfo("");
                 // Refresh the access token to check the validity of provided tokens and to generate new fresh access_token.
-                refreshedUser = keycloak.RefreshAccessToken(openIdCredentials.OpenIdRefreshToken);
+                //refreshedUser = keycloak.RefreshAccessToken(openIdCredentials.OpenIdRefreshToken);
             }
             catch (KeycloakOpenIdException keycloakException)
             {
-                log.Error($"Failed to refresh OpenId token. access_token='{openIdCredentials.OpenIdAccessToken}'; refresh_token='{openIdCredentials.OpenIdRefreshToken}'", keycloakException);
+                log.Error($"Failed to refresh OpenId token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
                 throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Unable to refresh provided keycloak credentials.", keycloakException);
             }
 
             DecodedAccessToken decodedAccessToken;
             try
             {
-                decodedAccessToken = keycloak.VerifyAccessTokensMatchAndExtractToken(originalAccessToken: openIdCredentials.OpenIdAccessToken, refreshedAccessToken: refreshedUser.AccessToken);
-            }
-            catch (KeycloakOpenIdException keycloakException)
-            {
-                log.Error("Invalid OpenId tokens. Access token don't match the refreshed access token.", keycloakException);
-                throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Failed to match original and refreshed access tokens.", keycloakException);
+                decodedAccessToken = JwtTokenDecoder.Decode("offline_token");
+             
             }
             catch (JwtDecodeException decodeException)
             {
@@ -224,7 +223,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Failed to decode the access token.", decodeException);
             }
 
-            return GetOrRegisterNewOpenIdUser(decodedAccessToken);
+            return null;
+            //return GetOrRegisterNewOpenIdUser(decodedAccessToken);
         }
 
         private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, DecodedAccessToken decodedAccessToken)

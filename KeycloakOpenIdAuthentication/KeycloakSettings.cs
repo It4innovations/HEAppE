@@ -1,30 +1,48 @@
 ﻿namespace HEAppE.KeycloakOpenIdAuthentication
 {
+    /// <summary>
+    /// KeyCloak settings
+    /// </summary>
     public class KeycloakSettings
     {
         /// <summary>
-        /// Keycloak server base url.
+        /// Base URL
         /// </summary>
         public static string BaseUrl { get; set; }
+
         /// <summary>
-        /// Keycloak client id/name.
-        /// </summary>
-        public static string ClientId { get; set; }
-        /// <summary>
-        /// Keycloak client protocol.
+        /// Client protocol
         /// </summary>
         public static string Protocol { get; set; }
+
         /// <summary>
-        /// Group name in HeAppE database.
-        /// </summary>
-        public static string HEAppEGroupName { get; set; }
-        /// <summary>
-        /// Keycloak realm name.
+        /// Realm name
         /// </summary>
         public static string RealmName { get; set; }
+
         /// <summary>
-        /// Home organization.
+        /// Client id/name
+        /// </summary>
+        public static string ClientId { get; set; }
+
+        /// <summary>
+        /// Client Secret
+        /// </summary>
+        public static string SecretId { get; set; }
+
+        /// <summary>
+        /// Home organization
         /// </summary>
         public static string Organization { get; set; }
+
+        /// <summary>
+        /// User prefix in HEAppE DB
+        /// </summary>
+        public static string HEAppEUserPrefix { get; set; }
+
+        /// <summary>
+        /// Group name in HEAppE DB
+        /// </summary>
+        public static string HEAppEGroupName { get; set; }
     }
 }

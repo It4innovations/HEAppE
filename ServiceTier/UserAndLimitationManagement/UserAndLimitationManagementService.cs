@@ -49,7 +49,6 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     credentialsIn = new OpenIdCredentials
                     {
                         OpenIdAccessToken = openIdCredentials.OpenIdAccessToken,
-                        OpenIdRefreshToken = openIdCredentials.OpenIdRefreshToken
                     };
                 }
                 else
@@ -84,8 +83,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
                     var appCreds = userLogic.AuthenticateUserToOpenStack(new OpenIdCredentials
                     {
-                        OpenIdAccessToken = openIdCredentials.OpenIdAccessToken,
-                        OpenIdRefreshToken = openIdCredentials.OpenIdRefreshToken
+                        OpenIdAccessToken = openIdCredentials.OpenIdAccessToken
                     });
 
                     return appCreds.ConvertIntToExt();

@@ -192,26 +192,6 @@ namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
         }
 
         /// <summary>
-        /// Check that the base claims (iss, sub, azp, email, preferred_username) of both tokens match.
-        /// </summary>
-        /// <param name="refreshed">Refreshed access token.</param>
-        /// <returns>True if base claims matches.</returns>
-        internal bool BaseClaimsMatch(DecodedAccessToken refreshed)
-        {
-            var refreshedToken = refreshed._token;
-            if (_token.Issuer != refreshedToken.Issuer)
-                return false;
-            if (_token.Subject != refreshedToken.Subject)
-                return false;
-            if (AuthorizedParty != refreshed.AuthorizedParty)
-                return false;
-            if (PreferedUsername != refreshed.PreferedUsername || Email != refreshed.Email)
-                return false;
-
-            return true;
-        }
-
-        /// <summary>
         /// Check if user has write right to project.
         /// </summary>
         /// <param name="project">Project name.</param>

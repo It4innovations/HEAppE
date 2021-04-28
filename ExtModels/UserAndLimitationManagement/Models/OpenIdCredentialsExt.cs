@@ -13,16 +13,9 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
         [DataMember(Name = nameof(OpenIdAccessToken))]
         public string OpenIdAccessToken { get; set; }
         
-        /// <summary>
-        /// OpenId refresh token.
-        /// </summary>
-        [Required]
-        [DataMember(Name = nameof(OpenIdRefreshToken))]
-        public string OpenIdRefreshToken { get; set; }
-
         public override string ToString()
         {
-            return $"OpenIdCredentialsExt({base.ToString()}; access_token='{OpenIdAccessToken}'; refresh_token='{OpenIdRefreshToken}')";
+            return $"OpenIdCredentialsExt({base.ToString()}; access_token='{OpenIdAccessToken}')";
         }
     }
 }
