@@ -19,13 +19,31 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = _validationObject switch
             {
-                //TODO ListAdaptorUserGroupsView, GetUserGroupResourceUsageReportModel
+                
                 GetUserResourceUsageReportModel model => ValidateGetUserResourceUsageReportModel(model),
                 GetResourceUsageReportForJobModel model => ValidateGetResourceUsageReportForJobModel(model),
+                GetUserGroupResourceUsageReportModel model => ValidateGetUserGroupResourceUsageReportModel(model),
+                //TODO ListAdaptorUserGroupsView? does not exist ListAdaptorUserGroupsView view => ValidateListAdaptorUserGroupsView(view)
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateGetUserGroupResourceUsageReportModel(GetUserGroupResourceUsageReportModel model)
+        {
+            ValidateId(model.GroupId, nameof(model.GroupId));
+            if (model.StartTime > model.EndTime)
+            {
+                _messageBuilder.AppendLine("StartTime must be before EndTime");
+            }
+            ValidationResult validationResult = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+
+            return validationResult.ToString();
         }
 
         private string ValidateGetResourceUsageReportForJobModel(GetResourceUsageReportForJobModel validationObj)
