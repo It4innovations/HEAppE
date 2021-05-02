@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -13,10 +14,10 @@ namespace HEAppE.RestApiModels.JobManagement
         [DataMember(Name = "CreatedJobInfoId")]
         public long CreatedJobInfoId { get; set; }
 
-        [DataMember(Name = "SessionCode")]
+        [DataMember(Name = "SessionCode"), StringLength(50)]
         public string SessionCode { get; set; }
 
-        [DataMember(Name = "TempSessionCode")]
+        [DataMember(Name = "TempSessionCode"), StringLength(50)]
         public string TempSessionCode { get; set; }
     }
 }

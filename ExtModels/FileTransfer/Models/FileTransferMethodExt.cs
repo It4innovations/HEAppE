@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.FileTransfer.Models
@@ -9,7 +10,7 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         [DataMember(Name = "ServerHostname")]
         public string ServerHostname { get; set; }
 
-        [DataMember(Name = "SharedBasepath")]
+        [DataMember(Name = "SharedBasepath"), StringLength(50)]
         public string SharedBasepath { get; set; }
 
         [DataMember(Name = "Protocol")]

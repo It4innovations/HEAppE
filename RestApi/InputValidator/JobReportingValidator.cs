@@ -37,6 +37,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("StartTime must be before EndTime");
             }
+
             ValidationResult validationResult = new SessionCodeValidator(model.SessionCode).Validate();
             if (!validationResult.IsValid)
             {
@@ -69,6 +70,7 @@ namespace HEAppE.RestApi.InputValidator
             }
 
             //TODO check if possible send without some of Date
+            //result => Yes it is possible (date will be {01.01.0001 0:00:00})
 
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
             {

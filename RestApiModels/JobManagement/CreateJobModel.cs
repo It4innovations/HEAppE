@@ -1,6 +1,7 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -14,7 +15,7 @@ namespace HEAppE.RestApiModels.JobManagement
         [DataMember(Name = "JobSpecification")]
         public JobSpecificationExt JobSpecification { get; set; }
 
-        [DataMember(Name = "SessionCode")]
+        [DataMember(Name = "SessionCode"), StringLength(50)]
         public string SessionCode { get; set; }
     }
 }

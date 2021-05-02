@@ -1,6 +1,7 @@
 ﻿using HEAppE.ExtModels.FileTransfer.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
@@ -17,7 +18,7 @@ namespace HEAppE.RestApiModels.FileTransfer
         [DataMember(Name = "TaskFileOffsets")]
         public TaskFileOffsetExt[] TaskFileOffsets { get; set; }
 
-        [DataMember(Name = "SessionCode")]
+        [DataMember(Name = "SessionCode"), StringLength(50)]
         public string SessionCode { get; set; }
     }
 }

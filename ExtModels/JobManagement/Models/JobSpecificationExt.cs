@@ -7,12 +7,10 @@ namespace HEAppE.ExtModels.JobManagement.Models
     [DataContract(Name = "JobSpecificationExt")]
     public class JobSpecificationExt
     {
-        [DataMember(Name = "Name")]
-        //TODO
-        [StringLength(50)]
+        [DataMember(Name = "Name"), StringLength(50)]
         public string Name { get; set; }
 
-        [DataMember(Name = "Project")]
+        [DataMember(Name = "Project"), StringLength(50)]
         public string Project { get; set; }
 
         [DataMember(Name = "WaitingLimit")]
@@ -21,10 +19,10 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "WalltimeLimit")]
         public int? WalltimeLimit { get; }
 
-        [DataMember(Name = "NotificationEmail")]
+        [DataMember(Name = "NotificationEmail"), StringLength(50)]
         public string NotificationEmail { get; set; }
 
-        [DataMember(Name = "PhoneNumber")]
+        [DataMember(Name = "PhoneNumber"), StringLength(20)]
         public string PhoneNumber { get; set; }
 
         [DataMember(Name = "NotifyOnAbort")]
