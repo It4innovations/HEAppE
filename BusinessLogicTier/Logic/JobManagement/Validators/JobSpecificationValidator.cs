@@ -46,17 +46,23 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 //Validation cluster in tasks
                 if (job.Tasks[i].CommandTemplate.ClusterNodeType.Cluster.Id != job.Cluster.Id)
                 {
-                    _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same HPC Cluster as job \"{job.Name}\".");
+                    _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same HPC Cluster as job " +
+                                               $"\"{job.Name}\".");
                 }
 
                 if (job.FileTransferMethodId != job.Tasks[i].CommandTemplate.ClusterNodeType.FileTransferMethodId)
                 {
-                    _messageBuilder.AppendLine($"Command template \"{job.Tasks[i].CommandTemplate.Id}\" for task \"{job.Tasks[i].Name}\" has different file transfer method \"{ job.Tasks[i].CommandTemplate.ClusterNodeType.FileTransferMethodId}\" than job file transfer method \"{job.FileTransferMethodId}\".");
+                    _messageBuilder.AppendLine($"Command template \"{job.Tasks[i].CommandTemplate.Id}\" for task " +
+                                               $"\"{job.Tasks[i].Name}\" has different file transfer method " +
+                                               $"\"{ job.Tasks[i].CommandTemplate.ClusterNodeType.FileTransferMethodId}\" " +
+                                               $"than job file transfer method \"{job.FileTransferMethodId}\".");
                 }
 
                 if (job.Tasks[i].CommandTemplate.ClusterNodeType.Id != job.Tasks[i].ClusterNodeTypeId)
                 {
-                    _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same ClusterNodeTypeId \"{job.Tasks[i].ClusterNodeTypeId}\" which is defined in CommandTemplate (ClusterNodeTypeId=\"{job.Tasks[i].CommandTemplate.ClusterNodeType.Id}\").");
+                    _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same ClusterNodeTypeId " +
+                                               $"\"{job.Tasks[i].ClusterNodeTypeId}\" which is defined in CommandTemplate " +
+                                               $"(ClusterNodeTypeId=\"{job.Tasks[i].CommandTemplate.ClusterNodeType.Id}\").");
                 }
 
 
@@ -68,7 +74,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                         if (dependTask.TaskSpecification == dependTask.ParentTaskSpecification)
                         {
                             //Inself reference
-                            _messageBuilder.AppendLine($"Depending task \"{dependTask.TaskSpecification.Name}\" for task \"{job.Tasks[i].Name}\" references inself.");
+                            _messageBuilder.AppendLine($"Depending task \"{dependTask.TaskSpecification.Name}\" for task " +
+                                                       $"\"{job.Tasks[i].Name}\" references inself.");
                         }
 
                         var prevTask = prevTasks.Where(w => ReferenceEquals(w, dependTask.ParentTaskSpecification)).FirstOrDefault();
@@ -79,7 +86,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                         else
                         {
                             //Same dependency
-                            _messageBuilder.AppendLine($"Depending task \"{dependTask.ParentTaskSpecification.Name}\" for task \"{job.Tasks[i].Name}\" twice same reference.");
+                            _messageBuilder.AppendLine($"Depending task \"{dependTask.ParentTaskSpecification.Name}\" for task " +
+                                                       $"\"{job.Tasks[i].Name}\" twice same reference.");
                         }
 
                         bool previousTask = false;
@@ -94,7 +102,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                         if (!previousTask)
                         {
                             //Circular dependency
-                            _messageBuilder.AppendLine($"Depending task \"{dependTask.ParentTaskSpecification.Name}\" for task \"{job.Tasks[i].Name}\" can reference only on previous task.");
+                            _messageBuilder.AppendLine(
+                                $"Depending task \"{dependTask.ParentTaskSpecification.Name}\" for task \"{job.Tasks[i].Name}\" " +
+                                $"can reference only on previous task.");
                         }
                     }
                 }
@@ -110,6 +120,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 {
                     _messageBuilder.AppendLine($"Command Template parameter \"{parameter.Identifier}\" does not have a value.");
                 }
+            }
+
+            if (task.ClusterNodeTypeId != task.CommandTemplate.ClusterNodeTypeId)
+            {
+                _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
             }
         }
         #endregion
