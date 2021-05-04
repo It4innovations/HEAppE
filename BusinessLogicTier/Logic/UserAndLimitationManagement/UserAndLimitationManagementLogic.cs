@@ -20,6 +20,7 @@ using HEAppE.KeycloakOpenIdAuthentication.Exceptions;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
+using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
@@ -94,24 +95,19 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new AuthenticatedUserAlreadyDeletedException(deletedUserError);
             }
 
-            if (credentials is DigitalSignatureCredentials)
+            switch (credentials)
             {
-                return AuthenticateUserWithDigitalSignature(user, (DigitalSignatureCredentials)credentials);
+                case DigitalSignatureCredentials:
+                    return AuthenticateUserWithDigitalSignature(user, (DigitalSignatureCredentials)credentials);
+                case PasswordCredentials:
+                    return AuthenticateUserWithPassword(user, (PasswordCredentials)credentials);
+                case OpenIdCredentials:
+                    // NOTE(Moravec): We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
+                    return CreateSessionCode(user).UniqueCode;
             }
 
-            if (credentials is PasswordCredentials)
-            {
-                return AuthenticateUserWithPassword(user, (PasswordCredentials)credentials);
-            }
-
-            if (credentials is OpenIdCredentials)
-            {
-                // NOTE(Moravec): We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
-                return CreateSessionCode(user).UniqueCode;
-            }
-
-            string unsupportedCredentialsError =
-                $"Credentials of class {credentials.GetType().Name} are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
+            string unsupportedCredentialsError = $"Credentials of class {credentials.GetType().Name} are not supported. Change the UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser()" +
+                                                 $" method to add support for additional credential types.";
             log.Error(unsupportedCredentialsError);
             throw new ArgumentException(unsupportedCredentialsError);
         }
@@ -195,41 +191,29 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
 
             KeycloakOpenId keycloak = new KeycloakOpenId();
-
-            OpenIdUserAuthenticationResult refreshedUser;
             try
             {
-               keycloak.TokenIntrospection(openIdCredentials.OpenIdAccessToken);
-               keycloak.ExchangeToken(openIdCredentials.OpenIdAccessToken);
-                //keycloak.GetUserInfo("");
-                // Refresh the access token to check the validity of provided tokens and to generate new fresh access_token.
-                //refreshedUser = keycloak.RefreshAccessToken(openIdCredentials.OpenIdRefreshToken);
+                var tokenIntrospectResult = keycloak.TokenIntrospection(openIdCredentials.OpenIdAccessToken);
+                keycloak.ValidateUserToken(tokenIntrospectResult);
+
+                var tt = keycloak.ExchangeToken(openIdCredentials.OpenIdAccessToken);
+                string offline_token = tt.AccessToken;
+
+                var userInfo = keycloak.GetUserInfo(offline_token);
+
+                var username = keycloak.CreateOpenIdUsernameForHEAppE(userInfo);
+                return GetOrRegisterNewOpenIdUser("");
             }
             catch (KeycloakOpenIdException keycloakException)
             {
                 log.Error($"Failed to refresh OpenId token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
                 throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Unable to refresh provided keycloak credentials.", keycloakException);
             }
-
-            DecodedAccessToken decodedAccessToken;
-            try
-            {
-                decodedAccessToken = JwtTokenDecoder.Decode("offline_token");
-             
-            }
-            catch (JwtDecodeException decodeException)
-            {
-                log.Error("Failed to decode JWT token.", decodeException);
-                throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Failed to decode the access token.", decodeException);
-            }
-
-            return null;
-            //return GetOrRegisterNewOpenIdUser(decodedAccessToken);
         }
 
-        private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, DecodedAccessToken decodedAccessToken)
+        private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user)//, DecodedAccessToken decodedAccessToken)
         {
-            if (!TryGetUserGroupByName(KeycloakSettings.HEAppEGroupName, out var keycloakGroup))
+            if (!TryGetUserGroupByName(KeycloakConfiguration.HEAppEGroupName, out var keycloakGroup))
             {
                 throw new OpenIdAuthenticationException("Keycloak group doesn't exist. Keycloak user's group and roles can't be synchronized.");
             }
@@ -245,28 +229,28 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 log.Info($"User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
             }
 
-            List<AdaptorUserRole> userRoles = new List<AdaptorUserRole>(3);
-            if (decodedAccessToken.CanListProject(keycloakGroup.AccountingString))
-            {
-                userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetListRole());
-            }
-            if (decodedAccessToken.CanReadProject(keycloakGroup.AccountingString))
-            {
-                userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetReadRole());
-            }
-            if (decodedAccessToken.CanWriteProject(keycloakGroup.AccountingString))
-            {
-                userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetWriteRole());
-            }
-            bool differentRoles = user.AdaptorUserUserRoles.Count != userRoles.Count;
-            if (!SetUserRoles(user, userRoles))
-            {
-                throw new OpenIdAuthenticationException("Failed to set user roles. Check the log for details.");
-            }
-            if (differentRoles)
-            {
-                log.Info($"User '{user.Username}' has new roles: '{string.Join(",", userRoles.Select(role => role.Name))}'");
-            }
+           List<AdaptorUserRole> userRoles = new List<AdaptorUserRole>(3);
+            //if (decodedAccessToken.CanListProject(keycloakGroup.AccountingString))
+            //{
+            //    userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetListRole());
+            //}
+            //if (decodedAccessToken.CanReadProject(keycloakGroup.AccountingString))
+            //{
+            //    userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetReadRole());
+            //}
+            //if (decodedAccessToken.CanWriteProject(keycloakGroup.AccountingString))
+            //{
+            //    userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetWriteRole());
+            //}
+            //bool differentRoles = user.AdaptorUserUserRoles.Count != userRoles.Count;
+            //if (!SetUserRoles(user, userRoles))
+            //{
+            //    throw new OpenIdAuthenticationException("Failed to set user roles. Check the log for details.");
+            //}
+            //if (differentRoles)
+            //{
+            //    log.Info($"User '{user.Username}' has new roles: '{string.Join(",", userRoles.Select(role => role.Name))}'");
+            //}
 
         }
 
@@ -275,15 +259,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// </summary>
         /// <param name="decodedAccessToken">Decoded OpenId access token.</param>
         /// <returns>Newly created or existing HEAppE account.</returns>
-        private AdaptorUser GetOrRegisterNewOpenIdUser(DecodedAccessToken decodedAccessToken)
+        private AdaptorUser GetOrRegisterNewOpenIdUser(string openIdUserName)
         {
-            var openIdUserName = KeycloakOpenId.CreateOpenIdUsernameForHEAppE(decodedAccessToken);
             lock (_lockCreateUserObj)
             {
                 AdaptorUser userAccount = unitOfWork.AdaptorUserRepository.GetByName(openIdUserName);
                 if (userAccount is not null)
                 {
-                    SynchonizeKeycloakUserGroupAndRoles(userAccount, decodedAccessToken);
+                    SynchonizeKeycloakUserGroupAndRoles(userAccount);
                     return userAccount;
                 }
                 else
@@ -302,7 +285,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
                     AdaptorUser user = unitOfWork.AdaptorUserRepository.GetByName(openIdUserName);
                     System.Diagnostics.Debug.Assert(user is not null, "User was just created and can't be null");
-                    SynchonizeKeycloakUserGroupAndRoles(user, decodedAccessToken);
+                    SynchonizeKeycloakUserGroupAndRoles(user);
                     return user;
                 }
             }
@@ -316,17 +299,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>True if group is found.</returns>
         private bool TryGetUserGroupByName(string groupName, out AdaptorUserGroup userGroup)
         {
-            try
-            {
-                userGroup = unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(groupName);
-                return true;
-            }
-            catch (InvalidOperationException e)
-            {
-                userGroup = null;
-                log.Error($"Failed to retrieve group '{groupName}' from database by its unique name.", e);
-                return false;
-            }
+            userGroup = unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(groupName);
+            return userGroup is not null;
         }
 
         /// <summary>
@@ -346,14 +320,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             try
             {
                 unitOfWork.Save();
+                return true;
             }
             catch (Exception e)
             {
                 log.Error("Failed to add user to group.", e);
                 return false;
             }
-
-            return true;
         }
 
         /// <summary>

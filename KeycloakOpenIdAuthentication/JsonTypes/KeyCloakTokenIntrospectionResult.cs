@@ -6,13 +6,13 @@ namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
     /// <summary>
     /// KeyCloak Extension for token introspection result
     /// </summary>
-    public sealed class KeyCloakTokenIntrospectionResult : TokenIntrospectionResult
+    public sealed class KeycloakTokenIntrospectionResult : TokenIntrospectionResult
     {
         /// <summary>
         /// Type of the token, set to Bearer.
         /// </summary>
         [JsonProperty("typ")]
-        private string Typ { set { TokenType = value; } get { return TokenType; } }
+        private string Typ { get { return TokenType; }set { TokenType = value; }  }
 
         /// <summary>
         /// Authorized Party - the party to which the ID Token was issued.

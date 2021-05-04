@@ -1,10 +1,13 @@
-﻿namespace HEAppE.KeycloakOpenIdAuthentication
+﻿using System.Collections.Generic;
+
+namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
 {
     /// <summary>
     /// KeyCloak settings
     /// </summary>
-    public class KeycloakSettings
+    public class KeycloakConfiguration
     {
+        #region Properties
         /// <summary>
         /// Base URL
         /// </summary>
@@ -44,5 +47,11 @@
         /// Group name in HEAppE DB
         /// </summary>
         public static string HEAppEGroupName { get; set; }
+
+        /// <summary>
+        /// Allowed client Ids
+        /// </summary>
+        public static IEnumerable<string> AllowedClientIds { get; set; } = new List<string>() { "LEXIS_ORCHESTRATOR_YORC", "LEXIS_DDI_STAGING_API", "LEXIS_ORCHESTRATOR_BUSINESS_LOGIC", "admin-cli" };
+        #endregion
     }
 }

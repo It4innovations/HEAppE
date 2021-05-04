@@ -1,5 +1,4 @@
 ﻿using HEAppE.DataAccessTier;
-using HEAppE.KeycloakOpenIdAuthentication;
 using log4net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +18,7 @@ using Microsoft.Extensions.Hosting;
 using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Http;
 using HEAppE.FileTransferFramework;
+using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 
 namespace HEAppE.RestApi
 {
@@ -73,7 +73,7 @@ namespace HEAppE.RestApi
             var middlewareContextSettings = new MiddlewareContextSettings();
             Configuration.Bind("MiddlewareContextSettings", middlewareContextSettings);
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
-            Configuration.Bind("KeycloakSettings", new KeycloakSettings());
+            Configuration.Bind("KeycloakSettings", new KeycloakConfiguration());
             Configuration.Bind("OpenStackSettings", new OpenStackSettings());
 
             //CORS

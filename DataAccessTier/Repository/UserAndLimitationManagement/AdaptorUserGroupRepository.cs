@@ -19,13 +19,12 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         #region Methods
         public AdaptorUserGroup GetDefaultSubmitterGroup()
         {
-            return GetAll().Where(w => w.Name == _defaultGroupName)
-                         .FirstOrDefault();
+            return GetAll().FirstOrDefault(w => w.Name == _defaultGroupName);
         }
 
         public AdaptorUserGroup GetGroupByUniqueName(string groupName)
         {
-            return GetAll().Single(g => g.Name == groupName);
+            return GetAll().SingleOrDefault(g => g.Name == groupName);
         }
         #endregion
     }

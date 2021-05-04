@@ -6,12 +6,12 @@ namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
     /// <summary>
     /// KeyCloak extension for user info result
     /// </summary>
-    public sealed class KeyCloakUserInfoResult: UserInfoResult
+    public sealed class KeycloakUserInfoResult: UserInfoResult
     {
         /// <summary>
         /// UserAttributes
         /// </summary>
         [JsonProperty("attributes")]
-        public IEnumerable<string> Attributes { get; set; }
+        public AttributesResult Attributes { get; set; }
     }
 }
