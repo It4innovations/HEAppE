@@ -39,9 +39,13 @@ namespace HEAppE.RestApi.InputValidator
 
             ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
 
-            if (string.IsNullOrEmpty(model.IpAddress))//todo: implement regex for IP
+            if (string.IsNullOrEmpty(model.IpAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
+            else if(IsIpAddress(model.IpAddress))
+            {
+                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
 
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
@@ -57,9 +61,13 @@ namespace HEAppE.RestApi.InputValidator
         {
             ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
 
-            if (string.IsNullOrEmpty(model.IpAddress))//todo: implement regex for IP
+            if (string.IsNullOrEmpty(model.IpAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
+            else if (IsIpAddress(model.IpAddress))
+            {
+                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
 
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
@@ -89,9 +97,13 @@ namespace HEAppE.RestApi.InputValidator
 
             ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
 
-            if (string.IsNullOrEmpty(model.IpAddress))//todo: implement regex for IP
+            if (string.IsNullOrEmpty(model.IpAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
+            else if (IsIpAddress(model.IpAddress))
+            {
+                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
 
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
@@ -105,12 +117,16 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateHttpGetToJobNodeModel(HttpGetToJobNodeModel validationObj)
         {
-            if (string.IsNullOrEmpty(validationObj.IpAddress))//todo: implement regex for IP
+            if (string.IsNullOrEmpty(validationObj.IpAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
+            else if (IsIpAddress(validationObj.IpAddress))
+            {
+                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
+            }
 
-            if (string.IsNullOrEmpty(validationObj.HttpRequest))//todo: implement regex for HttpRequest
+            if (string.IsNullOrEmpty(validationObj.HttpRequest))
             {
                 _messageBuilder.AppendLine("HttpRequest must be set");
             }
@@ -151,9 +167,13 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateGetDataTransferMethodModel(GetDataTransferMethodModel validationObj)
         {
-            if (string.IsNullOrEmpty(validationObj.IpAddress))//todo: implement regex for IP (IPv4 and IPv6)
+            if (string.IsNullOrEmpty(validationObj.IpAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
+            else if (IsIpAddress(validationObj.IpAddress))
+            {
+                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
 
             if (validationObj.Port <= 0)
@@ -174,9 +194,13 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateDataTransferMethodExt(DataTransferMethodExt dataTransferMethodExt)
         {
-            if (string.IsNullOrEmpty(dataTransferMethodExt.IpAddress))//todo: implement regex for IP
+            if (string.IsNullOrEmpty(dataTransferMethodExt.IpAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
+            }
+            else if (IsIpAddress(dataTransferMethodExt.IpAddress))
+            {
+                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
 
             if (dataTransferMethodExt.Port <= 0)

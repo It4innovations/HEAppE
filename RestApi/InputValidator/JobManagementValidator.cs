@@ -156,7 +156,6 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateJobSpecificationExt(JobSpecificationExt job)
         {
-            //TODO validate VIA Attributes like at JobSpecificationExt
             if (string.IsNullOrEmpty(job.Name))
             {
                 _messageBuilder.AppendLine("Name cannot be empty.");

@@ -47,7 +47,7 @@ namespace HEAppE.Utils.Validation
         /// <returns></returns>
         protected static bool ContainsIllegalCharacters(string text)
         {
-            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \.]+");
+            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \.]+", RegexOptions.Compiled);
         }
 
         /// <summary>
@@ -57,7 +57,7 @@ namespace HEAppE.Utils.Validation
         /// <returns></returns>
         protected static bool ContainsIllegalCharactersForPath(string text)
         {
-            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \\\/\.]+");
+            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \\\/\.]+", RegexOptions.Compiled);
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace HEAppE.Utils.Validation
         /// <returns></returns>
         protected static bool IsPhoneNumber(string text)
         {
-            return Regex.IsMatch(text, @"^\+?[0-9\ ]+$");
+            return Regex.IsMatch(text, @"^\+?[0-9\ ]+$", RegexOptions.Compiled);
         }
 
         /// <summary>
@@ -77,7 +77,7 @@ namespace HEAppE.Utils.Validation
         /// <returns></returns>
         protected static bool IsEmailAddress(string text)
         {
-            return Regex.IsMatch(text, @"^[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+\.[a-zA-Z]{2,4}$");
+            return Regex.IsMatch(text, @"^[-0-9a-zA-Z.+_]+@[-0-9a-zA-Z.+_]+\.[a-zA-Z]{2,4}$", RegexOptions.Compiled);
         }
         #endregion
     }
