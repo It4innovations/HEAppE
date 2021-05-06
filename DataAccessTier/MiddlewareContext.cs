@@ -147,6 +147,7 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserRoles, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
             {
                 AuthenticationCredentials = c.AuthenticationCredentials,
@@ -222,19 +223,31 @@ namespace HEAppE.DataAccessTier
 
         private void AddOrUpdateItem<T>(T item) where T : class
         {
-            if (item is IdentifiableDbEntity identifiableItem)
+            switch (item)
             {
-                var entity = Set<T>().Find(identifiableItem.Id);
-                UpdateEntityOrAddItem(entity, item);
-            }
-            else if (item is AdaptorUserUserGroup userGroupItem)
-            {
-                var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId);
-                UpdateEntityOrAddItem(entity, item);
-            }
-            else
-            {
-                throw new ApplicationException("Seed entity is not supported.");
+                case IdentifiableDbEntity identifiableItem:
+                    {
+                        var entity = Set<T>().Find(identifiableItem.Id);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+
+                case AdaptorUserUserGroup userGroupItem:
+                    {
+                        var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+
+                case AdaptorUserUserRole userRoleItem:
+                    {
+                        var entity = Set<T>().Find(userRoleItem.AdaptorUserId, userRoleItem.AdaptorUserRoleId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+
+                default:
+                    throw new ApplicationException("Seed entity is not supported.");
             }
         }
 

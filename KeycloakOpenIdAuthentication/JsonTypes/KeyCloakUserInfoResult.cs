@@ -12,6 +12,6 @@ namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
         /// UserAttributes
         /// </summary>
         [JsonProperty("attributes")]
-        public AttributesResult Attributes { get; set; }
+        public AttributesResult Attributes { get; set; } = new AttributesResult();
     }
 }

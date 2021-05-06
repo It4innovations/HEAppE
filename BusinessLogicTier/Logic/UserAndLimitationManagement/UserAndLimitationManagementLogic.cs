@@ -123,12 +123,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             var user = HandleOpenIdAuthentication(openIdCredentials);
             log.Info($"Keycloak user {user.Username} wants to authenticate to the OpenStack.");
 
-            var writeRole = unitOfWork.AdaptorUserRoleRepository.GetWriteRole();
+            //var writeRole = unitOfWork.AdaptorUserRoleRepository.GetWriteRole();
             // Require write role.
-            if (!user.HasUserRole(writeRole))
-            {
-                throw InsufficientRoleException.CreateMissingRoleException(writeRole, user.Roles);
-            }
+            //if (!user.HasUserRole(writeRole))
+            //{
+            //    throw InsufficientRoleException.CreateMissingRoleException(writeRole, user.Roles);
+            //}
 
             // OpenStack part.
             return CreateNewOpenStackSession(user);
@@ -183,6 +183,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>New or existing user.</returns>
         private AdaptorUser HandleOpenIdAuthentication(OpenIdCredentials openIdCredentials)
         {
+            //TODO at REST API validation
             if (string.IsNullOrWhiteSpace(openIdCredentials.OpenIdAccessToken))
             {
                 string error = "Empty access_token in HandleOpenIdAuthentication.";
@@ -190,28 +191,25 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new OpenIdAuthenticationException(error);
             }
 
-            KeycloakOpenId keycloak = new KeycloakOpenId();
             try
             {
+                KeycloakOpenId keycloak = new KeycloakOpenId();
                 var tokenIntrospectResult = keycloak.TokenIntrospection(openIdCredentials.OpenIdAccessToken);
-                keycloak.ValidateUserToken(tokenIntrospectResult);
+                KeycloakOpenId.ValidateUserToken(tokenIntrospectResult);
 
-                var tt = keycloak.ExchangeToken(openIdCredentials.OpenIdAccessToken);
-                string offline_token = tt.AccessToken;
-
+                string offline_token = keycloak.ExchangeToken(openIdCredentials.OpenIdAccessToken).AccessToken;
                 var userInfo = keycloak.GetUserInfo(offline_token);
 
-                var username = keycloak.CreateOpenIdUsernameForHEAppE(userInfo);
-                return GetOrRegisterNewOpenIdUser("");
+                return GetOrRegisterNewOpenIdUser(userInfo.Convert());
             }
             catch (KeycloakOpenIdException keycloakException)
             {
-                log.Error($"Failed to refresh OpenId token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
-                throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Unable to refresh provided keycloak credentials.", keycloakException);
+                log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
+                throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", keycloakException);
             }
         }
 
-        private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user)//, DecodedAccessToken decodedAccessToken)
+        private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, UserOpenId openIdUser)
         {
             if (!TryGetUserGroupByName(KeycloakConfiguration.HEAppEGroupName, out var keycloakGroup))
             {
@@ -226,32 +224,36 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 {
                     throw new OpenIdAuthenticationException("Failed to assign user to the group. Check the log for details.");
                 }
-                log.Info($"User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
+
+                log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
             }
 
-           List<AdaptorUserRole> userRoles = new List<AdaptorUserRole>(3);
-            //if (decodedAccessToken.CanListProject(keycloakGroup.AccountingString))
-            //{
-            //    userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetListRole());
-            //}
-            //if (decodedAccessToken.CanReadProject(keycloakGroup.AccountingString))
-            //{
-            //    userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetReadRole());
-            //}
-            //if (decodedAccessToken.CanWriteProject(keycloakGroup.AccountingString))
-            //{
-            //    userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetWriteRole());
-            //}
-            //bool differentRoles = user.AdaptorUserUserRoles.Count != userRoles.Count;
-            //if (!SetUserRoles(user, userRoles))
-            //{
-            //    throw new OpenIdAuthenticationException("Failed to set user roles. Check the log for details.");
-            //}
-            //if (differentRoles)
-            //{
-            //    log.Info($"User '{user.Username}' has new roles: '{string.Join(",", userRoles.Select(role => role.Name))}'");
-            //}
+            if (!openIdUser.ProjectRoles.TryGetValue(KeycloakConfiguration.Project, out IEnumerable<string> openIdRoles))
+            {
+                throw new Exception("No roles for specific project is set");
+            }
 
+            var availableRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(openIdRoles).ToList();
+            var userRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
+
+            if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
+            {
+                user.AdaptorUserUserRoles = availableRoles.Select(s => new AdaptorUserUserRole
+                                                                            { 
+                                                                                AdaptorUserId = user.Id,
+                                                                                AdaptorUserRoleId = s.Id 
+                                                                            }).ToList();
+
+                try
+                {
+                    unitOfWork.Save();
+                    log.Info($"Open-Id: User '{user.Username}' has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
+                }
+                catch (Exception e)
+                {
+                    log.Error("Failed to set user roles.", e);
+                }
+            }
         }
 
         /// <summary>
@@ -259,35 +261,28 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// </summary>
         /// <param name="decodedAccessToken">Decoded OpenId access token.</param>
         /// <returns>Newly created or existing HEAppE account.</returns>
-        private AdaptorUser GetOrRegisterNewOpenIdUser(string openIdUserName)
+        private AdaptorUser GetOrRegisterNewOpenIdUser(UserOpenId openIdUser)
         {
             lock (_lockCreateUserObj)
             {
-                AdaptorUser userAccount = unitOfWork.AdaptorUserRepository.GetByName(openIdUserName);
-                if (userAccount is not null)
-                {
-                    SynchonizeKeycloakUserGroupAndRoles(userAccount);
-                    return userAccount;
-                }
-                else
+                AdaptorUser userAccount = unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+                if (userAccount is null)
                 {
                     // Create new Keycloak user account.
-                    AdaptorUser newKeycloakOpenIdUser = new AdaptorUser
+                    userAccount = new AdaptorUser
                     {
-                        Username = openIdUserName,
+                        Username = openIdUser.UserName,
                         Deleted = false,
                         Synchronize = false,
                     };
-                    unitOfWork.AdaptorUserRepository.Insert(newKeycloakOpenIdUser);
+
+                    unitOfWork.AdaptorUserRepository.Insert(userAccount);
                     unitOfWork.Save();
-                    log.Info($"Created new HEAppE account for Keycloak OpenId user: {openIdUserName}");
-
-
-                    AdaptorUser user = unitOfWork.AdaptorUserRepository.GetByName(openIdUserName);
-                    System.Diagnostics.Debug.Assert(user is not null, "User was just created and can't be null");
-                    SynchonizeKeycloakUserGroupAndRoles(user);
-                    return user;
+                    log.Info($"Open-Id: Created new HEAppE account for Keycloak OpenId user: '{userAccount}'");
                 }
+
+                SynchonizeKeycloakUserGroupAndRoles(userAccount, openIdUser);
+                return userAccount;
             }
         }
 
@@ -327,32 +322,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 log.Error("Failed to add user to group.", e);
                 return false;
             }
-        }
-
-        /// <summary>
-        /// Set new user roles. This will remove any role not present in the <paramref name="userRoles"/> list.
-        /// </summary>
-        /// <param name="user">User.</param>
-        /// <param name="userRoles">User roles.</param>
-        /// <returns>True if user roles were saved.</returns>
-        private bool SetUserRoles(AdaptorUser user, List<AdaptorUserRole> userRoles)
-        {
-            user.AdaptorUserUserRoles = userRoles.Select(role => new AdaptorUserUserRole
-            {
-                AdaptorUserId = user.Id,
-                AdaptorUserRoleId = role.Id
-            }).ToList();
-
-            try
-            {
-                unitOfWork.Save();
-            }
-            catch (Exception e)
-            {
-                log.Error("Failed to set user roles.", e);
-                return false;
-            }
-            return true;
         }
 
         private string AuthenticateUserWithDigitalSignature(AdaptorUser user, DigitalSignatureCredentials credentials)

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 
 namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
 {
@@ -34,6 +35,16 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
         public static string SecretId { get; set; }
 
         /// <summary>
+        /// Allowed client Ids
+        /// </summary>
+        public static IEnumerable<string> AllowedClientIds { get; set; }
+
+        /// <summary>
+        /// Mapping role from OpenId to HEAppE internal roles
+        /// </summary>
+        public static Dictionary<string,string> RoleMapping { get; set; }
+
+        /// <summary>
         /// Home organization
         /// </summary>
         public static string Organization { get; set; }
@@ -49,9 +60,10 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
         public static string HEAppEGroupName { get; set; }
 
         /// <summary>
-        /// Allowed client Ids
+        /// Temporary solution
+        /// Need to be rewriten!
         /// </summary>
-        public static IEnumerable<string> AllowedClientIds { get; set; } = new List<string>() { "LEXIS_ORCHESTRATOR_YORC", "LEXIS_DDI_STAGING_API", "LEXIS_ORCHESTRATOR_BUSINESS_LOGIC", "admin-cli" };
+        public static string Project { get; set; }
         #endregion
     }
 }

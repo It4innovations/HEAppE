@@ -19,7 +19,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         public AdaptorUser GetByName(string username)
         {
             return GetAll().Where(w => w.Username == username)
-                         .FirstOrDefault();
+                            .FirstOrDefault();
         }
         #endregion
     }
