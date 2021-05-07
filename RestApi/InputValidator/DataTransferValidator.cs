@@ -43,7 +43,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if(IsIpAddress(model.IpAddress))
+            else if(!IsIpAddress(model.IpAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -65,7 +65,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (IsIpAddress(model.IpAddress))
+            else if (!IsIpAddress(model.IpAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -101,7 +101,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (IsIpAddress(model.IpAddress))
+            else if (!IsIpAddress(model.IpAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -121,7 +121,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (IsIpAddress(validationObj.IpAddress))
+            else if (!IsIpAddress(validationObj.IpAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -171,7 +171,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (IsIpAddress(validationObj.IpAddress))
+            else if (!IsIpAddress(validationObj.IpAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -198,7 +198,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (IsIpAddress(dataTransferMethodExt.IpAddress))
+            else if (!IsIpAddress(dataTransferMethodExt.IpAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }

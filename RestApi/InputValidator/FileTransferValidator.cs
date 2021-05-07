@@ -116,7 +116,12 @@ namespace HEAppE.RestApi.InputValidator
             if (string.IsNullOrEmpty(fileTransferMethod.ServerHostname))
             {
                 _messageBuilder.AppendLine("ServerHostname cannot be empty");
-            } //Validace IP(vs 4,6) OR DNS
+            }
+            else if (!IsIpAddress(fileTransferMethod.ServerHostname) &&
+                     !IsDomainName(fileTransferMethod.ServerHostname))
+            {
+                _messageBuilder.AppendLine("ServerHostname has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
+            }
 
             if (string.IsNullOrEmpty(fileTransferMethod.SharedBasepath))
             {
