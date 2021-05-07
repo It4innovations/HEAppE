@@ -5,16 +5,12 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.FileTransfer
 {
     [DataContract(Name = "ListChangedFilesForJobModel")]
-    public class ListChangedFilesForJobModel
+    public class ListChangedFilesForJobModel : SubmittedJobInfoModel
     {
-        [DataMember(Name = "SubmittedJobInfoId")]
-        public long SubmittedJobInfoId { get; set; }
-
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
     }
 }

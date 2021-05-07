@@ -6,16 +6,15 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.DataTransfer
 {
     [DataContract(Name = "EndDataTransferModel")]
-    public class EndDataTransferModel
+    public class EndDataTransferModel : SessionCodeModel
     {
         [DataMember(Name = "UsedTransferMethod")]
         public DataTransferMethodExt UsedTransferMethod { get; set; }
 
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
     }
 }

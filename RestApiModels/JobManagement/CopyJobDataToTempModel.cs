@@ -5,18 +5,13 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobManagement
 {
     [DataContract(Name = "CopyJobDataToTempModel")]
-    public class CopyJobDataToTempModel
+    public class CopyJobDataToTempModel : SubmittedJobInfoModel
     {
-        [DataMember(Name = "SubmittedJobInfoId")]
-        public long SubmittedJobInfoId { get; set; }
-
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
-
         [DataMember(Name = "Path"), StringLength(50)]
         public string Path { get; set; }
     }

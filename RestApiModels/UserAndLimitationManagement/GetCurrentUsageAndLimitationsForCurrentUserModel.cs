@@ -5,13 +5,12 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.UserAndLimitationManagement
 {
     [DataContract(Name = "GetCurrentUsageAndLimitationsForCurrentUserModel")]
-    public class GetCurrentUsageAndLimitationsForCurrentUserModel
+    public class GetCurrentUsageAndLimitationsForCurrentUserModel : SessionCodeModel
     {
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
     }
 }

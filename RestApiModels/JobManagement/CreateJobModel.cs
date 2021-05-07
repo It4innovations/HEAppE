@@ -6,16 +6,14 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobManagement
 {
     [DataContract(Name = "CreateJobModel")]
-    public class CreateJobModel
+    public class CreateJobModel : SessionCodeModel
     {
         [DataMember(Name = "JobSpecification")]
         public JobSpecificationExt JobSpecification { get; set; }
-
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
     }
 }

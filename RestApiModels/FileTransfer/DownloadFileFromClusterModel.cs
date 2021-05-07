@@ -5,19 +5,16 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.FileTransfer
 {
     [DataContract(Name = "DownloadFileFromClusterModel")]
-    public class DownloadFileFromClusterModel
+    public class DownloadFileFromClusterModel : SubmittedJobInfoModel
     {
-        [DataMember(Name = "SubmittedJobInfoId")]
-        public long SubmittedJobInfoId { get; set; }
 
         [DataMember(Name = "RelativeFilePath"), StringLength(50)]
         public string RelativeFilePath { get; set; }
 
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
     }
 }

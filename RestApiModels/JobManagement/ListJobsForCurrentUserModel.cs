@@ -5,13 +5,12 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobManagement
 {
     [DataContract(Name = "ListJobsForCurrentUserModel")]
-    public class ListJobsForCurrentUserModel
+    public class ListJobsForCurrentUserModel : SessionCodeModel
     {
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
     }
 }

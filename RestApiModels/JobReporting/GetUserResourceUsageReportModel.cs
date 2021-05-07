@@ -5,11 +5,12 @@ using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobReporting
 {
     [DataContract(Name = "GetUserResourceUsageReportModel")]
-    public class GetUserResourceUsageReportModel
+    public class GetUserResourceUsageReportModel : SessionCodeModel
     {
         [DataMember(Name = "UserId")]
         public long UserId { get; set; }
@@ -19,8 +20,5 @@ namespace HEAppE.RestApiModels.JobReporting
 
         [DataMember(Name = "EndTime")]
         public DateTime EndTime { get; set; }
-
-        [DataMember(Name = "SessionCode"), StringLength(50)]
-        public string SessionCode { get; set; }
     }
 }
