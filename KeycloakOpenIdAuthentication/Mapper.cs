@@ -39,11 +39,11 @@ namespace HEAppE.KeycloakOpenIdAuthentication
                     if (KeycloakConfiguration.RoleMapping.TryGetValue(jsonPropertyName, out string mappedRole))
                     {
                         var projectIds = (propertyInfo.GetValue(obj.Attributes) as IEnumerable<AccessRightsResult>)
-                                                                            ?.Where(w => w.OrganizationName == KeycloakConfiguration.Organization)
+                                                                            ?.Where(w => w.ProjectId == KeycloakConfiguration.ProjectUUID)
                                                                              .Select(s => s.ProjectName)
                                                                              .ToList();
 
-                        foreach (string projectId in projectIds ?? throw new Exception($"Open-Id: For defined Organization \"{KeycloakConfiguration.Organization}\" are not defined projects!"))
+                        foreach (string projectId in projectIds ?? throw new Exception($"Open-Id: For defined Project Id \"{KeycloakConfiguration.ProjectUUID}\" are nothing!"))
                         {
                             if (projectRoleMapping.TryGetValue(projectId, out IEnumerable<string> availableRoles))
                             {

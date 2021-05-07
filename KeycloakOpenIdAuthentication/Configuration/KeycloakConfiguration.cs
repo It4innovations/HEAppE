@@ -45,9 +45,14 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
         public static Dictionary<string,string> RoleMapping { get; set; }
 
         /// <summary>
-        /// Home organization
+        /// Project
         /// </summary>
-        public static string Organization { get; set; }
+        public static string Project { get; set; }
+
+        /// <summary>
+        /// Project UUID
+        /// </summary>
+        public static string ProjectUUID { get; set; }
 
         /// <summary>
         /// User prefix in HEAppE DB
@@ -58,12 +63,6 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
         /// Group name in HEAppE DB
         /// </summary>
         public static string HEAppEGroupName { get; set; }
-
-        /// <summary>
-        /// Temporary solution
-        /// Need to be rewriten!
-        /// </summary>
-        public static string Project { get; set; }
         #endregion
     }
 }

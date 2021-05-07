@@ -5,10 +5,10 @@ namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
     public class AccessRightsResult
     {
         /// <summary>
-        /// Organization name.
+        /// Proect Id
         /// </summary>
-        [JsonProperty("ORG_UUID")]
-        public string OrganizationName { get; set; }
+        [JsonProperty("PRJ_UUID")]
+        public string ProjectId { get; set; }
 
         /// <summary>
         /// Project name.
