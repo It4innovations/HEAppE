@@ -7,7 +7,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
         /// <summary>
         /// Organization name.
         /// </summary>
-        [JsonProperty("ORG")]
+        [JsonProperty("ORG_UUID")]
         public string OrganizationName { get; set; }
 
         /// <summary>
