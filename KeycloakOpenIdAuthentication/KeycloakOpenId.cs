@@ -152,23 +152,23 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         {
             if (! (introspectedToken.Active && KeycloakConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId) && introspectedToken.EmailVerified))
             {
-                StringBuilder str = new ();
+                StringBuilder textBuilder = new ();
                 if (!introspectedToken.Active)
                 {
-                    str.AppendLine("Open-Id: User is not active!");
+                    textBuilder.AppendLine("Open-Id: User is not active!");
                 }
 
                 if (!introspectedToken.EmailVerified)
                 {
-                    str.AppendLine("Open-Id: User does not verified email!");
+                    textBuilder.AppendLine("Open-Id: User does not verified email!");
                 }
 
                 if (!KeycloakConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId))
                 {
-                    str.AppendLine("Open-Id: User is not in allowed clientIds!");
+                    textBuilder.AppendLine("Open-Id: User is not in allowed clientIds!");
                 }
                 
-                throw new KeycloakOpenIdException(str.ToString());
+                throw new KeycloakOpenIdException(textBuilder.ToString());
             }
         }
         #endregion
