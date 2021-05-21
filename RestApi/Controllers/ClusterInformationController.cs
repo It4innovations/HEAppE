@@ -61,7 +61,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("CurrentClusterNodeUsage")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(94)]
         [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

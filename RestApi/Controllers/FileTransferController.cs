@@ -34,7 +34,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("GetFileTransferMethod")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -85,7 +85,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("DownloadPartsOfJobFilesFromCluster")]
-        [RequestSizeLimit(452)]
+        [RequestSizeLimit(480)]
         [ProducesResponseType(typeof(IEnumerable<JobFileContentExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -110,7 +110,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("ListChangedFilesForJob")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(IEnumerable<FileInformationExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -135,7 +135,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("DownloadFileFromCluster")]
-        [RequestSizeLimit(372)]
+        [RequestSizeLimit(378)]
         [ProducesResponseType(typeof(IEnumerable<byte>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

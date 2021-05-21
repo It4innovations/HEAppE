@@ -34,7 +34,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("GetDataTransferMethod")]
-        [RequestSizeLimit(124)]
+        [RequestSizeLimit(170)]
         [ProducesResponseType(typeof(DataTransferMethodExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -59,7 +59,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("EndDataTransfer")]
-        [RequestSizeLimit(160)]
+        [RequestSizeLimit(188)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -154,13 +154,13 @@ namespace HEAppE.RestApi.Controllers
         //    }
         //}
 
-        /// <summary>
-        /// Read Data from Job node
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
+        ///// <summary>
+        ///// Read Data from Job node
+        ///// </summary>
+        ///// <param name="model"></param>
+        ///// <returns></returns>
         //[HttpPost("ReadDataFromJobNode")]
-        //[RequestSizeLimit(118)]
+        //[RequestSizeLimit(154)]
         //[ProducesResponseType(typeof(byte[]), StatusCodes.Status200OK)]
         //[ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         //[ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

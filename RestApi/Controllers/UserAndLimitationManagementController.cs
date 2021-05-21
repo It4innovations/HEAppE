@@ -37,7 +37,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenId")]
-        [RequestSizeLimit(15_000)]
+        [RequestSizeLimit(2048)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -62,7 +62,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenStack")]
-        [RequestSizeLimit(15_000)]
+        [RequestSizeLimit(2048)]
         [ProducesResponseType(typeof(OpenStackApplicationCredentialsExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -81,14 +81,13 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-
         /// <summary>
         /// Provide user authentication
         /// </summary>
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserPassword")]
-        [RequestSizeLimit(220)]
+        [RequestSizeLimit(148)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -138,7 +137,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Session code</param>
         /// <returns></returns>
         [HttpPost("GetCurrentUsageAndLimitationsForCurrentUser")]
-        [RequestSizeLimit(54)]
+        [RequestSizeLimit(56)]
         [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

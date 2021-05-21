@@ -59,7 +59,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("SubmitJob")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(94)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -84,7 +84,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("CancelJob")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -109,7 +109,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("DeleteJob")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -160,7 +160,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("GetCurrentInfoForJob")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -185,7 +185,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("CopyJobDataToTemp")]
-        [RequestSizeLimit(360)]
+        [RequestSizeLimit(364)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -211,7 +211,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("CopyJobDataFromTemp")]
-        [RequestSizeLimit(164)]
+        [RequestSizeLimit(154)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -237,7 +237,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("GetAllocatedNodesIPs")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

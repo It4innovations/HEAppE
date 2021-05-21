@@ -5,6 +5,8 @@ using HEAppE.RestApiModels.JobReporting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using System.Collections.Generic;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -34,13 +36,13 @@ namespace HEAppE.RestApi.Controllers
         ///// <returns></returns>
         ///// TODO must be solved HEAppE UserRoles
         //[HttpPost("ListAdaptorUserGroups")]
-        //[RequestSizeLimit(54)]
+        //[RequestSizeLimit(56)]
         //[ProducesResponseType(typeof(IEnumerable<AdaptorUserGroupExt>), StatusCodes.Status200OK)]
         //[ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         //[ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         //[ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        //public IActionResult ListAdaptorUserGroups(ListAdaptorUserGroupsView model)
+        //public IActionResult ListAdaptorUserGroups(ListAdaptorUserGroupsModel model)
         //{
         //    try
         //    {
@@ -59,7 +61,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("GetUserResourceUsageReport")]
-        [RequestSizeLimit(158)]
+        [RequestSizeLimit(166)]
         [ProducesResponseType(typeof(UserResourceUsageReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -84,7 +86,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("GetUserGroupResourceUsageReport")]
-        [RequestSizeLimit(158)]
+        [RequestSizeLimit(168)]
         [ProducesResponseType(typeof(UserGroupResourceUsageReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -109,7 +111,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("GetResourceUsageReportForJob")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(86)]
         [ProducesResponseType(typeof(SubmittedJobInfoUsageReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
