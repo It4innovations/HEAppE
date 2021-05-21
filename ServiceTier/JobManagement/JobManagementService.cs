@@ -40,12 +40,6 @@ namespace HEAppE.ServiceTier.JobManagement
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     JobSpecification js = specification.ConvertExtToInt();
-                    ValidationResult jobValidation = new JobSpecificationValidator(js).Validate();
-                    if (!jobValidation.IsValid)
-                    {
-                        _logger.ErrorFormat("Validation error: {0}", jobValidation.Message);
-                        ExceptionHandler.ThrowProperExternalException(new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message));
-                    }
                     SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
                     return jobInfo.ConvertIntToExt();
                 }
