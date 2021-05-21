@@ -44,7 +44,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine(validationResult.Message);
             }
 
-            return validationResult.ToString();
+            return _messageBuilder.ToString();
         }
 
         private string ValidateGetResourceUsageReportForJobModel(GetResourceUsageReportForJobModel validationObj)
@@ -73,6 +73,7 @@ namespace HEAppE.RestApi.InputValidator
             //result => Yes it is possible (date will be {01.01.0001 0:00:00})
 
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
+            if(!validationResult.IsValid)
             {
                 _messageBuilder.AppendLine(validationResult.Message);
             }
