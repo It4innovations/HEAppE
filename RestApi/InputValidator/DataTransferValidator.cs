@@ -3,6 +3,7 @@ using HEAppE.RestApiModels.DataTransfer;
 using HEAppE.Utils.Validation;
 using System;
 using System.Collections.Generic;
+using System.Drawing.Printing;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -176,10 +177,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
 
-            if (validationObj.Port <= 0)
-            {
-                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("Port"));
-            }
+            ValidatePort(validationObj.Port);
                 
             ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
 
@@ -202,15 +200,25 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
-
-            if (dataTransferMethodExt.Port <= 0)
-            {
-                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("Port"));
-            }
+            
+            ValidatePort(dataTransferMethodExt.Port);
 
             ValidateId(dataTransferMethodExt.SubmittedJobId, nameof(dataTransferMethodExt.SubmittedJobId));
 
             return _messageBuilder.ToString();
+        }
+
+
+        private void ValidatePort(int port)
+        {
+            if (port < 0 || port > 65535)
+            {
+                _messageBuilder.AppendLine("Port must be number between 0 and 65535");
+            }
+            else if (port == 22)
+            {
+                _messageBuilder.AppendLine("Port 22 is blocked");
+            }
         }
     }
 }
