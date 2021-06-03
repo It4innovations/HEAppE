@@ -154,24 +154,20 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 ServiceAccPassword = osInstanceCredentials.Password
             });
 
-            string uniqueTokenName = userAccount.Username + Guid.NewGuid();
-
             ApplicationCredentialsDTO openStackCredentials;
-            DateTime sessionExpiration = DateTime.UtcNow.AddSeconds(SessionExpirationSeconds);
             try
             {
-                openStackCredentials = openStack.CreateApplicationCredentials(uniqueTokenName, sessionExpiration);
+                openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username);
             }
             catch (OpenStackAPIException ex)
             {
                 // Log the error and rethrow the exception.
-                string error =
-                    $"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}";
+                string error = $"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}";
                 log.Error(error);
                 throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
             }
 
-            StoreOpenStackSession(userAccount, openStackCredentials, sessionExpiration);
+            StoreOpenStackSession(userAccount, openStackCredentials);
             log.Info($"Created new OpenStack 'session' (application credentials) for user {userAccount.Username}.");
             return openStackCredentials;
         }
@@ -239,10 +235,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
             {
                 user.AdaptorUserUserRoles = availableRoles.Select(s => new AdaptorUserUserRole
-                                                                            { 
-                                                                                AdaptorUserId = user.Id,
-                                                                                AdaptorUserRoleId = s.Id 
-                                                                            }).ToList();
+                {
+                    AdaptorUserId = user.Id,
+                    AdaptorUserRoleId = s.Id
+                }).ToList();
 
                 try
                 {
@@ -420,13 +416,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <param name="user">User for which was the OpenStack session created.</param>
         /// <param name="applicationCredentials">Created OpenStack credentials.</param>
         /// <param name="expiresAt">Expiration of OpenStack credentials.</param>
-        private void StoreOpenStackSession(AdaptorUser user, ApplicationCredentialsDTO applicationCredentials, DateTime expiresAt)
+        private void StoreOpenStackSession(AdaptorUser user, ApplicationCredentialsDTO applicationCredentials)
         {
             OpenStackSession session = new OpenStackSession
             {
                 UserId = user.Id,
                 AuthenticationTime = DateTime.UtcNow,
-                ExpirationTime = expiresAt,
+                ExpirationTime = applicationCredentials.ExpiresAt,
                 ApplicationCredentialsId = applicationCredentials.ApplicationCredentialsId,
                 ApplicationCredentialsSecret = applicationCredentials.ApplicationCredentialsSecret
             };

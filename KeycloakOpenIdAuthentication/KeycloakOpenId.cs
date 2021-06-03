@@ -96,7 +96,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         {
             IRestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token", Method.POST)
                                         .AddHeader("content-type", "application/x-www-form-urlencoded")
-                                         .AddXWwwFormUrlEncodedBody(("client_secret", KeycloakConfiguration.SecretId),
+                                        .AddXWwwFormUrlEncodedBody(("client_secret", KeycloakConfiguration.SecretId),
                                                                     ("client_id", KeycloakConfiguration.ClientId),
                                                                     ("scope", "offline_access"),
                                                                     ("requested_token_type", "urn:ietf:params:oauth:token-type:refresh_token"),
@@ -119,7 +119,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication
             _basicRestClient.Authenticator = new HttpBasicAuthenticator(KeycloakConfiguration.ClientId, KeycloakConfiguration.SecretId);
             IRestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token/introspect", Method.POST)
                                         .AddHeader("content-type", "application/x-www-form-urlencoded")
-                                         .AddXWwwFormUrlEncodedBody(("token", accessToken));
+                                        .AddXWwwFormUrlEncodedBody(("token", accessToken));
 
             var response = _basicRestClient.Execute(restRequest);
             return ParseHelper.ParseJsonOrThrow<KeycloakTokenIntrospectionResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);

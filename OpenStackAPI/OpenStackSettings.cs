@@ -15,8 +15,8 @@ namespace HEAppE.OpenStackAPI
         public static int OpenStackVersion { get; set; }
 
         /// <summary>
-        /// Name of the OpenStack role, which is required to access OpenStack.
+        /// OpenStack session expiration in seconds.
         /// </summary>
-        public static string OpenStackRoleName { get; set; }
+        public static int OpenStackSessionExpiration { get; set; }
     }
 }

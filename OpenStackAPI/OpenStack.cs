@@ -95,14 +95,16 @@ namespace HEAppE.OpenStackAPI
         /// <summary>
         /// Create application credentials bound to service account with given unique name and expiration time.
         /// </summary>
-        /// <param name="uniqueName">Unique credentials name.</param>
-        /// <param name="expiresAt">When the credentials expires.</param>
+        /// <param name="requestedUserName">Username of the requester.</param>
         /// <returns>Created application credentials.</returns>
-        public ApplicationCredentialsDTO CreateApplicationCredentials(string uniqueName, DateTime expiresAt)
+        public ApplicationCredentialsDTO CreateApplicationCredentials(string requestedUserName)
         {
-            var serviceAcc = _cachedServiceAcc.GetValue();
+            string uniqueTokenName = requestedUserName + '_' + Guid.NewGuid();
 
-            var requestObject = ApplicationCredentialsRequest.CreateApplicationCredentialsRequest(uniqueName, expiresAt);
+            var serviceAcc = _cachedServiceAcc.GetValue();
+            var sessionExpiresAt = DateTime.UtcNow.AddSeconds(OpenStackSettings.OpenStackSessionExpiration);
+
+            var requestObject = ApplicationCredentialsRequest.CreateApplicationCredentialsRequest(uniqueTokenName, sessionExpiresAt);
             string requestBody = JsonConvert.SerializeObject(requestObject, IgnoreNullSerializer.Instance);
 
             var rest = new RestClient(CreateIdentityEndpointUrl());
@@ -120,7 +122,8 @@ namespace HEAppE.OpenStackAPI
             return new ApplicationCredentialsDTO
             {
                 ApplicationCredentialsId = result.ApplicationCredentials.Id,
-                ApplicationCredentialsSecret = result.ApplicationCredentials.Secret
+                ApplicationCredentialsSecret = result.ApplicationCredentials.Secret,
+                ExpiresAt = sessionExpiresAt
             };
         }
     }
