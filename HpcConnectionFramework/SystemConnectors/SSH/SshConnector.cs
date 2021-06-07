@@ -3,6 +3,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using System;
+using System.Globalization;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
@@ -80,7 +81,9 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <returns></returns>
         private object CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string username, string password)
         {
-            var connInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
+            var hostPort = masterNodeName.Split(':');
+            int port = int.Parse(hostPort[1]??"22");
+            var connInfo = new Renci.SshNet.ConnectionInfo(hostPort[0], port, username, new PasswordAuthenticationMethod(username, password));
             return new SshClient(connInfo);
         }
 

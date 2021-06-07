@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.HpcConnectionFramework.LinuxLocal;
 using HEAppE.HpcConnectionFramework.LinuxPbs.v10;
 using HEAppE.HpcConnectionFramework.LinuxPbs.v12;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18;
@@ -26,7 +27,7 @@ namespace HEAppE.HpcConnectionFramework
             else
             {
                 SchedulerFactory factoryInstance;
-                switch (type)
+                /*switch (type)
                 {
                     case SchedulerType.LinuxPbsProV10:
                         factoryInstance = new LinuxPbsV10SchedulerFactory();
@@ -37,9 +38,13 @@ namespace HEAppE.HpcConnectionFramework
                     case SchedulerType.LinuxSlurmV18:
                         factoryInstance = new SlurmV18SchedulerFactory();
                         break;
+                    case SchedulerType.LinuxLocal:
+                        factoryInstance = new LinuxLocalSchedulerFactory();
+                        break;
                     default:
                         throw new ApplicationException("Scheduler factory with type \"" + type + "\" does not exist.");
-                }
+                }*/
+                factoryInstance = new LinuxLocalSchedulerFactory();
                 schedulerFactoryPoolSingletons.Add(type, factoryInstance);
                 return factoryInstance;
             }
