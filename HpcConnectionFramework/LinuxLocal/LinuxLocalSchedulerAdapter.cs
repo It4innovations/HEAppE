@@ -132,10 +132,10 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal
             ClusterAuthenticationCredentials credentials)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(@"~/.key_script/run_test.sh");
+            sb.Append($"~/.key_script/run_test.sh {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
             foreach (var task in jobSpecification.Tasks)
             {
-                sb.Append(String.Format(" {0}/{1}/{2}", jobSpecification.FileTransferMethod.Cluster.LocalBasepath, jobSpecification.Id, task.Id));
+                sb.Append($" {task.Id}");
             }
 
             sb.Append(";");
