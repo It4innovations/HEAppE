@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.IO;
 using System.Text;
+using System.Text.Json;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -10,7 +12,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 namespace HEAppE.DomainObjects.JobManagement {
 	[Table("JobSpecification")]
 	public class JobSpecification : CommonJobProperties {
-		public int? WaitingLimit { get; set; }
+        public int? WaitingLimit { get; set; }
 
 		[StringLength(50)]
 		public string NotificationEmail { get; set; }
@@ -24,9 +26,9 @@ namespace HEAppE.DomainObjects.JobManagement {
 
 		public bool? NotifyOnStart { get; set; }
 
-		public virtual AdaptorUser Submitter { get; set; }
+        public virtual AdaptorUser Submitter { get; set; }
 
-		public virtual AdaptorUserGroup SubmitterGroup { get; set; }
+        public virtual AdaptorUserGroup SubmitterGroup { get; set; }
 
 		[ForeignKey("ClusterId")]
 		public long ClusterId { get; set; }
@@ -59,5 +61,56 @@ namespace HEAppE.DomainObjects.JobManagement {
 			}
 			return result.ToString();
 		}
+
+        public string ConvertToLocalHPCInfo()
+        {
+            string output = string.Empty;
+            using (MemoryStream ms = new MemoryStream())
+            {
+                using (Utf8JsonWriter writer = new Utf8JsonWriter(ms))
+                {
+                    writer.WriteStartArray();
+                    writer.WriteStartObject();
+                        writer.WritePropertyName(nameof(Id));
+                        writer.WriteNumberValue(Id);
+
+                        writer.WritePropertyName("StartTime");
+                        writer.WriteStringValue("null");
+                        
+                        writer.WritePropertyName("EndTime");
+                        writer.WriteStringValue("null");
+
+                        writer.WritePropertyName("State");
+                        writer.WriteStringValue("S");
+
+
+                    /*writer.WriteStartArray();
+
+                    /*foreach (var task in Tasks)
+                    {
+                        writer.WriteStartObject();
+
+                        //reflection?
+                        writer.WritePropertyName(nameof(customer.Id));
+                        writer.WriteNumberValue(customer.Id);
+
+                        writer.WritePropertyName(nameof(customer.Name));
+                        writer.WriteStringValue(customer.Name);
+
+                        writer.WritePropertyName(nameof(customer.Age));
+                        writer.WriteNumberValue(customer.Age);
+
+                        writer.WriteEndObject();
+                    }#1#
+
+                    */
+                    writer.WriteEndObject();
+                    writer.WriteEndArray();
+                }
+
+                output = Encoding.UTF8.GetString(ms.ToArray());
+            }
+            return output;
+        }
 	}
 }

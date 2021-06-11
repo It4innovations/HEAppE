@@ -2,7 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -22,10 +25,10 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal
         #endregion
 
         #region ISchedulerAdapter Members
-        public override SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId)
+        public override SubmittedJobInfo GetActualJobInfo(object scheduler, string pathToJobInfo)
         {
-            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), String.Format("bash -lc 'qstat -f -x {0}'", scheduledJobId));
-            return _convertor.ConvertJobToJobInfo(command.Result);
+            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/get_job_info.sh {pathToJobInfo}");
+            return _convertor.ConvertJobToJobInfo(command.Result);//todo
         }
 
         public override SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds)
@@ -131,20 +134,29 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal
         public override SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification,
             ClusterAuthenticationCredentials credentials)
         {
+            var localHpcJobInfo =
+                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(jobSpecification.ConvertToLocalHPCInfo()));
             StringBuilder sb = new StringBuilder();
+            StringBuilder jobResultInfo = new StringBuilder();
+
+            sb.Append(
+                $"~/.key_script/prepare_job_dir.sh " +
+                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} && ");
+
             sb.Append($"~/.key_script/run_test.sh {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
             foreach (var task in jobSpecification.Tasks)
             {
                 sb.Append($" {task.Id}");
             }
 
-            sb.Append(";");
+            sb.Append("");
 
-            string shellCommand = sb.ToString();
-            var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
-            _log.InfoFormat("Run job result: {0}", sshCommand.Result);
+            var shellCommand = sb.ToString();
+            _ = Task.Run(() =>  RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand));//do not wait for respond
+            /*jobResultInfo.Append(sshCommand.Result);
+            _log.InfoFormat("Run job result: {0}", jobResultInfo.ToString());*/
 
-            return null;//todo
+            return GetActualJobInfo(scheduler, $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
         }
 
 

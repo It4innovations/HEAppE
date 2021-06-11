@@ -27,7 +27,7 @@ namespace HEAppE.HpcConnectionFramework
             else
             {
                 SchedulerFactory factoryInstance;
-                /*switch (type)
+                switch (type)
                 {
                     case SchedulerType.LinuxPbsProV10:
                         factoryInstance = new LinuxPbsV10SchedulerFactory();
@@ -43,8 +43,8 @@ namespace HEAppE.HpcConnectionFramework
                         break;
                     default:
                         throw new ApplicationException("Scheduler factory with type \"" + type + "\" does not exist.");
-                }*/
-                factoryInstance = new LinuxLocalSchedulerFactory();
+                }
+                //factoryInstance = new LinuxLocalSchedulerFactory();
                 schedulerFactoryPoolSingletons.Add(type, factoryInstance);
                 return factoryInstance;
             }
