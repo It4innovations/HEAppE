@@ -404,7 +404,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine, string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
         {
             _jobTaskBuilder.Append($" --wrap \'cd {workDir};");
-
+            _jobTaskBuilder.Append(
+                string.IsNullOrEmpty(recursiveSymlinkCommand) 
+                    ? string.Empty 
+                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};");
+            _jobTaskBuilder.Append($"rm {stdOutFile} {stdErrFile};");
             _jobTaskBuilder.Append(
                 string.IsNullOrEmpty(preparationScript)
                     ? string.Empty
