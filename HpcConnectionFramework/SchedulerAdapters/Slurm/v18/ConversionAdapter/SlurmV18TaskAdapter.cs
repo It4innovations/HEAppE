@@ -409,6 +409,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
                     ? string.Empty 
                     : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};");
             _jobTaskBuilder.Append($"rm {stdOutFile} {stdErrFile};");
+
             _jobTaskBuilder.Append(
                 string.IsNullOrEmpty(preparationScript)
                     ? string.Empty

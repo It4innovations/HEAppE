@@ -375,11 +375,15 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
 
         public List<long> GetJobIdsForOpenTunnels()
         {
-            log.InfoFormat("Listing all open tunnels:");
-            foreach(long jobId in jobIpLocalports.Keys)
-                foreach(string ipAddress in jobIpLocalports[jobId].Keys)
+            foreach(long jobId in jobIpLocalports.Keys) 
+            { 
+                log.InfoFormat("Listing all open tunnels:");
+                foreach (string ipAddress in jobIpLocalports[jobId].Keys)
+                {
                     log.InfoFormat("Open tunnel for jobId {0}, remote IP address {1}, local port {2}", jobId, ipAddress, jobIpLocalports[jobId][ipAddress]);
-            
+                }
+            }
+
             List<long> keyList = new List<long>(jobIpLocalports.Keys);
             return keyList;
         }
