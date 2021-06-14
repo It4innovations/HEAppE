@@ -1,68 +1,158 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.LinuxPbs;
 using HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
-namespace HEAppE.HpcConnectionFramework.LinuxLocal.ConversionAdapter {
-	public class LinuxLocalJobAdapter : LinuxPbsV10JobAdapter {
-		#region Constructors
-		public LinuxLocalJobAdapter(object jobSource) : base(jobSource) {}
-		#endregion
+namespace HEAppE.HpcConnectionFramework.LinuxLocal.ConversionAdapter
+{
+    public class LinuxLocalJobAdapter : ISchedulerJobAdapter
+    {
+        #region Constructors
 
-		#region ISchedulerJobAdapter Members
-		public override string Project {
-			get {
-				string result;
-				if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.PROJECT, out result))
-					return result;
-				return string.Empty;
-			}
-			set {
-				if (!string.IsNullOrEmpty(value))
-					jobSource += " -P \"" + value + "\"";
-			}
-		}
+        private dynamic jobInfo;
 
-		public override JobState State {
-			get {
-				string result;
-				if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.JOB_STATE, out result)) {
-					string exitStatus;
-					qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.EXIT_STATUS, out exitStatus);
-					return ConvertPbsJobStateToIndependentJobState(result, exitStatus);
-				}
-				return JobState.Finished;
-			}
-		}
+        public LinuxLocalJobAdapter(object jobSource)
+        {
+            //string jsonJobSource = jobSource.ToString().Substring(1).Substring(0, jobSource.ToString().LastIndexOf(']') - 1);//TODO edit json structure, refactor
+            jobInfo = JsonConvert.DeserializeObject(jobSource.ToString());
+        }
+        #endregion
 
-		public override DateTime? EndTime {
-			get {
-				if (State == JobState.Canceled || State == JobState.Failed || State == JobState.Finished) {
-					string result;
-					if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.MTIME, out result))
-						return LinuxPbsConversionUtils.ConvertQstatDateStringToDateTime(result);
-				}
-				return null;
-			}
-		}
+        #region ISchedulerJobAdapter Members
 
-		public override void SetTasks(List<object> tasks)
-		{
-			StringBuilder builder = new StringBuilder("");
-			foreach (var task in tasks)
-			{
-				builder.Append((string)task);
-			}
+        public object Source { get; }
+        public string Id { get => jobInfo.Id; }
 
-			jobSource = builder.ToString();
-		}
-		#endregion
+        public string Name
+        {
+            get => jobInfo.Name;
+            set => jobInfo.Name = value;
+        }
 
-		#region Local Methods
-		protected JobState ConvertPbsJobStateToIndependentJobState(string jobState, string exitStatus) {
-			if (jobState == "H")
+        public string Project
+        {
+            get
+            {
+                if (jobInfo.Project != null)
+                    return jobInfo.Project;
+                return string.Empty;
+            }
+            set
+            {
+
+            }
+        }
+
+        public JobState State
+        {
+            get
+            {
+                switch (jobInfo.State?.ToString())
+                {
+                    case "R":
+                        return JobState.Running;
+                    case "F":
+                        return JobState.Finished;
+                    default:
+                        throw new ApplicationException("Job state could not be converted to any known job state.");
+                }
+            }
+        }
+
+        public DateTime CreateTime
+        {
+            get
+            {
+                if (jobInfo.CreateTime == null || jobInfo.CreateTime?.ToString() == "null")
+                    throw new ApplicationException("Job CreateTime could not be converted to any known job state.");
+                else
+                {
+                    return jobInfo.CreateTime;
+                }
+            }
+        }
+
+        public DateTime? SubmitTime
+        {
+            get
+            {
+                if (jobInfo.SubmitTime is DateTime?)
+                    return jobInfo.SubmitTime;
+                else
+                {
+                    return null;
+                }
+            }
+
+        }
+
+        public DateTime? StartTime
+        {
+            get
+            {
+                if (jobInfo.StartTime is DateTime?)
+                    return jobInfo.StartTime;
+                else
+                {
+                    return null;
+                }
+            }
+
+        }
+
+        public DateTime? EndTime
+        {
+            get
+            {
+                if (jobInfo.EndTime is DateTime?)
+                    return jobInfo.EndTime;
+                else
+                {
+                    return null;
+                }
+            }
+
+        }
+        public int Runtime { get; set; }
+        public string AccountingString { get; set; }
+        public List<object> GetTaskList()
+        {
+            dynamic tasks = jobInfo.Tasks;//TODO iterate and return 
+            return null;
+        }
+
+        public object CreateEmptyTaskObject()
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure)
+        {
+            throw new NotImplementedException();
+        }
+
+        public void SetTasks(List<object> tasks)
+        {
+            StringBuilder builder = new StringBuilder("");
+            foreach (var task in tasks)
+            {
+                builder.Append((string)task);
+            }
+
+            /*jobSource = builder.ToString();*/
+        }
+        #endregion
+
+        #region Local Methods
+        /*protected JobState ConvertJobStateToIndependentJobState(string jobState) {
+			/*if (jobState == "H")
 				return JobState.Configuring;
 			if (jobState == "W")
 				return JobState.Submitted;
@@ -83,10 +173,11 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal.ConversionAdapter {
 					}
 				}
 				return JobState.Canceled;
-			}
+			}#1#
 			throw new ApplicationException("Job state \"" + jobState +
 			                               "\" could not be converted to any known job state.");
-		}
-		#endregion
-	}
+		}*/
+
+        #endregion
+    }
 }

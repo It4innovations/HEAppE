@@ -52,7 +52,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal {
             SubmittedJobInfo jobInfo = new SubmittedJobInfo();
             ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter(job);
             List<object> allTasks = jobAdapter.GetTaskList();
-            jobInfo.Tasks = ConvertAllTasksToTaskInfos(allTasks);
+            //jobInfo.Tasks = ConvertAllTasksToTaskInfos(allTasks);
             jobInfo.Name = jobAdapter.Name;
             jobInfo.Project = jobAdapter.Project;
             jobInfo.State = jobAdapter.State;

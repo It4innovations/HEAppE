@@ -5,6 +5,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -141,7 +142,14 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal
 
             sb.Append(
                 $"~/.key_script/prepare_job_dir.sh " +
-                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} && ");
+                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo};");
+
+            var shellCommand = sb.ToString();
+            var sshCommand =  RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
+            jobResultInfo.Append(sshCommand.Result);
+            _log.InfoFormat("Run prepare-job result: {0}", jobResultInfo.ToString());
+
+            sb.Clear();
 
             sb.Append($"~/.key_script/run_test.sh {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
             foreach (var task in jobSpecification.Tasks)
@@ -149,12 +157,15 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal
                 sb.Append($" {task.Id}");
             }
 
-            sb.Append("");
+            sb.Append(";");
 
-            var shellCommand = sb.ToString();
-            _ = Task.Run(() =>  RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand));//do not wait for respond
+            shellCommand = sb.ToString();
+             _ = Task.Run( () => RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand));
+
             /*jobResultInfo.Append(sshCommand.Result);
             _log.InfoFormat("Run job result: {0}", jobResultInfo.ToString());*/
+
+            Thread.Sleep(500);//wait till script starts
 
             return GetActualJobInfo(scheduler, $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
         }

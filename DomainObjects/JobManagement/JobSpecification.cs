@@ -9,30 +9,32 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 
-namespace HEAppE.DomainObjects.JobManagement {
-	[Table("JobSpecification")]
-	public class JobSpecification : CommonJobProperties {
+namespace HEAppE.DomainObjects.JobManagement
+{
+    [Table("JobSpecification")]
+    public class JobSpecification : CommonJobProperties
+    {
         public int? WaitingLimit { get; set; }
 
-		[StringLength(50)]
-		public string NotificationEmail { get; set; }
+        [StringLength(50)]
+        public string NotificationEmail { get; set; }
 
-		[StringLength(20)]
-		public string PhoneNumber { get; set; }
+        [StringLength(20)]
+        public string PhoneNumber { get; set; }
 
-		public bool? NotifyOnAbort { get; set; }
+        public bool? NotifyOnAbort { get; set; }
 
-		public bool? NotifyOnFinish { get; set; }
+        public bool? NotifyOnFinish { get; set; }
 
-		public bool? NotifyOnStart { get; set; }
+        public bool? NotifyOnStart { get; set; }
 
         public virtual AdaptorUser Submitter { get; set; }
 
         public virtual AdaptorUserGroup SubmitterGroup { get; set; }
 
-		[ForeignKey("ClusterId")]
-		public long ClusterId { get; set; }
-		public virtual Cluster Cluster { get; set; }
+        [ForeignKey("ClusterId")]
+        public long ClusterId { get; set; }
+        public virtual Cluster Cluster { get; set; }
 
         [ForeignKey("FileTransferMethod")]
         public long? FileTransferMethodId { get; set; }
@@ -40,27 +42,29 @@ namespace HEAppE.DomainObjects.JobManagement {
 
         public virtual List<TaskSpecification> Tasks { get; set; } = new List<TaskSpecification>();
 
-		public virtual ClusterAuthenticationCredentials ClusterUser { get; set; }
+        public virtual ClusterAuthenticationCredentials ClusterUser { get; set; }
 
-		public override string ToString() {
-			StringBuilder result = new StringBuilder("JobSpecification: " + base.ToString());
-			result.AppendLine("WaitingLimit=" + WaitingLimit);
-			result.AppendLine("NotificationEmail=" + NotificationEmail);
-			result.AppendLine("PhoneNumber=" + PhoneNumber);
-			result.AppendLine("NotifyOnAbort=" + NotifyOnAbort);
-			result.AppendLine("NotifyOnFinish=" + NotifyOnFinish);
-			result.AppendLine("NotifyOnStart=" + NotifyOnStart);
-			result.AppendLine("Submitter=" + Submitter);
-			result.AppendLine("SubmitterGroup=" + SubmitterGroup);
-			result.AppendLine("Cluster=" + Cluster);
+        public override string ToString()
+        {
+            StringBuilder result = new StringBuilder("JobSpecification: " + base.ToString());
+            result.AppendLine("WaitingLimit=" + WaitingLimit);
+            result.AppendLine("NotificationEmail=" + NotificationEmail);
+            result.AppendLine("PhoneNumber=" + PhoneNumber);
+            result.AppendLine("NotifyOnAbort=" + NotifyOnAbort);
+            result.AppendLine("NotifyOnFinish=" + NotifyOnFinish);
+            result.AppendLine("NotifyOnStart=" + NotifyOnStart);
+            result.AppendLine("Submitter=" + Submitter);
+            result.AppendLine("SubmitterGroup=" + SubmitterGroup);
+            result.AppendLine("Cluster=" + Cluster);
             result.AppendLine("FileTransferMethod=" + FileTransferMethod);
             result.AppendLine("ClusterUser=" + ClusterUser);
-			int i = 0;
-			foreach (TaskSpecification task in Tasks) {
-				result.AppendLine("Task" + (i++) + ":" + task);
-			}
-			return result.ToString();
-		}
+            int i = 0;
+            foreach (TaskSpecification task in Tasks)
+            {
+                result.AppendLine("Task" + (i++) + ":" + task);
+            }
+            return result.ToString();
+        }
 
         public string ConvertToLocalHPCInfo()
         {
@@ -69,48 +73,57 @@ namespace HEAppE.DomainObjects.JobManagement {
             {
                 using (Utf8JsonWriter writer = new Utf8JsonWriter(ms))
                 {
-                    writer.WriteStartArray();
                     writer.WriteStartObject();
-                        writer.WritePropertyName(nameof(Id));
-                        writer.WriteNumberValue(Id);
+                    writer.WritePropertyName(nameof(Id));
+                    writer.WriteNumberValue(Id);
 
-                        writer.WritePropertyName("StartTime");
-                        writer.WriteStringValue("null");
-                        
-                        writer.WritePropertyName("EndTime");
-                        writer.WriteStringValue("null");
+                    writer.WritePropertyName("SubmitTime");
+                    writer.WriteStringValue("");
 
-                        writer.WritePropertyName("State");
-                        writer.WriteStringValue("S");
+                    writer.WritePropertyName("StartTime");
+                    writer.WriteStringValue("");
 
+                    writer.WritePropertyName("EndTime");
+                    writer.WriteStringValue("");
 
-                    /*writer.WriteStartArray();
+                    writer.WritePropertyName("State");
+                    writer.WriteStringValue("H");//configuring
 
-                    /*foreach (var task in Tasks)
+                    writer.WritePropertyName("Name");
+                    writer.WriteStringValue(Name);
+
+                    writer.WritePropertyName("Project");
+                    writer.WriteStringValue(Project);
+
+                    writer.WritePropertyName("CreateTime");
+                    writer.WriteStringValue(DateTime.Now.ToString("yyy-MM-ddTHH:mm:ss.ffZ"));
+
+                    writer.WritePropertyName("Tasks");
+                    writer.WriteStartArray();
+                    
+
+                    foreach (var task in Tasks)
                     {
                         writer.WriteStartObject();
 
-                        //reflection?
-                        writer.WritePropertyName(nameof(customer.Id));
-                        writer.WriteNumberValue(customer.Id);
-
-                        writer.WritePropertyName(nameof(customer.Name));
-                        writer.WriteStringValue(customer.Name);
-
-                        writer.WritePropertyName(nameof(customer.Age));
-                        writer.WriteNumberValue(customer.Age);
+                        writer.WritePropertyName(nameof(task.Id));
+                        writer.WriteNumberValue(task.Id);
+                        
+                        writer.WritePropertyName(nameof(task.Name));
+                        writer.WriteStringValue(task.Name);
 
                         writer.WriteEndObject();
-                    }#1#
+                    }
 
-                    */
-                    writer.WriteEndObject();
+
                     writer.WriteEndArray();
+
+                    writer.WriteEndObject();
                 }
 
                 output = Encoding.UTF8.GetString(ms.ToArray());
             }
             return output;
         }
-	}
+    }
 }
