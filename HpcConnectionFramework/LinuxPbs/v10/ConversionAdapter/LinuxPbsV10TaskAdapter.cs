@@ -387,7 +387,9 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
                     builder.Append(string.IsNullOrEmpty(placementPolicy) ? string.Empty : $" -l place={placementPolicy}");
 
                     if (first)
+                    {
                         first = false;
+                    }
                 }
 
                 int remainingCores = coreCount - paralizationSpecs.Sum(s => s.MaxCores);

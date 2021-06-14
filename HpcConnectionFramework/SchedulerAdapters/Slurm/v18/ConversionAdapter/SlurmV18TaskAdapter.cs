@@ -97,7 +97,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
                 {
                     _jobTaskBuilder.Append(" --hint=nomultithread");
                 }
-                    
+
             }
         }
 
@@ -311,51 +311,35 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// <param name="coresPerNode">Cores per node</param>
         public void SetRequestedResourceNumber(ICollection<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, ICollection<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
         {
-            //TODO paralizationSpecs for SLURM options
-            string alocatedString = string.Empty;
-            int nodesCount = maxCores / coresPerNode;
-            nodesCount += maxCores % coresPerNode > 0 ? 1 : 0;
+            var allocationCmdBuilder = new StringBuilder();
+            string reqNodeGroupsCmd = PrepareNameOfNodesGroup(requestedNodeGroups);
 
-            //Placement policy
-            //allocationCmdBuilder.Append(string.IsNullOrEmpty(placementPolicy) ? string.Empty : $" --constraint={placementPolicy}");
+            int nodeCount = maxCores / coresPerNode;
+            nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
 
-            // Single allocation 
-            //--nodes=1 --cpus-per-task=24  || --nodes=1 ||--nodes=1 --ntask=24
+            TaskParalizationSpecification parSpec = paralizationSpecs.FirstOrDefault();
+            allocationCmdBuilder.Append($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes, nodeCount)}{reqNodeGroupsCmd}");
 
-
-
-            //--nodes=2 --ntasks-per-node=24  ---ntask=21 --cpus-per-task=10(maxCores) (mpiprocs = 21)
-
-            //--nodes=2 --ntasks-per-node=24  ---ntask=21 --cpus-per-task=10 (mpiprocs=21:ompthreads=10)
-
-
-            if (nodesCount >= 1)
+            if (parSpec is not null)
             {
-                if (requiredNodes != null && requiredNodes.Count > 0)
-                {
-                    alocatedString = nodesCount <= requiredNodes.Count()
-                     ? $" --nodes={nodesCount}{PrepareNameOfNodes(requiredNodes, nodesCount)} --cpus-per-task={coresPerNode}"
-                     : $" --nodes={nodesCount}{PrepareNameOfNodesGroup(requestedNodeGroups)} --cpus-per-task={coresPerNode}";
-                }
-                else
-                {
-                    alocatedString = $" --nodes={nodesCount}{PrepareNameOfNodesGroup(requestedNodeGroups)} --cpus-per-task={coresPerNode}";
-                }
+                allocationCmdBuilder.Append(parSpec.MPIProcesses.HasValue  ? $" --ntasks-per-node={parSpec.MPIProcesses.Value}" : string.Empty);
+                allocationCmdBuilder.Append(parSpec.OpenMPThreads.HasValue ? $" --cpus-per-task={parSpec.OpenMPThreads.Value}" : string.Empty);
             }
-            _jobTaskBuilder.Append(alocatedString);
+
+            allocationCmdBuilder.Append(string.IsNullOrEmpty(placementPolicy) ? string.Empty : $" --constraint={placementPolicy}");
+            _jobTaskBuilder.Append(allocationCmdBuilder);
         }
 
         /// <summary>
-        /// Method: Prepare name of nodes
+        /// Method: Prepare name of node group
         /// </summary>
-        /// <param name="requestedNodeGroups">Node names</param>
-        /// <param name="nodeCount">Node count</param>
+        /// <param name="requestedNodeGroups">Node group names</param>
         /// <returns></returns>
-        private static string PrepareNameOfNodes(ICollection<string> requestedNodeGroups, int nodeCount)
+        private static string PrepareNameOfNodesGroup(ICollection<string> requestedNodeGroups)
         {
-            if (requestedNodeGroups != null && requestedNodeGroups.Count() == nodeCount)
+            if (requestedNodeGroups?.Count > 0)
             {
-                StringBuilder builder = new StringBuilder($" --nodelist={requestedNodeGroups.First()}");
+                var builder = new StringBuilder($" --partition={requestedNodeGroups.First()}");
                 foreach (string nodeGroup in requestedNodeGroups.Skip(1))
                 {
                     builder.Append($",{nodeGroup}");
@@ -369,15 +353,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         }
 
         /// <summary>
-        /// Method: Prepare name of node group
+        /// Method: Prepare name of nodes
         /// </summary>
-        /// <param name="requestedNodeGroups">Node group names</param>
+        /// <param name="requestedNodeGroups">Node names</param>
+        /// <param name="nodeCount">Node count</param>
         /// <returns></returns>
-        private static string PrepareNameOfNodesGroup(ICollection<string> requestedNodeGroups)
+        private static string PrepareNameOfNodes(ICollection<string> requestedNodeGroups, int nodeCount)
         {
-            if (requestedNodeGroups?.Count > 0)
+            if (requestedNodeGroups?.Count == nodeCount)
             {
-                var builder = new StringBuilder($" --partition={requestedNodeGroups.First()}");
+                var builder = new StringBuilder($" --nodelist={requestedNodeGroups.First()}");
                 foreach (string nodeGroup in requestedNodeGroups.Skip(1))
                 {
                     builder.Append($",{nodeGroup}");
