@@ -60,7 +60,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
 
         public object Source { get; }
         public ICollection<string> AllocatedCoreIds { get; }
-        public string Name { get; set; }
+        public string Name { get => taskInfo.Name; set => taskInfo.Name = value; }
 
         public TaskState State//todo all states
         {
@@ -84,11 +84,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
         {
             get
             {
-                if (taskInfo.StartTime is DateTime?)
-                    return taskInfo.StartTime;
+                if (taskInfo.StartTime == null || string.IsNullOrEmpty(taskInfo.StartTime.ToString()))
+                    return null;
                 else
                 {
-                    return null;
+                    return taskInfo.StartTime;
                 }
             }
         }
@@ -97,11 +97,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
         {
             get
             {
-                if (taskInfo.EndTime is DateTime?)
-                    return taskInfo.EndTime;
+                if (taskInfo.EndTime == null || string.IsNullOrEmpty(taskInfo.EndTime.ToString()))
+                    return null;
                 else
                 {
-                    return null;
+                    return taskInfo.EndTime;
                 }
             }
         }

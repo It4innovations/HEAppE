@@ -83,42 +83,39 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
         {
             get
             {
-                if (jobInfo.SubmitTime is DateTime?)
-                    return jobInfo.SubmitTime;
+                if (jobInfo.SubmitTime == null || string.IsNullOrEmpty(jobInfo.SubmitTime.ToString()))
+                    return null;
                 else
                 {
-                    return null;
+                    return jobInfo.SubmitTime;
                 }
             }
-
         }
 
         public DateTime? StartTime
         {
             get
             {
-                if (jobInfo.StartTime is DateTime?)
-                    return jobInfo.StartTime;
+                if (jobInfo.StartTime == null || string.IsNullOrEmpty(jobInfo.StartTime.ToString()))
+                    return null;
                 else
                 {
-                    return null;
+                    return jobInfo.StartTime;
                 }
             }
-
         }
 
         public DateTime? EndTime
         {
             get
             {
-                if (jobInfo.EndTime is DateTime?)
-                    return jobInfo.EndTime;
+                if (jobInfo.EndTime == null || string.IsNullOrEmpty(jobInfo.EndTime.ToString()))
+                    return null;
                 else
                 {
-                    return null;
+                    return jobInfo.EndTime;
                 }
             }
-
         }
         public int Runtime { get; set; }
         public string AccountingString { get; set; }

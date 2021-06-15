@@ -52,7 +52,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
             SubmittedJobInfo jobInfo = new SubmittedJobInfo();
             ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter(job);
             List<object> allTasks = jobAdapter.GetTaskList();
-            //jobInfo.Tasks = ConvertAllTasksToTaskInfos(allTasks);
+            jobInfo.Tasks = ConvertAllTasksToTaskInfos(allTasks);
             jobInfo.Name = jobAdapter.Name;
             jobInfo.Project = jobAdapter.Project;
             jobInfo.State = jobAdapter.State;
@@ -60,7 +60,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
             jobInfo.SubmitTime = jobAdapter.SubmitTime;
             jobInfo.StartTime = jobAdapter.StartTime;
             jobInfo.EndTime = jobAdapter.EndTime;
-            //jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
+            jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
             return jobInfo;
         }
 
@@ -81,7 +81,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
             taskInfo.EndTime = taskAdapter.EndTime;
             taskInfo.ErrorMessage = taskAdapter.ErrorMessage;
             taskInfo.AllocatedTime = taskAdapter.AllocatedTime;
-            taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
+            //taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
             return taskInfo;
         }
 
