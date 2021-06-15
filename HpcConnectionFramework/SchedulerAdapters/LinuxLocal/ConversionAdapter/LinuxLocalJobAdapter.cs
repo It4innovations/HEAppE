@@ -10,7 +10,7 @@ using HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
-namespace HEAppE.HpcConnectionFramework.LinuxLocal.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionAdapter
 {
     public class LinuxLocalJobAdapter : ISchedulerJobAdapter
     {
@@ -124,8 +124,9 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal.ConversionAdapter
         public string AccountingString { get; set; }
         public List<object> GetTaskList()
         {
-            dynamic tasks = jobInfo.Tasks;//TODO iterate and return 
-            return null;
+            List<object> taskList = new List<object>();
+            taskList.AddRange(jobInfo.Tasks);
+            return taskList;
         }
 
         public object CreateEmptyTaskObject()

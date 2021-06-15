@@ -100,7 +100,7 @@ namespace HEAppE.DomainObjects.JobManagement
 
                     writer.WritePropertyName("Tasks");
                     writer.WriteStartArray();
-                    
+
 
                     foreach (var task in Tasks)
                     {
@@ -108,11 +108,24 @@ namespace HEAppE.DomainObjects.JobManagement
 
                         writer.WritePropertyName(nameof(task.Id));
                         writer.WriteNumberValue(task.Id);
-                        
+
                         writer.WritePropertyName(nameof(task.Name));
                         writer.WriteStringValue(task.Name);
 
+                        writer.WritePropertyName("State");
+                        writer.WriteStringValue("H");//configuring
+
+                        writer.WritePropertyName("StartTime");
+                        writer.WriteStringValue("");
+
+                        writer.WritePropertyName("EndTime");
+                        writer.WriteStringValue("");
+
+                        writer.WritePropertyName("AllocatedTime");
+                        writer.WriteNumberValue(0);
+
                         writer.WriteEndObject();
+
                     }
 
 

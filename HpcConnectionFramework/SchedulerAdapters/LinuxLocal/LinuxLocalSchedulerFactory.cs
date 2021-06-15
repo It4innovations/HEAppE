@@ -4,13 +4,13 @@ using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.LinuxLocal.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.LinuxPbs.v12.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SystemConnectors;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using Renci.SshNet;
 
-namespace HEAppE.HpcConnectionFramework.LinuxLocal {
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
 	public class LinuxLocalSchedulerFactory : SchedulerFactory {
 		#region SchedulerFactory Members
 		public override IRexScheduler CreateScheduler(Cluster configuration) {

@@ -10,7 +10,7 @@ using System.Linq;
 using System.Text;
 using HEAppE.HpcConnectionFramework.LinuxPbs.v12;
 
-namespace HEAppE.HpcConnectionFramework.LinuxLocal {
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
 	public class LinuxLocalDataConvertor : LinuxPbsV12DataConvertor {
 		#region Constructors
 		public LinuxLocalDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) {}
@@ -47,7 +47,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal {
             return CreateCommandLineForTemplate(template, additionalParameters);
         }
 
-        public override SubmittedJobInfo ConvertJobToJobInfo(object job)
+        public override SubmittedJobInfo ConvertJobToJobInfo(object job)//TODO
         {
             SubmittedJobInfo jobInfo = new SubmittedJobInfo();
             ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter(job);
@@ -60,7 +60,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxLocal {
             jobInfo.SubmitTime = jobAdapter.SubmitTime;
             jobInfo.StartTime = jobAdapter.StartTime;
             jobInfo.EndTime = jobAdapter.EndTime;
-            jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
+            //jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
             return jobInfo;
         }
 

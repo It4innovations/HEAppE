@@ -17,7 +17,7 @@ using HEAppE.MiddlewareUtils;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using Renci.SshNet;
 
-namespace HEAppE.HpcConnectionFramework.LinuxLocal
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
     public class LinuxLocalSchedulerAdapter : LinuxPbsV12SchedulerAdapter
     {

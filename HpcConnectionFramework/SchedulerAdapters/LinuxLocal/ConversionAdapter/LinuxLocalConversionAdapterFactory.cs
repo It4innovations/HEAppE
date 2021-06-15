@@ -1,6 +1,6 @@
 ﻿using HEAppE.HpcConnectionFramework.ConversionAdapter;
 
-namespace HEAppE.HpcConnectionFramework.LinuxLocal.ConversionAdapter {
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionAdapter {
 	public class LinuxLocalConversionAdapterFactory : ConversionAdapterFactory {
 		#region ConversionAdapterFactory Members
 		public override ISchedulerJobAdapter CreateJobAdapter(object jobSource) {
