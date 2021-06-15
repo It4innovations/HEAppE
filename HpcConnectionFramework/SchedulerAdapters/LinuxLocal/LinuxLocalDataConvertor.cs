@@ -81,7 +81,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
             taskInfo.EndTime = taskAdapter.EndTime;
             taskInfo.ErrorMessage = taskAdapter.ErrorMessage;
             taskInfo.AllocatedTime = taskAdapter.AllocatedTime;
-            //taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
+            taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
             return taskInfo;
         }
 

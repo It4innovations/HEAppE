@@ -39,7 +39,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
         public string WorkDirectory { get; set; }
         public double AllocatedTime => taskInfo.AllocatedTime ?? 0;
         public bool CpuHyperThreading { get; set; }
-        public Dictionary<string, string> AllParameters { get; }
+        public Dictionary<string, string> AllParameters => ConvertTaskInfoToDict();
+
+
 
         public void SetRequestedResourceNumber(ICollection<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy,
             ICollection<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
@@ -60,7 +62,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
 
         public object Source { get; }
         public ICollection<string> AllocatedCoreIds { get; }
-        public string Name { get => taskInfo.Name; set => taskInfo.Name = value; }
+        public string Name { get => taskInfo.Id?.ToString() ?? "0"; set => taskInfo.Name = value; }
 
         public TaskState State//todo all states
         {
@@ -137,6 +139,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
             throw new ApplicationException("Task state \"" + taskState +
                                            "\" could not be converted to any known task state.");
         }*/
+
+
+        private Dictionary<string, string> ConvertTaskInfoToDict()
+        {
+            return JsonConvert.DeserializeObject<Dictionary<string, string>>(taskInfo.ToString());
+        }
         #endregion
     }
 }

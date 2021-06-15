@@ -306,16 +306,25 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                        where job.State > JobState.Configuring && task.State > TaskState.Configuring
                                        select (task)).Distinct().Select(s => s).ToArray();
 
-                var taskIds = (from task in unfinishedTasks
+                string[] taskIds;
+
+                if (cluster.SchedulerType == SchedulerType.LinuxLocal)//TODO REFACTOR
+                {
+                    taskIds = unfinishedJobInfoDb.Select(a => a.Id.ToString()).ToArray();
+
+                }
+                else
+                {
+                    taskIds = (from task in unfinishedTasks
                                select task.ScheduledJobId).Distinct().Select(s => s).ToArray();
+                }
+
+                List<SubmittedTaskInfo> unfinishedTaskInfoCluster =
+                    (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(taskIds, cluster)).ToList();
 
                 var taskArrays = (from task in unfinishedTasks
                                   where !(task.Specification.JobArrays is null)
                                   select (task.ScheduledJobId, task.Specification.JobArrays)).Distinct().Select(s => s).ToArray();
-
-
-                List<SubmittedTaskInfo> unfinishedTaskInfoCluster =
-                    (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(taskIds, cluster)).ToList();
 
 
                 foreach (var task in taskArrays)
