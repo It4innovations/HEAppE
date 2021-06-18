@@ -36,6 +36,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         internal JobManagementLogic(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
+            _tasksToDeleteFromSpec = new List<TaskSpecification>();
+            _tasksToAddToSpec = new List<TaskSpecification>();
+            _extraLongTaskDecomposedDependency = new Dictionary<TaskSpecification, TaskSpecification>();
         }
 
         public SubmittedJobInfo CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong)
@@ -574,7 +577,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         /// </summary>
         /// <param name="specification">Specification of the job</param>
         /// <param name="task">Task to divide</param>
-        protected static void DecomposeExtraLongTask(JobSpecification specification, TaskSpecification task)
+        protected void DecomposeExtraLongTask(JobSpecification specification, TaskSpecification task)
         {
             if (!(task.WalltimeLimit.HasValue))
             {
