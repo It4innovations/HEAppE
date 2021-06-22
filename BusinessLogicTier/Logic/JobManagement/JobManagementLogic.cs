@@ -174,6 +174,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 jobInfo.Tasks[i] = CombineSubmittedTaskInfoFromCluster(jobInfo.Tasks[i], clusterTasksInfo[i]);
             }
 
+            UpdateJobStateByTasks(jobInfo);
+
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
             _unitOfWork.Save();
             return jobInfo;
