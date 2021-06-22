@@ -347,8 +347,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             taskSourceSb.Append(
                 string.IsNullOrEmpty(recursiveSymlinkCommand) 
                     ? string.Empty 
-                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};");
-            taskSourceSb.Append($"rm {stdOutFile} {stdErrFile};");
+                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};");
 
             taskSourceSb.Append(
                 string.IsNullOrEmpty(preparationScript) 
