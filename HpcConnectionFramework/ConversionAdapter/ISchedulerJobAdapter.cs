@@ -16,7 +16,7 @@ namespace HEAppE.HpcConnectionFramework.ConversionAdapter {
 		int Runtime { get; set; }
 		string AccountingString { get; set; }
 
-		List<object> GetTaskList();
+        List<object> GetTaskList();
 
 		object CreateEmptyTaskObject();
 

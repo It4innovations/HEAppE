@@ -26,6 +26,8 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation {
 
 		public DateTime? EndTime { get; set; }
 
+		//public double? LocalProcessId { get; set; }
+
 		public double? TotalAllocatedTime { get; set; }
 
 		public virtual AdaptorUser Submitter { get; set; }
