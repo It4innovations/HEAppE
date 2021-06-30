@@ -43,11 +43,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         public SubmittedJobInfo CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong)
         {
-            _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
             IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork);
             IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork);
 
             CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic);
+            _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
+
             ValidationResult jobValidation = new JobSpecificationValidator(specification).Validate();
             if (!jobValidation.IsValid)
             {
