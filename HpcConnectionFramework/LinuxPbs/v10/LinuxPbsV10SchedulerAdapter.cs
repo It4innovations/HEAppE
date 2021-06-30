@@ -227,7 +227,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
 
             if (sshcmd.ExitStatus != 0)
             {
-                throw new SshCommandException(String.Format("SSH command error: {0} Error code: {1} SSH command: {2}", sshcmd.Error, sshcmd.ExitStatus, sshcmd.CommandText));
+                throw new SshCommandException($"SSH command error: {sshcmd.Error} Error code: {sshcmd.ExitStatus} SSH command: {sshcmd.CommandText}");
             }
             if (sshcmd.Error.Length > 0)
             {

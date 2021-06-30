@@ -30,17 +30,20 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         {
             if (string.IsNullOrWhiteSpace(commandText)) { throw new ArgumentException($"Argument 'commandText' cannot be null or empty"); }
 
-            var sshCommand = new SshCommandWrapper();           
-            sshCommand.CommandText = commandText;
-            
+            var sshCommand = new SshCommandWrapper
+            {
+                CommandText = commandText
+            };
+
             string result = string.Empty;
             string error = string.Empty;
+
             using (var proc = new Process())
             {
                 proc.StartInfo.FileName = "ssh";
                 proc.StartInfo.WorkingDirectory = "/usr/bin/";
                 proc.StartInfo.Arguments = $"-q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName} \"{commandText}\"";
-                _log.Info(proc.StartInfo.Arguments);
+                _log.Info($"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.RedirectStandardError = true;
@@ -49,7 +52,6 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                 
                 result = proc.StandardOutput.ReadToEnd();
                 error = proc.StandardError.ReadToEnd();
-
                 proc.WaitForExit();
 
                 if (proc.ExitCode != 0)

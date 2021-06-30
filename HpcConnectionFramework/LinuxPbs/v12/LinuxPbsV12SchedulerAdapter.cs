@@ -130,13 +130,11 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
 
         public override SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
         {
-            //const string JOB_ID_REGEX = @"^(Job\ Id:\ )(\d+)";
-            string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]]+)";
-
+            const string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]]+)";
             SshCommandWrapper command = null;
             do
             {
-                string commandString = String.Format("bash -lc 'qstat -f -x {0}'", String.Join(" ", scheduledJobIds));
+                string commandString = $"bash -lc 'qstat -f -x {string.Join(" ", scheduledJobIds)}'";
                 try
                 {
                     command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandString);
@@ -146,21 +144,27 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
                     string jobIdMath = "qstat: Unknown Job Id";
                     if (e.Message.Contains(jobIdMath))
                     {
-                        Match match = Regex.Match(e.Message, @"(?<=Unknown Job Id )\b\w+\b");
+                        Match match = Regex.Match(e.Message, @$"(?<={jobIdMath} )\b\w+[.\w]*\b", RegexOptions.Compiled);
                         if (match.Success)
                         {
                             string jobId = match.Value;
-                            //_log.WarnFormat("Unknown Job ID {0} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.", jobId);
-                            scheduledJobIds = scheduledJobIds?.Where(val => val != jobId).ToArray();
+                            _log.Warn($"Unknown Job ID {jobId} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.");
+                            scheduledJobIds = scheduledJobIds?.Where(val => val != jobId)
+                                                               .ToArray();
                             command = null;
                         }
                     }
-                    else _log.ErrorFormat(e.Message);
+                    else
+                    {
+                        _log.ErrorFormat(e.Message);
+                    }
                 }
             }
             while (command == null);
 
             string[] resultLines = command.Result.Split('\n');
+
+
 
             // Search for lines with jobIds
             Dictionary<string, int> jobLines = new Dictionary<string, int>();
@@ -172,8 +176,6 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
                     jobLines.Add(match.Groups[2].Value, i);
                 }
             }
-
-            // SubmittedJobInfo jobInfo = new SubmittedJobInfo();
 
             // Iterate through jobIds and extract task info
             List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>();
@@ -207,9 +209,6 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
                 // Get current job info
                 taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
             }
-
-            //jobInfo.Tasks = taskInfos;
-
             return taskInfos.ToArray();
         }
 
