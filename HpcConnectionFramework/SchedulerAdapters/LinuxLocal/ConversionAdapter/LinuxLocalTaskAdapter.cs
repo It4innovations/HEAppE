@@ -24,7 +24,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
 
         public string ErrorMessage { get; }
 
-        public string Id => taskInfo.Id?.ToString() ?? "0";
+        public string Id => taskInfo.Pid?.ToString();
 
         public TaskPriority Priority { get; set; }//todo
         public string Queue { get; set; }//todo
