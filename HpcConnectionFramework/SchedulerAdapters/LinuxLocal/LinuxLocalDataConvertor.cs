@@ -61,7 +61,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
             jobInfo.SubmitTime = jobAdapter.SubmitTime;
             jobInfo.StartTime = jobAdapter.StartTime;
             jobInfo.EndTime = jobAdapter.EndTime;
-            //jobInfo.LocalProcessId = jobAdapter.Pid;
             jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
             return jobInfo;
         }

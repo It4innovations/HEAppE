@@ -119,7 +119,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
         }
         public int Runtime { get; set; }
         public string AccountingString { get; set; }
-        public double? Pid {  get => jobInfo.Pid; }
 
         public List<object> GetTaskList()
         {

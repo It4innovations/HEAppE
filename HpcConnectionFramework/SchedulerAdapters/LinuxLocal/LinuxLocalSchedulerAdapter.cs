@@ -104,6 +104,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             return jobInfo;
         }
 
+        public override void CancelJob(object scheduler, string scheduledJobId, string message)
+        {
+            //RunSshCommand(new SshClientAdapter((SshClient)scheduler), String.Format("bash -lc 'qdel {0}'", scheduledJobId));
+            throw new NotImplementedException("todo");
+        }
+
         public override List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
         {
 #warning this should use database instead of direct read from file
