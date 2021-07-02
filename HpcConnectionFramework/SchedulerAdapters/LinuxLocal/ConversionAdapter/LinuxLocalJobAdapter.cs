@@ -56,10 +56,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
             {
                 switch (jobInfo.State?.ToString())
                 {
+                    case "H":
+                        return JobState.Configuring;
                     case "R":
                         return JobState.Running;
                     case "F":
                         return JobState.Finished;
+                    case "S":
+                        return JobState.Canceled;
                     default:
                         throw new ApplicationException("Job state could not be converted to any known job state.");
                 }

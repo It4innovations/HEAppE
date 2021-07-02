@@ -21,7 +21,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
     public class LinuxLocalSchedulerAdapter : LinuxPbsV12SchedulerAdapter
     {
-        private const string WorkDirBasePath = "/home/heappetests";//REFLECTING DOCKERFILE FOR LOCAL LINUX COMPUTING
+        private readonly string WorkDirBasePath = "/home/heappetests";//REFLECTING DOCKERFILE FOR LOCAL LINUX COMPUTING
         #region Constructors
         public LinuxLocalSchedulerAdapter(ISchedulerDataConvertor convertor) : base(convertor) { }
         #endregion
@@ -106,8 +106,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 
         public override void CancelJob(object scheduler, string scheduledJobId, string message)
         {
-            //RunSshCommand(new SshClientAdapter((SshClient)scheduler), String.Format("bash -lc 'qdel {0}'", scheduledJobId));
-            throw new NotImplementedException("todo");
+            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/cancel_job.sh {WorkDirBasePath}/{scheduledJobId}/");
+            //throw new NotImplementedException("todo");
         }
 
         public override List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)

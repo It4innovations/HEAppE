@@ -24,7 +24,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
 
         public string ErrorMessage { get; }
 
-        public string Id => taskInfo.Pid;
+        public string Id => taskInfo.JobId;
 
         public TaskPriority Priority { get; set; }//todo
         public string Queue { get; set; }//todo
@@ -76,6 +76,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionA
                         return TaskState.Running;
                     case "F":
                         return TaskState.Finished;
+                    case "S":
+                        return TaskState.Canceled;
                     default:
                         throw new ApplicationException("Task state could not be converted to any known task state.");
                 }

@@ -308,16 +308,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 string[] taskIds;
 
-                if (cluster.SchedulerType == SchedulerType.LinuxLocal)//TODO REFACTOR
-                {
-                    taskIds = unfinishedJobInfoDb.Select(a => a.Id.ToString()).ToArray();
 
-                }
-                else
-                {
-                    taskIds = (from task in unfinishedTasks
-                               select task.ScheduledJobId).Distinct().Select(s => s).ToArray();
-                }
+                taskIds = (from task in unfinishedTasks
+                           select task.ScheduledJobId).Distinct().Select(s => s).ToArray();
 
                 List<SubmittedTaskInfo> unfinishedTaskInfoCluster =
                     (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(taskIds, cluster)).ToList();
