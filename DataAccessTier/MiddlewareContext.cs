@@ -92,7 +92,6 @@ namespace HEAppE.DataAccessTier
                 .WithMany(g => g.AdaptorUserUserGroups)
                 .HasForeignKey(ug => new { ug.AdaptorUserGroupId });
 
-            // TODO(Moravec): This should make role name unique, but it doesn't work for me?
             modelBuilder.Entity<AdaptorUserRole>().HasAlternateKey(x => x.Name);
 
             // M:N relations for AdaptorUserUserRole
@@ -213,6 +212,11 @@ namespace HEAppE.DataAccessTier
                 {
                     SaveChanges();
                 }
+            }
+            catch (Exception e)
+            {
+                Database.CloseConnection();
+                _log.Error($"Inserting or updating seed into {tableName} is not completed. Error occurs.");
             }
             finally
             {

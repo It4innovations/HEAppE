@@ -19,6 +19,7 @@ using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Http;
 using HEAppE.FileTransferFramework;
 using HEAppE.KeycloakOpenIdAuthentication.Configuration;
+using HEAppE.OpenStackAPI.Configuration;
 
 namespace HEAppE.RestApi
 {

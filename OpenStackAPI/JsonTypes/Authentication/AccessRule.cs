@@ -4,6 +4,7 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 {
     public class AccessRule
     {
+        #region Properties
         [JsonProperty("path")]
         public string Path { get; set; }
 
@@ -12,5 +13,6 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 
         [JsonProperty("service")]
         public string Service { get; set; }
+        #endregion
     }
 }

@@ -1,9 +1,10 @@
 ﻿using System;
 
-namespace HEAppE.OpenStackAPI
+namespace HEAppE.OpenStackAPI.Configuration
 {
     public class OpenStackSettings
     {
+        #region Properties
         /// <summary>
         /// Url for Identity API.
         /// </summary>
@@ -18,5 +19,6 @@ namespace HEAppE.OpenStackAPI
         /// OpenStack session expiration in seconds.
         /// </summary>
         public static int OpenStackSessionExpiration { get; set; }
+        #endregion
     }
 }

@@ -5,6 +5,7 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 {
     public class User : Identifiable
     {
+        #region Properties
         [JsonProperty("domain")]
         public Domain Domain { get; set; }
 
@@ -13,5 +14,6 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 
         [JsonProperty("password_expires_at")]
         public DateTime? PasswordExpiresAt { get; set; }
+        #endregion
     }
 }

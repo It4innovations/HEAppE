@@ -4,6 +4,7 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 {
     public class Scope
     {
+        #region Properties
         [JsonProperty("system")]
         public System System { get; set; }
 
@@ -12,5 +13,6 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 
         [JsonProperty("project")]
         public Project Project { get; set; }
+        #endregion
     }
 }

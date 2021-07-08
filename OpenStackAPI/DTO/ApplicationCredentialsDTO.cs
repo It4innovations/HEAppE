@@ -1,10 +1,13 @@
-﻿namespace HEAppE.OpenStackAPI.DTO
+﻿using System;
+
+namespace HEAppE.OpenStackAPI.DTO
 {
     /// <summary>
     /// OpenStack application credentials from the keystone.
     /// </summary>
     public class ApplicationCredentialsDTO
     {
+        #region Properties
         /// <summary>
         /// Gets or sets the application credentials id.
         /// </summary>
@@ -18,6 +21,7 @@
         /// <summary>
         /// Gets or sets the session expiration DateTime.
         /// </summary>
-        public System.DateTime ExpiresAt { get; set; }
+        public DateTime ExpiresAt { get; set; }
+        #endregion
     }
 }

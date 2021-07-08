@@ -1,5 +1,4 @@
 ﻿using System;
-using HEAppE.OpenStackAPI.JsonTypes;
 using HEAppE.RestUtils.Interfaces;
 
 namespace HEAppE.OpenStackAPI.Exceptions

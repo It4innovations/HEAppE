@@ -139,6 +139,11 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
                 {
                     command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandString);
                 }
+                catch(SshCommandException ce)
+                {
+                    _log.Warn(ce.Message);
+                    break;
+                }
                 catch (Exception e)
                 {
                     string jobIdMath = "qstat: Unknown Job Id";
@@ -162,54 +167,62 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
             }
             while (command == null);
 
-            string[] resultLines = command.Result.Split('\n');
 
-
-
-            // Search for lines with jobIds
-            Dictionary<string, int> jobLines = new Dictionary<string, int>();
-            for (int i = 0; i < resultLines.Length; i++)
+            if(command is not null)
             {
-                Match match = Regex.Match(resultLines[i], JOB_ID_REGEX);
-                if (match.Success)
-                {
-                    jobLines.Add(match.Groups[2].Value, i);
-                }
-            }
+                string[] resultLines = command.Result.Split('\n');
 
-            // Iterate through jobIds and extract task info
-            List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>();
-            for (int i = 0; i < scheduledJobIds?.Length; i++)
+
+
+                // Search for lines with jobIds
+                Dictionary<string, int> jobLines = new Dictionary<string, int>();
+                for (int i = 0; i < resultLines.Length; i++)
+                {
+                    Match match = Regex.Match(resultLines[i], JOB_ID_REGEX);
+                    if (match.Success)
+                    {
+                        jobLines.Add(match.Groups[2].Value, i);
+                    }
+                }
+
+                // Iterate through jobIds and extract task info
+                List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>();
+                for (int i = 0; i < scheduledJobIds?.Length; i++)
+                {
+                    // Search for jobId in result
+                    int jobInfoStartLine = -1;
+                    try
+                    {
+                        jobInfoStartLine = jobLines[scheduledJobIds[i]];
+                    }
+                    catch (KeyNotFoundException)
+                    {
+                        _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIds[i]);
+
+                        taskInfos.Add(new SubmittedTaskInfo());
+                        continue;
+                    }
+
+                    // Get number of lines in qstat output for this job
+                    int jobInfoLineCount = 0;
+                    do
+                    {
+                        jobInfoLineCount++;
+                    } while (!Regex.IsMatch(resultLines[jobInfoStartLine + jobInfoLineCount], JOB_ID_REGEX) && jobInfoLineCount + jobInfoStartLine + 1 < resultLines.Length);
+
+                    // Cut lines for given job info
+                    string[] currentJobLines = new string[jobInfoLineCount];
+                    Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
+
+                    // Get current job info
+                    taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
+                }
+                return taskInfos.ToArray();
+            }
+            else
             {
-                // Search for jobId in result
-                int jobInfoStartLine = -1;
-                try
-                {
-                    jobInfoStartLine = jobLines[scheduledJobIds[i]];
-                }
-                catch (KeyNotFoundException)
-                {
-                    _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIds[i]);
-
-                    taskInfos.Add(new SubmittedTaskInfo());
-                    continue;
-                }
-
-                // Get number of lines in qstat output for this job
-                int jobInfoLineCount = 0;
-                do
-                {
-                    jobInfoLineCount++;
-                } while (!Regex.IsMatch(resultLines[jobInfoStartLine + jobInfoLineCount], JOB_ID_REGEX) && jobInfoLineCount + jobInfoStartLine + 1 < resultLines.Length);
-
-                // Cut lines for given job info
-                string[] currentJobLines = new string[jobInfoLineCount];
-                Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
-
-                // Get current job info
-                taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
+                return Array.Empty<SubmittedTaskInfo>();
             }
-            return taskInfos.ToArray();
         }
 
         public override SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds)

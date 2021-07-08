@@ -9,7 +9,7 @@ namespace HEAppE.RestApi.Controllers
 {
     public class BaseController<T> : Controller
     {
-        #region Properties
+        #region Instances
         /// <summary>
         /// Logger
         /// </summary>

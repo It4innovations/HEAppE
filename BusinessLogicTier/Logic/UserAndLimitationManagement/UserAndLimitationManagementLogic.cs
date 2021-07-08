@@ -143,21 +143,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
         private ApplicationCredentialsDTO CreateNewOpenStackSession(AdaptorUser userAccount)
         {
-            OpenStackAuthenticationCredentials osInstanceCredentials =
-                unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
+            OpenStackAuthenticationCredentials osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
 
-            OpenStack openStack = new OpenStack(new OpenStack.OpenStackInfo
-            {
-                OpenStackUrl = osInstanceCredentials.OpenStackInstance.InstanceUrl,
-                Domain = osInstanceCredentials.OpenStackInstance.Domain,
-                ServiceAccUsername = osInstanceCredentials.Username,
-                ServiceAccPassword = osInstanceCredentials.Password
-            });
-
+            var openStack = new OpenStack(osInstanceCredentials.OpenStackInstance.InstanceUrl);
             ApplicationCredentialsDTO openStackCredentials;
             try
             {
-                openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username);
+                var authResponse = openStack.Authenticate(osInstanceCredentials.Username, osInstanceCredentials.Password, osInstanceCredentials.OpenStackInstance.Domain, osInstanceCredentials.OpenStackInstance.Project);
+                openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
             }
             catch (OpenStackAPIException ex)
             {

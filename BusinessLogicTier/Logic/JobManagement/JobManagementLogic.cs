@@ -329,6 +329,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     AddValuesToJobArrayInfo(unfinishedTaskInfoCluster.Find(x => x.ScheduledJobId == task.ScheduledJobId), unfinishedTaskArrayInfoCluster);
                 }
 
+                //TODO this
+                if(unfinishedJobInfoDb.Count == 0)
+                {
+                    return null;
+                }
+
                 // Combine the objects together
                 List<long> succSubmittedTaskIds = new List<long>();
                 foreach (var clusterTask in unfinishedTaskInfoCluster)
