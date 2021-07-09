@@ -24,4 +24,8 @@
     <ProjectReference Include="..\MiddlewareUtils\MiddlewareUtils.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Folder Include="SchedulerAdapters\LinuxLocal\ConversionAdapter\" />
+  </ItemGroup>
+
 </Project>
