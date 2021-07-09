@@ -4,7 +4,7 @@ using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionAdapter;
+//using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.LinuxPbs.v12.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SystemConnectors;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -28,7 +28,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
 
 		protected override ISchedulerDataConvertor CreateDataConvertor() {
 			if (linuxPbsConvertorSingleton == null)
-				linuxPbsConvertorSingleton = new LinuxLocalDataConvertor(new LinuxLocalConversionAdapterFactory());
+				linuxPbsConvertorSingleton = new LinuxLocalDataConvertor();
 			return linuxPbsConvertorSingleton;
 		}
 

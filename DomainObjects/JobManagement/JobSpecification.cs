@@ -78,13 +78,13 @@ namespace HEAppE.DomainObjects.JobManagement
                     writer.WriteNumberValue(Id);
 
                     writer.WritePropertyName("SubmitTime");
-                    writer.WriteStringValue("");
+                    writer.WriteNullValue();
 
                     writer.WritePropertyName("StartTime");
-                    writer.WriteStringValue("");
+                    writer.WriteNullValue();
 
                     writer.WritePropertyName("EndTime");
-                    writer.WriteStringValue("");
+                    writer.WriteNullValue();
 
                     writer.WritePropertyName("State");
                     writer.WriteStringValue("H");//configuring
@@ -96,7 +96,7 @@ namespace HEAppE.DomainObjects.JobManagement
                     writer.WriteStringValue(Project);
 
                     writer.WritePropertyName("CreateTime");
-                    writer.WriteStringValue(DateTime.Now.ToString("yyy-MM-ddTHH:mm:ss.ffZ"));
+                    writer.WriteStringValue(DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"));
 
                     writer.WritePropertyName("Tasks");
                     writer.WriteStartArray();
@@ -110,16 +110,16 @@ namespace HEAppE.DomainObjects.JobManagement
                         writer.WriteNumberValue(task.Id);
 
                         writer.WritePropertyName(nameof(task.Name));
-                        writer.WriteStringValue(task.Name);
+                        writer.WriteStringValue(task.Id.ToString());
 
                         writer.WritePropertyName("State");
                         writer.WriteStringValue("H");//configuring
 
                         writer.WritePropertyName("StartTime");
-                        writer.WriteStringValue("");
+                        writer.WriteNullValue();
 
                         writer.WritePropertyName("EndTime");
-                        writer.WriteStringValue("");
+                        writer.WriteNullValue();
 
                         writer.WritePropertyName("AllocatedTime");
                         writer.WriteNumberValue(0);
