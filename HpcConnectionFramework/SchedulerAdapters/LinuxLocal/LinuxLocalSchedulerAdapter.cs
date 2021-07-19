@@ -52,7 +52,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
                 sb.Append($" {task.Id}");
             }
 
-            sb.Append($" >> {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/log.txt &");//change this in future?
+            sb.Append($" >> {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/job_log.txt &");//change this in future?
 
             shellCommand = sb.ToString();
 
