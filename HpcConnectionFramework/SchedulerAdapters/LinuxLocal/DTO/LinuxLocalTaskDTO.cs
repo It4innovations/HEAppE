@@ -27,6 +27,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                 {
                     case 'H':
                         return TaskState.Configuring;
+                    case 'Q':
+                        return TaskState.Queued;
                     case 'R':
                         return TaskState.Running;
                     case 'F':

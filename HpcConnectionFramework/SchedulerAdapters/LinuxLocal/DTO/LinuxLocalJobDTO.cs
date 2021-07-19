@@ -26,7 +26,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                 switch (InternalState)
                 {
                     case 'H':
-                        return JobState.Configuring;
+                        return JobState.Configuring; 
+                    case 'Q':
+                        return JobState.Queued;
                     case 'R':
                         return JobState.Running;
                     case 'F':

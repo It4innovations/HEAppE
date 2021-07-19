@@ -66,7 +66,7 @@ namespace HEAppE.DomainObjects.JobManagement
             return result.ToString();
         }
 
-        public string ConvertToLocalHPCInfo()
+        public string ConvertToLocalHPCInfo(string jobState, string tasksState)
         {
             string output = string.Empty;
             using (MemoryStream ms = new MemoryStream())
@@ -87,7 +87,7 @@ namespace HEAppE.DomainObjects.JobManagement
                     writer.WriteNullValue();
 
                     writer.WritePropertyName("State");
-                    writer.WriteStringValue("H");//configuring
+                    writer.WriteStringValue(jobState);
 
                     writer.WritePropertyName("Name");
                     writer.WriteStringValue(Name);
@@ -113,7 +113,7 @@ namespace HEAppE.DomainObjects.JobManagement
                         writer.WriteStringValue(task.Id.ToString());
 
                         writer.WritePropertyName("State");
-                        writer.WriteStringValue("H");//configuring
+                        writer.WriteStringValue(tasksState);
 
                         writer.WritePropertyName("StartTime");
                         writer.WriteNullValue();

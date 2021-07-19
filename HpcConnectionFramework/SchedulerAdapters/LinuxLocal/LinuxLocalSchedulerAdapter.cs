@@ -37,7 +37,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             ClusterAuthenticationCredentials credentials)
         {
             var localHpcJobInfo =
-                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(jobSpecification.ConvertToLocalHPCInfo()));
+                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(jobSpecification.ConvertToLocalHPCInfo("Q", "Q")));
             StringBuilder sb = new StringBuilder();
             StringBuilder jobResultInfo = new StringBuilder();
 
@@ -59,15 +59,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
                 sb.Append($" {task.Id}");
             }
 
-            sb.Append(";");
+            sb.Append($" >> {WorkDirBasePath}/{jobSpecification.Id}/log.txt &");//change this in future?
 
             shellCommand = sb.ToString();
-             _ = Task.Run( () => RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand));//do not wait for the end
 
-            /*jobResultInfo.Append(sshCommand.Result);
-            _log.InfoFormat("Run job result: {0}", jobResultInfo.ToString());*/
-
-            Thread.Sleep(500);//wait till script starts (at docker container) refactor this?
+            _ = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
 
             return GetActualJobInfo(scheduler, $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
         }
