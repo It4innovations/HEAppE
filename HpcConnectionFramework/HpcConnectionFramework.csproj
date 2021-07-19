@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="SchedulerAdapters\LinuxLocal\ConversionAdapter\**" />
     <Compile Remove="WindowsHpc\**" />
+    <EmbeddedResource Remove="SchedulerAdapters\LinuxLocal\ConversionAdapter\**" />
     <EmbeddedResource Remove="WindowsHpc\**" />
+    <None Remove="SchedulerAdapters\LinuxLocal\ConversionAdapter\**" />
     <None Remove="WindowsHpc\**" />
   </ItemGroup>
 
@@ -22,10 +25,6 @@
     <ProjectReference Include="..\ConnectionPool\ConnectionPool.csproj" />
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
     <ProjectReference Include="..\MiddlewareUtils\MiddlewareUtils.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="SchedulerAdapters\LinuxLocal\ConversionAdapter\" />
   </ItemGroup>
 
 </Project>
