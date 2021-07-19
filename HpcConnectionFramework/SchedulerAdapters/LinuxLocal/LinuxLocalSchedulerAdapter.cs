@@ -2,16 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Text.RegularExpressions;
-using System.Threading;
-using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.LinuxPbs;
-using HEAppE.HpcConnectionFramework.LinuxPbs.v10;
 using HEAppE.HpcConnectionFramework.LinuxPbs.v12;
 using HEAppE.MiddlewareUtils;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -21,7 +15,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
     public class LinuxLocalSchedulerAdapter : LinuxPbsV12SchedulerAdapter
     {
-        private readonly string WorkDirBasePath = "/home/heappetests";//REFLECTING DOCKERFILE FOR LOCAL LINUX COMPUTING
         #region Constructors
         public LinuxLocalSchedulerAdapter(ISchedulerDataConvertor convertor) : base(convertor) { }
         #endregion
@@ -53,19 +46,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 
             sb.Clear();
 
-            sb.Append($"~/.key_script/run_test.sh {WorkDirBasePath}/{jobSpecification.Id}/");//run job (script on local linux docker machine)
+            sb.Append($"~/.key_script/run_test.sh {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");//run job (script on local linux docker machine)
             foreach (var task in jobSpecification.Tasks)
             {
                 sb.Append($" {task.Id}");
             }
 
-            sb.Append($" >> {WorkDirBasePath}/{jobSpecification.Id}/log.txt &");//change this in future?
+            sb.Append($" >> {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/log.txt &");//change this in future?
 
             shellCommand = sb.ToString();
 
             _ = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
 
-            return GetActualJobInfo(scheduler, $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
+            return GetActualJobInfo(scheduler, $"{jobSpecification.Id}/");
         }
 
         public override SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds)
@@ -74,7 +67,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 
             foreach (var jobId in scheduledJobIds)
             {
-                submittedTaskInfos.Add(GetActualJobInfo(scheduler, $"{WorkDirBasePath}/{jobId}/"));
+                submittedTaskInfos.Add(GetActualJobInfo(scheduler, $"{jobId}/"));
             }
 
             return submittedTaskInfos.ToArray();
@@ -87,7 +80,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 
             foreach (var jobId in scheduledJobIds)
             {
-                submittedTaskInfos.AddRange(GetActualJobInfo(scheduler, $"{WorkDirBasePath}/{jobId}/").Tasks);
+                submittedTaskInfos.AddRange(GetActualJobInfo(scheduler, $"{jobId}/").Tasks);
             }
 
             return submittedTaskInfos.ToArray();
@@ -102,7 +95,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 
         public override void CancelJob(object scheduler, string scheduledJobId, string message)
         {
-            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/cancel_job.sh {WorkDirBasePath}/{scheduledJobId}/");
+            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/cancel_job.sh {scheduledJobId}/");
             //throw new NotImplementedException("todo");
         }
 
