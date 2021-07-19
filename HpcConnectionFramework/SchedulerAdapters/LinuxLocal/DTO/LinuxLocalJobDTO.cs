@@ -29,6 +29,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                         return JobState.Configuring; 
                     case 'Q':
                         return JobState.Queued;
+                    case 'O':
+                        return JobState.Failed;
                     case 'R':
                         return JobState.Running;
                     case 'F':

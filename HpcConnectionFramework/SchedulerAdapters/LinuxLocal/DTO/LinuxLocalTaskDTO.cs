@@ -29,6 +29,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                         return TaskState.Configuring;
                     case 'Q':
                         return TaskState.Queued;
+                    case 'O':
+                        return TaskState.Failed;
                     case 'R':
                         return TaskState.Running;
                     case 'F':
@@ -36,7 +38,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                     case 'S':
                         return TaskState.Canceled;
                     default:
-                        throw new ApplicationException("Job state could not be converted to any known job state.");
+                        throw new ApplicationException("Task state could not be converted to any known task state.");
                 }
             }
         }
