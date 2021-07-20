@@ -72,6 +72,7 @@ namespace HEAppE.RestApi
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
             Configuration.Bind("KeycloakSettings", keycloackConfiguration);
             Configuration.Bind("OpenStackSettings", new OpenStackSettings());
+            Configuration.Bind("LocalDockerSettings", new LocalDockerSettings());
 
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
@@ -188,6 +189,17 @@ namespace HEAppE.RestApi
             var option = new RewriteOptions();
             option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
             app.UseRewriter(option);
+
+            ConfigureLocalDockerHpc();
+        }
+
+        private void ConfigureLocalDockerHpc()
+        {
+            if (LocalDockerSettings.UseLocalHPC)
+            {
+                var localDockerManager = DockerContainerManager.Instance;
+                localDockerManager.StartDockerContainer(LocalDockerSettings.ImageConfigurationDir);
+            }
         }
         #endregion
     }
