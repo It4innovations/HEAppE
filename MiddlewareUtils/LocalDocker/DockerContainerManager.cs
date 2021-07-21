@@ -81,7 +81,7 @@ namespace HEAppE.MiddlewareUtils.LocalDocker
             return result.StatusCode == System.Net.HttpStatusCode.NoContent;
         }
 
-        public async void StartDockerContainer(string pathToConfiguration)
+        public async Task StartDockerContainer(string pathToConfiguration)
         {
             //check if image exists
             bool imageExists = await CheckIfImageExists();

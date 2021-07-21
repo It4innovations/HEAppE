@@ -193,12 +193,17 @@ namespace HEAppE.RestApi
             ConfigureLocalDockerHpc();
         }
 
+        /// <summary>
+        /// Asynchronous run of docker configuration
+        /// </summary>
         private void ConfigureLocalDockerHpc()
         {
             if (LocalDockerSettings.UseLocalHPC)
             {
                 var localDockerManager = DockerContainerManager.Instance;
-                localDockerManager.StartDockerContainer(LocalDockerSettings.ImageConfigurationDir);
+                Task dockerConfigureTask = Task.Run(
+                    async () => await localDockerManager.StartDockerContainer(LocalDockerSettings.ImageConfigurationDir));
+                dockerConfigureTask.Wait();
             }
         }
         #endregion
