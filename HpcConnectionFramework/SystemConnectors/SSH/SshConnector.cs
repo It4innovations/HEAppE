@@ -1,5 +1,6 @@
 ﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using System;
@@ -81,9 +82,8 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <returns></returns>
         private object CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string username, string password)
         {
-            var hostPort = masterNodeName.Split(':');
-            int port = int.Parse(hostPort[1]??"22");
-            var connInfo = new Renci.SshNet.ConnectionInfo(hostPort[0], port, username, new PasswordAuthenticationMethod(username, password));
+            var connectionConfiguration = ConnectionConfigurationUtils.ParseConnectionConfiguration(masterNodeName);
+            var connInfo = new Renci.SshNet.ConnectionInfo(connectionConfiguration.Host, connectionConfiguration.Port, username, new PasswordAuthenticationMethod(username, password));
             return new SshClient(connInfo);
         }
 

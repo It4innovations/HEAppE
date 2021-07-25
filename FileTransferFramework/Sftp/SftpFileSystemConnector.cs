@@ -1,5 +1,6 @@
 ﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Renci.SshNet.Common;
@@ -63,7 +64,8 @@ namespace HEAppE.FileTransferFramework.Sftp
 
         private static SftpClient CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string remoteTimeZone, string username, string password)
         {
-            var connInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
+            var connectionConfiguration = ConnectionConfigurationUtils.ParseConnectionConfiguration(masterNodeName);
+            var connInfo = new Renci.SshNet.ConnectionInfo(connectionConfiguration.Host, connectionConfiguration.Port, username, new PasswordAuthenticationMethod(username, password));
             return new ExtendedSftpClient(connInfo, remoteTimeZone);
         }
 
