@@ -99,6 +99,24 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             //throw new NotImplementedException("todo");
         }
 
+        public override ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)
+        {
+            ClusterNodeUsage usage = new ClusterNodeUsage
+            {
+                NodeType = nodeType
+            };
+
+            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/count_jobs.sh");
+            if(int.TryParse(command.Result, out int totalJobs))
+            {
+                usage.TotalJobs = totalJobs;
+            }
+
+
+
+            return usage;
+        }
+
         public override List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
         {
 #warning this should use database instead of direct read from file
