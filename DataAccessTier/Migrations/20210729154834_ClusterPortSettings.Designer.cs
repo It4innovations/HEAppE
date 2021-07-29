@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20210702151719_LocalProcessIdSupport")]
-    partial class LocalProcessIdSupport
+    [Migration("20210729154834_ClusterPortSettings")]
+    partial class ClusterPortSettings
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -128,6 +128,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
 
                     b.Property<int>("SchedulerType")
                         .HasColumnType("int");
@@ -543,9 +546,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("LocalProcessId")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()

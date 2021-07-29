@@ -49,6 +49,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
+
                     b.Property<int>("SchedulerType")
                         .HasColumnType("int");
 
@@ -469,9 +472,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("ErrorMessage")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
-
-                    b.Property<string>("LocalProcessId")
-                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Name")
                         .IsRequired()

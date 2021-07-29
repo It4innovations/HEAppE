@@ -75,7 +75,8 @@ namespace HEAppE.HpcConnectionFramework
                     ConnectionPoolMaxSize,
                     ConnectionPoolCleaningInterval,
                     ConnectionPoolMaxUnusedInterval,
-                    CreateSchedulerConnector(configuration));
+                    CreateSchedulerConnector(configuration),
+                    configuration.Port);
             }
             return schedulerConnectionPoolSingletons[endpoint];
         }

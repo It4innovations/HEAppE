@@ -86,7 +86,8 @@ namespace HEAppE.DataAccessTier
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseLazyLoadingProxies();
-            optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+            //optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+            optionsBuilder.UseSqlServer("Data Source=(local);Initial Catalog=HEAppE;Integrated Security=True");
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -180,6 +181,7 @@ namespace HEAppE.DataAccessTier
                 Description = c.Description,
                 Id = c.Id,
                 MasterNodeName = c.MasterNodeName,
+                Port = c.Port,
                 Name = c.Name,
                 NodeTypes = c.NodeTypes,
                 SchedulerType = c.SchedulerType,

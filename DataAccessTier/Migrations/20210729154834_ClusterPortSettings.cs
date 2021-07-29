@@ -2,14 +2,14 @@
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    public partial class LocalProcessIdSupport : Migration
+    public partial class ClusterPortSettings : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<string>(
-                name: "LocalProcessId",
-                table: "SubmittedTaskInfo",
-                type: "nvarchar(max)",
+            migrationBuilder.AddColumn<int>(
+                name: "Port",
+                table: "Cluster",
+                type: "int",
                 nullable: true);
 
             migrationBuilder.AddUniqueConstraint(
@@ -25,8 +25,8 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "AdaptorUserRole");
 
             migrationBuilder.DropColumn(
-                name: "LocalProcessId",
-                table: "SubmittedTaskInfo");
+                name: "Port",
+                table: "Cluster");
         }
     }
 }

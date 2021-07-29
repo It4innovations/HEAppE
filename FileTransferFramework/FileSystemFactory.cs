@@ -59,7 +59,8 @@ namespace HEAppE.FileTransferFramework
                                                                ConnectionPoolMaxSize,
                                                                ConnectionPoolCleaningInterval,
                                                                ConnectionPoolMaxUnusedInterval,
-                                                               CreateFileSystemConnector(configuration));
+                                                               CreateFileSystemConnector(configuration),
+                                                               configuration.Cluster.Port);
 
                 _schedulerConnPoolSingletons.Add(configuration, connection);
             }

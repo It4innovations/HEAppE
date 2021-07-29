@@ -64,6 +64,7 @@
         "Name": "{ClusterName}",
         "Description": "{ClusterDescription}",
         "MasterNodeName": "{ClusterLoginURL}",
+        "Port": null,
         "LocalBasepath": "{LocalBasePath}",
         "TimeZone": "CET",
         "SchedulerType": 2,
