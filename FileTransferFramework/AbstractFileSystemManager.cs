@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -111,9 +112,11 @@ namespace HEAppE.FileTransferFramework
                 var changedFiles = ListChangedFilesForTask(taskClusterDirectoryPath, jobSubmitTime, jobInfo.Specification.ClusterUser);
                 foreach (var changedFile in changedFiles)
                 {
+                    var relativeFilePath = "/" + taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture) +
+                            Path.Combine(taskInfo.Specification.ClusterTaskSubdirectory ?? string.Empty, changedFile.FileName);
                     result.Add(new FileInformation
                     {
-                        FileName = taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture) + "/" + taskInfo.Specification.ClusterTaskSubdirectory + "/" + changedFile.FileName,
+                        FileName = relativeFilePath,
                         LastModifiedDate = changedFile.LastModifiedDate
                     });
                 }
