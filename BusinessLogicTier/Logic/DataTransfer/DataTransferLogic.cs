@@ -205,10 +205,24 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                     {
                         // Get the response.         
                         response = (HttpWebResponse)wr.GetResponse();
-                        var encoding = Encoding.GetEncoding(response.CharacterSet);
-                        using (var responseStream = response.GetResponseStream())
-                        using (var reader = new StreamReader(responseStream, encoding))
-                            httpResponse = reader.ReadToEnd();
+
+                        if (string.IsNullOrEmpty(response.CharacterSet))
+                        {
+                            using (var responseStream = response.GetResponseStream())
+                            {
+                                using (var reader = new StreamReader(responseStream))
+                                    httpResponse = reader.ReadToEnd();
+                            }
+                        }
+                        else
+                        {
+                            using (var responseStream = response.GetResponseStream())
+                            {
+                                var encoding = Encoding.GetEncoding(response.CharacterSet);
+                                using (var reader = new StreamReader(responseStream, encoding))
+                                    httpResponse = reader.ReadToEnd();
+                            }
+                        }
                         log.Info("HTTP GET from job " + submittedJobInfoId + " with remote IP " + ipAddress + ", HTTP response: " + httpResponse);
                     }
                     catch (Exception e)
