@@ -33,7 +33,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             {
                 _sftpClient.Disconnect();
             }
-          }
+        }
 
         internal bool Exists(string remotePath)
         {
@@ -46,7 +46,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                 return _sftpClient.Exists(remotePath);
             }
         }
-            
+
         internal void DownloadFile(string remotePath, MemoryStream stream)
         {
             if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
@@ -71,34 +71,52 @@ namespace HEAppE.FileTransferFramework.Sftp
                     break;
 
                 case ExtendedSftpClient extendedSftpClient:
-                    var resultItems = extendedSftpClient.ListDirectory(remotePath);
-                    foreach (var item in resultItems)
                     {
-                        items.Add(new SftpFile
+                        try
                         {
-                            FullName = item.FullName,
-                            IsDirectory = item.IsDirectory,
-                            IsSymbolicLink = item.IsSymbolicLink,
-                            LastWriteTime = item.LastWriteTime.Convert(extendedSftpClient.GetTimeZone()),
-                            Name = item.Name
-                        });
-                    }
-                    break;
+                            var resultItems = extendedSftpClient.ListDirectory(remotePath);
+                            foreach (var item in resultItems)
+                            {
+                                items.Add(new SftpFile
+                                {
+                                    FullName = item.FullName,
+                                    IsDirectory = item.IsDirectory,
+                                    IsSymbolicLink = item.IsSymbolicLink,
+                                    LastWriteTime = item.LastWriteTime.Convert(extendedSftpClient.GetTimeZone()),
+                                    Name = item.Name
+                                });
+                            }
+                        }
+                        catch (Renci.SshNet.Common.SshException exception)
+                        {
+                            //if directory is empty 'No such file' exception is raised, handle that case
+                            switch(exception.Message)
+                            {
+                                case "No such file":
+                                    break;
+                                default:
+                                    throw;
+                            }
+
+                        }
+
+                    }break;
 
                 default:
-                    resultItems = _sftpClient.ListDirectory(remotePath);
-                    foreach (var item in resultItems)
                     {
-                        items.Add(new SftpFile
+                        var resultItems = _sftpClient.ListDirectory(remotePath);
+                        foreach (var item in resultItems)
                         {
-                            FullName = item.FullName,
-                            IsDirectory = item.IsDirectory,
-                            IsSymbolicLink = item.IsSymbolicLink,
-                            LastWriteTime = item.LastWriteTimeUtc,
-                            Name = item.Name
-                        });
-                    }
-                    break;
+                            items.Add(new SftpFile
+                            {
+                                FullName = item.FullName,
+                                IsDirectory = item.IsDirectory,
+                                IsSymbolicLink = item.IsSymbolicLink,
+                                LastWriteTime = item.LastWriteTimeUtc,
+                                Name = item.Name
+                            });
+                        }
+                    }break;
             }
             return items;
         }
