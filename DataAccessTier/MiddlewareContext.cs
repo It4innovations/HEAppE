@@ -36,6 +36,7 @@ namespace HEAppE.DataAccessTier
                     {
                         try
                         {
+                            //Connection to Database works and Database not exist
                             if (!Database.CanConnect())
                             {
                                 _log.Info("Starting migration and seeding into the new database.");
@@ -47,7 +48,15 @@ namespace HEAppE.DataAccessTier
                             {
                                 var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                 var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-                                if (lastAppliedMigration == lastDefinedMigration)
+
+                                if (lastAppliedMigration is null)
+                                {
+                                    _log.Info("Starting migration and seeding into the new database.");
+                                    Database.Migrate();
+                                    EnsureDatabaseSeeded();
+                                    _isMigrated = true;
+                                }
+                                else if (lastAppliedMigration == lastDefinedMigration)
                                 {
                                     _log.Info("Application and database migrations are same. Starting seeding data into database.");
                                     EnsureDatabaseSeeded();
@@ -56,6 +65,7 @@ namespace HEAppE.DataAccessTier
                                 else
                                 {
                                     _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
+                                    throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
                                 }
                             }
                         }
