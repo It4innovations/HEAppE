@@ -4,7 +4,7 @@ using HEAppE.DomainObjects.OpenStack;
 
 namespace HEAppE.DataAccessTier.Repository.OpenStack
 {
-    internal class OpenStackAuthenticationCredentialsRepository : GenericRepository<OpenStackAuthenticationCredentials>,
+    internal class OpenStackAuthenticationCredentialsRepository : GenericRepository<OpenStackAuthenticationCredential>,
         IOpenStackAuthenticationCredentialsRepository
     {
         #region Constructors
@@ -14,7 +14,7 @@ namespace HEAppE.DataAccessTier.Repository.OpenStack
         }
         #endregion
         #region Methods
-        public OpenStackAuthenticationCredentials GetDefaultAccount()
+        public OpenStackAuthenticationCredential GetDefaultAccount()
         {
             return GetAll().Single();
         }

@@ -33,9 +33,14 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
                         {
                             User = new User
                             {
+                                Id = "",
                                 Name = userName,
                                 Password = password,
-                                Domain = new Domain { Name = domain }
+                                Domain = new Domain 
+                                { 
+                                    Id = "",
+                                    Name = ""
+                                }
                             }
                         }
                     }
@@ -76,8 +81,13 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
             {
                 Project = new Project
                 {
-                    Name = project,
-                    Domain = new Domain { Name = domain }
+                    Id = "",
+                    Name = "",
+                    Domain = new Domain 
+                    {
+                        Id = "",
+                        Name = ""
+                    }
                 }
             };
             return req;

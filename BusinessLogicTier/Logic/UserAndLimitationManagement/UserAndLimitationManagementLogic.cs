@@ -143,14 +143,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
         private ApplicationCredentialsDTO CreateNewOpenStackSession(AdaptorUser userAccount)
         {
-            OpenStackAuthenticationCredentials osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
+            OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
 
-            var openStack = new OpenStack(osInstanceCredentials.OpenStackInstance.InstanceUrl);
+           // var openStack = new OpenStack(osInstanceCredentials.OpenStackInstance.InstanceUrl);
             ApplicationCredentialsDTO openStackCredentials;
             try
             {
-                var authResponse = openStack.Authenticate(osInstanceCredentials.Username, osInstanceCredentials.Password, osInstanceCredentials.OpenStackInstance.Domain, osInstanceCredentials.OpenStackInstance.Project);
-                openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
+                //var authResponse = openStack.Authenticate(osInstanceCredentials.Username, osInstanceCredentials.Password, osInstanceCredentials.OpenStackInstance.Domain, osInstanceCredentials.OpenStackInstance.Project);
+                //openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
             }
             catch (OpenStackAPIException ex)
             {
@@ -160,9 +160,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
             }
 
-            StoreOpenStackSession(userAccount, openStackCredentials);
+           // StoreOpenStackSession(userAccount, openStackCredentials);
             log.Info($"Created new OpenStack 'session' (application credentials) for user {userAccount.Username}.");
-            return openStackCredentials;
+            //return openStackCredentials;
+            return null;
         }
 
         /// <summary>

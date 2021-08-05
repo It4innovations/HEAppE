@@ -23,7 +23,13 @@ namespace HEAppE.DataAccessTier
         public static List<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; }
 
         public static List<OpenStackInstance> OpenStackInstances { get; set; }
-        public static List<OpenStackAuthenticationCredentials> OpenStackAuthenticationCredentials { get; set; }
+        public static List<OpenStackDomain> OpenStackDomains { get; set; }
+        public static List<OpenStackProject> OpenStackProjects { get; set; }
+        public static List<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
+        public static List<OpenStackAuthenticationCredential> OpenStackAuthenticationCredentials { get; set; }
+        public static List<OpenStackAuthenticationCredentialDomain> OpenStackAuthenticationCredentialDomains { get; set; }
+        public static List<OpenStackAuthenticationCredentialProjectDomain> OpenStackAuthenticationCredentialProjectDomains { get; set; }
+
         public static List<Cluster> Clusters { get; set; }
         public static List<ClusterAuthenticationCredentials> ClusterAuthenticationCredentials { get; set; }
         public static List<ClusterNodeType> ClusterNodeTypes { get; set; }

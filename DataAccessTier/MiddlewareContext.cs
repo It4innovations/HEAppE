@@ -1,5 +1,4 @@
 using HEAppE.DomainObjects;
-using HEAppE.DomainObjects.AdminUserManagement;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -65,7 +64,7 @@ namespace HEAppE.DataAccessTier
                                 else
                                 {
                                     _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
-                                    throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
+                                    // throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version."); -- not working with migration
                                 }
                             }
                         }
@@ -104,6 +103,30 @@ namespace HEAppE.DataAccessTier
 
             modelBuilder.Entity<AdaptorUserRole>().HasAlternateKey(x => x.Name);
 
+            //M:N relations for OpenStackAuthenticationCredentialDomain
+            modelBuilder.Entity<OpenStackAuthenticationCredentialDomain>()
+                .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackDomainId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialDomain>()
+                .HasOne(ug => ug.OpenStackDomain)
+                .WithMany(u => u.OpenStackAuthenticationCredentialDomains)
+                .HasForeignKey(ug => new { ug.OpenStackDomainId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialDomain>()
+                .HasOne(ug => ug.OpenStackAuthenticationCredential)
+                .WithMany(g => g.OpenStackAuthenticationCredentialDomains)
+                .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
+
+            //M:N relations for OpenStackAuthenticationCredentialProjectDomain
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
+                .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackProjectDomainId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
+                .HasOne(ug => ug.OpenStackProjectDomain)
+                .WithMany(u => u.OpenStackAuthenticationCredentialProjectDomains)
+                .HasForeignKey(ug => new { ug.OpenStackProjectDomainId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
+                .HasOne(ug => ug.OpenStackAuthenticationCredential)
+                .WithMany(g => g.OpenStackAuthenticationCredentialProjectDomains)
+                .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
+
             // M:N relations for AdaptorUserUserRole
             modelBuilder.Entity<AdaptorUserUserRole>()
                 .HasKey(userRole => new { userRole.AdaptorUserId, userRole.AdaptorUserRoleId });
@@ -115,18 +138,6 @@ namespace HEAppE.DataAccessTier
                 .HasOne(userRole => userRole.AdaptorUserRole)
                 .WithMany(userRole => userRole.AdaptorUserUserRoles)
                 .HasForeignKey(userRoles => new { userRoles.AdaptorUserRoleId });
-
-            //M:N relations for AdministrationUserRole
-            modelBuilder.Entity<AdministrationUserRole>()
-                .HasKey(ur => new { ur.AdministrationRoleId, ur.AdministrationUserId });
-            modelBuilder.Entity<AdministrationUserRole>()
-                .HasOne(ur => ur.AdministrationRole)
-                .WithMany(u => u.AdministrationUserRoles)
-                .HasForeignKey(ur => new { ur.AdministrationRoleId });
-            modelBuilder.Entity<AdministrationUserRole>()
-                .HasOne(ur => ur.AdministrationUser)
-                .WithMany(g => g.AdministrationUserRoles)
-                .HasForeignKey(ur => new { ur.AdministrationUserId });
 
             //M:N relations for TaskDependency for same table TaskSpecification
             //Cascade delete or update are not allowed
@@ -157,6 +168,7 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserRoles, false);
+
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
             {
                 AuthenticationCredentials = c.AuthenticationCredentials,
@@ -178,8 +190,14 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
             InsertOrUpdateSeedData(MiddlewareContextSettings.PropertyChangeSpecifications);
+
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjectDomains);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjectDomains, false);
 
             //Update Cluster foreign keys which could not be added before
             MiddlewareContextSettings.Clusters?.ForEach(c => Clusters.Find(c.Id).ServiceAccountCredentialsId = c.ServiceAccountCredentialsId);
@@ -226,7 +244,7 @@ namespace HEAppE.DataAccessTier
             catch (Exception e)
             {
                 Database.CloseConnection();
-                _log.Error($"Inserting or updating seed into {tableName} is not completed. Error occurs.");
+                _log.Error($"Inserting or updating seed into {tableName} is not completed. Error message: \"{e.Message}\"");
             }
             finally
             {
@@ -259,7 +277,18 @@ namespace HEAppE.DataAccessTier
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
-
+                case OpenStackAuthenticationCredentialDomain openstackCredDomain:
+                    {
+                        var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+                case OpenStackAuthenticationCredentialProjectDomain openstackCredProjDomain:
+                    {
+                        var entity = Set<T>().Find(openstackCredProjDomain.OpenStackAuthenticationCredentialId, openstackCredProjDomain.OpenStackProjectDomainId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
                 default:
                     throw new ApplicationException("Seed entity is not supported.");
             }
@@ -279,10 +308,6 @@ namespace HEAppE.DataAccessTier
         }
         #endregion
         #region Entities
-        #region AdminUserManagement Entities
-        public virtual DbSet<AdministrationRole> AdministrationRoles { get; set; }
-        public virtual DbSet<AdministrationUser> AdministrationUsers { get; set; }
-        #endregion
 
         #region ClusterInformation Entities
         public virtual DbSet<Cluster> Clusters { get; set; }
@@ -291,8 +316,11 @@ namespace HEAppE.DataAccessTier
         #endregion
 
         #region OpenStack Entities
+        public virtual DbSet<OpenStackAuthenticationCredential> OpenStackAuthenticationCredentials { get; set; }
         public virtual DbSet<OpenStackInstance> OpenStackInstances { get; set; }
-        public virtual DbSet<OpenStackAuthenticationCredentials> OpenStackAuthenticationCredentials { get; set; }
+        public virtual DbSet<OpenStackDomain> OpenStackDomains { get; set; }
+        public virtual DbSet<OpenStackProject> OpenStackProjects { get; set; }
+        public virtual DbSet<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
         #endregion
 
         #region FileTransfer Entities

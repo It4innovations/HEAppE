@@ -1,5 +1,4 @@
 using System;
-using HEAppE.DataAccessTier.IRepository.AdminUserManagement;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -17,8 +16,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         bool IsDisposed { get; }
         #endregion
         #region Repositories
-        IAdministrationRoleRepository AdministrationRoleRepository { get; }
-        IAdministrationUserRepository AdministrationUserRepository { get; }
         IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository { get; }
         IClusterRepository ClusterRepository { get; }
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }

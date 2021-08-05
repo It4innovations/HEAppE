@@ -24,6 +24,8 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public bool Deleted { get; set; }
 
+        //TODO Adding Created At and ModifiedAt property!!!
+
         public virtual Language Language { get; set; }
 
         public virtual List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; } = new List<AdaptorUserUserGroup>();

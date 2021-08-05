@@ -15,19 +15,11 @@ namespace HEAppE.DomainObjects.OpenStack
         [StringLength(70)]
         public string InstanceUrl { get; set; }
 
-        [Required]
-        [StringLength(70)]
-        public string Domain { get; set; }
-
-        [StringLength(40)]
-        public string Project { get; set; }
-
-        [InverseProperty("OpenStackInstance")]
-        public virtual List<OpenStackAuthenticationCredentials> OpenStackAuthenticationCredentials { get; set; }
+        public virtual List<OpenStackDomain> OpenStackDomains { get; set; }
 
         public override string ToString()
         {
-            return $"OpenStackInstance: Id={Id}, Name={Name}, InstanceUrl={InstanceUrl}, Domanin={Domain}";
+            return $"OpenStackInstance: Id={Id}, Name={Name}, InstanceUrl={InstanceUrl}, Domains={OpenStackDomains}";
         }
     }
 }
