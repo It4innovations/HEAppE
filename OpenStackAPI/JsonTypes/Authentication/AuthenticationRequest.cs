@@ -19,8 +19,9 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
         /// Create unscoped password authentication request object to be json serialized.
         /// </summary>
         /// <param name="serviceAccount">OpenStack service account.</param>
+        /// <param name="openStackDomain">OpenStack domain name.</param>
         /// <returns>Request object.</returns>
-        public static AuthenticationRequest CreateUnscopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount) 
+        public static AuthenticationRequest CreateUnscopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount, string openStackDomain) 
         {
             var request = new AuthenticationRequest
             {
@@ -36,11 +37,10 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
                                 Id = serviceAccount.Id,
                                 Name = serviceAccount.Username,
                                 Password = serviceAccount.Password,
-                                //Domain = serviceAccount.Domain is null ? null: new Domain 
-                                //{ 
-                                //    Id = serviceAccount.Domain.Id,
-                                //    Name = serviceAccount.Domain.Name
-                                //}
+                                Domain =  new Domain 
+                                { 
+                                    Name = openStackDomain
+                                }
                             }
                         }
                     }
@@ -54,11 +54,12 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
         /// Scoped authentication returns token valid in selected scope.
         /// </summary>
         /// <param name="serviceAccount">OpenStack service account.</param>
+        /// <param name="project">OpenStack project</param>
         /// <param name="scope">Scope to be authorized for.</param>
         /// <returns>Request object.</returns>
-        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount, Scope scope)
+        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount, OpenStackProjectDTO project, Scope scope)
         {
-            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(serviceAccount);
+            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(serviceAccount, project.Domain.Name);
             req.Auth.Scope = scope;
             return req;
         }
@@ -68,23 +69,28 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
         /// Scoped authentication returns token valid in selected scope.
         /// </summary>
         /// <param name="serviceAccount">OpenStack service account.</param>
-        /// <param name="projects">OpenStack projects</param>
+        /// <param name="project">OpenStack project</param>
         /// <returns>Request object.</returns>
-        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount, IEnumerable<OpenStackProjectDTO> projects)
+        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount, OpenStackProjectDTO project)
         {
-            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(serviceAccount);
-            var OpenStackproject = projects.FirstOrDefault();
+            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(serviceAccount, project.Domain.Name);
+
+            var projectDomain = project.ProjectDomains.FirstOrDefault();
+            var domain = projectDomain is not null
+                ? new Domain()
+                    {
+                        Id = projectDomain.Id,
+                        Name = projectDomain.Name
+                    }
+                : null;
+
             req.Auth.Scope = new Scope
             {
                 Project = new Project
                 {
-                    Id = OpenStackproject.Id,
-                    Name = OpenStackproject.Name,
-                    Domain = new Domain 
-                    {
-                        Id = OpenStackproject.ProjectDomains.FirstOrDefault()?.Id,
-                        Name = OpenStackproject.ProjectDomains.FirstOrDefault()?.Name
-                    }
+                    Id = project.Id,
+                    Name = project.Name,
+                    Domain = domain ?? default
                 }
             };
             return req;

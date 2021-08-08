@@ -50,15 +50,13 @@ namespace HEAppE.OpenStackAPI
         /// <summary>
         /// Authenticate the user with password for no specific scopes.
         /// </summary>
-        /// <param name="openStackInfo">OpenStack info.</param>
+        /// <param name="serviceAcc">OpenStack service account.</param>
+        /// <param name="project">OpenStack project.</param>
         /// <returns>Authentication response from the rest api with the authentication token.</returns>
         /// <exception cref="OpenStackAPIException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
-        public AuthenticationResponse Authenticate(OpenStackInfoDTO openStackInfo)
+        public AuthenticationResponse Authenticate(OpenStackServiceAccDTO serviceAcc, OpenStackProjectDTO project)
         {
-            var requestObject = openStackInfo.Projects?.Count() > 0
-                                    ? AuthenticationRequest.CreateScopedAuthenticationPasswordRequest(openStackInfo.ServiceAcc, openStackInfo.Projects)
-                                    : AuthenticationRequest.CreateUnscopedAuthenticationPasswordRequest(openStackInfo.ServiceAcc);
-
+            var requestObject = AuthenticationRequest.CreateScopedAuthenticationPasswordRequest(serviceAcc, project);
             string requestBody = JsonConvert.SerializeObject(requestObject, IgnoreNullSerializer.Instance);
 
             IRestRequest request = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/auth/tokens", Method.POST)

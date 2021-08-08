@@ -1,5 +1,4 @@
 ﻿using HEAppE.KeycloakOpenIdAuthentication;
-using HEAppE.KeycloakOpenIdAuthentication.JsonTypes;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -21,7 +20,6 @@ using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.KeycloakOpenIdAuthentication.Configuration;
-using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
@@ -29,7 +27,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly object _lockCreateUserObj = new();
+        private static OpenStackInfoDTO _openStackInstance = null;
         private readonly IUnitOfWork unitOfWork;
+
+
         private const int cSaltBytes = 12;
         private const int cHashBytes = 20;
 
@@ -135,6 +136,59 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             return CreateNewOpenStackSession(user);
 
         }
+        private OpenStackInfoDTO GetOpenStackInstanceWithProjects()
+        {
+            OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
+            if (_openStackInstance is null)
+            {
+                GetOpenStackInstanceWithProjects();
+            }
+
+            var projectDictionary = new Dictionary<OpenStackProjectDTO, List<OpenStackProjectDomainDTO>>();
+
+            foreach (var DbProjectDomain in osInstanceCredentials.OpenStackAuthenticationCredentialProjectDomains)
+            {
+                var projectDomain = new OpenStackProjectDomainDTO()
+                {
+                    Id = DbProjectDomain.OpenStackProjectDomain.UID,
+                    Name = DbProjectDomain.OpenStackProjectDomain.Name
+                };
+
+                var projectDomains = new List<OpenStackProjectDomainDTO>() { projectDomain };
+
+                var project = new OpenStackProjectDTO()
+                {
+                    Id = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.UID,
+                    Name = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.Name,
+                    Domain = new OpenStackDomainDTO()
+                    {
+                        Name = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.OpenStackDomain.Name,
+                        InstanceUrl = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.OpenStackDomain.OpenStackInstance.InstanceUrl
+                    },
+                    ProjectDomains = projectDomains
+                };
+
+                if (projectDictionary.ContainsKey(project))
+                {
+                    projectDictionary[project].Add(projectDomain);
+                }
+                else
+                {
+                    projectDictionary.Add(project, projectDomains);
+                }
+            }
+
+            return new OpenStackInfoDTO()
+            {
+                Projects = projectDictionary.Keys,
+                ServiceAcc = new OpenStackServiceAccDTO()
+                {
+                    Id = osInstanceCredentials.UserId,
+                    Username = osInstanceCredentials.Username,
+                    Password = osInstanceCredentials.Password,
+                }
+            };
+        }
 
         /// <summary>
         /// Create new session/application credentials for authenticated user.
@@ -144,55 +198,23 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
         private ApplicationCredentialsDTO CreateNewOpenStackSession(AdaptorUser userAccount)
         {
-            OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
-
-            var domains = osInstanceCredentials.OpenStackAuthenticationCredentialDomains.Select(s => s.OpenStackDomain);
-            //osInstanceCredentials.OpenStackAuthenticationCredentialDomains.First().
-
-
-            //Dictionary < OpenStackProjectDTO >
-
-
-            //foreach (var project in osInstanceCredentials.OpenStackAuthenticationCredentialProjectDomains)
-            //{
-            //    var d = project.OpenStackProjectDomain.Convert();
-            //    new OpenStackProjectDomainDTO()
-            //    {
-            //        Id = project.OpenStackProjectDomain.UID,
-            //        Name = project.OpenStackProjectDomain.Name
-            //    }
-
-            //    new OpenStackProjectDTO()
-            //    {
-            //        Id = project.OpenStackProjectDomain.OpenStackProject.UID,
-            //        Name = project.OpenStackProjectDomain.OpenStackProject.Name,
-            //        ProjectDomains = null
-            //    }
-            //    roject.OpenStackProjectDomain.OpenStackProject.OpenStackDomain.UID
-            //}
-
-            //var xx = new OpenStackInfoDTO()
-            //{
-            //    ServiceAcc = new OpenStackServiceAccDTO()
-            //    {
-            //        Id = osInstanceCredentials.UserId,
-            //        Username = osInstanceCredentials.Username,
-            //        Password = osInstanceCredentials.Password,
-            //        Domains = null
-            //    }
-
-            //}
-
-
             ApplicationCredentialsDTO openStackCredentials;
-
-            var info = new OpenStackInfoDTO();
             try
             {
-                //var openStack = new OpenStack(info.Url);
-                var openStack = new OpenStack("");
-                var authResponse = openStack.Authenticate(info);
-                openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
+                var userGroupsName = userAccount.AdaptorUserUserGroups.Select(s => s.AdaptorUserGroup.AccountingString)
+                                                                        .ToList();
+
+                var openStackProject = _openStackInstance.Projects.FirstOrDefault(f=> userGroupsName.Contains(f.Name));
+                if (openStackProject is null)
+                {
+                    throw new OpenStackAPIException("OpenStack projects have not corresponding accounting string in AdaptorUserGroup.");
+                }
+                else
+                {
+                    var openStack = new OpenStack(openStackProject.Domain.InstanceUrl);
+                    var authResponse = openStack.Authenticate(_openStackInstance.ServiceAcc, openStackProject);
+                    openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
+                }
             }
             catch (OpenStackAPIException ex)
             {

@@ -9,6 +9,8 @@ namespace HEAppE.OpenStackAPI.DTO
 
         public string Name { get; set; }
 
+        public OpenStackDomainDTO Domain { get; set; }
+
         public IEnumerable<OpenStackProjectDomainDTO> ProjectDomains { get; set; } =  new List<OpenStackProjectDomainDTO>();
         #endregion
     }
