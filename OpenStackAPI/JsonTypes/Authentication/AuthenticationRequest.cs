@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
+using HEAppE.OpenStackAPI.DTO;
 using Newtonsoft.Json;
 
 namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
@@ -16,11 +18,9 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
         /// <summary>
         /// Create unscoped password authentication request object to be json serialized.
         /// </summary>
-        /// <param name="userName">User name.</param>
-        /// <param name="password">User password.</param>
-        /// <param name="domain">Domain to be authorized for.</param>
+        /// <param name="serviceAccount">OpenStack service account.</param>
         /// <returns>Request object.</returns>
-        public static AuthenticationRequest CreateUnscopedAuthenticationPasswordRequest(string userName, string password, string domain)
+        public static AuthenticationRequest CreateUnscopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount) 
         {
             var request = new AuthenticationRequest
             {
@@ -33,14 +33,14 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
                         {
                             User = new User
                             {
-                                Id = "",
-                                Name = userName,
-                                Password = password,
-                                Domain = new Domain 
-                                { 
-                                    Id = "",
-                                    Name = ""
-                                }
+                                Id = serviceAccount.Id,
+                                Name = serviceAccount.Username,
+                                Password = serviceAccount.Password,
+                                //Domain = serviceAccount.Domain is null ? null: new Domain 
+                                //{ 
+                                //    Id = serviceAccount.Domain.Id,
+                                //    Name = serviceAccount.Domain.Name
+                                //}
                             }
                         }
                     }
@@ -53,14 +53,12 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
         /// Create scoped password authentication request object to be json serialized.
         /// Scoped authentication returns token valid in selected scope.
         /// </summary>
-        /// <param name="userName">User name.</param>
-        /// <param name="password">User password.</param>
-        /// <param name="domain">Domain to be authorized for.</param>
+        /// <param name="serviceAccount">OpenStack service account.</param>
         /// <param name="scope">Scope to be authorized for.</param>
         /// <returns>Request object.</returns>
-        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(string userName, string password, string domain, Scope scope)
+        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount, Scope scope)
         {
-            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(userName, password, domain);
+            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(serviceAccount);
             req.Auth.Scope = scope;
             return req;
         }
@@ -69,24 +67,23 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
         /// Create scoped password authentication request object to be json serialized.
         /// Scoped authentication returns token valid in selected scope.
         /// </summary>
-        /// <param name="userName">User name.</param>
-        /// <param name="password">User password.</param>
-        /// <param name="domain">Domain to be authorized for.</param>
-        /// <param name="project">Scope to be authorized for.</param>
+        /// <param name="serviceAccount">OpenStack service account.</param>
+        /// <param name="projects">OpenStack projects</param>
         /// <returns>Request object.</returns>
-        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(string userName, string password, string domain, string project)
+        public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(OpenStackServiceAccDTO serviceAccount, IEnumerable<OpenStackProjectDTO> projects)
         {
-            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(userName, password, domain);
+            AuthenticationRequest req = CreateUnscopedAuthenticationPasswordRequest(serviceAccount);
+            var OpenStackproject = projects.FirstOrDefault();
             req.Auth.Scope = new Scope
             {
                 Project = new Project
                 {
-                    Id = "",
-                    Name = "",
+                    Id = OpenStackproject.Id,
+                    Name = OpenStackproject.Name,
                     Domain = new Domain 
                     {
-                        Id = "",
-                        Name = ""
+                        Id = OpenStackproject.ProjectDomains.FirstOrDefault()?.Id,
+                        Name = OpenStackproject.ProjectDomains.FirstOrDefault()?.Name
                     }
                 }
             };

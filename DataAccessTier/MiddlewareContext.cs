@@ -25,8 +25,13 @@ namespace HEAppE.DataAccessTier
         private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         #endregion
         #region Constructors
-        public MiddlewareContext() : base()
+        public MiddlewareContext(bool migration = false) : base()
         {
+            if (migration)
+            {
+                return;
+            }
+
             if (!_isMigrated)
             {
                 lock (_lockObject)
@@ -45,8 +50,9 @@ namespace HEAppE.DataAccessTier
                             }
                             else
                             {
+                                
                                 var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                                var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
+                                var lastDefinedMigration = "20210806112311_ModificationOpenStack";// Database.GetMigrations().LastOrDefault();
 
                                 if (lastAppliedMigration is null)
                                 {
@@ -64,7 +70,7 @@ namespace HEAppE.DataAccessTier
                                 else
                                 {
                                     _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
-                                    // throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version."); -- not working with migration
+                                    throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
                                 }
                             }
                         }

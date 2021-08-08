@@ -20,8 +20,11 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IClusterRepository ClusterRepository { get; }
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }
         IClusterNodeTypeRequestedGroupRepository ClusterNodeTypeRequestedGroupRepository { get; }
-        IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
         IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository { get; }
+        IOpenStackDomainRepository OpenStackDomainRepository { get;  }
+        IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
+        IOpenStackProjectDomainRepository OpenStackProjectDomainRepository { get; }
+        IOpenStackProjectRepository OpenStackProjectRepository { get; }
         IEnvironmentVariableRepository EnvironmentVariableRepository { get; }
         IFileTransferMethodRepository FileTransferMethodRepository { get; }
         IFileSpecificationRepository FileSpecificationRepository { get; }

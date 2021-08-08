@@ -31,8 +31,11 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IClusterAuthenticationCredentialsRepository _clusterAuthenticationCredentialsRepository;
         private IClusterNodeTypeRepository _clusterNodeTypeRepository;
         private IClusterNodeTypeRequestedGroupRepository _clusterNodeTypeRequestedRepository;
-        private IOpenStackInstanceRepository _openStackInstanceRepository;
         private IOpenStackAuthenticationCredentialsRepository _openStackAuthenticationCredentialsRepository;
+        private IOpenStackDomainRepository _openStackDomainRepository;
+        private IOpenStackInstanceRepository _openStackInstanceRepository;
+        private IOpenStackProjectDomainRepository _openStackProjectDomainRepository;
+        private IOpenStackProjectRepository _openStackProjectRepository;
         private IEnvironmentVariableRepository _environmentVariableRepository;
         private IFileTransferMethodRepository _fileTransferMethodRepository;
         private IFileSpecificationRepository _fileSpecificationRepository;
@@ -105,15 +108,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
-        public IOpenStackInstanceRepository OpenStackInstanceRepository
-        {
-            get
-            {
-                return _openStackInstanceRepository = _openStackInstanceRepository ?? new OpenStackInstanceRepository(_context);
-
-            }
-        }
-
         public IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository
         {
             get
@@ -123,6 +117,42 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
+        public IOpenStackDomainRepository OpenStackDomainRepository
+        {
+            get
+            {
+                return _openStackDomainRepository = _openStackDomainRepository ?? new OpenStackDomainRepository(_context);
+
+            }
+        }
+
+        public IOpenStackInstanceRepository OpenStackInstanceRepository
+        {
+            get
+            {
+                return _openStackInstanceRepository = _openStackInstanceRepository ?? new OpenStackInstanceRepository(_context);
+
+            }
+        }
+
+        public IOpenStackProjectDomainRepository OpenStackProjectDomainRepository
+        {
+            get
+            {
+                return _openStackProjectDomainRepository = _openStackProjectDomainRepository ?? new OpenStackProjectDomainRepository(_context);
+
+            }
+        }
+
+        public IOpenStackProjectRepository OpenStackProjectRepository
+        {
+            get
+            {
+                return _openStackProjectRepository = _openStackProjectRepository ?? new OpenStackProjectRepository(_context);
+
+            }
+        }
+ 
         public IEnvironmentVariableRepository EnvironmentVariableRepository
         {
             get

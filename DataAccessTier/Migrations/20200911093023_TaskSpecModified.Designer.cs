@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    [DbContext(typeof(MiddlewareContext))]
+    [DbContext(typeof(MiddlewareContextMigration))]
     [Migration("20200911093023_TaskSpecModified")]
     partial class TaskSpecModified
     {

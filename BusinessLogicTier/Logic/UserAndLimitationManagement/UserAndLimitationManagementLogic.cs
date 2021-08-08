@@ -21,6 +21,7 @@ using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.KeycloakOpenIdAuthentication.Configuration;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
@@ -145,25 +146,63 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
 
-           // var openStack = new OpenStack(osInstanceCredentials.OpenStackInstance.InstanceUrl);
+            var domains = osInstanceCredentials.OpenStackAuthenticationCredentialDomains.Select(s => s.OpenStackDomain);
+            //osInstanceCredentials.OpenStackAuthenticationCredentialDomains.First().
+
+
+            //Dictionary < OpenStackProjectDTO >
+
+
+            //foreach (var project in osInstanceCredentials.OpenStackAuthenticationCredentialProjectDomains)
+            //{
+            //    var d = project.OpenStackProjectDomain.Convert();
+            //    new OpenStackProjectDomainDTO()
+            //    {
+            //        Id = project.OpenStackProjectDomain.UID,
+            //        Name = project.OpenStackProjectDomain.Name
+            //    }
+
+            //    new OpenStackProjectDTO()
+            //    {
+            //        Id = project.OpenStackProjectDomain.OpenStackProject.UID,
+            //        Name = project.OpenStackProjectDomain.OpenStackProject.Name,
+            //        ProjectDomains = null
+            //    }
+            //    roject.OpenStackProjectDomain.OpenStackProject.OpenStackDomain.UID
+            //}
+
+            //var xx = new OpenStackInfoDTO()
+            //{
+            //    ServiceAcc = new OpenStackServiceAccDTO()
+            //    {
+            //        Id = osInstanceCredentials.UserId,
+            //        Username = osInstanceCredentials.Username,
+            //        Password = osInstanceCredentials.Password,
+            //        Domains = null
+            //    }
+
+            //}
+
+
             ApplicationCredentialsDTO openStackCredentials;
+
+            var info = new OpenStackInfoDTO();
             try
             {
-                //var authResponse = openStack.Authenticate(osInstanceCredentials.Username, osInstanceCredentials.Password, osInstanceCredentials.OpenStackInstance.Domain, osInstanceCredentials.OpenStackInstance.Project);
-                //openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
+                //var openStack = new OpenStack(info.Url);
+                var openStack = new OpenStack("");
+                var authResponse = openStack.Authenticate(info);
+                openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
             }
             catch (OpenStackAPIException ex)
             {
-                // Log the error and rethrow the exception.
-                string error = $"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}";
-                log.Error(error);
+                log.Error($"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}");
                 throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
             }
 
-           // StoreOpenStackSession(userAccount, openStackCredentials);
+            StoreOpenStackSession(userAccount, openStackCredentials);
             log.Info($"Created new OpenStack 'session' (application credentials) for user {userAccount.Username}.");
-            //return openStackCredentials;
-            return null;
+            return openStackCredentials;
         }
 
         /// <summary>
@@ -264,6 +303,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         Username = openIdUser.UserName,
                         Deleted = false,
                         Synchronize = false,
+                        CreatedAt = DateTime.UtcNow,
+                        ModifiedAt = null
                     };
 
                     unitOfWork.AdaptorUserRepository.Insert(userAccount);

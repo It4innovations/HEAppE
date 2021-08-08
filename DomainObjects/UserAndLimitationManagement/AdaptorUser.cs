@@ -9,7 +9,8 @@ using System.Linq;
 namespace HEAppE.DomainObjects.UserAndLimitationManagement
 {
     [Table("AdaptorUser")]
-    public class AdaptorUser : IdentifiableDbEntity, ILogUserIdentification {
+    public class AdaptorUser : IdentifiableDbEntity, ILogUserIdentification
+    {
         [Required]
         [StringLength(50)]
         public string Username { get; set; }
@@ -24,8 +25,12 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public bool Deleted { get; set; }
 
-        //TODO Adding Created At and ModifiedAt property!!!
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        public DateTime? ModifiedAt { get; set; }
+
+        [ForeignKey("Language")]
+        public long? LanguageId { get; set; }
         public virtual Language Language { get; set; }
 
         public virtual List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; } = new List<AdaptorUserUserGroup>();
@@ -54,11 +59,13 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
             return AdaptorUserUserRoles.Any(userRole => userRole.AdaptorUserRoleId == role.Id);
         }
 
-        public string GetLogIdentification() {
+        public string GetLogIdentification()
+        {
             return Username;
         }
 
-        public override string ToString() {
+        public override string ToString()
+        {
             return string.Format("AdaptorUser: Id={0}, Username={1}", Id, Username);
         }
     }

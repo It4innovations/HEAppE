@@ -4,24 +4,10 @@
       {
         "Id": 1,
         "Username": "{UserName}",
-        "Password": "{Password}"
-      }
-    ],
-    "AdaptorUserRoles": [
-      { 
-        "Id": 1,
-        "Name": "List",
-        "Description": "Reporting role"
-      },
-      { 
-        "Id": 2,
-        "Name": "Read",
-        "Description": "Can extract job information"
-      },
-      { 
-        "Id": 3,
-        "Name": "Write",
-        "Description": "Can execute and retrieve job information"
+        "Password": "{Password}",
+        "LanguageId": 1,
+		"CreatedAt": "2015-01-01 00:00:00",
+		"ModifiedAt": null
       }
     ],
     "AdaptorUserGroups": [
@@ -41,8 +27,29 @@
     "AdaptorUserRoles": [
       {
         "Id": 1,
-        "Name": "{UserRoleName}",
-        "Description": "{UserRoleDescription}"
+        "Name": "Administrator",
+        "Description": "HEAppE administrator role with access to the entire system."
+      },
+	  {
+        "Id": 2,
+        "Name": "Maintainer",
+        "Description": "HEAppE maintainer role for getting information about actual HEAppE status."
+      },
+      {
+        "Id": 3,
+        "Name": "Submitter",
+        "Description": "Standard user, can submit and check his own jobs."
+      },
+      {
+        "Id": 4,
+        "Name": "Reporter",
+        "Description": "Users with this role can watch other jobs in the same group."
+      }
+    ],
+    "AdaptorUserUserRoles": [
+      {
+        "AdaptorUserId": 1,
+        "AdaptorUserRoleId": 1
       }
     ],
     "AdaptorUserUserGroups": [
@@ -94,7 +101,8 @@
         "MaxWalltime": {MaxWalltime},
         "ClusterId": 1,
         "FileTransferMethodId": 1,
-        "JobTemplateId": 1
+        "JobTemplateId": 1,
+        "TaskTemplateId": 1
       }
     ],
     "CommandTemplates": [
@@ -121,9 +129,9 @@
     "FileTransferMethods": [
       {
         "Id": 1,
-        "ClusterId": 1,
-        "SharedBasepath": "{ClusterBasePath}",
-        "Protocol": 2
+        "ServerHostname": "{ServerHostNameDNS}",
+        "Protocol": 2,
+        "ClusterId": 1
       }
     ],
     "JobTemplates": [
@@ -204,16 +212,51 @@
       {
         "Id": 1,
         "Name": "",
-        "InstanceUrl": "",
-        "Domain": ""
+        "InstanceUrl": ""
+      }
+    ],
+    "OpenStackDomains": [
+      {
+        "Id": 1,
+        "Name": "",
+        "OpenStackInstanceId": 1
+      }
+    ],
+    "OpenStackProjects": [
+      {
+        "Id": 1,
+        "Name": "",
+		"UID": "",
+        "OpenStackDomainId": 1
+      }
+    ],
+	"OpenStackProjectDomains": [
+      {
+        "Id": 1,
+        "Name": "",
+		"UID": "",
+        "OpenStackProjectId": 1
       }
     ],
     "OpenStackAuthenticationCredentials": [
       {
+        "Id": 1,
+		"UserId": "",
         "Username": "",
-        "Password": "",
-        "OpenStackInstanceId": 1
+        "Password": ""
       }
+    ],
+    "OpenStackAuthenticationCredentialDomains": [
+      {
+        "OpenStackAuthenticationCredentialId": 1,
+        "OpenStackDomainId": 1
+	  }
+    ],
+	"OpenStackAuthenticationCredentialProjectDomains": [
+      {
+        "OpenStackAuthenticationCredentialId": 1,
+        "OpenStackProjectDomainId": 1
+	  }
     ]
   }
 }

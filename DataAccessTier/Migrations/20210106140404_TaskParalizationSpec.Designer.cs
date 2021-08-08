@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    [DbContext(typeof(MiddlewareContext))]
+    [DbContext(typeof(MiddlewareContextMigration))]
     [Migration("20210106140404_TaskParalizationSpec")]
     partial class TaskParalizationSpec
     {
