@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    [DbContext(typeof(MiddlewareContextMigration))]
+    [DbContext(typeof(MiddlewareContext))]
     partial class MiddlewareContextModelSnapshot : ModelSnapshot
     {
         protected override void BuildModel(ModelBuilder modelBuilder)

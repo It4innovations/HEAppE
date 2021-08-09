@@ -132,18 +132,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             //    throw InsufficientRoleException.CreateMissingRoleException(writeRole, user.Roles);
             //}
 
-            // OpenStack part.
             return CreateNewOpenStackSession(user);
 
         }
         private OpenStackInfoDTO GetOpenStackInstanceWithProjects()
         {
             OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
-            if (_openStackInstance is null)
-            {
-                GetOpenStackInstanceWithProjects();
-            }
-
             var projectDictionary = new Dictionary<OpenStackProjectDTO, List<OpenStackProjectDomainDTO>>();
 
             foreach (var DbProjectDomain in osInstanceCredentials.OpenStackAuthenticationCredentialProjectDomains)
@@ -198,6 +192,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
         private ApplicationCredentialsDTO CreateNewOpenStackSession(AdaptorUser userAccount)
         {
+            if (_openStackInstance is null)
+            {
+                GetOpenStackInstanceWithProjects();
+            }
             ApplicationCredentialsDTO openStackCredentials;
             try
             {

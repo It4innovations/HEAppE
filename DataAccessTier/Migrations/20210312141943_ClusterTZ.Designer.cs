@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    [DbContext(typeof(MiddlewareContextMigration))]
+    [DbContext(typeof(MiddlewareContext))]
     [Migration("20210312141943_ClusterTZ")]
     partial class ClusterTZ
     {
