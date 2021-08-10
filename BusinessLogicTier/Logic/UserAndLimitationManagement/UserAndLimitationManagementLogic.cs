@@ -194,18 +194,22 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             if (_openStackInstance is null)
             {
-                GetOpenStackInstanceWithProjects();
+                _openStackInstance = GetOpenStackInstanceWithProjects();
             }
+
             ApplicationCredentialsDTO openStackCredentials;
             try
             {
-                var userGroupsName = userAccount.AdaptorUserUserGroups.Select(s => s.AdaptorUserGroup.AccountingString)
+                var userGroupsName = userAccount.AdaptorUserUserGroups.Select(s => s.AdaptorUserGroup.AccountingString.ToLower())
                                                                         .ToList();
 
-                var openStackProject = _openStackInstance.Projects.FirstOrDefault(f=> userGroupsName.Contains(f.Name));
+                var openStackProject = _openStackInstance.Projects.Where(w => userGroupsName.Intersect(w.ProjectDomains.Select(s => s.Name.ToLower()))
+                                                                                                                        .Any() 
+                                                                              || userGroupsName.Contains(w.Name.ToLower()))
+                                                                    .FirstOrDefault();
                 if (openStackProject is null)
                 {
-                    throw new OpenStackAPIException("OpenStack projects have not corresponding accounting string in AdaptorUserGroup.");
+                    throw new OpenStackAPIException("OpenStack project domains have not corresponding accounting string in AdaptorUserGroup.");
                 }
                 else
                 {
