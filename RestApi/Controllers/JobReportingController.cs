@@ -5,8 +5,9 @@ using HEAppE.RestApiModels.JobReporting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using System.Collections.Generic;
+using HEAppE.RestApi.InputValidator;
+using HEAppE.Utils.Validation;
+using HEAppE.BusinessLogicTier.Logic;
 
 namespace HEAppE.RestApi.Controllers
 {

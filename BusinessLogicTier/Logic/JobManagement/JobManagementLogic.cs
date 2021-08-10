@@ -78,8 +78,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 if (isExtraLong)
                 {
-                    _tasksToDeleteFromSpec = new List<TaskSpecification>();
-                    _tasksToAddToSpec = new List<TaskSpecification>();
                     DecomposeExtraLongTask(specification, task);
                 }
             }
@@ -108,7 +106,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             {
                 try
                 {
-                    _unitOfWork.JobSpecificationRepository.Insert(specification);     
+                    _unitOfWork.JobSpecificationRepository.Insert(specification);
                     SubmittedJobInfo jobInfo = CreateSubmittedJobInfo(specification);
                     _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
                     _unitOfWork.Save();
@@ -325,12 +323,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     var iterationIndexes = GetIterationIds(task.ScheduledJobId, task.JobArrays).ToArray();
 
                     List<SubmittedTaskInfo> unfinishedTaskArrayInfoCluster =
-    (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(iterationIndexes, cluster)).ToList();
+                       (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(iterationIndexes, cluster)).ToList();
                     AddValuesToJobArrayInfo(unfinishedTaskInfoCluster.Find(x => x.ScheduledJobId == task.ScheduledJobId), unfinishedTaskArrayInfoCluster);
                 }
 
                 //TODO this
-                if(unfinishedJobInfoDb.Count == 0)
+                if (unfinishedJobInfoDb.Count == 0)
                 {
                     return null;
                 }
@@ -752,7 +750,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
             dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
-            dbTaskInfo.TaskAllocationNodes = dbTaskInfo.TaskAllocationNodes?.Count > 0 
+            dbTaskInfo.TaskAllocationNodes = dbTaskInfo.TaskAllocationNodes?.Count > 0
                 ? dbTaskInfo.TaskAllocationNodes.Union(clusterTaskInfo.TaskAllocationNodes, new SubmittedTaskAllocationNodeInfoComparer()).ToList()
                 : dbTaskInfo.TaskAllocationNodes = clusterTaskInfo.TaskAllocationNodes;
 
