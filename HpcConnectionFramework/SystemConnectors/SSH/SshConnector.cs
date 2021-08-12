@@ -24,7 +24,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 #warning TODO timezone
             if (!string.IsNullOrEmpty(credentials.PrivateKeyFile))
             {
-                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword);
+                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port);
             }
             else
             {
@@ -121,12 +121,24 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="privateKeyFile">Private key file</param>
         /// <param name="privateKeyPassword">Private key password</param>
         /// <returns></returns>
-        private object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword)
+        private object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port = null)
         {
-            PrivateKeyConnectionInfo connectionInfo = new PrivateKeyConnectionInfo(
+            PrivateKeyConnectionInfo connectionInfo;
+            if(port.HasValue)
+            {
+                connectionInfo = new PrivateKeyConnectionInfo(
+                masterNodeName,
+                port.Value,
+                username,
+                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            }
+            else
+            {
+                connectionInfo = new PrivateKeyConnectionInfo(
                 masterNodeName,
                 username,
                 new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            }
 
             SshClient client = new SshClient(connectionInfo);
             return client;

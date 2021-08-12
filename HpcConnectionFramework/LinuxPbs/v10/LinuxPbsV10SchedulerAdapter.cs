@@ -168,7 +168,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
             }
             else
             {
-                SshClient sshTunnel = new SshClient(loginHost, credentials.Username, new PrivateKeyFile(credentials.PrivateKeyFile, credentials.PrivateKeyPassword));
+                SshClient sshTunnel = new SshClient(loginHost, nodePort, credentials.Username, new PrivateKeyFile(credentials.PrivateKeyFile, credentials.PrivateKeyPassword));
                 sshTunnel.Connect();
 
                 var forwPort = new ForwardedPortLocal(localHost, (uint)localPort, nodeHost, (uint)nodePort);
