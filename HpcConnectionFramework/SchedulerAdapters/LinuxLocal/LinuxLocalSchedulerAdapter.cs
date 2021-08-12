@@ -34,19 +34,30 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             StringBuilder sb = new StringBuilder();
             StringBuilder jobResultInfo = new StringBuilder();
 
+            StringBuilder parameters = new StringBuilder();
+            foreach (var task in jobSpecification.Tasks)
+            {
+                string taskParametres = string.Join(',', task.CommandParameterValues.Select(i => i.Value).ToArray());
+                parameters.Append(taskParametres);
+                parameters.Append(" ");
+            }
+
             //preparation script, prepares job info file to the job directory at local linux "cluster"
             sb.Append(
                 $"~/.key_script/prepare_job_dir.sh " +
-                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo};");
+                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} {parameters};");
 
             var shellCommand = sb.ToString();
             var sshCommand =  RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             jobResultInfo.Append(sshCommand.Result);
             _log.InfoFormat("Run prepare-job result: {0}", jobResultInfo.ToString());
 
+            
+
             sb.Clear();
 
-            sb.Append($"~/.key_script/run_test.sh {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");//run job (script on local linux docker machine)
+            sb.Append($"~/.key_script/run_test.sh " +
+                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");//run job (script on local linux docker machine)
             foreach (var task in jobSpecification.Tasks)
             {
                 sb.Append($" {task.Id}");
