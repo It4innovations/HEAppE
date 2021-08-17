@@ -6,21 +6,21 @@
         "Username": "{UserName}",
         "Password": "{Password}",
         "LanguageId": 1,
-		"CreatedAt": "2015-01-01 00:00:00",
-		"ModifiedAt": null
+        "CreatedAt": "2015-01-01 00:00:00",
+        "ModifiedAt": null
       }
     ],
     "AdaptorUserGroups": [
       {
         "Id": 1,
-        "Name": "{GroupName},
+        "Name": "{GroupName}",
         "Description": "{GroupDescription}",
         "AccountingString": "{AccountingString}"
       },
       {
         "Id": 2,
         "Name": "KeycloakGroup",
-        "Description": "{KeyCloakGroupDescription},
+        "Description": "{KeyCloakGroupDescription}",
         "AccountingString": "{KeycloakAccountingString}"
       }
     ],
@@ -30,7 +30,7 @@
         "Name": "Administrator",
         "Description": "HEAppE administrator role with access to the entire system."
       },
-	  {
+      {
         "Id": 2,
         "Name": "Maintainer",
         "Description": "HEAppE maintainer role for getting information about actual HEAppE status."
@@ -111,10 +111,22 @@
         "Name": "TestTemplate",
         "Description": "TestTemplate",
         "Code": "TestTemplate",
-        "ExecutableFile": "{ExecutableFilePath},
+        "ExecutableFile": "{ExecutableFilePath}",
         "CommandParameters": "{CommandParameters}",
         "PreparationScript": null,
-        "ClusterNodeTypeId": 1
+        "ClusterNodeTypeId": 1,
+        "Generic": false
+      },
+      {
+        "Id": 2,
+        "Name": "GenericCommandTemplate",
+        "Description": "Command template for generic job.",
+        "Code": "GenericCommandTemplate",
+        "ExecutableFile": "~/.key_script/generic.sh",
+        "CommandParameters": "%%{userScriptPath}",
+        "PreparationScript": null,
+        "ClusterNodeTypeId": 2,
+        "Generic": true
       }
     ],
     "CommandTemplateParameters": [
@@ -124,6 +136,13 @@
         "Query": "",
         "Description": "inputParam",
         "CommandTemplateId": 1
+      },
+      {
+        "Id": 2,
+        "Identifier": "userScriptPath",
+        "Query": "",
+        "Description": "Path of the user script, to be executed via the generic job script",
+        "CommandTemplateId": 2
       }
     ],
     "FileTransferMethods": [
@@ -138,14 +157,14 @@
       {
         "Id": 1,
         "Name": "{DefaultName}",
-        "MinCores":{MinCores},
-        "MaxCores":{MaxCores},
-        "Priority":{Priority},
+        "MinCores": {MinCores},
+        "MaxCores": {MaxCores},
+        "Priority": {Priority},
         "Project": "{Project}",
         "WalltimeLimit": {WalltimeLimit}
       }
     ],
-	"TaskTemplates": [
+    "TaskTemplates": [
       {
         "Id": 1,
         "Name": "{Name}",
@@ -156,7 +175,6 @@
         "WalltimeLimit": {WalltimeLimit}
       }
     ],
-
     "Languages": [
       {
         "Id": 1,
@@ -226,22 +244,22 @@
       {
         "Id": 1,
         "Name": "",
-		"UID": "",
+        "UID": "",
         "OpenStackDomainId": 1
       }
     ],
-	"OpenStackProjectDomains": [
+    "OpenStackProjectDomains": [
       {
         "Id": 1,
         "Name": "",
-		"UID": "",
+        "UID": "",
         "OpenStackProjectId": 1
       }
     ],
     "OpenStackAuthenticationCredentials": [
       {
         "Id": 1,
-		"UserId": "",
+        "UserId": "",
         "Username": "",
         "Password": ""
       }
@@ -250,13 +268,13 @@
       {
         "OpenStackAuthenticationCredentialId": 1,
         "OpenStackDomainId": 1
-	  }
+      }
     ],
-	"OpenStackAuthenticationCredentialProjectDomains": [
+    "OpenStackAuthenticationCredentialProjectDomains": [
       {
         "OpenStackAuthenticationCredentialId": 1,
         "OpenStackProjectDomainId": 1
-	  }
+      }
     ]
   }
 }
