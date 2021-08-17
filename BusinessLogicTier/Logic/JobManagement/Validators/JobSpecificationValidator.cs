@@ -1,12 +1,16 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
+using HEAppE.FileTransferFramework;
 using HEAppE.Utils.Validation;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 {
     internal class JobSpecificationValidator : AbstractValidator
     {
+
+
         #region Constructors
         /// <summary>
         /// Constructor

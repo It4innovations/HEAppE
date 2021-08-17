@@ -30,10 +30,12 @@ namespace HEAppE.FileTransferFramework
         #endregion
         #region Abstract Methods
         public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
+        public abstract byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath);
         public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo);
         protected abstract void CopyAll(string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials);
         protected abstract ICollection<FileInformation> ListChangedFilesForTask(string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials);
         protected abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo, ClusterAuthenticationCredentials credentials);
+
         #endregion
         #region IRexFileSystemManager Members
         public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory)
@@ -229,6 +231,7 @@ namespace HEAppE.FileTransferFramework
             }
             return results;
         }
+
         #endregion
     }
 }

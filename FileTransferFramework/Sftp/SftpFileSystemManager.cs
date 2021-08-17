@@ -2,6 +2,7 @@
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.MiddlewareUtils;
 using Microsoft.Extensions.Logging;
@@ -18,7 +19,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         private readonly IConnectionPool _connectionPool;
         #endregion
         #region Constructors
-        public SftpFileSystemManager(ILogger logger, FileTransferMethod configuration, FileSystemFactory synchronizerFactory, IConnectionPool connectionPool) 
+        public SftpFileSystemManager(ILogger logger, FileTransferMethod configuration, FileSystemFactory synchronizerFactory, IConnectionPool connectionPool)
             : base(logger, configuration, synchronizerFactory)
         {
             _connectionPool = connectionPool;
@@ -35,6 +36,21 @@ namespace HEAppE.FileTransferFramework.Sftp
                 using MemoryStream stream = new MemoryStream();
                 string file = jobClusterDirectoryPath + relativeFilePath;
                 client.DownloadFile(file, stream);
+                return stream.ToArray();
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(connection);
+            }
+        }
+        public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath)
+        {
+            ConnectionInfo connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser);
+            try
+            {
+                var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
+                using MemoryStream stream = new MemoryStream();
+                client.DownloadFile(absoluteFilePath, stream);
                 return stream.ToArray();
             }
             finally
@@ -77,7 +93,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                     {
                         FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles);
                     }
-                }        
+                }
             }
             finally
             {
@@ -116,7 +132,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                     {
                         continue;
                     }
-                        
+
                     if (file.IsSymbolicLink)
                     {
                         _logger.LogDebug($"Deleting symlink {file.Name}");
@@ -144,31 +160,31 @@ namespace HEAppE.FileTransferFramework.Sftp
 
         private void CopyAllFromSftp(string source, string target, bool overwrite, DateTime? lastModificationLimit, SftpClientAdapter client, string[] excludedFiles)
         {
-            string sourcePath = source; 
+            string sourcePath = source;
             if (!Directory.Exists(target))
             {
                 Directory.CreateDirectory(target);
             }
-                
+
             foreach (SftpFile file in client.ListDirectory(sourcePath))
             {
                 if (file.Name == "." || file.Name == "..")
                 {
                     continue;
                 }
-                    
+
                 if (file.IsDirectory)
                 {
                     CopyAllFromSftp(FileSystemUtils.ConcatenatePaths(source, file.Name), Path.Combine(target, file.Name), overwrite,
                         lastModificationLimit, client, FileSystemUtils.GetExcludedFilesForSubdirectory(excludedFiles, file.Name));
-                }             
+                }
                 else
                 {
                     if (excludedFiles != null && excludedFiles.Contains(file.Name))
                     {
                         continue;
                     }
-                        
+
                     string targetFilePath = Path.Combine(target, file.Name);
                     if (((!File.Exists(targetFilePath)) || overwrite)
                             && ((!lastModificationLimit.HasValue) || (lastModificationLimit.Value < file.LastWriteTime)))
@@ -187,7 +203,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             {
                 client.CreateDirectory(targetPath);
             }
-                
+
             DirectoryInfo sourceDir = new DirectoryInfo(source);
             foreach (FileInfo file in sourceDir.GetFiles())
             {
@@ -195,13 +211,13 @@ namespace HEAppE.FileTransferFramework.Sftp
                 {
                     continue;
                 }
-                
+
                 string targetFilePath = FileSystemUtils.ConcatenatePaths(targetPath, file.Name);
                 if (((!client.Exists(targetFilePath)) || overwrite) && ((!lastModificationLimit.HasValue) || (lastModificationLimit.Value < file.LastWriteTime)))
                 {
                     using FileStream sourceStream = file.OpenRead();
                     client.UploadFile(sourceStream, targetFilePath, true);
-                }                   
+                }
             }
             foreach (DirectoryInfo directory in sourceDir.GetDirectories())
             {

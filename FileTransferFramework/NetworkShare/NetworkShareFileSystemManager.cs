@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.MiddlewareUtils;
 using Microsoft.Extensions.Logging;
@@ -61,6 +62,10 @@ namespace HEAppE.FileTransferFramework.NetworkShare
                 {
                 }
             }
+        }
+        public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath)
+        {
+            throw new NotImplementedException();
         }
         #endregion
     }
