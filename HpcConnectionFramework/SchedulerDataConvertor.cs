@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -191,10 +192,36 @@ namespace HEAppE.HpcConnectionFramework
 
         protected virtual string CreateCommandLineForTemplate(CommandTemplate template, Dictionary<string, string> templateParameters)
         {
-            string commandLine = template.ExecutableFile + " " + template.CommandParameters;
+            string commandParameters = template.CommandParameters;
+            if (template.IsGeneric)
+            {
+                commandParameters = AddGenericCommandUserDefinedParameters(template.CommandParameters, templateParameters);
+            }
+            string commandLine = template.ExecutableFile + " " + commandParameters;
             return ReplaceTemplateDirectivesInCommand(commandLine, templateParameters);
         }
+        private string AddGenericCommandUserDefinedParameters(string dbCommandLineParams, Dictionary<string, string> templateParameters)
+        {
+            StringBuilder commandParametersSb = new StringBuilder(dbCommandLineParams);
+            commandParametersSb.Append(" \"");
+            int iteration = 0;
+            foreach (var parameter in templateParameters)
+            {
+                iteration++;
+                if (commandParametersSb.ToString().Contains(parameter.Key))
+                {
+                    continue;
+                }
+                //commandParametersSb.Append(parameter.Key + "%%{"+ parameter.Key + "}");
+                string parameterKeyValue = $"{parameter.Key}=\\\"%%{{{parameter.Key}}}\\\"";
+                parameterKeyValue = (iteration < templateParameters.Count) ? parameterKeyValue + " " : parameterKeyValue;
 
+                commandParametersSb.Append(parameterKeyValue);
+
+            }
+            commandParametersSb.Append("\"");
+            return commandParametersSb.ToString();
+        }
         private Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
                 ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues)
         {
@@ -254,7 +281,7 @@ namespace HEAppE.HpcConnectionFramework
                 long dependsOnIdLast = taskSpecification.DependsOn.Max(x => x.ParentTaskSpecificationId);
                 var dependsOn = taskSpecification.DependsOn
                     .Where(x => x.ParentTaskSpecificationId == dependsOnIdLast).First();
-                if(dependsOn != null)
+                if (dependsOn != null)
                     symlinkCommand = $"ln -s ../{dependsOnIdLast}/* .";
             }
             return symlinkCommand;

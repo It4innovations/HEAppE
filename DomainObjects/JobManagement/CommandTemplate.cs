@@ -30,7 +30,7 @@ namespace HEAppE.DomainObjects.JobManagement {
 		public string PreparationScript { get; set; }
 
         [Required]
-        public bool Generic { get; set; } = false;
+        public bool IsGeneric { get; set; } = false;
 
         public virtual List<CommandTemplateParameter> TemplateParameters { get; set; } = new List<CommandTemplateParameter>();
 

@@ -7,7 +7,7 @@ namespace HEAppE.DataAccessTier.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<bool>(
-                name: "Generic",
+                name: "IsGeneric",
                 table: "CommandTemplate",
                 type: "bit",
                 nullable: false,
@@ -17,7 +17,7 @@ namespace HEAppE.DataAccessTier.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
-                name: "Generic",
+                name: "IsGeneric",
                 table: "CommandTemplate");
         }
     }
