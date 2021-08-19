@@ -57,7 +57,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
 
             foreach (var task in specification.Tasks)
-            {           
+            {
                 ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser)
                                                             .Where(w => w.NodeType.Id == task.ClusterNodeType.Id)
                                                             .FirstOrDefault();
@@ -559,11 +559,47 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
             foreach (TaskSpecification task in specification.Tasks)
             {
+                CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
+                if (commandTemplate != null && commandTemplate.IsGeneric)
+                {
+                    var definedGenericCommandParametres = commandTemplate.TemplateParameters.Select(x => x.Identifier);
+                    var userDefinedCommandParametres = task.CommandParameterValues.Where(x => !definedGenericCommandParametres.Contains(x.CommandParameterIdentifier));
+                    var userScriptParameter = task.CommandParameterValues.Where(x => definedGenericCommandParametres.Contains(x.CommandParameterIdentifier)).FirstOrDefault();
+                    var userParametresParameterName = commandTemplate.TemplateParameters.Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier).FirstOrDefault().Identifier;
+                    var parsedUserParametres = AddGenericCommandUserDefinedCommands(userDefinedCommandParametres.ToList());
+                    task.CommandParameterValues.Add(new CommandTemplateParameterValue()
+                    {
+                        CommandParameterIdentifier = userParametresParameterName,
+                        Value = parsedUserParametres
+                    });
+                    task.CommandParameterValues.RemoveAll(x => userDefinedCommandParametres.Contains(x));
+                }
+                
                 CompleteTaskSpecification(task, clusterLogic);
                 task.EnvironmentVariables = CombineJobAndTaskEnvironmentVariables(specification.EnvironmentVariables, task.EnvironmentVariables)
                                                 .ToList();
             }
         }
+
+        private string AddGenericCommandUserDefinedCommands(List<CommandTemplateParameterValue> templateParameters)
+        {
+            StringBuilder commandParametersSb = new StringBuilder();
+            commandParametersSb.Append(" \"");
+            int iteration = 0;
+            foreach (var parameter in templateParameters)
+            {
+                iteration++;
+                //commandParametersSb.Append(parameter.Key + "%%{"+ parameter.Key + "}");
+                string parameterKeyValue = $"{parameter.CommandParameterIdentifier}=\\\"%%{{{parameter.Value}}}\\\"";
+                parameterKeyValue = (iteration < templateParameters.Count) ? parameterKeyValue + " " : parameterKeyValue;
+
+                commandParametersSb.Append(parameterKeyValue);
+
+            }
+            commandParametersSb.Append("\"");
+            return commandParametersSb.ToString();
+        }
+
         protected void CompleteTaskSpecification(TaskSpecification taskSpecification, IClusterInformationLogic clusterLogic)
         {
             taskSpecification.ClusterNodeType = clusterLogic.GetClusterNodeTypeById(taskSpecification.ClusterNodeTypeId);
