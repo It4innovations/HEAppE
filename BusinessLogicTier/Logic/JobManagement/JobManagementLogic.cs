@@ -567,8 +567,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     var definedGenericCommandParameters = commandTemplate.TemplateParameters
                         .Select(x => x.Identifier);
                     var userDefinedCommandParameters = task.CommandParameterValues
-                        .Where(x => !definedGenericCommandParameters
-                        .Contains(x.CommandParameterIdentifier));
+                        .Where(x => !definedGenericCommandParameters.Contains(x.CommandParameterIdentifier));
                     var userScriptParameter = task.CommandParameterValues
                         .Where(x => definedGenericCommandParameters
                         .Contains(x.CommandParameterIdentifier))
@@ -594,19 +593,25 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         private string AddGenericCommandUserDefinedCommands(List<CommandTemplateParameterValue> templateParameters)
         {
-            StringBuilder commandParametersSb = new StringBuilder();
-            commandParametersSb.Append(" \"");
-            int iteration = 0;
-            foreach (var parameter in templateParameters)
+            if (templateParameters.Count == 0)
             {
-                iteration++;
-                //commandParametersSb.Append(parameter.Key + "%%{"+ parameter.Key + "}");
-                string parameterKeyValue = $"{parameter.CommandParameterIdentifier}=\\\"%%{{{parameter.Value}}}\\\"";
-                parameterKeyValue = (iteration < templateParameters.Count) ? parameterKeyValue + " " : parameterKeyValue;
-
-                commandParametersSb.Append(parameterKeyValue);
-
+                return string.Empty;
             }
+
+            var commandParametersSb = new StringBuilder(" \"");
+
+            for (int i = 0; i < templateParameters.Count; i++)
+            {
+                var parameter = templateParameters[i];
+                var parameterPair = $"{parameter.CommandParameterIdentifier}=\\\"{parameter.Value}\\\"";
+                commandParametersSb.Append(parameterPair);
+
+                if (i < templateParameters.Count - 1)
+                {
+                    commandParametersSb.Append(' ');
+                }
+            }
+
             commandParametersSb.Append("\"");
             return commandParametersSb.ToString();
         }

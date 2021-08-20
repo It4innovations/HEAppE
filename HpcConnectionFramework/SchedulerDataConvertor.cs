@@ -207,7 +207,9 @@ namespace HEAppE.HpcConnectionFramework
                                                                      select parameterValue).FirstOrDefault();
                 if (taskParametersValue != null)
                 {
-                    finalParameters.Add(templateParameter.Identifier, Regex.Escape(taskParametersValue.Value));
+                    // If taskParametersValue represent already escaped string of generic key-value pairs, don't escape it again.
+                    var isStringOfGenericParameters = templateParameter.CommandTemplate.IsGeneric && Regex.IsMatch(taskParametersValue.Value, "\".+\"");
+                    finalParameters.Add(templateParameter.Identifier, isStringOfGenericParameters ? taskParametersValue.Value : Regex.Escape(taskParametersValue.Value));
                 }
                 else
                 {
