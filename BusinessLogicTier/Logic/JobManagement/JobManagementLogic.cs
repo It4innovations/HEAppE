@@ -562,19 +562,30 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
                 if (commandTemplate != null && commandTemplate.IsGeneric)
                 {
-                    var definedGenericCommandParametres = commandTemplate.TemplateParameters.Select(x => x.Identifier);
-                    var userDefinedCommandParametres = task.CommandParameterValues.Where(x => !definedGenericCommandParametres.Contains(x.CommandParameterIdentifier));
-                    var userScriptParameter = task.CommandParameterValues.Where(x => definedGenericCommandParametres.Contains(x.CommandParameterIdentifier)).FirstOrDefault();
-                    var userParametresParameterName = commandTemplate.TemplateParameters.Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier).FirstOrDefault().Identifier;
-                    var parsedUserParametres = AddGenericCommandUserDefinedCommands(userDefinedCommandParametres.ToList());
+                    //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
+                    //if you want to, refactoring is possible
+                    var definedGenericCommandParameters = commandTemplate.TemplateParameters
+                        .Select(x => x.Identifier);
+                    var userDefinedCommandParameters = task.CommandParameterValues
+                        .Where(x => !definedGenericCommandParameters
+                        .Contains(x.CommandParameterIdentifier));
+                    var userScriptParameter = task.CommandParameterValues
+                        .Where(x => definedGenericCommandParameters
+                        .Contains(x.CommandParameterIdentifier))
+                        .FirstOrDefault();
+                    string userParametresParameterName = commandTemplate.TemplateParameters
+                        .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
+                        .FirstOrDefault().Identifier;
+                    string parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
+
                     task.CommandParameterValues.Add(new CommandTemplateParameterValue()
                     {
                         CommandParameterIdentifier = userParametresParameterName,
-                        Value = parsedUserParametres
+                        Value = parsedUserParameter//validate if value does not contain some prohibited parameters
                     });
-                    task.CommandParameterValues.RemoveAll(x => userDefinedCommandParametres.Contains(x));
+                    task.CommandParameterValues.RemoveAll(x => userDefinedCommandParameters.Contains(x));
                 }
-                
+
                 CompleteTaskSpecification(task, clusterLogic);
                 task.EnvironmentVariables = CombineJobAndTaskEnvironmentVariables(specification.EnvironmentVariables, task.EnvironmentVariables)
                                                 .ToList();
