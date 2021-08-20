@@ -115,7 +115,7 @@
         "CommandParameters": "{CommandParameters}",
         "PreparationScript": null,
         "ClusterNodeTypeId": 1,
-        "Generic": false
+        "IsGeneric": false
       },
       {
         "Id": 2,
@@ -126,7 +126,7 @@
         "CommandParameters": "%%{userScriptPath}",
         "PreparationScript": null,
         "ClusterNodeTypeId": 2,
-        "Generic": true
+        "IsGeneric": true
       }
     ],
     "CommandTemplateParameters": [
