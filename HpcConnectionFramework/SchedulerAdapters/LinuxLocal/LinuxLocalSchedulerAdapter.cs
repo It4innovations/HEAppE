@@ -38,7 +38,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             foreach (var task in jobSpecification.Tasks)
             {
                 string taskParametres = string.Join(',', task.CommandParameterValues.Select(i => i.Value).ToArray());
-                parameters.Append(taskParametres);
+                parameters.Append($"{task.CommandTemplate.ExecutableFile},{taskParametres}");
                 parameters.Append(" ");
             }
 
