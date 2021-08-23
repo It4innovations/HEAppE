@@ -572,14 +572,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         .Where(x => definedGenericCommandParameters
                         .Contains(x.CommandParameterIdentifier))
                         .FirstOrDefault();
-                    string userParametresParameterName = commandTemplate.TemplateParameters
+                    string userParametersParameterName = commandTemplate.TemplateParameters
                         .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
                         .FirstOrDefault().Identifier;
                     string parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
 
                     task.CommandParameterValues.Add(new CommandTemplateParameterValue()
                     {
-                        CommandParameterIdentifier = userParametresParameterName,
+                        CommandParameterIdentifier = userParametersParameterName,
                         Value = parsedUserParameter//validate if value does not contain some prohibited parameters
                     });
                     task.CommandParameterValues.RemoveAll(x => userDefinedCommandParameters.Contains(x));
@@ -603,6 +603,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             for (int i = 0; i < templateParameters.Count; i++)
             {
                 var parameter = templateParameters[i];
+                if (!Regex.IsMatch(parameter.Value, @"^([A-z0-9\/\.\\]+)$"))//todo move to validator
+                {
+                    throw new ApplicationException($"Parameter '{parameter.CommandParameterIdentifier}': '{parameter.Value}' contains illegal characters.");
+                }
                 var parameterPair = $"{parameter.CommandParameterIdentifier}=\\\"{parameter.Value}\\\"";
                 commandParametersSb.Append(parameterPair);
 
