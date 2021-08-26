@@ -3,7 +3,7 @@
 ### Dotnet core - Create new database migration:
 ```bash
 # from folder /heappe-core
-cd DataAcessTier 
+cd DataAccessTier 
 $env:ASPNETCORE_RUNTYPE_ENVIRONMENT='LocalWindows'
 dotnet ef migrations add <MigrationName> -c MiddlewareContext -o Migrations
 ```
@@ -11,7 +11,7 @@ dotnet ef migrations add <MigrationName> -c MiddlewareContext -o Migrations
 ### Dotnet core - Update database:
 ```bash
 # from folder /heappe-core
-cd DataAcessTier
+cd DataAccessTier
 $env:ASPNETCORE_RUNTYPE_ENVIRONMENT='LocalWindows'
 dotnet ef database update -c MiddlewareContext
 ```
@@ -19,7 +19,7 @@ dotnet ef database update -c MiddlewareContext
 ### Dotnet core - Remove database:
 ```bash
 # from folder /heappe-core
-cd DataAcessTier
+cd DataAccessTier
 $env:ASPNETCORE_RUNTYPE_ENVIRONMENT='LocalWindows'
 dotnet ef migrations remove -c MiddlewareContext
 ```
