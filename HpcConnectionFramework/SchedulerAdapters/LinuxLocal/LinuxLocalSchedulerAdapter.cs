@@ -29,34 +29,22 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         public override SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification,
             ClusterAuthenticationCredentials credentials)
         {
-            var localHpcJobInfo =
-                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(jobSpecification.ConvertToLocalHPCInfo("Q", "Q")));
             StringBuilder sb = new StringBuilder();
             StringBuilder jobResultInfo = new StringBuilder();
 
-            StringBuilder parameters = new StringBuilder();
-            foreach (var task in jobSpecification.Tasks)
-            {
-                string taskParametres = string.Join(',', task.CommandParameterValues.Select(i => i.Value).ToArray());
-                parameters.Append($"{task.CommandTemplate.ExecutableFile},{taskParametres}");
-                parameters.Append(" ");
-            }
+            #region Prepare Job Directory
+            string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
 
-            //preparation script, prepares job info file to the job directory at local linux "cluster"
-            sb.Append(
-                $"~/.key_script/prepare_job_dir.sh " +
-                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} {parameters};");
-
-            var shellCommand = sb.ToString();
-            var sshCommand =  RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
+            var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler),
+                $"~/.key_script/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
             jobResultInfo.Append(sshCommand.Result);
             _log.InfoFormat("Run prepare-job result: {0}", jobResultInfo.ToString());
 
-            
-
             sb.Clear();
+            #endregion
 
-            sb.Append($"~/.key_script/run_test.sh " +
+            #region Compose Local run script
+            sb.Append($"~/.key_script/run_local.sh " +
                 $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");//run job (script on local linux docker machine)
             foreach (var task in jobSpecification.Tasks)
             {
@@ -66,9 +54,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             sb.Append($" >> {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/job_log.txt &");//change this in future?
 
             shellCommand = sb.ToString();
-
-            _ = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
-
+            
+            sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), 
+                $"~/.key_script/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
+            #endregion
             return GetActualJobInfo(scheduler, $"{jobSpecification.Id}/");
         }
 
@@ -89,7 +78,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         {
             var submittedTaskInfos = new List<SubmittedTaskInfo>();
 
-            foreach (var jobId in scheduledJobIds)
+            foreach (var jobId in scheduledJobIds.Select(x=>x.Substring(0, x.IndexOf('.'))).Distinct())
             {
                 submittedTaskInfos.AddRange(GetActualJobInfo(scheduler, $"{jobId}/").Tasks);
             }
@@ -106,6 +95,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 
         public override void CancelJob(object scheduler, string scheduledJobId, string message)
         {
+            scheduledJobId = scheduledJobId.Substring(0, scheduledJobId.IndexOf('.'));
             var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/cancel_job.sh {scheduledJobId}/");
             //throw new NotImplementedException("todo");
         }

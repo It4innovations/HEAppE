@@ -219,7 +219,7 @@ namespace HEAppE.HpcConnectionFramework
             return finalParameters;
         }
 
-        private string GetTemplateParameterValueFromQuery(JobSpecification jobSpecification, TaskSpecification taskSpecification, string parameterQuery)
+        private static string GetTemplateParameterValueFromQuery(JobSpecification jobSpecification, TaskSpecification taskSpecification, string parameterQuery)
         {
             if (parameterQuery.StartsWith("Job."))
             {
@@ -238,7 +238,7 @@ namespace HEAppE.HpcConnectionFramework
         }
 
 
-        private string GetPropertyValueForQuery(object objectForQuery, string query)
+        private static string GetPropertyValueForQuery(object objectForQuery, string query)
         {
             PropertyInfo property = objectForQuery.GetType().GetProperty(GetPropertyNameFromQuery(query));
             if (property != null)
@@ -263,12 +263,12 @@ namespace HEAppE.HpcConnectionFramework
             return symlinkCommand;
         }
 
-        private string GetPropertyNameFromQuery(string parameterQuery)
+        private static string GetPropertyNameFromQuery(string parameterQuery)
         {
             return parameterQuery.Substring(parameterQuery.IndexOf('.') + 1);
         }
 
-        protected string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
+        public string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
         {
             if (commandLine == null)
                 return null;

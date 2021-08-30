@@ -33,13 +33,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
                 {
 
                     StringBuilder builder = new StringBuilder("");
-                    string varName = "_" + task.Id;
-                    builder.Append(varName);
-                    builder.Append("=$(");
                     builder.Append((string)ConvertTaskSpecificationToTask(jobSpecification, task, jobAdapter.Source));
-                    builder.Append(");echo $");
-                    builder.Append(varName);
-                    builder.Append(";");
 
                     tasks.Add(builder.ToString());
                 }
@@ -58,7 +52,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             SubmittedJobInfo jobInfo = new SubmittedJobInfo();
             var jobAdapter = JsonSerializer.Deserialize<LinuxLocalJobDTO>(job.ToString());
             var allTasks = jobAdapter.Tasks;
-            jobInfo.Tasks = ConvertTasksToTaskInfoCollection(allTasks);
+            jobInfo.Tasks = ConvertTasksToTaskInfoCollection(allTasks, jobAdapter.Id);
             jobInfo.Name = jobAdapter.Name;
             jobInfo.Project = jobAdapter.Project;
             jobInfo.State = jobAdapter.State;
@@ -70,7 +64,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             return jobInfo;
         }
 
-        private List<SubmittedTaskInfo> ConvertTasksToTaskInfoCollection(List<LinuxLocalTaskDTO> allTasks)
+        private List<SubmittedTaskInfo> ConvertTasksToTaskInfoCollection(List<LinuxLocalTaskDTO> allTasks, long scheduledJobId)
         {
             List<SubmittedTaskInfo> taskCollection = new();
             foreach (var taskAdapter in allTasks)
@@ -81,7 +75,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
                     AllocationNodeId = s,
                     SubmittedTaskInfoId = long.Parse(taskAdapter.Name)
                 }).ToList();*/
-                taskInfo.ScheduledJobId = taskAdapter.Id.ToString();
+                taskInfo.ScheduledJobId = scheduledJobId.ToString() + "." + taskAdapter.Id;
                 taskInfo.Priority = taskAdapter.Priority;
                 taskInfo.Name = taskAdapter.Name;
                 taskInfo.State = taskAdapter.State;
@@ -118,25 +112,35 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 
         public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object job)
         {
-            ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter(job);
-            //jobAdapter.SetRequestedResourceNumber(Convert.ToInt32(jobSpecification.MinCores),
-            //    Convert.ToInt32(jobSpecification.MaxCores));
-            //jobAdapter.Name = ConvertJobName(jobSpecification);
-            //jobAdapter.RequestedNodeGroups = StringUtils.SplitStringToArray(jobSpecification.NodeType.RequestedNodeGroups, ',');
-            jobAdapter.SetNotifications(jobSpecification.NotificationEmail,
-                jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish,
-                jobSpecification.NotifyOnAbort);
-            //jobAdapter.Priority = jobSpecification.Priority.Value;
-            jobAdapter.Project = jobSpecification.Project;
-            //jobAdapter.Queue = jobSpecification.NodeType.Queue;
-            jobAdapter.AccountingString = jobSpecification.SubmitterGroup.AccountingString;
-            //if (Convert.ToInt32(jobSpecification.WalltimeLimit) > 0)
-            //{
-            //    jobAdapter.Runtime = Convert.ToInt32(jobSpecification.WalltimeLimit);
-            //}
-            jobAdapter.SetTasks(CreateTasks(jobSpecification, jobAdapter));
-            log.Debug(jobAdapter.Source);
-            return jobAdapter.Source;
+            var localHpcJobInfo =
+                Convert.ToBase64String(Encoding.UTF8.GetBytes(jobSpecification.ConvertToLocalHPCInfo("Q", "Q")));
+            StringBuilder commands = new StringBuilder();
+            StringBuilder taskCommandLine = new StringBuilder();
+            foreach (var task in jobSpecification.Tasks)
+            {
+                var commandParameterDictionary = CreateTemplateParameterValuesDictionary(
+                    jobSpecification, 
+                    task, 
+                    task.CommandTemplate.TemplateParameters,
+                    task.CommandParameterValues
+                    );
+                taskCommandLine.Append(CreateCommandLineForTemplate(task.CommandTemplate, commandParameterDictionary));
+
+                if (!string.IsNullOrEmpty(task.StandardOutputFile))
+                {
+                    taskCommandLine.Append($" 1>>{task.StandardOutputFile}");
+                }
+                if (!string.IsNullOrEmpty(task.StandardErrorFile))
+                {
+                    taskCommandLine.Append($" 2>>{task.StandardErrorFile}");
+                }
+                commands.Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(taskCommandLine.ToString())) + " ");
+                taskCommandLine.Clear();
+            }
+
+            //preparation script, prepares job info file to the job directory at local linux "cluster"
+            return $"~/.key_script/prepare_job_dir.sh " +
+                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
         #endregion
     }
