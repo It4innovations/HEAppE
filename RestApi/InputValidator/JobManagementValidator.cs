@@ -363,6 +363,11 @@ namespace HEAppE.RestApi.InputValidator
                         $"Standard input file for task \"{task.Name}\" contains illegal characters.");
                 }
             }
+            /*else
+            {
+                _messageBuilder.AppendLine(
+                        $"Standard input file for task \"{task.Name}\" is not set.");
+            }*/
 
             if (!string.IsNullOrEmpty(task.StandardOutputFile))
             {
@@ -393,6 +398,11 @@ namespace HEAppE.RestApi.InputValidator
                         $"Standard error file for task \"{task.Name}\" contains illegal characters.");
                 }
             }
+            /*else
+            {
+                _messageBuilder.AppendLine(
+                        $"Standard error file for task \"{task.Name}\" is not set.");
+            }*/
 
             if (!string.IsNullOrEmpty(task.ProgressFile))
             {
@@ -407,6 +417,11 @@ namespace HEAppE.RestApi.InputValidator
                     _messageBuilder.AppendLine($"Progress file for task \"{task.Name}\" contains illegal characters.");
                 }
             }
+            else
+            {
+                _messageBuilder.AppendLine(
+                        $"Progress file for task \"{task.Name}\" is not set.");
+            }
 
             if (!string.IsNullOrEmpty(task.LogFile))
             {
@@ -419,6 +434,11 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     _messageBuilder.AppendLine($"Log file for task \"{task.Name}\" contains illegal characters.");
                 }
+            }
+            else
+            {
+                _messageBuilder.AppendLine(
+                        $"Log file for task \"{task.Name}\" is not set.");
             }
 
             if (task.RequiredNodes != null)
