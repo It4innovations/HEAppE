@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20210817093741_GenericCommandTemplate")]
+    [Migration("20210831151459_GenericCommandTemplate")]
     partial class GenericCommandTemplate
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -256,7 +256,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("Generic")
+                    b.Property<bool>("IsGeneric")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
@@ -294,6 +294,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Query")
                         .IsRequired()

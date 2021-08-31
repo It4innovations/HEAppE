@@ -254,7 +254,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<bool>("Generic")
+                    b.Property<bool>("IsGeneric")
                         .HasColumnType("bit");
 
                     b.Property<string>("Name")
@@ -292,6 +292,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Query")
                         .IsRequired()
