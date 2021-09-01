@@ -86,8 +86,7 @@ namespace HEAppE.DataAccessTier
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseLazyLoadingProxies();
-            //optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
-            optionsBuilder.UseSqlServer("Data Source=(local);Initial Catalog=HEAppE;Integrated Security=True");
+            optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
