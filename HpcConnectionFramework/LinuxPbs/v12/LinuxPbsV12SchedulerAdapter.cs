@@ -130,7 +130,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
 
         public override SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
         {
-            const string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]]+)";
+            const string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]\-]+)";
             SshCommandWrapper command = null;
             do
             {
@@ -235,7 +235,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
         {
 #warning this should use database instead of direct read from file
-            string shellCommand = String.Format("cat {0}/{1}/nodefile", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
+            string shellCommand = String.Format("cat {0}/{1}/AllocationNodeInfo", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
             return LinuxPbsConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
