@@ -107,7 +107,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         {
             SshCommandWrapper command = null;
             var qsubTaskCommandBytes = System.Text.Encoding.UTF8.GetBytes((string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub"));
-            string job = "bash -lc '~/.key_script/run_command.sh " + Convert.ToBase64String(qsubTaskCommandBytes) + "'";
+            string job = "bash -lc '~/.key_scripts/run_command.sh " + Convert.ToBase64String(qsubTaskCommandBytes) + "'";
             try
             {
                 command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), job);
@@ -244,7 +244,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
-            string shellCommand = String.Format("~/.key_script/add_key.sh {0} {1}", publicKey, jobInfo.Specification.Id);
+            string shellCommand = String.Format("~/.key_scripts/add_key.sh {0} {1}", publicKey, jobInfo.Specification.Id);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.Info(String.Format("Allow file transfer result: {0}", sshCommand.Result));
         }
@@ -252,7 +252,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
-            string shellCommand = String.Format("~/.key_script/remove_key.sh {0}", publicKey);
+            string shellCommand = String.Format("~/.key_scripts/remove_key.sh {0}", publicKey);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.Info(String.Format("Remove permission for direct file transfer result: {0}", sshCommand.Result));
         }
@@ -260,10 +260,10 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(String.Format("~/.key_script/create_job_directory.sh {0}/{1};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id));
+            sb.Append(String.Format("~/.key_scripts/create_job_directory.sh {0}/{1};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id));
             foreach (var task in jobInfo.Tasks)
             {
-                sb.Append(String.Format("~/.key_script/create_job_directory.sh {0}/{1}/{2};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, task.Specification.Id));
+                sb.Append(String.Format("~/.key_scripts/create_job_directory.sh {0}/{1}/{2};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, task.Specification.Id));
             }
 
             string shellCommand = sb.ToString();
@@ -284,7 +284,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
             string inputDirectory = String.Format("{0}/{1}/{2}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, path);
             string outputDirectory = String.Format("{0}Temp/{1}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, hash);
             inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;//copy just content
-            string shellCommand = String.Format("~/.key_script/copy_data_to_temp.sh {0} {1}", inputDirectory, outputDirectory);
+            string shellCommand = String.Format("~/.key_scripts/copy_data_to_temp.sh {0} {1}", inputDirectory, outputDirectory);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Job data {0}/{1} were copied to temp directory {2}, result: {3}", jobInfo.Specification.Id, path, hash, sshCommand.Result);
         }
@@ -293,7 +293,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         {
             string inputDirectory = String.Format("{0}Temp/{1}/.", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, hash);
             string outputDirectory = String.Format("{0}/{1}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
-            string shellCommand = String.Format("~/.key_script/copy_data_from_temp.sh {0} {1}", inputDirectory, outputDirectory);
+            string shellCommand = String.Format("~/.key_scripts/copy_data_from_temp.sh {0} {1}", inputDirectory, outputDirectory);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Temp data {0} were copied to job directory {1}, result: {2}", hash, jobInfo.Specification.Id, sshCommand.Result);
         }

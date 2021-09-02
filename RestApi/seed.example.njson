@@ -122,7 +122,7 @@
         "Name": "GenericCommandTemplate",
         "Description": "Command template for generic job.",
         "Code": "GenericCommandTemplate",
-        "ExecutableFile": "~/.key_script/generic.sh",
+        "ExecutableFile": "~/.key_scripts/generic.sh",
         "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
         "PreparationScript": null,
         "ClusterNodeTypeId": 2,

@@ -342,7 +342,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
         {
             string nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
             var taskSourceSb = new StringBuilder();
-            taskSourceSb.Append($"echo ' cd {nodefileDir}; ~/.key_script/nodefile.sh; ");
+            taskSourceSb.Append($"echo ' cd {nodefileDir}; ~/.key_scripts/nodefile.sh; ");
             taskSourceSb.Append($"cd {workDir}; ");
             taskSourceSb.Append(
                 string.IsNullOrEmpty(recursiveSymlinkCommand) 
