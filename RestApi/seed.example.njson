@@ -135,21 +135,24 @@
         "Identifier": "inputParam",
         "Query": "",
         "Description": "inputParam",
-        "CommandTemplateId": 1
+        "CommandTemplateId": 1,
+        "IsVisible":  true
       },
       {
         "Id": 2,
         "Identifier": "userScriptPath",
         "Query": "",
         "Description": "Path of the user script, to be executed via the generic job script",
-        "CommandTemplateId": 2
+        "CommandTemplateId": 2,
+        "IsVisible": true
       },
       {
         "Id": 3,
         "Identifier": "userScriptParametres",
         "Query": "",
         "Description": "Generic parameters of the generic command template.",
-        "CommandTemplateId": 2
+        "CommandTemplateId": 2,
+        "IsVisible": false
       }
     ],
     "FileTransferMethods": [
