@@ -6,6 +6,9 @@ using HEAppE.RestApiModels.UserAndLimitationManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using HEAppE.Utils.Validation;
+using HEAppE.RestApi.InputValidator;
+using HEAppE.BusinessLogicTier.Logic;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -48,6 +51,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenId\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUser(model.Credentials));
             }
             catch (Exception e)
@@ -73,6 +79,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenStack\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUserToOpenStack(model.Credentials));
             }
             catch (Exception e)
@@ -98,6 +107,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserPassword\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUser(model.Credentials));
             }
             catch (Exception e)
@@ -123,6 +135,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserDigitalSignature\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUser(model.Credentials));
             }
             catch (Exception e)
@@ -148,6 +163,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(model.SessionCode));
             }
             catch (Exception e)

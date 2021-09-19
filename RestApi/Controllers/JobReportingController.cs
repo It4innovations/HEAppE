@@ -73,6 +73,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserResourceUsageReport\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new JobReportingValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetUserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception e)
@@ -98,6 +101,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserGroupResourceUsageReport\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new JobReportingValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetUserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception e)
@@ -123,6 +129,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetResourceUsageReportForJob\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new JobReportingValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetResourceUsageReportForJob(model.JobId, model.SessionCode));
             }
             catch (Exception e)

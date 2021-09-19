@@ -1,7 +1,10 @@
 ﻿using System;
+using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.ExtModels.DataTransfer.Models;
+using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.DataTransfer;
 using HEAppE.ServiceTier.DataTransfer;
+using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -45,6 +48,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"GetDataTransferMethod\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new DataTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetDataTransferMethod(model.IpAddress, model.Port, model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception e)
@@ -70,6 +76,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"EndDataTransfer\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new DataTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 _service.EndDataTransfer(model.UsedTransferMethod, model.SessionCode);
                 return Ok("EndDataTransfer");
             }
@@ -96,6 +105,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"HttpGetToJobNode\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new DataTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.HttpGetToJobNode(model.HttpRequest, model.HttpHeaders, model.SubmittedJobInfoId, model.IpAddress, model.SessionCode));
             }
             catch (Exception e)
@@ -121,6 +133,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"HttpPostToJobNode\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new DataTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.HttpPostToJobNode(model.HttpRequest, model.HttpHeaders, model.HttpPayload, model.SubmittedJobInfoId, model.IpAddress, model.SessionCode));
             }
             catch (Exception e)

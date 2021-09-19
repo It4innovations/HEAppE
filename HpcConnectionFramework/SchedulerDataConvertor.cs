@@ -196,7 +196,8 @@ namespace HEAppE.HpcConnectionFramework
             string commandLine = template.ExecutableFile + " " + commandParameters;
             return ReplaceTemplateDirectivesInCommand(commandLine, templateParameters);
         }
-        private Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
+
+        public static Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
                 ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues)
         {
             Dictionary<string, string> finalParameters = new Dictionary<string, string>();

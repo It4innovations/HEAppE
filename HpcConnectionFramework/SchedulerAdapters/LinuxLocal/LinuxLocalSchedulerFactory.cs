@@ -14,35 +14,35 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal {
 	public class LinuxLocalSchedulerFactory : SchedulerFactory {
 		#region SchedulerFactory Members
 		public override IRexScheduler CreateScheduler(Cluster configuration) {
-			if (!linuxPbsSchedulerSingletons.ContainsKey(configuration.MasterNodeName))
-				linuxPbsSchedulerSingletons[configuration.MasterNodeName] = new RexSchedulerWrapper(
+			if (!linuxSchedulerSingletons.ContainsKey(configuration.MasterNodeName))
+				linuxSchedulerSingletons[configuration.MasterNodeName] = new RexSchedulerWrapper(
 					GetSchedulerConnectionPool(configuration), CreateSchedulerAdapter());
-			return linuxPbsSchedulerSingletons[configuration.MasterNodeName];
+			return linuxSchedulerSingletons[configuration.MasterNodeName];
 		}
 
 		protected override ISchedulerAdapter CreateSchedulerAdapter() {
-			if (linuxPbsSchedulerAdapterInstance == null)
-				linuxPbsSchedulerAdapterInstance = new LinuxLocalSchedulerAdapter(CreateDataConvertor());
-			return linuxPbsSchedulerAdapterInstance;
+			if (linuxSchedulerAdapterInstance == null)
+				linuxSchedulerAdapterInstance = new LinuxLocalSchedulerAdapter(CreateDataConvertor());
+			return linuxSchedulerAdapterInstance;
 		}
 
 		protected override ISchedulerDataConvertor CreateDataConvertor() {
-			if (linuxPbsConvertorSingleton == null)
-				linuxPbsConvertorSingleton = new LinuxLocalDataConvertor();
-			return linuxPbsConvertorSingleton;
+			if (linuxConvertorSingleton == null)
+				linuxConvertorSingleton = new LinuxLocalDataConvertor();
+			return linuxConvertorSingleton;
 		}
 
 		protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration) {
-			if (!linuxPbsConnectorSingletons.ContainsKey(configuration.MasterNodeName))
-				linuxPbsConnectorSingletons[configuration.MasterNodeName] = new SshConnector();
-			return linuxPbsConnectorSingletons[configuration.MasterNodeName];
+			if (!linuxConnectorSingletons.ContainsKey(configuration.MasterNodeName))
+				linuxConnectorSingletons[configuration.MasterNodeName] = new SshConnector();
+			return linuxConnectorSingletons[configuration.MasterNodeName];
 		}
         #endregion
         #region Instance Fields
-        private readonly Dictionary<string, IPoolableAdapter> linuxPbsConnectorSingletons = new Dictionary<string, IPoolableAdapter>();
-		private readonly Dictionary<string, IRexScheduler> linuxPbsSchedulerSingletons = new Dictionary<string, IRexScheduler>();
-		private ISchedulerDataConvertor linuxPbsConvertorSingleton;
-		private ISchedulerAdapter linuxPbsSchedulerAdapterInstance;
+        private readonly Dictionary<string, IPoolableAdapter> linuxConnectorSingletons = new Dictionary<string, IPoolableAdapter>();
+		private readonly Dictionary<string, IRexScheduler> linuxSchedulerSingletons = new Dictionary<string, IRexScheduler>();
+		private ISchedulerDataConvertor linuxConvertorSingleton;
+		private ISchedulerAdapter linuxSchedulerAdapterInstance;
         #endregion
     }
 }

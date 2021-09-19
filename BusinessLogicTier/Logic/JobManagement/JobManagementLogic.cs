@@ -28,10 +28,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
     {
         private readonly object _lockCreateJobObj = new();
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        protected readonly IUnitOfWork _unitOfWork;
-        private static List<TaskSpecification> _tasksToDeleteFromSpec = new();
-        private static List<TaskSpecification> _tasksToAddToSpec = new();
-        private static Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency = new();
+        protected IUnitOfWork _unitOfWork;
+        private readonly List<TaskSpecification> _tasksToDeleteFromSpec;
+        private readonly List<TaskSpecification> _tasksToAddToSpec;
+        private readonly Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency;
 
         internal JobManagementLogic(IUnitOfWork unitOfWork)
         {
@@ -49,12 +49,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic);
             _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
 
-            ValidationResult jobValidation = new JobSpecificationValidator(specification).Validate();
-            if (!jobValidation.IsValid)
-            {
-                _logger.ErrorFormat("Validation error: {0}", jobValidation.Message);
-                ExceptionHandler.ThrowProperExternalException(new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message));
-            }
 
             foreach (var task in specification.Tasks)
             {
@@ -174,7 +168,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
 
             UpdateJobStateByTasks(jobInfo);
-
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
             _unitOfWork.Save();
             return jobInfo;

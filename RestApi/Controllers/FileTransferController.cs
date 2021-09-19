@@ -6,6 +6,10 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using HEAppE.RestApiModels.FileTransfer;
+using System.Text;
+using HEAppE.RestApi.InputValidator;
+using HEAppE.Utils.Validation;
+using HEAppE.BusinessLogicTier.Logic;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -45,6 +49,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"GetFileTransferMethod\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetFileTransferMethod(model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception e)
@@ -70,6 +77,11 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"EndFileTransfer\" Parameters: \"{model}\"");
+
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if(!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+
                 _service.EndFileTransfer(model.SubmittedJobInfoId, model.UsedTransferMethod, model.SessionCode);
                 return Ok("EndFileTransfer");
             }
@@ -96,6 +108,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadPartsOfJobFilesFromCluster\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode));
             }
             catch (Exception e)
@@ -121,6 +136,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception e)
@@ -146,6 +164,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadFileFromCluster\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode));
             }
             catch (Exception e)
