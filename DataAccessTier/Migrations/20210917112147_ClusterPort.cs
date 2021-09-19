@@ -2,7 +2,7 @@
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    public partial class ClusterPortSettings : Migration
+    public partial class ClusterPort : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -11,19 +11,10 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "Cluster",
                 type: "int",
                 nullable: true);
-
-            migrationBuilder.AddUniqueConstraint(
-                name: "AK_AdaptorUserRole_Name",
-                table: "AdaptorUserRole",
-                column: "Name");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropUniqueConstraint(
-                name: "AK_AdaptorUserRole_Name",
-                table: "AdaptorUserRole");
-
             migrationBuilder.DropColumn(
                 name: "Port",
                 table: "Cluster");

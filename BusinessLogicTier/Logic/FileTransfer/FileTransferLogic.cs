@@ -3,10 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
-using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -33,11 +30,11 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
         {
             log.Info("Getting file transfer method for submitted job info ID " + submittedJobInfoId + " with user " + loggedUser.GetLogIdentification());
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            CertificateGenerator.CertificateGenerator certificateGenerator = new CertificateGenerator.CertificateGenerator();
+            var certificateGenerator = new CertificateGenerator.CertificateGenerator();
             certificateGenerator.GenerateKey(2048);
             string publicKey = certificateGenerator.DhiPublicKey();
             string jobDir = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification);
-            FileTransferMethod transferMethod = new FileTransferMethod
+            var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
@@ -50,28 +47,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
                 }
             };
 
-            //TODO
-            List<FileTransferMethod> transferMethods = new List<FileTransferMethod>();
-            foreach (var taskInfo in jobInfo.Tasks)
-            {
-                FileTransferMethod taskTransferMethod = new FileTransferMethod
-                {
-                    Protocol = taskInfo.NodeType.FileTransferMethod.Protocol,
-                    ServerHostname = taskInfo.NodeType.FileTransferMethod.ServerHostname,
-                    SharedBasePath = FileSystemUtils.GetTaskClusterDirectoryPath(jobDir, taskInfo.Specification),
-                    Credentials = new AsymmetricKeyCredentials
-                    {
-                        Username = jobInfo.Specification.ClusterUser.Username,
-                        PrivateKey = certificateGenerator.DhiPrivateKey(),
-                        PublicKey = publicKey
-                    }
-                };
-                transferMethods.Add(taskTransferMethod);
-            }
-            transferMethod.Tasks = transferMethods;
-
-            SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).
-                AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
+            SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
             return transferMethod;
         }
 
