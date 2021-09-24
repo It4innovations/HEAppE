@@ -94,7 +94,8 @@ namespace HEAppE.Utils.Validation
         protected static bool IsIpAddress(string text)
         {
             return Regex.IsMatch(text, @"^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$", RegexOptions.Compiled)//ipv4
-                || Regex.IsMatch(text, @"^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$", RegexOptions.Compiled);//ipv6 FULL
+                || Regex.IsMatch(text, @"^(?:[A-F0-9]{1,4}:){7}[A-F0-9]{1,4}$", RegexOptions.Compiled)//ipv6 FULL
+                || Regex.IsMatch(text, @"^(([a-zA-Z]|[a-zA-Z][a-zA-Z0-9\-]*[a-zA-Z0-9])\.)*([A-Za-z]|[A-Za-z][A-Za-z0-9\-]*[A-Za-z0-9])$");//hostname dns
         }
 
         protected static bool IsDomainName(string text)
