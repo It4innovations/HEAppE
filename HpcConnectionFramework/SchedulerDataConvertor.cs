@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -191,11 +192,12 @@ namespace HEAppE.HpcConnectionFramework
 
         protected virtual string CreateCommandLineForTemplate(CommandTemplate template, Dictionary<string, string> templateParameters)
         {
-            string commandLine = template.ExecutableFile + " " + template.CommandParameters;
+            string commandParameters = template.CommandParameters;
+            string commandLine = template.ExecutableFile + " " + commandParameters;
             return ReplaceTemplateDirectivesInCommand(commandLine, templateParameters);
         }
 
-        private Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
+        public static Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
                 ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues)
         {
             Dictionary<string, string> finalParameters = new Dictionary<string, string>();
@@ -206,7 +208,9 @@ namespace HEAppE.HpcConnectionFramework
                                                                      select parameterValue).FirstOrDefault();
                 if (taskParametersValue != null)
                 {
-                    finalParameters.Add(templateParameter.Identifier, Regex.Escape(taskParametersValue.Value));
+                    // If taskParametersValue represent already escaped string of generic key-value pairs, don't escape it again.
+                    var isStringOfGenericParameters = templateParameter.CommandTemplate.IsGeneric && Regex.IsMatch(taskParametersValue.Value, "\".+\"");
+                    finalParameters.Add(templateParameter.Identifier, isStringOfGenericParameters ? taskParametersValue.Value : Regex.Escape(taskParametersValue.Value));
                 }
                 else
                 {
@@ -216,7 +220,7 @@ namespace HEAppE.HpcConnectionFramework
             return finalParameters;
         }
 
-        private string GetTemplateParameterValueFromQuery(JobSpecification jobSpecification, TaskSpecification taskSpecification, string parameterQuery)
+        private static string GetTemplateParameterValueFromQuery(JobSpecification jobSpecification, TaskSpecification taskSpecification, string parameterQuery)
         {
             if (parameterQuery.StartsWith("Job."))
             {
@@ -235,7 +239,7 @@ namespace HEAppE.HpcConnectionFramework
         }
 
 
-        private string GetPropertyValueForQuery(object objectForQuery, string query)
+        private static string GetPropertyValueForQuery(object objectForQuery, string query)
         {
             PropertyInfo property = objectForQuery.GetType().GetProperty(GetPropertyNameFromQuery(query));
             if (property != null)
@@ -254,18 +258,18 @@ namespace HEAppE.HpcConnectionFramework
                 long dependsOnIdLast = taskSpecification.DependsOn.Max(x => x.ParentTaskSpecificationId);
                 var dependsOn = taskSpecification.DependsOn
                     .Where(x => x.ParentTaskSpecificationId == dependsOnIdLast).First();
-                if(dependsOn != null)
+                if (dependsOn != null)
                     symlinkCommand = $"ln -s ../{dependsOnIdLast}/* .";
             }
             return symlinkCommand;
         }
 
-        private string GetPropertyNameFromQuery(string parameterQuery)
+        private static string GetPropertyNameFromQuery(string parameterQuery)
         {
             return parameterQuery.Substring(parameterQuery.IndexOf('.') + 1);
         }
 
-        protected string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
+        public string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
         {
             if (commandLine == null)
                 return null;

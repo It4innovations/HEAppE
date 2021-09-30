@@ -28,32 +28,30 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
     {
         private readonly object _lockCreateJobObj = new();
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        protected readonly IUnitOfWork _unitOfWork;
-        private static readonly List<TaskSpecification> _tasksToDeleteFromSpec = new();
-        private static readonly List<TaskSpecification> _tasksToAddToSpec = new();
-        private static readonly Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency = new();
+        protected IUnitOfWork _unitOfWork;
+        private readonly List<TaskSpecification> _tasksToDeleteFromSpec;
+        private readonly List<TaskSpecification> _tasksToAddToSpec;
+        private readonly Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency;
 
         internal JobManagementLogic(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
+            _tasksToDeleteFromSpec = new List<TaskSpecification>();
+            _tasksToAddToSpec = new List<TaskSpecification>();
+            _extraLongTaskDecomposedDependency = new Dictionary<TaskSpecification, TaskSpecification>();
         }
 
         public SubmittedJobInfo CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong)
         {
-            _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
             IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork);
             IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork);
 
             CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic);
-            ValidationResult jobValidation = new JobSpecificationValidator(specification).Validate();
-            if (!jobValidation.IsValid)
-            {
-                _logger.ErrorFormat("Validation error: {0}", jobValidation.Message);
-                ExceptionHandler.ThrowProperExternalException(new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message));
-            }
+            _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
+
 
             foreach (var task in specification.Tasks)
-            {           
+            {
                 ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser)
                                                             .Where(w => w.NodeType.Id == task.ClusterNodeType.Id)
                                                             .FirstOrDefault();
@@ -91,11 +89,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 }
             }
 
+            ValidationResult jobValidation = new JobManagementValidator(specification, _unitOfWork).Validate();
+            if (!jobValidation.IsValid)
+            {
+                _logger.ErrorFormat("Validation error: {0}", jobValidation.Message);
+                ExceptionHandler.ThrowProperExternalException(new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message));
+            }
+
             lock (_lockCreateJobObj)
             {
                 try
                 {
-                    _unitOfWork.JobSpecificationRepository.Insert(specification);     
+                    _unitOfWork.JobSpecificationRepository.Insert(specification);
                     SubmittedJobInfo jobInfo = CreateSubmittedJobInfo(specification);
                     _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
                     _unitOfWork.Save();
@@ -162,6 +167,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 jobInfo.Tasks[i] = CombineSubmittedTaskInfoFromCluster(jobInfo.Tasks[i], clusterTasksInfo[i]);
             }
 
+            UpdateJobStateByTasks(jobInfo);
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
             _unitOfWork.Save();
             return jobInfo;
@@ -293,16 +299,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                        where job.State > JobState.Configuring && task.State > TaskState.Configuring
                                        select (task)).Distinct().Select(s => s).ToArray();
 
-                var taskIds = (from task in unfinishedTasks
-                               select task.ScheduledJobId).Distinct().Select(s => s).ToArray();
+                string[] taskIds;
+
+
+                taskIds = (from task in unfinishedTasks
+                           select task.ScheduledJobId).Distinct().Select(s => s).ToArray();
+
+                List<SubmittedTaskInfo> unfinishedTaskInfoCluster =
+                    (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(taskIds, cluster)).ToList();
 
                 var taskArrays = (from task in unfinishedTasks
                                   where !(task.Specification.JobArrays is null)
                                   select (task.ScheduledJobId, task.Specification.JobArrays)).Distinct().Select(s => s).ToArray();
-
-
-                List<SubmittedTaskInfo> unfinishedTaskInfoCluster =
-                    (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(taskIds, cluster)).ToList();
 
 
                 foreach (var task in taskArrays)
@@ -310,8 +318,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     var iterationIndexes = GetIterationIds(task.ScheduledJobId, task.JobArrays).ToArray();
 
                     List<SubmittedTaskInfo> unfinishedTaskArrayInfoCluster =
-    (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(iterationIndexes, cluster)).ToList();
+                       (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(iterationIndexes, cluster)).ToList();
                     AddValuesToJobArrayInfo(unfinishedTaskInfoCluster.Find(x => x.ScheduledJobId == task.ScheduledJobId), unfinishedTaskArrayInfoCluster);
+                }
+
+                //TODO this
+                if (unfinishedJobInfoDb.Count == 0)
+                {
+                    return null;
                 }
 
                 // Combine the objects together
@@ -540,11 +554,67 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
             foreach (TaskSpecification task in specification.Tasks)
             {
+                CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
+                if (commandTemplate != null && commandTemplate.IsGeneric)
+                {
+                    //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
+                    //if you want to, refactoring is possible
+                    var definedGenericCommandParameters = commandTemplate.TemplateParameters
+                        .Select(x => x.Identifier);
+                    var userDefinedCommandParameters = task.CommandParameterValues
+                        .Where(x => !definedGenericCommandParameters.Contains(x.CommandParameterIdentifier));
+                    var userScriptParameter = task.CommandParameterValues
+                        .Where(x => definedGenericCommandParameters
+                        .Contains(x.CommandParameterIdentifier))
+                        .FirstOrDefault();
+                    string userParametersParameterName = commandTemplate.TemplateParameters
+                        .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
+                        .FirstOrDefault().Identifier;
+                    string parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
+
+                    task.CommandParameterValues.Add(new CommandTemplateParameterValue()
+                    {
+                        CommandParameterIdentifier = userParametersParameterName,
+                        Value = parsedUserParameter//validate if value does not contain some prohibited parameters
+                    });
+                    task.CommandParameterValues.RemoveAll(x => userDefinedCommandParameters.Contains(x));
+                }
+
                 CompleteTaskSpecification(task, clusterLogic);
                 task.EnvironmentVariables = CombineJobAndTaskEnvironmentVariables(specification.EnvironmentVariables, task.EnvironmentVariables)
                                                 .ToList();
             }
         }
+
+        private string AddGenericCommandUserDefinedCommands(List<CommandTemplateParameterValue> templateParameters)
+        {
+            if (templateParameters.Count == 0)
+            {
+                return string.Empty;
+            }
+
+            var commandParametersSb = new StringBuilder(" \"");
+
+            for (int i = 0; i < templateParameters.Count; i++)
+            {
+                var parameter = templateParameters[i];
+                if (parameter.Value.Contains("\""))//todo move to validator?
+                {
+                    throw new ApplicationException($"Parameter '{parameter.CommandParameterIdentifier}': '{parameter.Value}' contains illegal characters.");
+                }
+                var parameterPair = $"{parameter.CommandParameterIdentifier}=\\\"{parameter.Value}\\\"";
+                commandParametersSb.Append(parameterPair);
+
+                if (i < templateParameters.Count - 1)
+                {
+                    commandParametersSb.Append(' ');
+                }
+            }
+
+            commandParametersSb.Append("\"");
+            return commandParametersSb.ToString();
+        }
+
         protected void CompleteTaskSpecification(TaskSpecification taskSpecification, IClusterInformationLogic clusterLogic)
         {
             taskSpecification.ClusterNodeType = clusterLogic.GetClusterNodeTypeById(taskSpecification.ClusterNodeTypeId);
@@ -565,7 +635,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         /// </summary>
         /// <param name="specification">Specification of the job</param>
         /// <param name="task">Task to divide</param>
-        protected static void DecomposeExtraLongTask(JobSpecification specification, TaskSpecification task)
+        protected void DecomposeExtraLongTask(JobSpecification specification, TaskSpecification task)
         {
             if (!(task.WalltimeLimit.HasValue))
             {
@@ -731,7 +801,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
             dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
-            dbTaskInfo.TaskAllocationNodes = dbTaskInfo.TaskAllocationNodes?.Count > 0 
+            dbTaskInfo.TaskAllocationNodes = dbTaskInfo.TaskAllocationNodes?.Count > 0
                 ? dbTaskInfo.TaskAllocationNodes.Union(clusterTaskInfo.TaskAllocationNodes, new SubmittedTaskAllocationNodeInfoComparer()).ToList()
                 : dbTaskInfo.TaskAllocationNodes = clusterTaskInfo.TaskAllocationNodes;
 

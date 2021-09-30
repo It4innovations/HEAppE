@@ -17,11 +17,6 @@ namespace HEAppE.ExtModels.JobManagement.Converts
         #region Methods for Object Converts
         public static JobSpecification ConvertExtToInt(this JobSpecificationExt jobSpecification)
         {
-            if (!(jobSpecification.ClusterId.HasValue && jobSpecification.FileTransferMethodId.HasValue))
-            {
-                throw new InputValidationException("Submitted job specification is not valid: \r\n FileTransferMethod or ClusterNodeType for created job has to be set.");
-            }
-
             var result = new JobSpecification
             {
                 Name = jobSpecification.Name,
@@ -37,7 +32,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                                                         .Select(s => s.ConvertExtToInt())
                                                         .ToList(),
                 FileTransferMethodId = jobSpecification.FileTransferMethodId,
-                ClusterId = jobSpecification.ClusterId.Value
+                ClusterId = jobSpecification.ClusterId??0
             };
 
             //Same Reference for DependOn tasks
@@ -60,7 +55,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                         }
                         else
                         {
-                            throw new InputValidationException($"Depending task \"{dependentTask.Name}\" for task \"{taskExt.Name}\" contains wrong task dependency.");
+                            //throw new InputValidationException($"Depending task \"{dependentTask.Name}\" for task \"{taskExt.Name}\" contains wrong task dependency.");
                         }
                     }
                     convertedTaskSpec.DependsOn = taskDependency;
@@ -76,12 +71,6 @@ namespace HEAppE.ExtModels.JobManagement.Converts
 
         private static TaskSpecification ConvertExtToInt(this TaskSpecificationExt taskSpecificationExt, JobSpecification jobSpecification)
         {
-            if (!taskSpecificationExt.CommandTemplateId.HasValue)
-            {
-                throw new InputValidationException("Command template for the created job has to be set.");
-            }
-
-            long templateId = taskSpecificationExt.CommandTemplateId.GetValueOrDefault();
             var result = new TaskSpecification
             {
                 Name = taskSpecificationExt.Name,
@@ -117,7 +106,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                     SynchronizationType = FileSynchronizationType.IncrementalAppend
                 },
                 ClusterNodeTypeId = taskSpecificationExt.ClusterNodeTypeId.Value,
-                CommandTemplateId = taskSpecificationExt.CommandTemplateId.Value,
+                CommandTemplateId = taskSpecificationExt.CommandTemplateId??0,
                 EnvironmentVariables = taskSpecificationExt.EnvironmentVariables?
                                                             .Select(s => s.ConvertExtToInt())
                                                             .ToList(),

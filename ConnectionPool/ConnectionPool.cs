@@ -14,6 +14,7 @@ namespace HEAppE.ConnectionPool {
 		private readonly IPoolableAdapter adapter;
 		private readonly ILog log;
 		private readonly string _masterNodeName;
+		private readonly int? _port;
 		private readonly string _remoteTimeZone;
 		private readonly int maxSize;
 		private readonly TimeSpan maxUnusedDuration;
@@ -24,10 +25,11 @@ namespace HEAppE.ConnectionPool {
 		#endregion
 
 		#region Constructors
-		public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter) {
+		public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int? port = null) {
 			this.log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 			_masterNodeName = masterNodeName;
 			_remoteTimeZone = remoteTimeZone;
+			_port = port;
 			this.minSize = minSize;
 			this.maxSize = maxSize;
 			this.adapter = adapter;
@@ -96,7 +98,7 @@ namespace HEAppE.ConnectionPool {
 
 		#region Local Methods
 		private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred) {
-			object connectionObject = adapter.CreateConnectionObject(_masterNodeName, _remoteTimeZone, cred);
+			object connectionObject = adapter.CreateConnectionObject(_masterNodeName, _remoteTimeZone, cred, _port);
 			ConnectionInfo connection = new ConnectionInfo {
 				Connection = connectionObject,
 				LastUsed = DateTime.UtcNow,

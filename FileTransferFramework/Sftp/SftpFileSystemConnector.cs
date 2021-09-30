@@ -1,5 +1,6 @@
 ﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Renci.SshNet.Common;
@@ -18,7 +19,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         #endregion
         #region Methods
-        public object CreateConnectionObject(string masterNodeName, string remoteTimeZone, ClusterAuthenticationCredentials credentials)
+        public object CreateConnectionObject(string masterNodeName, string remoteTimeZone, ClusterAuthenticationCredentials credentials, int? port = null)
         {
             if (!string.IsNullOrEmpty(credentials.PrivateKeyFile))
             {
@@ -30,8 +31,8 @@ namespace HEAppE.FileTransferFramework.Sftp
                 {
                     return credentials.Cluster.ConnectionProtocol switch
                     {
-                        ClusterConnectionProtocol.MicrosoftHpcApi => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password),
-                        ClusterConnectionProtocol.Ssh => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password),
+                        ClusterConnectionProtocol.MicrosoftHpcApi => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password, port),
+                        ClusterConnectionProtocol.Ssh => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password, port),
                         ClusterConnectionProtocol.SshInteractive => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password),
                         _ => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password),
                     };
@@ -61,10 +62,18 @@ namespace HEAppE.FileTransferFramework.Sftp
             return client;
         }
 
-        private static SftpClient CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string remoteTimeZone, string username, string password)
+        private static SftpClient CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string remoteTimeZone, string username, string password, int? port = null)
         {
-            var connInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
-            return new ExtendedSftpClient(connInfo, remoteTimeZone);
+            Renci.SshNet.ConnectionInfo connectionInfo;
+            if (port.HasValue)
+            {
+                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, port.Value, username, new PasswordAuthenticationMethod(username, password));
+            }
+            else
+            {
+                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
+            }
+            return new ExtendedSftpClient(connectionInfo, remoteTimeZone);
         }
 
         private static SftpClient CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(string masterNodeName, string remoteTimeZone, string username, string password)

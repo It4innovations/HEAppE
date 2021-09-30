@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
 {
@@ -33,12 +34,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
         {
             if (!string.IsNullOrEmpty(responseMessage) && responseMessage.Length > 0 && responseMessage.Contains("="))
             {
-                Dictionary<string, string> parsedValues = responseMessage.Split(' ')
-                   .Select(s => s.Split('='))
-                   .ToDictionary(i => i[0], j => (j[1] == "(null)" || j[1] == "N/A" || j[1] == "Unknown" ? string.Empty : j[1]));
+                string modResponseMessage = Regex.Replace(responseMessage, @"\s+", " ").TrimEnd();
+                var pars = modResponseMessage.Split(' ')
+                                              .Select(s => s.Split('=', 2))
+                                              .Select(se => new { Key = se[0], Value = (se[1] == "(null)" || se[1] == "N/A" || se[1] == "Unknown" ? string.Empty : se[1])})
+                                              .Distinct();
+                Dictionary<string, string> parsedValues = pars.ToDictionary(i => i.Key, j => j.Value);
 
-                SlurmJobInfoAttributesDTO slurmAttributes = new SlurmJobInfoAttributesDTO();
-                SlurmJobDTO jobParameters = new SlurmJobDTO(parsedValues);
+
+                var slurmAttributes = new SlurmJobInfoAttributesDTO();
+                var jobParameters = new SlurmJobDTO(parsedValues);
 
                 var slurmProperties = slurmAttributes.GetType().GetProperties();
                 foreach (var slurmProperty in slurmProperties)

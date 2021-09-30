@@ -7,7 +7,6 @@ namespace HEAppE.ExtModels.FileTransfer.Models
     [DataContract(Name = "AsymmetricKeyCredentialsExt")]
     public class AsymmetricKeyCredentialsExt : AuthenticationCredentialsExt
     {
-        //public string username { get; set; }
         [DataMember(Name = "PrivateKey")]
         public string PrivateKey { get; set; }
 

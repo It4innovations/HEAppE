@@ -170,7 +170,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             set
             {
                 if (value)
-                    taskSource += " -l place=free:excl"; //" -W x=NACCESSPOLICY:SINGLEJOB";
+                    taskSource += " -l place=free:excl";
             }
         }
 
@@ -341,20 +341,27 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
         public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine, string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
         {
             string nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
-            string rm_stdout_stderr = $"rm {stdOutFile}; rm {stdErrFile};";
             var taskSourceSb = new StringBuilder();
-            taskSourceSb.Append($"echo ' cd {nodefileDir}; ~/.key_script/nodefile.sh; ");
+            taskSourceSb.Append($"echo ' cd {nodefileDir}; ~/.key_scripts/nodefile.sh; ");
             taskSourceSb.Append($"cd {workDir}; ");
-            taskSourceSb.Append((String.IsNullOrEmpty(recursiveSymlinkCommand) ? "" : recursiveSymlinkCommand + "; " + rm_stdout_stderr));
-            taskSourceSb.Append((String.IsNullOrEmpty(preparationScript) ? "" : preparationScript + "; "));
-            taskSourceSb.Append($"{commandLine}; ");
+            taskSourceSb.Append(
+                string.IsNullOrEmpty(recursiveSymlinkCommand) 
+                    ? string.Empty 
+                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};");
+
+            taskSourceSb.Append(
+                string.IsNullOrEmpty(preparationScript) 
+                    ? string.Empty 
+                    : preparationScript.Last().Equals(';') ? preparationScript : $"{preparationScript};");
+            taskSourceSb.Append(
+                string.IsNullOrEmpty(commandLine) 
+                    ? string.Empty 
+                    : commandLine.Last().Equals(';') ? commandLine : $"{commandLine};");
             taskSourceSb.Append($"1>> {stdOutFile} ");
             taskSourceSb.Append($"2>> {stdErrFile} ");
             taskSourceSb.Append($"' | {taskSource}");
 
             taskSource = taskSourceSb.ToString();
-            //taskSource = "echo '" + /*"mkdir " + workDir + "; */ "cd " + workDir + "; " + (String.IsNullOrEmpty(preparationScript) ? "" : preparationScript + "; ") + commandLine + " 1>>" + stdOutFile + " 2>>" + stdErrFile + "' | " + taskSource;
-            //taskSource = "echo '\"'\"'" + /*"mkdir " + workDir + "; */ "cd " + workDir + "; ~/.key_script/nodefile.sh" + "; " + (String.IsNullOrEmpty(preparationScript) ? "" : preparationScript + "; ") + commandLine + " 1>>" + stdOutFile + " 2>>" + stdErrFile + "'\"'\"' | " + taskSource;
         }
         #endregion
 
@@ -387,7 +394,9 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
                     builder.Append(string.IsNullOrEmpty(placementPolicy) ? string.Empty : $" -l place={placementPolicy}");
 
                     if (first)
+                    {
                         first = false;
+                    }
                 }
 
                 int remainingCores = coreCount - paralizationSpecs.Sum(s => s.MaxCores);

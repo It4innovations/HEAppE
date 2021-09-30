@@ -107,7 +107,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         {
             SshCommandWrapper command = null;
             var qsubTaskCommandBytes = System.Text.Encoding.UTF8.GetBytes((string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub"));
-            string job = "bash -lc '~/.key_script/run_command.sh " + Convert.ToBase64String(qsubTaskCommandBytes) + "'";
+            string job = "bash -lc '~/.key_scripts/run_command.sh " + Convert.ToBase64String(qsubTaskCommandBytes) + "'";
             try
             {
                 command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), job);
@@ -130,87 +130,99 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
 
         public override SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
         {
-            //const string JOB_ID_REGEX = @"^(Job\ Id:\ )(\d+)";
-            string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]]+)";
-
+            const string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]\-]+)";
             SshCommandWrapper command = null;
             do
             {
-                string commandString = String.Format("bash -lc 'qstat -f -x {0}'", String.Join(" ", scheduledJobIds));
+                string commandString = $"bash -lc 'qstat -f -x {string.Join(" ", scheduledJobIds)}'";
                 try
                 {
                     command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandString);
+                }
+                catch(SshCommandException ce)
+                {
+                    _log.Warn(ce.Message);
+                    break;
                 }
                 catch (Exception e)
                 {
                     string jobIdMath = "qstat: Unknown Job Id";
                     if (e.Message.Contains(jobIdMath))
                     {
-                        Match match = Regex.Match(e.Message, @"(?<=Unknown Job Id )\b\w+\b");
+                        Match match = Regex.Match(e.Message, @$"(?<={jobIdMath} )\b\w+[.\w]*\b", RegexOptions.Compiled);
                         if (match.Success)
                         {
                             string jobId = match.Value;
-                            //_log.WarnFormat("Unknown Job ID {0} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.", jobId);
-                            scheduledJobIds = scheduledJobIds?.Where(val => val != jobId).ToArray();
+                            _log.Warn($"Unknown Job ID {jobId} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.");
+                            scheduledJobIds = scheduledJobIds?.Where(val => val != jobId)
+                                                               .ToArray();
                             command = null;
                         }
                     }
-                    else _log.ErrorFormat(e.Message);
+                    else
+                    {
+                        _log.ErrorFormat(e.Message);
+                    }
                 }
             }
             while (command == null);
 
-            string[] resultLines = command.Result.Split('\n');
 
-            // Search for lines with jobIds
-            Dictionary<string, int> jobLines = new Dictionary<string, int>();
-            for (int i = 0; i < resultLines.Length; i++)
+            if(command is not null)
             {
-                Match match = Regex.Match(resultLines[i], JOB_ID_REGEX);
-                if (match.Success)
+                string[] resultLines = command.Result.Split('\n');
+
+
+
+                // Search for lines with jobIds
+                Dictionary<string, int> jobLines = new Dictionary<string, int>();
+                for (int i = 0; i < resultLines.Length; i++)
                 {
-                    jobLines.Add(match.Groups[2].Value, i);
+                    Match match = Regex.Match(resultLines[i], JOB_ID_REGEX);
+                    if (match.Success)
+                    {
+                        jobLines.Add(match.Groups[2].Value, i);
+                    }
                 }
+
+                // Iterate through jobIds and extract task info
+                List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>();
+                for (int i = 0; i < scheduledJobIds?.Length; i++)
+                {
+                    // Search for jobId in result
+                    int jobInfoStartLine = -1;
+                    try
+                    {
+                        jobInfoStartLine = jobLines[scheduledJobIds[i]];
+                    }
+                    catch (KeyNotFoundException)
+                    {
+                        _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIds[i]);
+
+                        taskInfos.Add(new SubmittedTaskInfo());
+                        continue;
+                    }
+
+                    // Get number of lines in qstat output for this job
+                    int jobInfoLineCount = 0;
+                    do
+                    {
+                        jobInfoLineCount++;
+                    } while (!Regex.IsMatch(resultLines[jobInfoStartLine + jobInfoLineCount], JOB_ID_REGEX) && jobInfoLineCount + jobInfoStartLine + 1 < resultLines.Length);
+
+                    // Cut lines for given job info
+                    string[] currentJobLines = new string[jobInfoLineCount];
+                    Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
+
+                    // Get current job info
+                    taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
+                }
+                return taskInfos.ToArray();
             }
-
-            // SubmittedJobInfo jobInfo = new SubmittedJobInfo();
-
-            // Iterate through jobIds and extract task info
-            List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>();
-            for (int i = 0; i < scheduledJobIds?.Length; i++)
+            else
             {
-                // Search for jobId in result
-                int jobInfoStartLine = -1;
-                try
-                {
-                    jobInfoStartLine = jobLines[scheduledJobIds[i]];
-                }
-                catch (KeyNotFoundException)
-                {
-                    _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIds[i]);
-
-                    taskInfos.Add(new SubmittedTaskInfo());
-                    continue;
-                }
-
-                // Get number of lines in qstat output for this job
-                int jobInfoLineCount = 0;
-                do
-                {
-                    jobInfoLineCount++;
-                } while (!Regex.IsMatch(resultLines[jobInfoStartLine + jobInfoLineCount], JOB_ID_REGEX) && jobInfoLineCount + jobInfoStartLine + 1 < resultLines.Length);
-
-                // Cut lines for given job info
-                string[] currentJobLines = new string[jobInfoLineCount];
-                Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
-
-                // Get current job info
-                taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
+                return Array.Empty<SubmittedTaskInfo>();
             }
-
-            //jobInfo.Tasks = taskInfos;
-
-            return taskInfos.ToArray();
         }
 
         public override SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds)
@@ -223,7 +235,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
         {
 #warning this should use database instead of direct read from file
-            string shellCommand = String.Format("cat {0}/{1}/nodefile", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
+            string shellCommand = String.Format("cat {0}/{1}/AllocationNodeInfo", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
             return LinuxPbsConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
@@ -232,7 +244,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
-            string shellCommand = String.Format("~/.key_script/add_key.sh {0} {1}", publicKey, jobInfo.Specification.Id);
+            string shellCommand = String.Format("~/.key_scripts/add_key.sh {0} {1}", publicKey, jobInfo.Specification.Id);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.Info(String.Format("Allow file transfer result: {0}", sshCommand.Result));
         }
@@ -240,7 +252,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
-            string shellCommand = String.Format("~/.key_script/remove_key.sh {0}", publicKey);
+            string shellCommand = String.Format("~/.key_scripts/remove_key.sh {0}", publicKey);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.Info(String.Format("Remove permission for direct file transfer result: {0}", sshCommand.Result));
         }
@@ -248,10 +260,10 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         public override void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(String.Format("~/.key_script/create_job_directory.sh {0}/{1};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id));
+            sb.Append(String.Format("~/.key_scripts/create_job_directory.sh {0}/{1};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id));
             foreach (var task in jobInfo.Tasks)
             {
-                sb.Append(String.Format("~/.key_script/create_job_directory.sh {0}/{1}/{2};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, task.Specification.Id));
+                sb.Append(String.Format("~/.key_scripts/create_job_directory.sh {0}/{1}/{2};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, task.Specification.Id));
             }
 
             string shellCommand = sb.ToString();
@@ -272,7 +284,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
             string inputDirectory = String.Format("{0}/{1}/{2}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, path);
             string outputDirectory = String.Format("{0}Temp/{1}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, hash);
             inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;//copy just content
-            string shellCommand = String.Format("~/.key_script/copy_data_to_temp.sh {0} {1}", inputDirectory, outputDirectory);
+            string shellCommand = String.Format("~/.key_scripts/copy_data_to_temp.sh {0} {1}", inputDirectory, outputDirectory);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Job data {0}/{1} were copied to temp directory {2}, result: {3}", jobInfo.Specification.Id, path, hash, sshCommand.Result);
         }
@@ -281,7 +293,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
         {
             string inputDirectory = String.Format("{0}Temp/{1}/.", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, hash);
             string outputDirectory = String.Format("{0}/{1}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
-            string shellCommand = String.Format("~/.key_script/copy_data_from_temp.sh {0} {1}", inputDirectory, outputDirectory);
+            string shellCommand = String.Format("~/.key_scripts/copy_data_from_temp.sh {0} {1}", inputDirectory, outputDirectory);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Temp data {0} were copied to job directory {1}, result: {2}", hash, jobInfo.Specification.Id, sshCommand.Result);
         }

@@ -1,6 +1,7 @@
 ﻿using HEAppE.ExtModels.ClusterInformation.Models;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using HEAppE.Utils;
 
@@ -9,7 +10,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
     [DataContract(Name = "TaskSpecificationExt")]
     public class TaskSpecificationExt
     {
-        [DataMember(Name = "Name")]
+        [DataMember(Name = "Name"), StringLength(50)]
         public string Name { get; set; }
 
         [DataMember(Name = "MinCores")]
@@ -21,7 +22,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "WalltimeLimit")]
         public int? WalltimeLimit { get; set; }
 
-        [DataMember(Name = "PlacementPolicy")]
+        [DataMember(Name = "PlacementPolicy"), StringLength(40)]
         public string PlacementPolicy { get; set; }
 
 	    [DataMember(Name = "Priority")]
@@ -36,13 +37,13 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "IsRerunnable")]
         public bool? IsRerunnable { get; set; }
 
-        [DataMember(Name = "StandardInputFile")]
+        [DataMember(Name = "StandardInputFile"), StringLength(30)]
         public string StandardInputFile { get; set; }
 
-        [DataMember(Name = "StandardOutputFile")]
+        [DataMember(Name = "StandardOutputFile"), StringLength(30)]
         public string StandardOutputFile { get; set; }
 
-        [DataMember(Name = "StandardErrorFile")]
+        [DataMember(Name = "StandardErrorFile"), StringLength(30)]
         public string StandardErrorFile { get; set; }
 
         [DataMember(Name = "ProgressFile")]
@@ -51,7 +52,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "LogFile")]
         public string LogFile { get; set; }
 
-        [DataMember(Name = "ClusterTaskSubdirectory")]
+        [DataMember(Name = "ClusterTaskSubdirectory"), StringLength(50)]
         public string ClusterTaskSubdirectory { get; set; }
 
         [DataMember(Name = "ClusterNodeTypeId")]

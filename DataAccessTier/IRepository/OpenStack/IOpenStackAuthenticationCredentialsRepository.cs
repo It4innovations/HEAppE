@@ -2,8 +2,8 @@
 
 namespace HEAppE.DataAccessTier.IRepository.OpenStack
 {
-    public interface IOpenStackAuthenticationCredentialsRepository : IRepository<OpenStackAuthenticationCredentials>
+    public interface IOpenStackAuthenticationCredentialsRepository : IRepository<OpenStackAuthenticationCredential>
     {
-        OpenStackAuthenticationCredentials GetDefaultAccount();
+        OpenStackAuthenticationCredential GetDefaultAccount();
     }
 }

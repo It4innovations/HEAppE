@@ -7,6 +7,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     public class NoAuthenticationSshClient : SshClient
     {
+        #region Instances
         private readonly string _masterNodeName;
         private readonly string _userName;
 
@@ -14,7 +15,8 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 		///   Log4Net logger
 		/// </summary>
 		protected ILog _log;
-
+        #endregion
+        #region Constructors
         public NoAuthenticationSshClient(string masterNodeName, string userName) : base(new ConnectionInfo(masterNodeName, userName, new PasswordAuthenticationMethod("notUsed", "notUsed")))//cannot be null
         {
             if (string.IsNullOrWhiteSpace(masterNodeName)) { throw new ArgumentException($"Argument 'masterNodeName' cannot be null or empty"); }
@@ -25,42 +27,73 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 
             _log = LogManager.GetLogger(typeof(NoAuthenticationSshClient));
         }
-
+        #endregion
+        #region Methods
         public SshCommandWrapper RunShellCommand(string commandText)
         {
             if (string.IsNullOrWhiteSpace(commandText)) { throw new ArgumentException($"Argument 'commandText' cannot be null or empty"); }
 
-            var sshCommand = new SshCommandWrapper();           
-            sshCommand.CommandText = commandText;
-            
-            string result = string.Empty;
-            string error = string.Empty;
-            using (var proc = new Process())
+            if (!CheckIsAgentHasIdentities()) { throw new SshCommandException("Ssh-agent has no identities added!"); };
+
+            var sshCommand = new SshCommandWrapper
             {
-                proc.StartInfo.FileName = "ssh";
-                proc.StartInfo.WorkingDirectory = "/usr/bin/";
-                proc.StartInfo.Arguments = $"-q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName} \"{commandText}\"";
-                _log.Info(proc.StartInfo.Arguments);
-                proc.StartInfo.UseShellExecute = false;
-                proc.StartInfo.RedirectStandardOutput = true;
-                proc.StartInfo.RedirectStandardError = true;
-                proc.EnableRaisingEvents = true;
-                proc.Start();
-                
-                result = proc.StandardOutput.ReadToEnd();
-                error = proc.StandardError.ReadToEnd();
+                CommandText = commandText
+            };
 
-                proc.WaitForExit();
-
-                if (proc.ExitCode != 0)
+            using var proc = new Process()
+            {
+                StartInfo = new ProcessStartInfo()
                 {
-                    sshCommand.ExitStatus = proc.ExitCode;
-                    sshCommand.Error = error;
-                }
+                    FileName = "ssh",
+                    WorkingDirectory = "/usr/bin/",
+                    Arguments = $"-q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName} \"{commandText}\"",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                },
+                EnableRaisingEvents = true
+            };
+
+            proc.Start();
+            _log.Info($"{proc.StartInfo.FileName} {proc.StartInfo.Arguments}");
+            string result = proc.StandardOutput.ReadToEnd();
+            string error = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            if (proc.ExitCode != 0)
+            {
+                sshCommand.ExitStatus = proc.ExitCode;
+                sshCommand.Error = error;
             }
 
-            sshCommand.Result = result; //still can contain error from ssh
+            //still can contain error from ssh
+            sshCommand.Result = result;
             return sshCommand;
         }
+
+        private static bool CheckIsAgentHasIdentities()
+        {
+            using var proc = new Process()
+            {
+                StartInfo = new ProcessStartInfo()
+                {
+                    FileName = "ssh-add",
+                    WorkingDirectory = "/usr/bin/",
+                    Arguments = $"-l",
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                },
+                EnableRaisingEvents = true
+            };
+
+            proc.Start();
+            string result = proc.StandardOutput.ReadToEnd();
+            string error = proc.StandardError.ReadToEnd();
+            proc.WaitForExit();
+
+            return !result.Contains("The agent has no identities.") && proc.ExitCode == 0;
+        }
+        #endregion
     }
 }

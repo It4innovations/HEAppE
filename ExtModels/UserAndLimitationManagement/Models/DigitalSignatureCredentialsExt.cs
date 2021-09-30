@@ -6,7 +6,6 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
     [DataContract(Name = "DigitalSignatureCredentialsExt")]
     public class DigitalSignatureCredentialsExt : AuthenticationCredentialsExt
     {
-        //public string username { get; set; }
         [DataMember(Name = "Noise")]
         public string Noise { get; set; }
 

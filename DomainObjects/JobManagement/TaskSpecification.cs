@@ -90,7 +90,10 @@ namespace HEAppE.DomainObjects.JobManagement
                 foreach (var reqNode in taskSpecification.RequiredNodes)
                     this.RequiredNodes.Add(new TaskSpecificationRequiredNode(reqNode));
 
+            this.ClusterNodeTypeId = taskSpecification.ClusterNodeTypeId;
             this.ClusterNodeType = (taskSpecification.ClusterNodeType);
+
+            this.CommandTemplateId = taskSpecification.CommandTemplateId;
             this.CommandTemplate = (taskSpecification.CommandTemplate);
 
             this.CommandParameterValues = taskSpecification.CommandParameterValues;

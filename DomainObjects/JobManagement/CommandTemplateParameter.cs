@@ -17,6 +17,8 @@ namespace HEAppE.DomainObjects.JobManagement {
 		[StringLength(200)]
 		public string Description { get; set; }
 
+		public bool IsVisible { get; set; } = true;
+
         [ForeignKey("CommandTemplate")]
         public long? CommandTemplateId { get; set; }
         public virtual CommandTemplate CommandTemplate { get; set; }

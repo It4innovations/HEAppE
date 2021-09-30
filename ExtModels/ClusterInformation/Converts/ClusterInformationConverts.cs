@@ -45,7 +45,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 Name = commandTemplate.Name,
                 Description = commandTemplate.Description,
                 Code = commandTemplate.Code,
-                TemplateParameters = commandTemplate.TemplateParameters.Where(w=> string.IsNullOrEmpty(w.Query))
+                TemplateParameters = commandTemplate.TemplateParameters.Where(w=> string.IsNullOrEmpty(w.Query) && w.IsVisible)
                                                                         .Select(s=>s.ConvertIntToExt())
                                                                         .ToArray()
             };

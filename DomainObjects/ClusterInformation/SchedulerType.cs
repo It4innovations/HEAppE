@@ -6,6 +6,7 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 		LinuxPbsProV10 = 1,
 		LinuxPbsProV12 = 2,
 		WindowsHpc = 4,
-        LinuxSlurmV18 = 8
+        LinuxSlurmV18 = 8,
+		LinuxLocal = 16
 	}
 }

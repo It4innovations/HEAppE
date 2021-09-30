@@ -1,8 +1,10 @@
 ﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using System;
+using System.Globalization;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
@@ -17,12 +19,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="masterNodeName">Master node name</param>
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
-        public object CreateConnectionObject(string masterNodeName, string remoteTimeZone, ClusterAuthenticationCredentials credentials)
+        public object CreateConnectionObject(string masterNodeName, string remoteTimeZone, ClusterAuthenticationCredentials credentials, int? port)
         {
 #warning TODO timezone
             if (!string.IsNullOrEmpty(credentials.PrivateKeyFile))
             {
-                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword);
+                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port);
             }
             else
             {
@@ -31,16 +33,16 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                     switch (credentials.Cluster.ConnectionProtocol)
                     {
                         case ClusterConnectionProtocol.MicrosoftHpcApi:
-                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password);
+                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port);
 
                         case ClusterConnectionProtocol.Ssh:
-                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password);
+                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port);
 
                         case ClusterConnectionProtocol.SshInteractive:
                             return CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, credentials.Username, credentials.Password);
 
                         default:
-                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password);
+                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port);
                     }
                 }
                 else
@@ -78,10 +80,18 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="username">Username</param>
         /// <param name="password">Password</param>
         /// <returns></returns>
-        private object CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string username, string password)
+        private object CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string username, string password, int? port = null)
         {
-            var connInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
-            return new SshClient(connInfo);
+            Renci.SshNet.ConnectionInfo connectionInfo;
+            if (port.HasValue)
+            {
+                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, port.Value, username, new PasswordAuthenticationMethod(username, password));
+            }
+            else
+            {
+                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
+            }
+            return new SshClient(connectionInfo);
         }
 
         /// <summary>
@@ -111,12 +121,24 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="privateKeyFile">Private key file</param>
         /// <param name="privateKeyPassword">Private key password</param>
         /// <returns></returns>
-        private object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword)
+        private object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port = null)
         {
-            PrivateKeyConnectionInfo connectionInfo = new PrivateKeyConnectionInfo(
+            PrivateKeyConnectionInfo connectionInfo;
+            if(port.HasValue)
+            {
+                connectionInfo = new PrivateKeyConnectionInfo(
+                masterNodeName,
+                port.Value,
+                username,
+                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            }
+            else
+            {
+                connectionInfo = new PrivateKeyConnectionInfo(
                 masterNodeName,
                 username,
                 new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            }
 
             SshClient client = new SshClient(connectionInfo);
             return client;

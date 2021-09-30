@@ -29,6 +29,9 @@ namespace HEAppE.DomainObjects.JobManagement {
 		[StringLength(1000)]
 		public string PreparationScript { get; set; }
 
+        [Required]
+        public bool IsGeneric { get; set; } = false;
+
         public virtual List<CommandTemplateParameter> TemplateParameters { get; set; } = new List<CommandTemplateParameter>();
 
         [ForeignKey("ClusterNodeType")]

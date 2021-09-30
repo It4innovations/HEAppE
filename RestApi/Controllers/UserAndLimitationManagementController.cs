@@ -6,6 +6,9 @@ using HEAppE.RestApiModels.UserAndLimitationManagement;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using HEAppE.Utils.Validation;
+using HEAppE.RestApi.InputValidator;
+using HEAppE.BusinessLogicTier.Logic;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -37,7 +40,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenId")]
-        [RequestSizeLimit(15_000)]
+        [RequestSizeLimit(2048)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -48,6 +51,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenId\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUser(model.Credentials));
             }
             catch (Exception e)
@@ -62,7 +68,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenStack")]
-        [RequestSizeLimit(15_000)]
+        [RequestSizeLimit(2048)]
         [ProducesResponseType(typeof(OpenStackApplicationCredentialsExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -73,6 +79,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenStack\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUserToOpenStack(model.Credentials));
             }
             catch (Exception e)
@@ -81,14 +90,13 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-
         /// <summary>
         /// Provide user authentication
         /// </summary>
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserPassword")]
-        [RequestSizeLimit(220)]
+        [RequestSizeLimit(148)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -99,6 +107,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserPassword\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUser(model.Credentials));
             }
             catch (Exception e)
@@ -124,6 +135,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserDigitalSignature\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.AuthenticateUser(model.Credentials));
             }
             catch (Exception e)
@@ -138,7 +152,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Session code</param>
         /// <returns></returns>
         [HttpPost("GetCurrentUsageAndLimitationsForCurrentUser")]
-        [RequestSizeLimit(54)]
+        [RequestSizeLimit(56)]
         [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -149,6 +163,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(model.SessionCode));
             }
             catch (Exception e)

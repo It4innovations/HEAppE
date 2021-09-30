@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.FileTransferFramework
@@ -24,6 +25,8 @@ namespace HEAppE.FileTransferFramework
         ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime);
 
         byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
+
+        byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath);
 
         void DeleteSessionFromCluster(SubmittedJobInfo jobSpecification);
     }

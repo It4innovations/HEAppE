@@ -1,5 +1,4 @@
 ﻿using HEAppE.KeycloakOpenIdAuthentication;
-using HEAppE.KeycloakOpenIdAuthentication.JsonTypes;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -20,6 +19,7 @@ using HEAppE.KeycloakOpenIdAuthentication.Exceptions;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
+using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
@@ -27,7 +27,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         private readonly object _lockCreateUserObj = new();
+        private static OpenStackInfoDTO _openStackInstance = null;
         private readonly IUnitOfWork unitOfWork;
+
+
         private const int cSaltBytes = 12;
         private const int cHashBytes = 20;
 
@@ -94,24 +97,19 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new AuthenticatedUserAlreadyDeletedException(deletedUserError);
             }
 
-            if (credentials is DigitalSignatureCredentials)
+            switch (credentials)
             {
-                return AuthenticateUserWithDigitalSignature(user, (DigitalSignatureCredentials)credentials);
+                case DigitalSignatureCredentials:
+                    return AuthenticateUserWithDigitalSignature(user, (DigitalSignatureCredentials)credentials);
+                case PasswordCredentials:
+                    return AuthenticateUserWithPassword(user, (PasswordCredentials)credentials);
+                case OpenIdCredentials:
+                    // NOTE(Moravec): We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
+                    return CreateSessionCode(user).UniqueCode;
             }
 
-            if (credentials is PasswordCredentials)
-            {
-                return AuthenticateUserWithPassword(user, (PasswordCredentials)credentials);
-            }
-
-            if (credentials is OpenIdCredentials)
-            {
-                // NOTE(Moravec): We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
-                return CreateSessionCode(user).UniqueCode;
-            }
-
-            string unsupportedCredentialsError =
-                $"Credentials of class {credentials.GetType().Name} are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
+            string unsupportedCredentialsError = $"Credentials of class {credentials.GetType().Name} are not supported. Change the UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser()" +
+                                                 $" method to add support for additional credential types.";
             log.Error(unsupportedCredentialsError);
             throw new ArgumentException(unsupportedCredentialsError);
         }
@@ -127,16 +125,63 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             var user = HandleOpenIdAuthentication(openIdCredentials);
             log.Info($"Keycloak user {user.Username} wants to authenticate to the OpenStack.");
 
-            var writeRole = unitOfWork.AdaptorUserRoleRepository.GetWriteRole();
+            //var writeRole = unitOfWork.AdaptorUserRoleRepository.GetWriteRole();
             // Require write role.
-            if (!user.HasUserRole(writeRole))
-            {
-                throw InsufficientRoleException.CreateMissingRoleException(writeRole, user.Roles);
-            }
+            //if (!user.HasUserRole(writeRole))
+            //{
+            //    throw InsufficientRoleException.CreateMissingRoleException(writeRole, user.Roles);
+            //}
 
-            // OpenStack part.
             return CreateNewOpenStackSession(user);
 
+        }
+        private OpenStackInfoDTO GetOpenStackInstanceWithProjects()
+        {
+            OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
+            var projectDictionary = new Dictionary<OpenStackProjectDTO, List<OpenStackProjectDomainDTO>>();
+
+            foreach (var DbProjectDomain in osInstanceCredentials.OpenStackAuthenticationCredentialProjectDomains)
+            {
+                var projectDomain = new OpenStackProjectDomainDTO()
+                {
+                    Id = DbProjectDomain.OpenStackProjectDomain.UID,
+                    Name = DbProjectDomain.OpenStackProjectDomain.Name
+                };
+
+                var projectDomains = new List<OpenStackProjectDomainDTO>() { projectDomain };
+
+                var project = new OpenStackProjectDTO()
+                {
+                    Id = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.UID,
+                    Name = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.Name,
+                    Domain = new OpenStackDomainDTO()
+                    {
+                        Name = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.OpenStackDomain.Name,
+                        InstanceUrl = DbProjectDomain.OpenStackProjectDomain.OpenStackProject.OpenStackDomain.OpenStackInstance.InstanceUrl
+                    },
+                    ProjectDomains = projectDomains
+                };
+
+                if (projectDictionary.ContainsKey(project))
+                {
+                    projectDictionary[project].Add(projectDomain);
+                }
+                else
+                {
+                    projectDictionary.Add(project, projectDomains);
+                }
+            }
+
+            return new OpenStackInfoDTO()
+            {
+                Projects = projectDictionary.Keys,
+                ServiceAcc = new OpenStackServiceAccDTO()
+                {
+                    Id = osInstanceCredentials.UserId,
+                    Username = osInstanceCredentials.Username,
+                    Password = osInstanceCredentials.Password,
+                }
+            };
         }
 
         /// <summary>
@@ -147,35 +192,39 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
         private ApplicationCredentialsDTO CreateNewOpenStackSession(AdaptorUser userAccount)
         {
-            OpenStackAuthenticationCredentials osInstanceCredentials =
-                unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
-
-            OpenStack openStack = new OpenStack(new OpenStack.OpenStackInfo
+            if (_openStackInstance is null)
             {
-                OpenStackUrl = osInstanceCredentials.OpenStackInstance.InstanceUrl,
-                Domain = osInstanceCredentials.OpenStackInstance.Domain,
-                ServiceAccUsername = osInstanceCredentials.Username,
-                ServiceAccPassword = osInstanceCredentials.Password
-            });
-
-            string uniqueTokenName = userAccount.Username + Guid.NewGuid();
+                _openStackInstance = GetOpenStackInstanceWithProjects();
+            }
 
             ApplicationCredentialsDTO openStackCredentials;
-            DateTime sessionExpiration = DateTime.UtcNow.AddSeconds(SessionExpirationSeconds);
             try
             {
-                openStackCredentials = openStack.CreateApplicationCredentials(uniqueTokenName, sessionExpiration);
+                var userGroupsName = userAccount.AdaptorUserUserGroups.Select(s => s.AdaptorUserGroup.AccountingString.ToLower())
+                                                                        .ToList();
+
+                var openStackProject = _openStackInstance.Projects.Where(w => userGroupsName.Intersect(w.ProjectDomains.Select(s => s.Name.ToLower()))
+                                                                                                                        .Any() 
+                                                                              || userGroupsName.Contains(w.Name.ToLower()))
+                                                                    .FirstOrDefault();
+                if (openStackProject is null)
+                {
+                    throw new OpenStackAPIException("OpenStack project domains have not corresponding accounting string in AdaptorUserGroup.");
+                }
+                else
+                {
+                    var openStack = new OpenStack(openStackProject.Domain.InstanceUrl);
+                    var authResponse = openStack.Authenticate(_openStackInstance.ServiceAcc, openStackProject);
+                    openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
+                }
             }
             catch (OpenStackAPIException ex)
             {
-                // Log the error and rethrow the exception.
-                string error =
-                    $"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}";
-                log.Error(error);
+                log.Error($"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}");
                 throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
             }
 
-            StoreOpenStackSession(userAccount, openStackCredentials, sessionExpiration);
+            StoreOpenStackSession(userAccount, openStackCredentials);
             log.Info($"Created new OpenStack 'session' (application credentials) for user {userAccount.Username}.");
             return openStackCredentials;
         }
@@ -187,49 +236,35 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>New or existing user.</returns>
         private AdaptorUser HandleOpenIdAuthentication(OpenIdCredentials openIdCredentials)
         {
-            if (string.IsNullOrWhiteSpace(openIdCredentials.OpenIdAccessToken) || string.IsNullOrWhiteSpace(openIdCredentials.OpenIdRefreshToken))
+            //TODO at REST API validation
+            if (string.IsNullOrWhiteSpace(openIdCredentials.OpenIdAccessToken))
             {
-                string error = "Empty access_token or refresh_token in HandleOpenIdAuthentication.";
+                string error = "Empty access_token in HandleOpenIdAuthentication.";
                 log.Error(error);
                 throw new OpenIdAuthenticationException(error);
             }
 
-            KeycloakOpenId keycloak = new KeycloakOpenId();
-
-            OpenIdUserAuthenticationResult refreshedUser;
             try
             {
-                // Refresh the access token to check the validity of provided tokens and to generate new fresh access_token.
-                refreshedUser = keycloak.RefreshAccessToken(openIdCredentials.OpenIdRefreshToken);
+                KeycloakOpenId keycloak = new KeycloakOpenId();
+                var tokenIntrospectResult = keycloak.TokenIntrospection(openIdCredentials.OpenIdAccessToken);
+                KeycloakOpenId.ValidateUserToken(tokenIntrospectResult);
+
+                string offline_token = keycloak.ExchangeToken(openIdCredentials.OpenIdAccessToken).AccessToken;
+                var userInfo = keycloak.GetUserInfo(offline_token);
+
+                return GetOrRegisterNewOpenIdUser(userInfo.Convert());
             }
             catch (KeycloakOpenIdException keycloakException)
             {
-                log.Error($"Failed to refresh OpenId token. access_token='{openIdCredentials.OpenIdAccessToken}'; refresh_token='{openIdCredentials.OpenIdRefreshToken}'", keycloakException);
-                throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Unable to refresh provided keycloak credentials.", keycloakException);
+                log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
+                throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", keycloakException);
             }
-
-            DecodedAccessToken decodedAccessToken;
-            try
-            {
-                decodedAccessToken = keycloak.VerifyAccessTokensMatchAndExtractToken(originalAccessToken: openIdCredentials.OpenIdAccessToken, refreshedAccessToken: refreshedUser.AccessToken);
-            }
-            catch (KeycloakOpenIdException keycloakException)
-            {
-                log.Error("Invalid OpenId tokens. Access token don't match the refreshed access token.", keycloakException);
-                throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Failed to match original and refreshed access tokens.", keycloakException);
-            }
-            catch (JwtDecodeException decodeException)
-            {
-                log.Error("Failed to decode JWT token.", decodeException);
-                throw new OpenIdAuthenticationException("Invalid OpenId tokens provided. Failed to decode the access token.", decodeException);
-            }
-
-            return GetOrRegisterNewOpenIdUser(decodedAccessToken);
         }
 
-        private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, DecodedAccessToken decodedAccessToken)
+        private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, UserOpenId openIdUser)
         {
-            if (!TryGetUserGroupByName(KeycloakSettings.HEAppEGroupName, out var keycloakGroup))
+            if (!TryGetUserGroupByName(KeycloakConfiguration.HEAppEGroupName, out var keycloakGroup))
             {
                 throw new OpenIdAuthenticationException("Keycloak group doesn't exist. Keycloak user's group and roles can't be synchronized.");
             }
@@ -242,32 +277,36 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 {
                     throw new OpenIdAuthenticationException("Failed to assign user to the group. Check the log for details.");
                 }
-                log.Info($"User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
+
+                log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
             }
 
-            List<AdaptorUserRole> userRoles = new List<AdaptorUserRole>(3);
-            if (decodedAccessToken.CanListProject(keycloakGroup.AccountingString))
+            if (!openIdUser.ProjectRoles.TryGetValue(KeycloakConfiguration.Project, out IEnumerable<string> openIdRoles))
             {
-                userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetListRole());
-            }
-            if (decodedAccessToken.CanReadProject(keycloakGroup.AccountingString))
-            {
-                userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetReadRole());
-            }
-            if (decodedAccessToken.CanWriteProject(keycloakGroup.AccountingString))
-            {
-                userRoles.Add(unitOfWork.AdaptorUserRoleRepository.GetWriteRole());
-            }
-            bool differentRoles = user.AdaptorUserUserRoles.Count != userRoles.Count;
-            if (!SetUserRoles(user, userRoles))
-            {
-                throw new OpenIdAuthenticationException("Failed to set user roles. Check the log for details.");
-            }
-            if (differentRoles)
-            {
-                log.Info($"User '{user.Username}' has new roles: '{string.Join(",", userRoles.Select(role => role.Name))}'");
+                throw new Exception("No roles for specific project is set");
             }
 
+            var availableRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(openIdRoles).ToList();
+            var userRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
+
+            if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
+            {
+                user.AdaptorUserUserRoles = availableRoles.Select(s => new AdaptorUserUserRole
+                {
+                    AdaptorUserId = user.Id,
+                    AdaptorUserRoleId = s.Id
+                }).ToList();
+
+                try
+                {
+                    unitOfWork.Save();
+                    log.Info($"Open-Id: User '{user.Username}' has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
+                }
+                catch (Exception e)
+                {
+                    log.Error("Failed to set user roles.", e);
+                }
+            }
         }
 
         /// <summary>
@@ -275,36 +314,30 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// </summary>
         /// <param name="decodedAccessToken">Decoded OpenId access token.</param>
         /// <returns>Newly created or existing HEAppE account.</returns>
-        private AdaptorUser GetOrRegisterNewOpenIdUser(DecodedAccessToken decodedAccessToken)
+        private AdaptorUser GetOrRegisterNewOpenIdUser(UserOpenId openIdUser)
         {
-            var openIdUserName = KeycloakOpenId.CreateOpenIdUsernameForHEAppE(decodedAccessToken);
             lock (_lockCreateUserObj)
             {
-                AdaptorUser userAccount = unitOfWork.AdaptorUserRepository.GetByName(openIdUserName);
-                if (userAccount is not null)
-                {
-                    SynchonizeKeycloakUserGroupAndRoles(userAccount, decodedAccessToken);
-                    return userAccount;
-                }
-                else
+                AdaptorUser userAccount = unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+                if (userAccount is null)
                 {
                     // Create new Keycloak user account.
-                    AdaptorUser newKeycloakOpenIdUser = new AdaptorUser
+                    userAccount = new AdaptorUser
                     {
-                        Username = openIdUserName,
+                        Username = openIdUser.UserName,
                         Deleted = false,
                         Synchronize = false,
+                        CreatedAt = DateTime.UtcNow,
+                        ModifiedAt = null
                     };
-                    unitOfWork.AdaptorUserRepository.Insert(newKeycloakOpenIdUser);
+
+                    unitOfWork.AdaptorUserRepository.Insert(userAccount);
                     unitOfWork.Save();
-                    log.Info($"Created new HEAppE account for Keycloak OpenId user: {openIdUserName}");
-
-
-                    AdaptorUser user = unitOfWork.AdaptorUserRepository.GetByName(openIdUserName);
-                    System.Diagnostics.Debug.Assert(user is not null, "User was just created and can't be null");
-                    SynchonizeKeycloakUserGroupAndRoles(user, decodedAccessToken);
-                    return user;
+                    log.Info($"Open-Id: Created new HEAppE account for Keycloak OpenId user: '{userAccount}'");
                 }
+
+                SynchonizeKeycloakUserGroupAndRoles(userAccount, openIdUser);
+                return userAccount;
             }
         }
 
@@ -316,17 +349,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>True if group is found.</returns>
         private bool TryGetUserGroupByName(string groupName, out AdaptorUserGroup userGroup)
         {
-            try
-            {
-                userGroup = unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(groupName);
-                return true;
-            }
-            catch (InvalidOperationException e)
-            {
-                userGroup = null;
-                log.Error($"Failed to retrieve group '{groupName}' from database by its unique name.", e);
-                return false;
-            }
+            userGroup = unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(groupName);
+            return userGroup is not null;
         }
 
         /// <summary>
@@ -346,40 +370,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             try
             {
                 unitOfWork.Save();
+                return true;
             }
             catch (Exception e)
             {
                 log.Error("Failed to add user to group.", e);
                 return false;
             }
-
-            return true;
-        }
-
-        /// <summary>
-        /// Set new user roles. This will remove any role not present in the <paramref name="userRoles"/> list.
-        /// </summary>
-        /// <param name="user">User.</param>
-        /// <param name="userRoles">User roles.</param>
-        /// <returns>True if user roles were saved.</returns>
-        private bool SetUserRoles(AdaptorUser user, List<AdaptorUserRole> userRoles)
-        {
-            user.AdaptorUserUserRoles = userRoles.Select(role => new AdaptorUserUserRole
-            {
-                AdaptorUserId = user.Id,
-                AdaptorUserRoleId = role.Id
-            }).ToList();
-
-            try
-            {
-                unitOfWork.Save();
-            }
-            catch (Exception e)
-            {
-                log.Error("Failed to set user roles.", e);
-                return false;
-            }
-            return true;
         }
 
         private string AuthenticateUserWithDigitalSignature(AdaptorUser user, DigitalSignatureCredentials credentials)
@@ -478,13 +475,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <param name="user">User for which was the OpenStack session created.</param>
         /// <param name="applicationCredentials">Created OpenStack credentials.</param>
         /// <param name="expiresAt">Expiration of OpenStack credentials.</param>
-        private void StoreOpenStackSession(AdaptorUser user, ApplicationCredentialsDTO applicationCredentials, DateTime expiresAt)
+        private void StoreOpenStackSession(AdaptorUser user, ApplicationCredentialsDTO applicationCredentials)
         {
             OpenStackSession session = new OpenStackSession
             {
                 UserId = user.Id,
                 AuthenticationTime = DateTime.UtcNow,
-                ExpirationTime = expiresAt,
+                ExpirationTime = applicationCredentials.ExpiresAt,
                 ApplicationCredentialsId = applicationCredentials.ApplicationCredentialsId,
                 ApplicationCredentialsSecret = applicationCredentials.ApplicationCredentialsSecret
             };

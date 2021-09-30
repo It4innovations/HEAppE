@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.IO;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -29,10 +30,12 @@ namespace HEAppE.FileTransferFramework
         #endregion
         #region Abstract Methods
         public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
+        public abstract byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath);
         public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo);
         protected abstract void CopyAll(string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials);
         protected abstract ICollection<FileInformation> ListChangedFilesForTask(string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials);
         protected abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo, ClusterAuthenticationCredentials credentials);
+
         #endregion
         #region IRexFileSystemManager Members
         public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory)
@@ -111,9 +114,11 @@ namespace HEAppE.FileTransferFramework
                 var changedFiles = ListChangedFilesForTask(taskClusterDirectoryPath, jobSubmitTime, jobInfo.Specification.ClusterUser);
                 foreach (var changedFile in changedFiles)
                 {
+                    var relativeFilePath = "/" + taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture) +
+                            Path.Combine(taskInfo.Specification.ClusterTaskSubdirectory ?? string.Empty, changedFile.FileName);
                     result.Add(new FileInformation
                     {
-                        FileName = taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture) + "/" + taskInfo.Specification.ClusterTaskSubdirectory + "/" + changedFile.FileName,
+                        FileName = relativeFilePath,
                         LastModifiedDate = changedFile.LastModifiedDate
                     });
                 }
@@ -226,6 +231,7 @@ namespace HEAppE.FileTransferFramework
             }
             return results;
         }
+
         #endregion
     }
 }

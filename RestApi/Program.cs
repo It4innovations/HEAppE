@@ -45,13 +45,11 @@ namespace HEAppE.RestApi
             {
                 // Run w/o docker
                 builder = WebHost.CreateDefaultBuilder()
-                    .UseUrls("https://*:5001;http://*:5000")
+                    .UseUrls("http://*:5000;https://*:5001")
                     .ConfigureAppConfiguration((hostingContext, config) =>
                     {
-                        //config.AddJsonFile("C:/Heappe/projects/develop/app/confs/appsettings.json", false, true);
-                        config.AddJsonFile("C:/Git/IT4I/HEAppE/HEAppE Core/RestApi/appsettings.json", false, true);
-                        //config.AddNotJson("C:/Heappe/projects/develop/app/confs/seed.njson");
-                        config.AddNotJson("C:/Git/IT4I/HEAppE/HEAppE Core/RestApi/seed.njson");
+                        config.AddJsonFile("C:/Heappe/projects/develop/app/confs/appsettings.json", false, true);
+                        config.AddNotJson("C:/Heappe/projects/develop/app/confs/seed.njson");
                     })
                     //.UseKestrel()
                     //.UseIISIntegration()

@@ -1,14 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.DataTransfer
 {
     [DataContract(Name = "HttpGetToJobNodeModel")]
-    public class HttpGetToJobNodeModel
+    public class HttpGetToJobNodeModel : SubmittedJobInfoModel
     {
         [DataMember(Name = "HttpRequest")]
         public string HttpRequest { get; set; }
@@ -16,13 +18,8 @@ namespace HEAppE.RestApiModels.DataTransfer
         [DataMember(Name = "HttpHeaders")]
         public string[] HttpHeaders { get; set; }
 
-        [DataMember(Name = "SubmittedJobInfoId")]
-        public long SubmittedJobInfoId { get; set; }
-
-        [DataMember(Name = "IpAddress")]
+        [DataMember(Name = "IpAddress"), StringLength(50)]
         public string IpAddress { get; set; }
 
-        [DataMember(Name = "SessionCode")]
-        public string SessionCode { get; set; }
     }
 }

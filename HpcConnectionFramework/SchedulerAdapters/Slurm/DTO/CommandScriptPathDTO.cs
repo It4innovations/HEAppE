@@ -13,27 +13,27 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// <summary>
         /// Path to copy data from temp script
         /// </summary>
-        internal string CopyDataFromTempCmdPath { get; } = "~/.key_script/copy_data_from_temp.sh"; 
+        internal string CopyDataFromTempCmdPath { get; } = "~/.key_scripts/copy_data_from_temp.sh"; 
 
         /// <summary>
         /// Path to copy data to temp script
         /// </summary>
-        internal string CopyDataToTempCmdPath { get; } = "~/.key_script/copy_data_to_temp.sh";
+        internal string CopyDataToTempCmdPath { get; } = "~/.key_scripts/copy_data_to_temp.sh";
 
         /// <summary>
         /// Path to adding file transfer key script
         /// </summary>
-        internal string AddFiletransferKeyCmdPath { get; } = "~/.key_script/add_key.sh";
+        internal string AddFiletransferKeyCmdPath { get; } = "~/.key_scripts/add_key.sh";
 
         /// <summary>
         /// Path to remove file transfer key script
         /// </summary>
-        internal string RemoveFiletransferKeyCmdPath { get; } = "~/.key_script/remove_key.sh";
+        internal string RemoveFiletransferKeyCmdPath { get; } = "~/.key_scripts/remove_key.sh";
 
         /// <summary>
         /// Path to create job directory script
         /// </summary>
-        internal string CreateJobDirectoryCmdPath { get; } = "~/.key_script/create_job_directory.sh";
+        internal string CreateJobDirectoryCmdPath { get; } = "~/.key_scripts/create_job_directory.sh";
         #endregion
     }
 }

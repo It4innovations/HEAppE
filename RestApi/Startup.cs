@@ -1,5 +1,4 @@
 ﻿using HEAppE.DataAccessTier;
-using HEAppE.KeycloakOpenIdAuthentication;
 using log4net;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Mvc;
@@ -19,6 +18,10 @@ using Microsoft.Extensions.Hosting;
 using AspNetCoreRateLimit;
 using Microsoft.AspNetCore.Http;
 using HEAppE.FileTransferFramework;
+using HEAppE.KeycloakOpenIdAuthentication.Configuration;
+using HEAppE.OpenStackAPI.Configuration;
+using HEAppE.MiddlewareUtils.LocalDocker;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi
 {
@@ -64,17 +67,20 @@ namespace HEAppE.RestApi
             services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));      
             services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
+            //Other configuration
+            var middlewareContextSettings = new MiddlewareContextSettings();
+            var keycloackConfiguration = new KeycloakConfiguration();
+            Configuration.Bind("MiddlewareContextSettings", middlewareContextSettings);
+            Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
+            Configuration.Bind("KeycloakSettings", keycloackConfiguration);
+            Configuration.Bind("OpenStackSettings", new OpenStackSettings());
+            Configuration.Bind("LocalDockerSettings", new LocalDockerSettings());
+
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
-
-            //Other configuration
-            var middlewareContextSettings = new MiddlewareContextSettings();
-            Configuration.Bind("MiddlewareContextSettings", middlewareContextSettings);
-            Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
-            Configuration.Bind("KeycloakSettings", new KeycloakSettings());
-            Configuration.Bind("OpenStackSettings", new OpenStackSettings());
+            services.AddSingleton(keycloackConfiguration); //Maybe Interface
 
             //CORS
             services.AddCors(options =>
@@ -185,6 +191,22 @@ namespace HEAppE.RestApi
             var option = new RewriteOptions();
             option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
             app.UseRewriter(option);
+
+            ConfigureLocalDockerHpc();
+        }
+
+        /// <summary>
+        /// Asynchronous run of docker configuration
+        /// </summary>
+        private void ConfigureLocalDockerHpc()
+        {
+            if (LocalDockerSettings.UseLocalHPC)
+            {
+                var localDockerManager = DockerContainerManager.Instance;
+                Task dockerConfigureTask = Task.Run(
+                    async () => await localDockerManager.StartDockerContainer(LocalDockerSettings.ImageConfigurationDir));
+                dockerConfigureTask.Wait();
+            }
         }
         #endregion
     }

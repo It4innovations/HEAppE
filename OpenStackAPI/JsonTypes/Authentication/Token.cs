@@ -6,6 +6,7 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 {
     public class Token
     {
+        #region Properties
         [JsonProperty("methods")]
         public List<string> Methods { get; set; }
 
@@ -20,5 +21,6 @@ namespace HEAppE.OpenStackAPI.JsonTypes.Authentication
 
         [JsonProperty("issued_at")]
         public DateTime IssuedAt { get; set; }
+        #endregion
     }
 }

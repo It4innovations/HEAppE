@@ -42,7 +42,9 @@ namespace HEAppE.FileTransferFramework
             return type switch
             {
                 FileTransferProtocol.NetworkShare => _windowsSharedFactorySingleton ??= new NetworkShareFileSystemFactory(),
-                FileTransferProtocol.SftpScp => _sftpFactorySingleton ??= new SftpFileSystemFactory(),
+                FileTransferProtocol ftp when
+                    ftp == FileTransferProtocol.SftpScp ||
+                    ftp == FileTransferProtocol.LocalSftpScp => _sftpFactorySingleton ??= new SftpFileSystemFactory(),
                 _ => throw new ApplicationException("File system manager factory with type \"" + type + "\" does not exist."),
             };
         }
@@ -57,7 +59,8 @@ namespace HEAppE.FileTransferFramework
                                                                ConnectionPoolMaxSize,
                                                                ConnectionPoolCleaningInterval,
                                                                ConnectionPoolMaxUnusedInterval,
-                                                               CreateFileSystemConnector(configuration));
+                                                               CreateFileSystemConnector(configuration),
+                                                               configuration.Cluster.Port);
 
                 _schedulerConnPoolSingletons.Add(configuration, connection);
             }

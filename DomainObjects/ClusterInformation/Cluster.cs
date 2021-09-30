@@ -19,6 +19,8 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 		[StringLength(30)]
 		public string MasterNodeName { get; set; }
 
+		public int? Port { get; set;}
+
 		[Required]
 		[StringLength(100)]
 		public string LocalBasepath { get; set; }
@@ -44,7 +46,7 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 		public virtual List<FileTransferMethod> FileTransferMethods { get; set; } = new List<FileTransferMethod>();
 
         public override string ToString() {
-			return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, LocalBasepath={LocalBasepath}, SchedulerType={SchedulerType},		TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
+			return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, LocalBasepath={LocalBasepath}, SchedulerType={SchedulerType},		TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
 		}
 	}
 }

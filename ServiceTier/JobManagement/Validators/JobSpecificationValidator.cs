@@ -39,6 +39,16 @@ namespace HEAppE.ServiceTier.JobManagement.Validators
         /// <returns></returns>
         private string ValidateJobSpecificationInput(JobSpecification job)
         {
+            if (!(job.FileTransferMethodId.HasValue))
+            {
+                _messageBuilder.AppendLine("FileTransferMethod is empty.");
+            }
+
+            if (job.ClusterId <= 0)
+            {
+                _messageBuilder.AppendLine("ClusterId cannot be empty or <= 0.");
+            }
+
             if (string.IsNullOrEmpty(job.Name))
                 _messageBuilder.AppendLine("Job name cannot be empty.");
 
@@ -100,6 +110,9 @@ namespace HEAppE.ServiceTier.JobManagement.Validators
         }
         private void ValidateTaskSpecificationInput(TaskSpecification task)
         {
+            if (task.CommandTemplateId <= 0) 
+                _messageBuilder.AppendLine("CommandTemplateId cannot be empty or <= 0.");
+
             if (string.IsNullOrEmpty(task.Name))
                 _messageBuilder.AppendLine("Task name cannot be empty.");
 

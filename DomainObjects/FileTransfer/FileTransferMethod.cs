@@ -26,9 +26,6 @@ namespace HEAppE.DomainObjects.FileTransfer {
 		[NotMapped]
 		public AuthenticationCredentials Credentials { get; set; }
 
-        [NotMapped]
-        public List<FileTransferMethod> Tasks { get; set; }
-
         public override string ToString()
         {
 			return $"Cluster: Id={Id}, ServerHostname={ServerHostname}, Protocol={Protocol}, Cluster={Cluster}, Credentials={Credentials}";

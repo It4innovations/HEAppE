@@ -19,84 +19,6 @@ namespace HEAppE.DataAccessTier.Migrations
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
                 .HasAnnotation("ProductVersion", "5.0.2");
 
-            modelBuilder.Entity("HEAppE.DomainObjects.AdminUserManagement.AdministrationRole", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .UseIdentityColumn();
-
-                    b.Property<string>("AccessCode")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("AdministrationRole");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.AdminUserManagement.AdministrationUser", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .UseIdentityColumn();
-
-                    b.Property<DateTime>("CreationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("Deleted")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<long?>("LanguageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("LastModificationTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Password")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LanguageId");
-
-                    b.ToTable("AdministrationUser");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.AdminUserManagement.AdministrationUserRole", b =>
-                {
-                    b.Property<long>("AdministrationRoleId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("AdministrationUserId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("AdministrationRoleId", "AdministrationUserId");
-
-                    b.HasIndex("AdministrationUserId");
-
-                    b.ToTable("AdministrationUserRole");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
                     b.Property<long>("Id")
@@ -126,6 +48,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<int?>("Port")
+                        .HasColumnType("int");
 
                     b.Property<int>("SchedulerType")
                         .HasColumnType("int");
@@ -332,6 +257,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsGeneric")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -367,6 +295,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
+
+                    b.Property<bool>("IsVisible")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Query")
                         .IsRequired()
@@ -1043,20 +974,22 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("Notification");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentials", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .UseIdentityColumn();
 
-                    b.Property<long>("OpenStackInstanceId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Password")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -1065,9 +998,58 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.ToTable("OpenStackAuthenticationCredential");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialDomain", b =>
+                {
+                    b.Property<long>("OpenStackAuthenticationCredentialId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OpenStackDomainId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackDomainId");
+
+                    b.HasIndex("OpenStackDomainId");
+
+                    b.ToTable("OpenStackAuthenticationCredentialDomain");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProjectDomain", b =>
+                {
+                    b.Property<long>("OpenStackAuthenticationCredentialId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OpenStackProjectDomainId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackProjectDomainId");
+
+                    b.HasIndex("OpenStackProjectDomainId");
+
+                    b.ToTable("OpenStackAuthenticationCredentialProjectDomain");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .UseIdentityColumn();
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<long>("OpenStackInstanceId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
                     b.HasIndex("OpenStackInstanceId");
 
-                    b.ToTable("OpenStackAuthenticationCredentials");
+                    b.ToTable("OpenStackDomain");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackInstance", b =>
@@ -1076,11 +1058,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .UseIdentityColumn();
-
-                    b.Property<string>("Domain")
-                        .IsRequired()
-                        .HasMaxLength(70)
-                        .HasColumnType("nvarchar(70)");
 
                     b.Property<string>("InstanceUrl")
                         .IsRequired()
@@ -1097,6 +1074,56 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("OpenStackInstance");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .UseIdentityColumn();
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<long>("OpenStackDomainId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UID")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OpenStackDomainId");
+
+                    b.ToTable("OpenStackProject");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .UseIdentityColumn();
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<long>("OpenStackProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<string>("UID")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("OpenStackProjectId");
+
+                    b.ToTable("OpenStackProjectDomain");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
                 {
                     b.Property<long>("Id")
@@ -1104,11 +1131,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint")
                         .UseIdentityColumn();
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<bool>("Deleted")
                         .HasColumnType("bit");
 
                     b.Property<long?>("LanguageId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Password")
                         .HasMaxLength(50)
@@ -1176,6 +1209,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
+
+                    b.HasAlternateKey("Name");
 
                     b.ToTable("AdaptorUserRole");
                 });
@@ -1295,34 +1330,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("SessionCode");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.AdminUserManagement.AdministrationUser", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId");
-
-                    b.Navigation("Language");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.AdminUserManagement.AdministrationUserRole", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.AdminUserManagement.AdministrationRole", "AdministrationRole")
-                        .WithMany("AdministrationUserRoles")
-                        .HasForeignKey("AdministrationRoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HEAppE.DomainObjects.AdminUserManagement.AdministrationUser", "AdministrationUser")
-                        .WithMany("AdministrationUserRoles")
-                        .HasForeignKey("AdministrationUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AdministrationRole");
-
-                    b.Navigation("AdministrationUser");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
@@ -1638,15 +1645,75 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("MessageTemplate");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentials", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialDomain", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", "OpenStackAuthenticationCredential")
+                        .WithMany("OpenStackAuthenticationCredentialDomains")
+                        .HasForeignKey("OpenStackAuthenticationCredentialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackDomain", "OpenStackDomain")
+                        .WithMany("OpenStackAuthenticationCredentialDomains")
+                        .HasForeignKey("OpenStackDomainId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OpenStackAuthenticationCredential");
+
+                    b.Navigation("OpenStackDomain");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProjectDomain", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", "OpenStackAuthenticationCredential")
+                        .WithMany("OpenStackAuthenticationCredentialProjectDomains")
+                        .HasForeignKey("OpenStackAuthenticationCredentialId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", "OpenStackProjectDomain")
+                        .WithMany("OpenStackAuthenticationCredentialProjectDomains")
+                        .HasForeignKey("OpenStackProjectDomainId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OpenStackAuthenticationCredential");
+
+                    b.Navigation("OpenStackProjectDomain");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackInstance", "OpenStackInstance")
-                        .WithMany("OpenStackAuthenticationCredentials")
+                        .WithMany("OpenStackDomains")
                         .HasForeignKey("OpenStackInstanceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("OpenStackInstance");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProject", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackDomain", "OpenStackDomain")
+                        .WithMany("OpenStackProjects")
+                        .HasForeignKey("OpenStackDomainId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OpenStackDomain");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProject", "OpenStackProject")
+                        .WithMany("OpenStackProjectDomains")
+                        .HasForeignKey("OpenStackProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("OpenStackProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
@@ -1729,16 +1796,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.AdminUserManagement.AdministrationRole", b =>
-                {
-                    b.Navigation("AdministrationUserRoles");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.AdminUserManagement.AdministrationUser", b =>
-                {
-                    b.Navigation("AdministrationUserRoles");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
                     b.Navigation("AuthenticationCredentials");
@@ -1813,9 +1870,33 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("Parameters");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", b =>
+                {
+                    b.Navigation("OpenStackAuthenticationCredentialDomains");
+
+                    b.Navigation("OpenStackAuthenticationCredentialProjectDomains");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
+                {
+                    b.Navigation("OpenStackAuthenticationCredentialDomains");
+
+                    b.Navigation("OpenStackProjects");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackInstance", b =>
                 {
-                    b.Navigation("OpenStackAuthenticationCredentials");
+                    b.Navigation("OpenStackDomains");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProject", b =>
+                {
+                    b.Navigation("OpenStackProjectDomains");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
+                {
+                    b.Navigation("OpenStackAuthenticationCredentialProjectDomains");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>

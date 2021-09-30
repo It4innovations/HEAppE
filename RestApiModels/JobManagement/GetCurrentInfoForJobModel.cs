@@ -1,19 +1,16 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobManagement
 {
     [DataContract(Name = "GetCurrentInfoForJobModel")]
-    public class GetCurrentInfoForJobModel
+    public class GetCurrentInfoForJobModel : SubmittedJobInfoModel
     {
-        [DataMember(Name = "SubmittedJobInfoId")]
-        public long SubmittedJobInfoId { get; set; }
-
-        [DataMember(Name = "SessionCode")]
-        public string SessionCode { get; set; }
     }
 }

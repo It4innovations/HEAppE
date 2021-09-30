@@ -1,5 +1,4 @@
 using System;
-using HEAppE.DataAccessTier.IRepository.AdminUserManagement;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -17,14 +16,15 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         bool IsDisposed { get; }
         #endregion
         #region Repositories
-        IAdministrationRoleRepository AdministrationRoleRepository { get; }
-        IAdministrationUserRepository AdministrationUserRepository { get; }
         IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository { get; }
         IClusterRepository ClusterRepository { get; }
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }
         IClusterNodeTypeRequestedGroupRepository ClusterNodeTypeRequestedGroupRepository { get; }
-        IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
         IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository { get; }
+        IOpenStackDomainRepository OpenStackDomainRepository { get;  }
+        IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
+        IOpenStackProjectDomainRepository OpenStackProjectDomainRepository { get; }
+        IOpenStackProjectRepository OpenStackProjectRepository { get; }
         IEnvironmentVariableRepository EnvironmentVariableRepository { get; }
         IFileTransferMethodRepository FileTransferMethodRepository { get; }
         IFileSpecificationRepository FileSpecificationRepository { get; }

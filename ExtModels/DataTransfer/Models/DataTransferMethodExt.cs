@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.DataTransfer.Models
 {
@@ -9,7 +10,7 @@ namespace HEAppE.ExtModels.DataTransfer.Models
         [DataMember(Name = "SubmittedJobId")]
         public long SubmittedJobId { get; set; }
 
-        [DataMember(Name = "IpAddress")]
+        [DataMember(Name = "IpAddress"), StringLength(45)]
         public string IpAddress { get; set; }
 
         [DataMember(Name = "Port")]

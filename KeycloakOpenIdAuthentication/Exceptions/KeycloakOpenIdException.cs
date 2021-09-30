@@ -3,13 +3,30 @@ using HEAppE.RestUtils.Interfaces;
 
 namespace HEAppE.KeycloakOpenIdAuthentication.Exceptions
 {
+    /// <summary>
+    /// KeyCloak Exception
+    /// </summary>
     public class KeycloakOpenIdException : ExceptionWithMessageAndInnerException
     {
-        public KeycloakOpenIdException(string message) : base(message)
+        #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="message">Message</param>
+        internal KeycloakOpenIdException(string message) : base(message)
         {
+
         }
-        public KeycloakOpenIdException(string message, Exception innerException) : base(message, innerException)
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="message">Message</param>
+        /// <param name="innerException">Inner exception</param>
+        internal KeycloakOpenIdException(string message, Exception innerException) : base(message, innerException)
         {
+
         }
+        #endregion
     }
 }

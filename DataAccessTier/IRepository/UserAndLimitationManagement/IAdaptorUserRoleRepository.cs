@@ -1,25 +1,11 @@
 ﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Collections.Generic;
 
 namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement
 {
     public interface IAdaptorUserRoleRepository : IRepository<AdaptorUserRole>
     {
-        /// <summary>
-        /// Get the list role.
-        /// </summary>
-        /// <returns>List user role.</returns>
-        AdaptorUserRole GetListRole();
-
-        /// <summary>
-        /// Get the read user role.
-        /// </summary>
-        /// <returns>Read user role.</returns>
-        AdaptorUserRole GetReadRole();
-
-        /// <summary>
-        /// Get the write user role.
-        /// </summary>
-        /// <returns>Write user role.</returns>
-        AdaptorUserRole GetWriteRole();
+        IEnumerable<AdaptorUserRole> GetAllByUserId(long userId);
+        IEnumerable<AdaptorUserRole> GetAllByRoleNames(IEnumerable<string> roleNames);
     }
 }

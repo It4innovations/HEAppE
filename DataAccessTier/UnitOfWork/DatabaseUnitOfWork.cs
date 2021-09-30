@@ -1,5 +1,4 @@
 ﻿using System;
-using HEAppE.DataAccessTier.IRepository.AdminUserManagement;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -8,7 +7,6 @@ using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DataAccessTier.IRepository.Notifications;
 using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
-using HEAppE.DataAccessTier.Repository.AdminUserManagement;
 using HEAppE.DataAccessTier.Repository.ClusterInformation;
 using HEAppE.DataAccessTier.Repository.FileTransfer;
 using HEAppE.DataAccessTier.Repository.JobManagement;
@@ -29,14 +27,15 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IAdaptorUserGroupRepository _adaptorUserGroupRepository;
         private IAdaptorUserRoleRepository _adaptorUserRoleRepository;
         private IAdaptorUserRepository _adaptorUserRepository;
-        private IAdministrationRoleRepository _administrationRoleRepository;
-        private IAdministrationUserRepository _administrationUserRepository;
         private IClusterRepository _clusterRepository;
         private IClusterAuthenticationCredentialsRepository _clusterAuthenticationCredentialsRepository;
         private IClusterNodeTypeRepository _clusterNodeTypeRepository;
         private IClusterNodeTypeRequestedGroupRepository _clusterNodeTypeRequestedRepository;
-        private IOpenStackInstanceRepository _openStackInstanceRepository;
         private IOpenStackAuthenticationCredentialsRepository _openStackAuthenticationCredentialsRepository;
+        private IOpenStackDomainRepository _openStackDomainRepository;
+        private IOpenStackInstanceRepository _openStackInstanceRepository;
+        private IOpenStackProjectDomainRepository _openStackProjectDomainRepository;
+        private IOpenStackProjectRepository _openStackProjectRepository;
         private IEnvironmentVariableRepository _environmentVariableRepository;
         private IFileTransferMethodRepository _fileTransferMethodRepository;
         private IFileSpecificationRepository _fileSpecificationRepository;
@@ -75,22 +74,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         }
         #endregion
         #region Repositories
-        public IAdministrationRoleRepository AdministrationRoleRepository
-        {
-            get
-            {
-                return _administrationRoleRepository = _administrationRoleRepository ?? new AdministrationRoleRepository(_context);
-            }
-        }
-
-        public IAdministrationUserRepository AdministrationUserRepository
-        {
-            get
-            {
-                return _administrationUserRepository = _administrationUserRepository ?? new AdministrationUserRepository(_context);
-            }
-        }
-
         public IClusterRepository ClusterRepository
         {
             get
@@ -125,15 +108,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
-        public IOpenStackInstanceRepository OpenStackInstanceRepository
-        {
-            get
-            {
-                return _openStackInstanceRepository = _openStackInstanceRepository ?? new OpenStackInstanceRepository(_context);
-
-            }
-        }
-
         public IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository
         {
             get
@@ -143,6 +117,42 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
+        public IOpenStackDomainRepository OpenStackDomainRepository
+        {
+            get
+            {
+                return _openStackDomainRepository = _openStackDomainRepository ?? new OpenStackDomainRepository(_context);
+
+            }
+        }
+
+        public IOpenStackInstanceRepository OpenStackInstanceRepository
+        {
+            get
+            {
+                return _openStackInstanceRepository = _openStackInstanceRepository ?? new OpenStackInstanceRepository(_context);
+
+            }
+        }
+
+        public IOpenStackProjectDomainRepository OpenStackProjectDomainRepository
+        {
+            get
+            {
+                return _openStackProjectDomainRepository = _openStackProjectDomainRepository ?? new OpenStackProjectDomainRepository(_context);
+
+            }
+        }
+
+        public IOpenStackProjectRepository OpenStackProjectRepository
+        {
+            get
+            {
+                return _openStackProjectRepository = _openStackProjectRepository ?? new OpenStackProjectRepository(_context);
+
+            }
+        }
+ 
         public IEnvironmentVariableRepository EnvironmentVariableRepository
         {
             get

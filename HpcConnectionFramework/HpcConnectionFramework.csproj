@@ -7,13 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="SchedulerAdapters\LinuxLocal\ConversionAdapter\**" />
     <Compile Remove="WindowsHpc\**" />
+    <EmbeddedResource Remove="SchedulerAdapters\LinuxLocal\ConversionAdapter\**" />
     <EmbeddedResource Remove="WindowsHpc\**" />
+    <None Remove="SchedulerAdapters\LinuxLocal\ConversionAdapter\**" />
     <None Remove="WindowsHpc\**" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.12" />
+    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
     <PackageReference Include="SSH.NET" Version="2020.0.1" />
   </ItemGroup>
 
@@ -21,6 +25,7 @@
     <ProjectReference Include="..\ConnectionPool\ConnectionPool.csproj" />
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
     <ProjectReference Include="..\MiddlewareUtils\MiddlewareUtils.csproj" />
+    <ProjectReference Include="..\Utils\Utils.csproj" />
   </ItemGroup>
 
 </Project>

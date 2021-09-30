@@ -6,6 +6,9 @@ using System;
 using Microsoft.AspNetCore.Http;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using Microsoft.Extensions.Logging;
+using HEAppE.Utils.Validation;
+using HEAppE.RestApi.InputValidator;
+using HEAppE.BusinessLogicTier.Logic;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -61,7 +64,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("CurrentClusterNodeUsage")]
-        [RequestSizeLimit(80)]
+        [RequestSizeLimit(94)]
         [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -72,6 +75,9 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
             }
             catch (Exception e)

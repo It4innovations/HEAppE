@@ -205,10 +205,24 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                     {
                         // Get the response.         
                         response = (HttpWebResponse)wr.GetResponse();
-                        var encoding = Encoding.GetEncoding(response.CharacterSet);
-                        using (var responseStream = response.GetResponseStream())
-                        using (var reader = new StreamReader(responseStream, encoding))
-                            httpResponse = reader.ReadToEnd();
+
+                        if (string.IsNullOrEmpty(response.CharacterSet))
+                        {
+                            using (var responseStream = response.GetResponseStream())
+                            {
+                                using (var reader = new StreamReader(responseStream))
+                                    httpResponse = reader.ReadToEnd();
+                            }
+                        }
+                        else
+                        {
+                            using (var responseStream = response.GetResponseStream())
+                            {
+                                var encoding = Encoding.GetEncoding(response.CharacterSet);
+                                using (var reader = new StreamReader(responseStream, encoding))
+                                    httpResponse = reader.ReadToEnd();
+                            }
+                        }
                         log.Info("HTTP GET from job " + submittedJobInfoId + " with remote IP " + ipAddress + ", HTTP response: " + httpResponse);
                     }
                     catch (Exception e)
@@ -375,11 +389,15 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
 
         public List<long> GetJobIdsForOpenTunnels()
         {
-            log.InfoFormat("Listing all open tunnels:");
-            foreach(long jobId in jobIpLocalports.Keys)
-                foreach(string ipAddress in jobIpLocalports[jobId].Keys)
+            foreach(long jobId in jobIpLocalports.Keys) 
+            { 
+                log.InfoFormat("Listing all open tunnels:");
+                foreach (string ipAddress in jobIpLocalports[jobId].Keys)
+                {
                     log.InfoFormat("Open tunnel for jobId {0}, remote IP address {1}, local port {2}", jobId, ipAddress, jobIpLocalports[jobId][ipAddress]);
-            
+                }
+            }
+
             List<long> keyList = new List<long>(jobIpLocalports.Keys);
             return keyList;
         }
