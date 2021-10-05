@@ -101,6 +101,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 try
                 {
                     _unitOfWork.JobSpecificationRepository.Insert(specification);
+                    _unitOfWork.Save();//needs to be saved before SubmittedJobInfo !
                     SubmittedJobInfo jobInfo = CreateSubmittedJobInfo(specification);
                     _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
                     _unitOfWork.Save();
@@ -739,7 +740,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 Specification = specification,
                 State = JobState.Configuring,
                 Submitter = specification.Submitter,
-                Tasks = specification.Tasks.Select(s => CreateSubmittedTaskInfo(s)).ToList()
+                Tasks = specification.Tasks
+                    .OrderByDescending(x => x.Id)
+                    .Select(s => CreateSubmittedTaskInfo(s))
+                    .ToList()
             };
             return result;
         }
