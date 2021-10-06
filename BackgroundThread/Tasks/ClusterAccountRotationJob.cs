@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -15,16 +16,19 @@ namespace HEAppE.BackgroundThread.Tasks
 
         protected override void RunTask()
         {
-            using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-
-            //Get all jobs in state - waiting for user 
-            IEnumerable<SubmittedJobInfo> allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.ListAllWaitingForUser();
-
-            //Try to submit them again
-            foreach (SubmittedJobInfo job in allWaitingJobs)
+            if (BusinessLogicConfiguration.ClusterAccountRotation)
             {
-                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).SubmitJob(job.Id, job.Submitter);
-            }
+                using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+
+                //Get all jobs in state - waiting for user 
+                IEnumerable<SubmittedJobInfo> allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.ListAllWaitingForUser();
+
+                //Try to submit them again
+                foreach (SubmittedJobInfo job in allWaitingJobs)
+                {
+                    LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).SubmitJob(job.Id, job.Submitter);
+                }
+            } 
         }
     }
 }

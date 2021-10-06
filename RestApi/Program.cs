@@ -19,23 +19,6 @@ namespace HEAppE.RestApi
 
         public static void Main(string[] args)
         {
-            //Initialize configuration to use it in middleware background threads
-            string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
-            IConfigurationRoot config;
-            if (localRunEnv == "Docker")
-            {
-                config = new ConfigurationBuilder()
-                            .AddJsonFile("/opt/heappe/confs/appsettings.json", false, true)
-                                .Build();
-            }
-            else
-            {
-                config = new ConfigurationBuilder()
-                            .AddJsonFile("C:/Heappe/projects/develop/app/confs/appsettings.json", false, true)
-                                .Build();
-            }
-            config.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
-
             timer = new MiddlewareBackgroundTaskRunner();
             timer.Start();
 

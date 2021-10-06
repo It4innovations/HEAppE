@@ -8,15 +8,11 @@ namespace HEAppE.BackgroundThread {
 		private readonly List<IBackgroundTask> tasks;
 
 		public MiddlewareBackgroundTaskRunner() {
-			this.tasks = new List<IBackgroundTask>();
-			this.tasks.Add(new GetAllJobsInfo(new TimeSpan(0, 0, 30)));
-			//this.tasks.Add(new SynchronizeJobFileContents(new TimeSpan(0, 0, 30)));
-            this.tasks.Add(new CloseConnectionToFinishedJobs(new TimeSpan(0, 0, 30)));
-
-			if (BusinessLogicConfiguration.ClusterAccountRotation)
-			{
-				tasks.Add(new ClusterAccountRotationJob(new TimeSpan(0, 0, 30)));
-			}
+			tasks = new List<IBackgroundTask>();
+			tasks.Add(new GetAllJobsInfo(new TimeSpan(0, 0, 30)));
+			//tasks.Add(new SynchronizeJobFileContents(new TimeSpan(0, 0, 30)));
+            tasks.Add(new CloseConnectionToFinishedJobs(new TimeSpan(0, 0, 30)));
+			tasks.Add(new ClusterAccountRotationJob(new TimeSpan(0, 0, 30)));
 		}
 
 		public void Start() {
