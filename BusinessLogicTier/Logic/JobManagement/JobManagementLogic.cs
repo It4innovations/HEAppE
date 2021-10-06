@@ -21,6 +21,7 @@ using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.Utils.Validation;
 using HEAppE.DomainObjects.JobManagement.Comparers;
+using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -100,12 +101,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             {
                 try
                 {
-                    _unitOfWork.JobSpecificationRepository.Insert(specification);
-                    _unitOfWork.Save();//needs to be saved before SubmittedJobInfo !
-                    SubmittedJobInfo jobInfo = CreateSubmittedJobInfo(specification);
-                    _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
-                    _unitOfWork.Save();
-
+                    SubmittedJobInfo jobInfo;
+                    using (var transactionScope = new TransactionScope(
+                            TransactionScopeOption.Required,
+                            new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
+                    {
+                        _unitOfWork.JobSpecificationRepository.Insert(specification);
+                        _unitOfWork.Save();//needs to be saved before SubmittedJobInfo ! -> POSSIBLE REFACTORING
+                        jobInfo = CreateSubmittedJobInfo(specification);
+                        _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
+                        _unitOfWork.Save();
+                        transactionScope.Complete();
+                    }
                     //Create job directory
                     SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo);
                     return jobInfo;
