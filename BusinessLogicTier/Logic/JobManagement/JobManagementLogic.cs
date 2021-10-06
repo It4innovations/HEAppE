@@ -21,12 +21,14 @@ using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.Utils.Validation;
 using HEAppE.DomainObjects.JobManagement.Comparers;
+using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
     internal class JobManagementLogic : IJobManagementLogic
     {
         private readonly object _lockCreateJobObj = new();
+        private readonly object _lockSubmitJobObj = new();
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected IUnitOfWork _unitOfWork;
         private readonly List<TaskSpecification> _tasksToDeleteFromSpec;
@@ -122,8 +124,27 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is submitting the job with info Id " + createdJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Configuring)
+            if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForUser)
             {
+                if (BusinessLogicConfiguration.ClusterAccountRotation)
+                {
+                    //Check if user is already running job - if yes set state to WaitingForUser - else run the job
+                    lock (_lockSubmitJobObj)
+                    {
+                        bool isJobUserAvailable = true;
+                        IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork);
+                        isJobUserAvailable = clusterLogic.IsUserAvailableToRun(jobInfo.Specification.ClusterUser);
+
+                        if (!isJobUserAvailable)
+                        {
+                            jobInfo.State = JobState.WaitingForUser;
+                            _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+                            _unitOfWork.Save();
+                            return jobInfo;
+                        }
+                    }
+                }
+
                 SubmittedJobInfo clusterJobInfo =
                 SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)

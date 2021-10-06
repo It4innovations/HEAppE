@@ -8,5 +8,6 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
         IEnumerable<SubmittedJobInfo> ListNotFinishedForSubmitterId(long submitterId);
         IEnumerable<SubmittedJobInfo> ListAllForSubmitterId(long submitterId);
         IEnumerable<SubmittedJobInfo> ListAllUnfinished();
+        IEnumerable<SubmittedJobInfo> ListAllWaitingForUser();
     }
 }

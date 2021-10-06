@@ -32,6 +32,12 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
             return GetAll().Where(w => w.Submitter.Id == submitterId)
                          .ToList();
         }
+
+        public IEnumerable<SubmittedJobInfo> ListAllWaitingForUser()
+        {
+            return GetAll().Where(w => w.State == JobState.WaitingForUser)
+                         .ToList();
+        }
         #endregion
     }
 }

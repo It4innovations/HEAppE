@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using HEAppE.BackgroundThread.Tasks;
+using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.BackgroundThread {
 	public class MiddlewareBackgroundTaskRunner {
@@ -11,6 +12,11 @@ namespace HEAppE.BackgroundThread {
 			this.tasks.Add(new GetAllJobsInfo(new TimeSpan(0, 0, 30)));
 			//this.tasks.Add(new SynchronizeJobFileContents(new TimeSpan(0, 0, 30)));
             this.tasks.Add(new CloseConnectionToFinishedJobs(new TimeSpan(0, 0, 30)));
+
+			if (BusinessLogicConfiguration.ClusterAccountRotation)
+			{
+				tasks.Add(new ClusterAccountRotationJob(new TimeSpan(0, 0, 30)));
+			}
 		}
 
 		public void Start() {

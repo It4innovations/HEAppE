@@ -10,5 +10,6 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation {
 		ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId);
         Cluster GetClusterById(long clusterId);
         IList<ClusterNodeType> ListClusterNodeTypes();
+		bool IsUserAvailableToRun(ClusterAuthenticationCredentials user);
 	}
 }
