@@ -158,7 +158,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 return jobInfo;
             }
 
-            string[] scheduledJobIds = (from task in jobInfo.Tasks select task.ScheduledJobId).Select(s => s).ToArray();
+            string[] scheduledJobIds = jobInfo.Tasks
+                .Where(t => t.Specification.DependsOn.Count == 0)
+                .Select(s => s.ScheduledJobId)
+                .ToArray();
 
             IRexScheduler scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
             if (jobInfo.State != JobState.Configuring)
