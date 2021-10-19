@@ -23,7 +23,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         {
             if (!string.IsNullOrEmpty(credentials.PrivateKeyFile))
             {
-                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword);
+                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port);
             }
             else
             {
@@ -89,9 +89,25 @@ namespace HEAppE.FileTransferFramework.Sftp
             return new ExtendedSftpClient(connectionInfo, remoteTimeZone);
         }
 
-        private static SftpClient CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string remoteTimeZone, string username, string privateKeyFile, string privateKeyPassword)
+        private static SftpClient CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string remoteTimeZone, string username, string privateKeyFile, string privateKeyPassword, int? port)
         {
-            PrivateKeyConnectionInfo connectionInfo = new PrivateKeyConnectionInfo(masterNodeName, username, new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            //PrivateKeyConnectionInfo connectionInfo = new PrivateKeyConnectionInfo(masterNodeName, username, new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            PrivateKeyConnectionInfo connectionInfo;
+            if (port.HasValue)
+            {
+                connectionInfo = new PrivateKeyConnectionInfo(
+                masterNodeName,
+                port.Value,
+                username,
+                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            }
+            else
+            {
+                connectionInfo = new PrivateKeyConnectionInfo(
+                masterNodeName,
+                username,
+                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+            }
             return new ExtendedSftpClient(connectionInfo, remoteTimeZone);
         }
         #endregion

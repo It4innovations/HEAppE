@@ -202,10 +202,10 @@ namespace HEAppE.RestApi
         {
             if (LocalDockerSettings.UseLocalHPC)
             {
-                var localDockerManager = DockerContainerManager.Instance;
+               /* var localDockerManager = DockerContainerManager.Instance;
                 Task dockerConfigureTask = Task.Run(
                     async () => await localDockerManager.StartDockerContainer(LocalDockerSettings.ImageConfigurationDir));
-                dockerConfigureTask.Wait();
+                dockerConfigureTask.Wait();*/
             }
         }
         #endregion
