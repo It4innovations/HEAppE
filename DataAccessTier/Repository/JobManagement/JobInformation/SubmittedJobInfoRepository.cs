@@ -36,7 +36,8 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
         public IEnumerable<SubmittedJobInfo> ListAllWaitingForUser()
         {
             return GetAll().Where(w => w.State == JobState.WaitingForUser)
-                         .ToList();
+                                .OrderBy(w => w.Id)
+                                    .ToList();
         }
         #endregion
     }
