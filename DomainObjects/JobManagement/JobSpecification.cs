@@ -124,6 +124,9 @@ namespace HEAppE.DomainObjects.JobManagement
                         writer.WritePropertyName("AllocatedTime");
                         writer.WriteNumberValue(0);
 
+                        writer.WritePropertyName("JobArrays");
+                        writer.WriteStringValue(task.JobArrays);
+
                         writer.WriteEndObject();
 
                     }
