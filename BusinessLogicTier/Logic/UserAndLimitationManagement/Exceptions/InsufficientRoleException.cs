@@ -21,7 +21,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions
         /// <param name="requiredRole">Required (missing) user role.</param>
         /// <param name="availableRoles">Available user roles of the user.</param>
         /// <returns>New InsufficientRoleException.</returns>
-        internal static InsufficientRoleException CreateMissingRoleException(AdaptorUserRole requiredRole, IEnumerable<AdaptorUserRole> availableRoles)
+        public static InsufficientRoleException CreateMissingRoleException(AdaptorUserRole requiredRole, IEnumerable<AdaptorUserRole> availableRoles)
         {
             string message = $"User doesn't have required role. Required role: '{requiredRole.Name}'. Current user roles: '{string.Join(",", availableRoles.Select(role => role.Name))}'";
             return new InsufficientRoleException(message);
