@@ -122,7 +122,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Reporter);
+                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Submitter);
 
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     IList<SubmittedJobInfo> jobInfos = jobLogic.ListJobsForUser(loggedUser);
@@ -143,7 +143,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Reporter);
+                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Submitter);
 
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     SubmittedJobInfo jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);

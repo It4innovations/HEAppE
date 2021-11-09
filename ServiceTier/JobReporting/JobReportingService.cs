@@ -30,7 +30,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Reporter);
+                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Maintainer);
                     //TODO OR ADMIN
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     IList<AdaptorUserGroup> groups = jobReportingLogic.ListAdaptorUserGroups();
@@ -51,7 +51,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Reporter);
+                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserRoleType.Submitter);
                     if (loggedUser.Id != userId) //TODO OR ADMIN
                         throw new NotAllowedException("Logged user is not allowed to request this report.");
 
