@@ -5,11 +5,11 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation {
 	public enum JobState {
 		Configuring = 1,
 		Submitted = 2,
-		WaitingForUser = 4,
-		Queued = 8,
-		Running = 16,
-		Finished = 32,
-		Failed = 64,
-		Canceled = 128,
+		Queued = 4,
+		Running = 8,
+		Finished = 16,
+		Failed = 32,
+		Canceled = 64,
+		WaitingForServiceAccount = 128,
 	}
 }

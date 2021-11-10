@@ -124,7 +124,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is submitting the job with info Id " + createdJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForUser)
+            if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForServiceAccount)
             {
                 if (BusinessLogicConfiguration.ClusterAccountRotation)
                 {
@@ -137,7 +137,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                         if (!isJobUserAvailable)
                         {
-                            jobInfo.State = JobState.WaitingForUser;
+                            jobInfo.State = JobState.WaitingForServiceAccount;
                             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
                             _unitOfWork.Save();
                             return jobInfo;
@@ -166,7 +166,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is canceling the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State >= JobState.Finished)
+            if (jobInfo.State >= JobState.Finished && jobInfo.State != JobState.WaitingForServiceAccount)
             {
                 return jobInfo;
             }
@@ -198,7 +198,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is deleting the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Configuring || jobInfo.State >= JobState.Finished)
+            if (jobInfo.State == JobState.Configuring || (jobInfo.State >= JobState.Finished && jobInfo.State != JobState.WaitingForServiceAccount))
             {
 #warning Renci SSH.NET bug - resolving paths when deleting symlink, use ssh delete instead
                 //FileSystemFactory.GetInstance(jobInfo.NodeType.FileTransferMethod.Protocol)

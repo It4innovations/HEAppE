@@ -136,7 +136,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
         public ICollection<FileInformation> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State < JobState.Submitted)
+            if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
@@ -146,7 +146,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
         public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
         {
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State < JobState.Submitted)
+            if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
