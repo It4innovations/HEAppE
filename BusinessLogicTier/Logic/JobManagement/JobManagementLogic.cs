@@ -17,11 +17,13 @@ using HEAppE.HpcConnectionFramework;
 using log4net;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Transactions;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.Utils.Validation;
 using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.BusinessLogicTier.Configuration;
+
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -102,11 +104,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             {
                 try
                 {
-                    _unitOfWork.JobSpecificationRepository.Insert(specification);
-                    SubmittedJobInfo jobInfo = CreateSubmittedJobInfo(specification);
-                    _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
-                    _unitOfWork.Save();
-
+                    SubmittedJobInfo jobInfo;
+                    using (var transactionScope = new TransactionScope(
+                            TransactionScopeOption.Required,
+                            new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
+                    {
+                        _unitOfWork.JobSpecificationRepository.Insert(specification);
+                        _unitOfWork.Save();//needs to be saved before SubmittedJobInfo ! -> POSSIBLE REFACTORING
+                        jobInfo = CreateSubmittedJobInfo(specification);
+                        _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
+                        _unitOfWork.Save();
+                        transactionScope.Complete();
+                    }
                     //Create job directory
                     SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo);
                     return jobInfo;
@@ -171,7 +180,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 return jobInfo;
             }
 
-            string[] scheduledJobIds = (from task in jobInfo.Tasks select task.ScheduledJobId).Select(s => s).ToArray();
+            string[] scheduledJobIds = jobInfo.Tasks
+                .Where(t => t.Specification.DependsOn.Count == 0)
+                .Select(s => s.ScheduledJobId)
+                .ToArray();
 
             IRexScheduler scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
             if (jobInfo.State != JobState.Configuring)
@@ -760,7 +772,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 Specification = specification,
                 State = JobState.Configuring,
                 Submitter = specification.Submitter,
-                Tasks = specification.Tasks.Select(s => CreateSubmittedTaskInfo(s)).ToList()
+                Tasks = specification.Tasks
+                    .OrderByDescending(x => x.Id)
+                    .Select(s => CreateSubmittedTaskInfo(s))
+                    .ToList()
             };
             return result;
         }

@@ -4,6 +4,9 @@ using System.Collections.Generic;
 using System.Linq;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.FileTransferFramework;
+using System.Text.RegularExpressions;
+using System;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 {
@@ -147,6 +150,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             }
 
             ValidateWallTimeLimit(task);
+
             if (task.CommandTemplate == null)
             {
                 _messageBuilder.AppendLine($"Command Template does not exist.");
@@ -166,6 +170,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             if (task.ClusterNodeTypeId != task.CommandTemplate.ClusterNodeTypeId)
             {
                 _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
+            }
+
+            if (task.CommandTemplate.IsGeneric)
+            {
+                ValidateGenericCommandTemplateSetup(task);
             }
         }
 
@@ -201,6 +210,72 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             {
                 _messageBuilder.AppendLine($"Job {job.Name} has wrong FileTransferMethod");
             }
+        }
+
+        private void ValidateGenericCommandTemplateSetup(TaskSpecification task)
+        {
+            Dictionary<string, string> genericCommandParametres = new();
+            //Regex.Matches(task.CommandTemplate.CommandParameters, @"%%\{([\w\.]+)\}", RegexOptions.Compiled)
+            foreach (var commandParameterValue in task.CommandParameterValues)
+            {
+                var key = commandParameterValue.CommandParameterIdentifier;
+                string value = commandParameterValue.Value;
+                if (!string.IsNullOrEmpty(value))
+                {
+                    genericCommandParametres.Add(key, value);
+                }
+
+            }
+
+            Match scriptPathParameterName = Regex.Match(task.CommandTemplate.CommandParameters, @"%%\{([\w\.]+)\}", RegexOptions.Compiled);
+
+            if (!scriptPathParameterName.Success)
+            {
+                _messageBuilder.AppendLine($"CommandTemplate is wrong");
+            }
+            string clusterPathToUserScript = genericCommandParametres.FirstOrDefault(x => x.Key == scriptPathParameterName.Groups[1].Value).Value;
+            if (string.IsNullOrWhiteSpace(clusterPathToUserScript))
+            {
+                _messageBuilder.AppendLine($"User script path parameter, for generic command template, does not have a value.");
+            }
+
+            var scriptDefinedParametres = GetUserDefinedScriptParametres(task, clusterPathToUserScript);
+
+            foreach (string parameter in scriptDefinedParametres)
+            {
+                if (!genericCommandParametres.Select(x => x.Value).Any(x => Regex.IsMatch(x, $"{parameter}=\\\\\".+\\\\\"")))
+                {
+
+                    _messageBuilder.AppendLine($"Task specification does not contain '{parameter}' parameter.");
+                }
+            }
+        }
+
+        private List<string> GetUserDefinedScriptParametres(TaskSpecification task, string absolutePathToScript)
+        {
+            List<string> parametres = new();
+            try
+            {
+                IRexFileSystemManager fileManager =
+                      FileSystemFactory.GetInstance(task.JobSpecification.FileTransferMethod.Protocol)
+                      .CreateFileSystemManager(task.JobSpecification.FileTransferMethod);
+                var downloadedFile = fileManager.DownloadFileFromClusterByAbsolutePath(task.JobSpecification, absolutePathToScript);
+                string result = System.Text.Encoding.UTF8.GetString(downloadedFile);
+
+                foreach (Match match in Regex.Matches(result, @"#HEAPPE_PARAM ([A-z0-9]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+                {
+                    if (match.Success && match.Groups.Count == 2)
+                    {
+                        parametres.Add(match.Groups[1].Value);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _messageBuilder.AppendLine($"Unable to read or locate script at '{absolutePathToScript}'.");
+            }
+
+            return parametres;
         }
         #endregion
     }
