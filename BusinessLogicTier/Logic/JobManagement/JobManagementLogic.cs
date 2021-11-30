@@ -397,7 +397,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                     foreach (var submittedTaskId in submittedTaskIds)
                     {
-                        if (!succSubmittedTaskIds.Contains(submittedTaskId.task.Id))
+                        if (succSubmittedTaskIds.Count() > 0 && !succSubmittedTaskIds.Contains(submittedTaskId.task.Id))
                         {
                             //change state to Canceled
                             SubmittedTaskInfo taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskId.task.Id);
