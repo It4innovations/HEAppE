@@ -7,6 +7,8 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.FileTransferFramework;
 using System.Text.RegularExpressions;
 using System;
+using HEAppE.HpcConnectionFramework;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 {
@@ -239,7 +241,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 _messageBuilder.AppendLine($"User script path parameter, for generic command template, does not have a value.");
             }
 
-            var scriptDefinedParametres = GetUserDefinedScriptParametres(task, clusterPathToUserScript);
+            var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster, clusterPathToUserScript);
 
             foreach (string parameter in scriptDefinedParametres)
             {
@@ -251,31 +253,17 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             }
         }
 
-        private List<string> GetUserDefinedScriptParametres(TaskSpecification task, string absolutePathToScript)
+        private IEnumerable<string> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath)
         {
-            List<string> parametres = new();
             try
             {
-                IRexFileSystemManager fileManager =
-                      FileSystemFactory.GetInstance(task.JobSpecification.FileTransferMethod.Protocol)
-                      .CreateFileSystemManager(task.JobSpecification.FileTransferMethod);
-                var downloadedFile = fileManager.DownloadFileFromClusterByAbsolutePath(task.JobSpecification, absolutePathToScript);
-                string result = System.Text.Encoding.UTF8.GetString(downloadedFile);
-
-                foreach (Match match in Regex.Matches(result, @"#HEAPPE_PARAM ([A-z0-9]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
-                {
-                    if (match.Success && match.Groups.Count == 2)
-                    {
-                        parametres.Add(match.Groups[1].Value);
-                    }
-                }
+                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, userScriptPath).ToList();
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                _messageBuilder.AppendLine($"Unable to read or locate script at '{absolutePathToScript}'.");
+                _messageBuilder.AppendLine($"Unable to read or locate script at '{userScriptPath}'.");
+                return null;
             }
-
-            return parametres;
         }
         #endregion
     }
