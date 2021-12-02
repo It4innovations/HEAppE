@@ -262,7 +262,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             catch (Exception)
             {
                 _messageBuilder.AppendLine($"Unable to read or locate script at '{userScriptPath}'.");
-                return null;
+                return Enumerable.Empty<string>();
             }
         }
         #endregion
