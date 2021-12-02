@@ -4,6 +4,7 @@ using System.Reflection;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.HpcConnectionFramework;
 using log4net;
@@ -84,6 +85,18 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation {
 
         public IList<ClusterNodeType> ListClusterNodeTypes() {
 			return unitOfWork.ClusterNodeTypeRepository.GetAll();
+		}
+
+		public bool IsUserAvailableToRun(ClusterAuthenticationCredentials user)
+		{
+			//List all unfinished jobs and 
+			IEnumerable<SubmittedJobInfo> allRunningJobs = unitOfWork.SubmittedJobInfoRepository.ListAllUnfinished();
+			List<SubmittedJobInfo> userRunningJobs = allRunningJobs.Where(w => w.Specification.ClusterUser == user && (w.State == JobState.Running
+																															|| w.State == JobState.Queued
+																																|| w.State == JobState.Submitted))
+																	.ToList();
+
+			return userRunningJobs.Any() ? false : true;
 		}
 	}
 }

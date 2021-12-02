@@ -49,8 +49,8 @@ namespace HEAppE.FileTransferFramework.Sftp
             try
             {
                 var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
-                using MemoryStream stream = new MemoryStream();
-                var path = absoluteFilePath.Replace("~/", "").Replace("/~/", "");
+                using var stream = new MemoryStream();
+                var path = absoluteFilePath.Replace("~/", string.Empty).Replace("/~/", string.Empty);
                 client.DownloadFile(path, stream);
                 return stream.ToArray();
             }

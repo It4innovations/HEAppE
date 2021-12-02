@@ -17,17 +17,20 @@ using HEAppE.HpcConnectionFramework;
 using log4net;
 using System.Text.RegularExpressions;
 using System.Text;
+using System.Transactions;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.Utils.Validation;
 using HEAppE.DomainObjects.JobManagement.Comparers;
-using System.Transactions;
+using HEAppE.BusinessLogicTier.Configuration;
+
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
     internal class JobManagementLogic : IJobManagementLogic
     {
         private readonly object _lockCreateJobObj = new();
+        private readonly object _lockSubmitJobObj = new();
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected IUnitOfWork _unitOfWork;
         private readonly List<TaskSpecification> _tasksToDeleteFromSpec;
@@ -130,8 +133,27 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is submitting the job with info Id " + createdJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Configuring)
+            if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForServiceAccount)
             {
+                if (BusinessLogicConfiguration.ClusterAccountRotation)
+                {
+                    //Check if user is already running job - if yes set state to WaitingForUser - else run the job
+                    lock (_lockSubmitJobObj)
+                    {
+                        bool isJobUserAvailable = true;
+                        IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork);
+                        isJobUserAvailable = clusterLogic.IsUserAvailableToRun(jobInfo.Specification.ClusterUser);
+
+                        if (!isJobUserAvailable)
+                        {
+                            jobInfo.State = JobState.WaitingForServiceAccount;
+                            _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+                            _unitOfWork.Save();
+                            return jobInfo;
+                        }
+                    }
+                }
+
                 SubmittedJobInfo clusterJobInfo =
                 SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
@@ -153,7 +175,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is canceling the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State >= JobState.Finished)
+            if (jobInfo.State >= JobState.Finished && jobInfo.State != JobState.WaitingForServiceAccount)
             {
                 return jobInfo;
             }
@@ -188,7 +210,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is deleting the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Configuring || jobInfo.State >= JobState.Finished)
+            if (jobInfo.State == JobState.Configuring || (jobInfo.State >= JobState.Finished && jobInfo.State != JobState.WaitingForServiceAccount))
             {
 #warning Renci SSH.NET bug - resolving paths when deleting symlink, use ssh delete instead
                 //FileSystemFactory.GetInstance(jobInfo.NodeType.FileTransferMethod.Protocol)
@@ -375,7 +397,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                     foreach (var submittedTaskId in submittedTaskIds)
                     {
-                        if (!succSubmittedTaskIds.Contains(submittedTaskId.task.Id))
+                        if (succSubmittedTaskIds.Count() > 0 && !succSubmittedTaskIds.Contains(submittedTaskId.task.Id))
                         {
                             //change state to Canceled
                             SubmittedTaskInfo taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskId.task.Id);
