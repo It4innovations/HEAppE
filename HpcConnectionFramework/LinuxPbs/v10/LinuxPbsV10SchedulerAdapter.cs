@@ -9,6 +9,8 @@ using System.Collections.Generic;
 using Renci.SshNet.Common;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using System.Linq;
+using System.Text.RegularExpressions;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
 {
@@ -103,6 +105,22 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
             return LinuxPbsConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
+        }
+
+        public virtual IEnumerable<string> GetParametersFromGenericUserScript(object scheduler, string userScriptPath)
+        {
+            var genericCommandParameters = new List<string>();
+            string shellCommand = $"cat {userScriptPath}";
+            var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
+
+            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                if (match.Success && match.Groups.Count == 2)
+                {
+                    genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
+                }
+            }
+            return genericCommandParameters;
         }
 
         public virtual void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
@@ -263,8 +281,5 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
         private static Dictionary<long, Dictionary<string, SshClient>> jobHostTunnels = new Dictionary<long, Dictionary<string, SshClient>>();
 
         #endregion
-
-
-
     }
 }

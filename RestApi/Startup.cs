@@ -202,13 +202,7 @@ namespace HEAppE.RestApi
         /// </summary>
         private void ConfigureLocalDockerHpc()
         {
-            if (LocalDockerSettings.UseLocalHPC)
-            {
-               /* var localDockerManager = DockerContainerManager.Instance;
-                Task dockerConfigureTask = Task.Run(
-                    async () => await localDockerManager.StartDockerContainer(LocalDockerSettings.ImageConfigurationDir));
-                dockerConfigureTask.Wait();*/
-            }
+            //todo this method (REMOVE THAT?) konvicka
         }
         #endregion
     }

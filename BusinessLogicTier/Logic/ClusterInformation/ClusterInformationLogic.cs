@@ -4,6 +4,7 @@ using System.Reflection;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.HpcConnectionFramework;
@@ -26,6 +27,34 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation {
 			ClusterNodeType nodeType = GetClusterNodeTypeById(clusterNodeId);
 			IRexScheduler scheduler = SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster);
 			return scheduler.GetCurrentClusterNodeUsage(nodeType);
+		}
+
+		public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, AdaptorUser loggedUser)
+		{
+			CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
+			if (commandTemplate == null)
+				throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+
+			if (commandTemplate.IsGeneric)
+			{
+				string scriptPath = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
+																		.First()?.Identifier;
+				if (string.IsNullOrEmpty(scriptPath))
+					throw new RequestedObjectDoesNotExistException("The user-script command parameter for the generic command template is not defined in HEAppE!");
+
+				if (string.IsNullOrEmpty(userScriptPath))
+					throw new RequestedObjectDoesNotExistException("The generic command template should contain script path!");
+
+				Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
+				var commandTemplateParameters = new List<string>() { scriptPath };
+				commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, userScriptPath).ToList());
+				return commandTemplateParameters;
+			}
+			else
+			{
+				return commandTemplate.TemplateParameters.Select(s => s.Identifier)
+														  .ToList();
+			}
 		}
 
 		public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId) {

@@ -59,6 +59,33 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
+        /// Get command template parameters name
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost("GetCommandTemplateParametersName")]
+        [RequestSizeLimit(535)]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult GetCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"GetCommandTemplateParametersName\"");
+                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.UserScriptPath, model.SessionCode));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        /// <summary>
         /// Get actual cluster node usage
         /// </summary>
         /// <param name="model"></param>
