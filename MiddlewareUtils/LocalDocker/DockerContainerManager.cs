@@ -153,7 +153,7 @@ namespace HEAppE.MiddlewareUtils.LocalDocker
         /// <param name="pathToConfiguration">Directory with docker-compose.yml configuration file</param>
         private void BuildImageAndStart(string pathToConfiguration)
         {
-            RunDockerComposeCommand(pathToConfiguration, "up -d");
+            RunDockerComposeCommand(pathToConfiguration, "up -d --build");
         }
 
         private void RunDockerComposeCommand(string workingDirectory, string parametres)
