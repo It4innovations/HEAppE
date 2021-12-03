@@ -22,7 +22,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         #region ISchedulerAdapter Members
         public override SubmittedJobInfo GetActualJobInfo(object scheduler, string pathToJobInfo)
         {
-            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/get_job_info.sh {pathToJobInfo}");
+            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.local_hpc_scripts/get_job_info.sh {pathToJobInfo}");
             return _convertor.ConvertJobToJobInfo(command.Result);//todo
         }
 
@@ -36,7 +36,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
 
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler),
-                $"~/.key_script/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
+                $"~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
             jobResultInfo.Append(sshCommand.Result);
             _log.InfoFormat("Run prepare-job result: {0}", jobResultInfo.ToString());
 
@@ -44,7 +44,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             #endregion
 
             #region Compose Local run script
-            sb.Append($"~/.key_script/run_local.sh " +
+            sb.Append($"~/.local_hpc_scripts/run_local.sh " +
                 $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");//run job (script on local linux docker machine)
             foreach (var task in jobSpecification.Tasks)
             {
@@ -56,7 +56,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             shellCommand = sb.ToString();
             
             sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), 
-                $"~/.key_script/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
+                $"~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
             #endregion
             return GetActualJobInfo(scheduler, $"{jobSpecification.Id}/");
         }
@@ -96,7 +96,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         public override void CancelJob(object scheduler, string scheduledJobId, string message)
         {
             scheduledJobId = scheduledJobId.Substring(0, scheduledJobId.IndexOf('.'));
-            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/cancel_job.sh {scheduledJobId}/");
+            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.local_hpc_scripts/cancel_job.sh {scheduledJobId}/");
             //throw new NotImplementedException("todo");
         }
 
@@ -107,7 +107,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
                 NodeType = nodeType
             };
 
-            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.key_script/count_jobs.sh");
+            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.local_hpc_scripts/count_jobs.sh");
             if(int.TryParse(command.Result, out int totalJobs))
             {
                 usage.TotalJobs = totalJobs;
@@ -130,7 +130,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         public override void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
-            string shellCommand = String.Format("~/.key_script/add_key.sh {0} {1}", publicKey, jobInfo.Specification.Id);
+            string shellCommand = String.Format("~/.key_scripts/add_key.sh {0} {1}", publicKey, jobInfo.Specification.Id);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.Info(String.Format("Allow file transfer result: {0}", sshCommand.Result));
         }
@@ -138,7 +138,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         public override void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
-            string shellCommand = String.Format("~/.key_script/remove_key.sh {0}", publicKey);
+            string shellCommand = String.Format("~/.key_scripts/remove_key.sh {0}", publicKey);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.Info(String.Format("Remove permission for direct file transfer result: {0}", sshCommand.Result));
         }
@@ -146,10 +146,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         public override void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
         {
             StringBuilder sb = new StringBuilder();
-            sb.Append(String.Format("~/.key_script/create_job_directory.sh {0}/{1};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id));
+            sb.Append(String.Format("~/.key_scripts/create_job_directory.sh {0}/{1};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id));
             foreach (var task in jobInfo.Tasks)
             {
-                sb.Append(String.Format("~/.key_script/create_job_directory.sh {0}/{1}/{2};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, task.Specification.Id));
+                sb.Append(String.Format("~/.key_scripts/create_job_directory.sh {0}/{1}/{2};", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, task.Specification.Id));
             }
 
             string shellCommand = sb.ToString();
@@ -170,7 +170,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             string inputDirectory = String.Format("{0}/{1}/{2}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id, path);
             string outputDirectory = String.Format("{0}Temp/{1}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, hash);
             inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;//copy just content
-            string shellCommand = String.Format("~/.key_script/copy_data_to_temp.sh {0} {1}", inputDirectory, outputDirectory);
+            string shellCommand = String.Format("~/.key_scripts/copy_data_to_temp.sh {0} {1}", inputDirectory, outputDirectory);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Job data {0}/{1} were copied to temp directory {2}, result: {3}", jobInfo.Specification.Id, path, hash, sshCommand.Result);
         }
@@ -179,7 +179,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         {
             string inputDirectory = String.Format("{0}Temp/{1}/.", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, hash);
             string outputDirectory = String.Format("{0}/{1}", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
-            string shellCommand = String.Format("~/.key_script/copy_data_from_temp.sh {0} {1}", inputDirectory, outputDirectory);
+            string shellCommand = String.Format("~/.key_scripts/copy_data_from_temp.sh {0} {1}", inputDirectory, outputDirectory);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Temp data {0} were copied to job directory {1}, result: {2}", hash, jobInfo.Specification.Id, sshCommand.Result);
         }
