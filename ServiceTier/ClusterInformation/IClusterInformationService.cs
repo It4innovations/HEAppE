@@ -10,5 +10,6 @@ namespace HEAppE.ServiceTier.ClusterInformation
         ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, string sessionCode);
 
         IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, string sessionCode);
+        CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, string description, string code, string executableFile, string preparationScript, string sessionCode);
     }
 }
