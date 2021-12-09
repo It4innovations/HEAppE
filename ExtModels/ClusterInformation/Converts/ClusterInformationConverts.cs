@@ -37,7 +37,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
             return convert;
         }
 
-        private static CommandTemplateExt ConvertIntToExt(this CommandTemplate commandTemplate)
+        public static CommandTemplateExt ConvertIntToExt(this CommandTemplate commandTemplate)
         {
             CommandTemplateExt convert = new CommandTemplateExt()
             {
