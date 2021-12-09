@@ -13,6 +13,7 @@ using HEAppE.HpcConnectionFramework;
 using HEAppE.MiddlewareUtils;
 using log4net;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
+using Renci.SshNet.Common;
 
 namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 {
@@ -150,7 +151,17 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
-            return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+            try
+            {
+                return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+            }
+            catch (SftpPathNotFoundException exception)
+            {
+                log.Warn($"{loggedUser.ToString()} is requesting not existing file '{relativeFilePath}'");
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException(exception.Message));
+            }
+            
+            return null;
         }
 
         public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)
