@@ -2,12 +2,14 @@
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using log4net;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
 {
@@ -137,6 +139,28 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
         {
             var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $@"{_commands.InterpreterCommand} 'scontrol show job {jobInfo.Specification.Id} | grep ' NodeList' | awk -F'=' '{"{{print $2}}"}'");
             return SlurmConversionUtils.GetAllocatedNodes(command.Result);
+        }
+
+        /// <summary>
+        /// Method: Get generic command templates parameters from script
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="userScriptPath">Generic script path</param>
+        /// <returns></returns>
+        public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+        {
+            var genericCommandParameters = new List<string>();
+            string shellCommand = $"cat {userScriptPath}";
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
+
+            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                if (match.Success && match.Groups.Count == 2)
+                {
+                    genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
+                }
+            }
+            return genericCommandParameters;
         }
 
         /// <summary>

@@ -22,6 +22,7 @@ using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.MiddlewareUtils.LocalDocker;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.RestApi
 {
@@ -75,6 +76,7 @@ namespace HEAppE.RestApi
             Configuration.Bind("KeycloakSettings", keycloackConfiguration);
             Configuration.Bind("OpenStackSettings", new OpenStackSettings());
             Configuration.Bind("LocalDockerSettings", new LocalDockerSettings());
+            Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
 
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
@@ -200,13 +202,7 @@ namespace HEAppE.RestApi
         /// </summary>
         private void ConfigureLocalDockerHpc()
         {
-            if (LocalDockerSettings.UseLocalHPC)
-            {
-                var localDockerManager = DockerContainerManager.Instance;
-                Task dockerConfigureTask = Task.Run(
-                    async () => await localDockerManager.StartDockerContainer(LocalDockerSettings.ImageConfigurationDir));
-                dockerConfigureTask.Wait();
-            }
+            //todo this method (REMOVE THAT?) konvicka
         }
         #endregion
     }

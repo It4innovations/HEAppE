@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -123,6 +124,12 @@ namespace HEAppE.DomainObjects.JobManagement
 
                         writer.WritePropertyName("AllocatedTime");
                         writer.WriteNumberValue(0);
+
+                        writer.WritePropertyName("JobArrays");
+                        writer.WriteStringValue(task.JobArrays);
+
+                        writer.WritePropertyName("DependsOn");
+                        writer.WriteStringValue(string.Join(",", task.DependsOn.Select(x=>x.ParentTaskSpecificationId.ToString())));
 
                         writer.WriteEndObject();
 

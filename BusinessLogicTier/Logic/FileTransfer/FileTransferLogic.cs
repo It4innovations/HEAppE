@@ -13,6 +13,7 @@ using HEAppE.HpcConnectionFramework;
 using HEAppE.MiddlewareUtils;
 using log4net;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
+using Renci.SshNet.Common;
 
 namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 {
@@ -136,7 +137,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
         public ICollection<FileInformation> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State < JobState.Submitted)
+            if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
@@ -146,11 +147,21 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
         public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
         {
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State < JobState.Submitted)
+            if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
-            return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+            try
+            {
+                return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+            }
+            catch (SftpPathNotFoundException exception)
+            {
+                log.Warn($"{loggedUser.ToString()} is requesting not existing file '{relativeFilePath}'");
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException(exception.Message));
+            }
+            
+            return null;
         }
 
         public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)

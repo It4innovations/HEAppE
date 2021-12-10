@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 using System.Text;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -83,39 +84,34 @@ namespace HEAppE.DomainObjects.JobManagement
             this.LocalDirectory = taskSpecification.LocalDirectory;
             this.ClusterTaskSubdirectory = taskSpecification.ClusterTaskSubdirectory;
             this.CpuHyperThreading = taskSpecification.CpuHyperThreading;
-
-            //ref data types
-            this.RequiredNodes = new List<TaskSpecificationRequiredNode>();
-            if (taskSpecification.RequiredNodes != null)
-                foreach (var reqNode in taskSpecification.RequiredNodes)
-                    this.RequiredNodes.Add(new TaskSpecificationRequiredNode(reqNode));
-
+            this.ProgressFile = taskSpecification.ProgressFile;
+            this.LogFile = taskSpecification.LogFile;
+            this.JobSpecification = taskSpecification.JobSpecification;
             this.ClusterNodeTypeId = taskSpecification.ClusterNodeTypeId;
-            this.ClusterNodeType = (taskSpecification.ClusterNodeType);
-
+            this.ClusterNodeType = taskSpecification.ClusterNodeType;
             this.CommandTemplateId = taskSpecification.CommandTemplateId;
-            this.CommandTemplate = (taskSpecification.CommandTemplate);
+            this.CommandTemplate = taskSpecification.CommandTemplate;
 
-            this.CommandParameterValues = taskSpecification.CommandParameterValues;
+            //lists
+            this.RequiredNodes = taskSpecification.RequiredNodes?
+                .Select(x => new TaskSpecificationRequiredNode(x))
+                .ToList();
 
-            this.ProgressFile = (taskSpecification.ProgressFile);
-            this.LogFile = (taskSpecification.LogFile);
-            this.JobSpecification = (taskSpecification.JobSpecification);
+            this.CommandParameterValues = taskSpecification.CommandParameterValues?
+                .Select(x => new CommandTemplateParameterValue(x))
+                .ToList();
 
-            this.TaskParalizationSpecifications = new List<TaskParalizationSpecification>();
-            if (taskSpecification.TaskParalizationSpecifications != null)
-                foreach (var taskParalizationSpecification in taskSpecification.TaskParalizationSpecifications)
-                    this.TaskParalizationSpecifications.Add(new TaskParalizationSpecification(taskParalizationSpecification));
+            this.TaskParalizationSpecifications = taskSpecification.TaskParalizationSpecifications?
+                .Select(x => new TaskParalizationSpecification(x))
+                .ToList();
 
-            this.DependsOn = new List<TaskDependency>();
-            if (taskSpecification.DependsOn != null)
-                foreach (var dependency in taskSpecification.DependsOn)
-                    this.DependsOn.Add(new TaskDependency(dependency));
+            this.DependsOn = taskSpecification.DependsOn?
+                .Select(x => new TaskDependency(x))
+                .ToList();
 
-            this.Depended = new List<TaskDependency>();
-            if (taskSpecification.Depended != null)
-                foreach (var depended in taskSpecification.Depended)
-                    this.Depended.Add(new TaskDependency(depended));
+            this.Depended = taskSpecification.Depended?
+                .Select(x => new TaskDependency(x))
+                .ToList();
 
         }
         #endregion

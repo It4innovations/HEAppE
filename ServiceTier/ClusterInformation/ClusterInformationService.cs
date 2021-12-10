@@ -56,5 +56,29 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 return null;
             }
         }
+        public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                    return clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
+                }
+            }
+
+            catch (Exception exc)
+            {
+                //TODO Should be rewrite!
+                if (exc.Message.Contains("No such file or directory"))
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
+                }
+
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
     }
 }

@@ -25,7 +25,9 @@ namespace HEAppE.HpcConnectionFramework {
 
         List<string> GetAllocatedNodes(SubmittedJobInfo jobInfo);
 
-		bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification);
+        IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, string userScriptPath);
+
+        bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification);
 
 		void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 

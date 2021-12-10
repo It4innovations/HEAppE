@@ -341,12 +341,6 @@ namespace HEAppE.RestApi.InputValidator
                     _messageBuilder.AppendLine(
                         $"Placement policy specification for task \"{task.Name}\" cannot be longer than 40 characters.");
                 }
-
-                if (ContainsIllegalCharacters(task.PlacementPolicy))
-                {
-                    _messageBuilder.AppendLine(
-                        $"Placement policy specification for task \"{task.Name}\" contains illegal characters.");
-                }
             }
 
             if (!string.IsNullOrEmpty(task.StandardInputFile))
