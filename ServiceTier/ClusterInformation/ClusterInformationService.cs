@@ -45,6 +45,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserAndLimitationManagement.Roles.UserRoleType.Reporter);
                     IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
                     ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
                     return nodeUsage.ConvertIntToExt();
@@ -63,6 +64,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    UserAndLimitationManagementService.CheckUserRole(loggedUser, UserAndLimitationManagement.Roles.UserRoleType.Submitter);
                     IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
                     return clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
                 }
