@@ -103,7 +103,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
                     IUserAndLimitationManagementLogic userLogic =
                         LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
                     IList<ResourceUsage> usages = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser);
@@ -121,6 +121,26 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 			throw new NotImplementedException();
 		}*/
 
+        /// <summary>
+        /// Get user for given <paramref name="sessionCode"/> and check if the user has <paramref name="requiredUserRole"/>.
+        /// </summary>
+        /// <param name="sessionCode">User session code.</param>
+        /// <param name="unitOfWork">Unit of work.</param>
+        /// <param name="requiredUserRole">Required user role.</param>
+        /// <returns>AdaptorUser object if user has required user role.</returns>
+        /// <exception cref="InsufficientRoleException">Is thrown if the user doesn't have <paramref name="requiredUserRole"/>.</exception>
+        internal static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, UserRoleType requiredUserRole)
+        {
+            IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+
+            CheckUserRole(loggedUser, requiredUserRole);
+
+            return loggedUser;
+        }
+         
+
+        [Obsolete("You should probably call " + nameof(GetValidatedUserForSessionCode) + " which checks the user role.")]
         internal static AdaptorUser GetUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork)
         {
             IUserAndLimitationManagementLogic authenticationLogic =
