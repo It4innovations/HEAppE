@@ -17,13 +17,13 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
         #region Methods
         public IEnumerable<SubmittedJobInfo> ListNotFinishedForSubmitterId(long submitterId)
         {
-            return GetAll().Where(w => w.Submitter.Id == submitterId && w.State < JobState.Finished)
+            return GetAll().Where(w => w.Submitter.Id == submitterId && w.State < JobState.Finished || w.State == JobState.WaitingForServiceAccount)
                          .ToList();
         }
 
         public IEnumerable<SubmittedJobInfo> ListAllUnfinished()
         {
-            return GetAll().Where(w => w.State < JobState.Finished && w.State > JobState.Configuring)
+            return GetAll().Where(w => w.State < JobState.Finished && w.State > JobState.Configuring || w.State == JobState.WaitingForServiceAccount)
                          .ToList();
         }
 
@@ -31,6 +31,13 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
         {
             return GetAll().Where(w => w.Submitter.Id == submitterId)
                          .ToList();
+        }
+
+        public IEnumerable<SubmittedJobInfo> ListAllWaitingForServiceAccount()
+        {
+            return GetAll().Where(w => w.State == JobState.WaitingForServiceAccount)
+                                .OrderBy(w => w.Id)
+                                    .ToList();
         }
         #endregion
     }

@@ -1,4 +1,5 @@
 ﻿using HEAppE.BackgroundThread;
+using HEAppE.BusinessLogicTier.Configuration;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;

@@ -8,6 +8,7 @@
         Running = 8,
         Finished = 16,
         Failed = 32,
-        Canceled = 64
+        Canceled = 64,
+        WaitingForServiceAccount = 128,
     }
 }

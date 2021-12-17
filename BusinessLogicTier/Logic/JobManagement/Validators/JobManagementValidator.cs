@@ -4,6 +4,11 @@ using System.Collections.Generic;
 using System.Linq;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.FileTransferFramework;
+using System.Text.RegularExpressions;
+using System;
+using HEAppE.HpcConnectionFramework;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 {
@@ -147,6 +152,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             }
 
             ValidateWallTimeLimit(task);
+
             if (task.CommandTemplate == null)
             {
                 _messageBuilder.AppendLine($"Command Template does not exist.");
@@ -166,6 +172,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             if (task.ClusterNodeTypeId != task.CommandTemplate.ClusterNodeTypeId)
             {
                 _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
+            }
+
+            if (task.CommandTemplate.IsGeneric)
+            {
+                ValidateGenericCommandTemplateSetup(task);
             }
         }
 
@@ -200,6 +211,58 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             if (job.FileTransferMethod?.ClusterId != job.ClusterId)
             {
                 _messageBuilder.AppendLine($"Job {job.Name} has wrong FileTransferMethod");
+            }
+        }
+
+        private void ValidateGenericCommandTemplateSetup(TaskSpecification task)
+        {
+            Dictionary<string, string> genericCommandParametres = new();
+            //Regex.Matches(task.CommandTemplate.CommandParameters, @"%%\{([\w\.]+)\}", RegexOptions.Compiled)
+            foreach (var commandParameterValue in task.CommandParameterValues)
+            {
+                var key = commandParameterValue.CommandParameterIdentifier;
+                string value = commandParameterValue.Value;
+                if (!string.IsNullOrEmpty(value))
+                {
+                    genericCommandParametres.Add(key, value);
+                }
+
+            }
+
+            Match scriptPathParameterName = Regex.Match(task.CommandTemplate.CommandParameters, @"%%\{([\w\.]+)\}", RegexOptions.Compiled);
+
+            if (!scriptPathParameterName.Success)
+            {
+                _messageBuilder.AppendLine($"CommandTemplate is wrong");
+            }
+            string clusterPathToUserScript = genericCommandParametres.FirstOrDefault(x => x.Key == scriptPathParameterName.Groups[1].Value).Value;
+            if (string.IsNullOrWhiteSpace(clusterPathToUserScript))
+            {
+                _messageBuilder.AppendLine($"User script path parameter, for generic command template, does not have a value.");
+            }
+
+            var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster, clusterPathToUserScript);
+
+            foreach (string parameter in scriptDefinedParametres)
+            {
+                if (!genericCommandParametres.Select(x => x.Value).Any(x => Regex.IsMatch(x, $"{parameter}=\\\\\".+\\\\\"")))
+                {
+
+                    _messageBuilder.AppendLine($"Task specification does not contain '{parameter}' parameter.");
+                }
+            }
+        }
+
+        private IEnumerable<string> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath)
+        {
+            try
+            {
+                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, userScriptPath).ToList();
+            }
+            catch (Exception)
+            {
+                _messageBuilder.AppendLine($"Unable to read or locate script at '{userScriptPath}'.");
+                return Enumerable.Empty<string>();
             }
         }
         #endregion

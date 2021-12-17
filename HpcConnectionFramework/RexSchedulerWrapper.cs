@@ -101,9 +101,23 @@ namespace HEAppE.HpcConnectionFramework {
             }
         }
 
-		public bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification) {
+        public IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, string userScriptPath)
+        {
+            ClusterAuthenticationCredentials creds = cluster.ServiceAccountCredentials;
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(creds);
+            try
+            {
+                return _adapter.GetParametersFromGenericUserScript(schedulerConnection.Connection, userScriptPath);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
+        }
+        
+        public bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification) {
 			int waitingLimit = Convert.ToInt32(jobSpecification.WaitingLimit);
-			if ((waitingLimit > 0) && (job.State < JobState.Running) && (job.SubmitTime.HasValue))
+			if ((waitingLimit > 0) && (job.State < JobState.Running || job.State == JobState.WaitingForServiceAccount) && (job.SubmitTime.HasValue))
 				return DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds > waitingLimit;
 			return false;
 		}

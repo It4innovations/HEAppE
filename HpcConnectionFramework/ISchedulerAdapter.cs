@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework {
 	public interface ISchedulerAdapter {
-		SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
+        SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
 		void CancelJob(object scheduler, string scheduledJobId, string message);
 
@@ -21,7 +21,9 @@ namespace HEAppE.HpcConnectionFramework {
 
         List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo);
 
-		void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo);
+        IEnumerable<string> GetParametersFromGenericUserScript(object scheduler, string userScriptPath);
+
+        void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo);
 
 		void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo);
 
