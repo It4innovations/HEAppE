@@ -21,7 +21,7 @@ namespace HEAppE.BackgroundThread.Tasks {
                 {
                     //check the job's status
                     SubmittedJobInfo jobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(jobId);
-                    if (jobInfo.State >= JobState.Finished)
+                    if (jobInfo.State >= JobState.Finished && jobInfo.State != JobState.WaitingForServiceAccount)
                     {
                         LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork).CloseAllConnectionsForJob(jobInfo);
                     }

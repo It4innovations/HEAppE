@@ -1,10 +1,8 @@
 ﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using System;
-using System.Globalization;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
@@ -123,25 +121,28 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <returns></returns>
         private object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port = null)
         {
-            PrivateKeyConnectionInfo connectionInfo;
-            if(port.HasValue)
+            try
             {
-                connectionInfo = new PrivateKeyConnectionInfo(
-                masterNodeName,
-                port.Value,
-                username,
-                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
-            }
-            else
-            {
-                connectionInfo = new PrivateKeyConnectionInfo(
-                masterNodeName,
-                username,
-                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
-            }
+                PrivateKeyConnectionInfo connectionInfo = port switch
+                {
+                    null => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    username,
+                    new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                    _ => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    port.Value,
+                    username,
+                    new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                };
 
-            SshClient client = new SshClient(connectionInfo);
-            return client;
+                var client = new SshClient(connectionInfo);
+                return client;
+            }
+            catch(Exception e)
+            {
+                throw new SshCommandException($"Password is not corresponding to private key used for the connection to \"{masterNodeName}\"!", e);
+            }     
         }
 
         private object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string username)

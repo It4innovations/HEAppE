@@ -12,12 +12,12 @@ heappe_build:
         - docker --version
     only:
         - master
-        - Develop
+        - develop
     tags:
         - Docker
         - HEAppE
     script:
-        - docker build -f ./RestApi/Dockerfile -t ${HEAPPE_CONTAINER_NAME} .
+        - docker build -t "${HEAPPE_CONTAINER_NAME}" -f ./RestApi/Dockerfile .
 
 sshagent_build:
     stage: build
@@ -25,9 +25,9 @@ sshagent_build:
         - docker --version
     only:
         - master
-        - Develop
+        - develop
     tags:
         - Docker
         - HEAppE
     script:
-        - docker build -f ./SshAgent/Dockerfile -t ${SSHAGENT_CONTAINER_NAME} .
+        - docker build -t ${SSHAGENT_CONTAINER_NAME} -f ./SshAgent/Dockerfile .

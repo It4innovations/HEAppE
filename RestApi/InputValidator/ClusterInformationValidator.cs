@@ -15,22 +15,48 @@ namespace HEAppE.RestApi.InputValidator
 
         public override ValidationResult Validate()
         {
-            string message = string.Empty;
-            if (_validationObject is CurrentClusterNodeUsageModel validationObject)
+            string message = _validationObject switch
             {
-                if (validationObject.ClusterNodeId <= 0)
-                {
-                    _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("ClusterNodeId"));
-                }
-                ValidationResult sessionCodeValidation = new SessionCodeValidator(validationObject.SessionCode).Validate();
-                if (!sessionCodeValidation.IsValid)
-                {
-                    _messageBuilder.AppendLine(sessionCodeValidation.Message);
-                }
-                message = _messageBuilder.ToString();
-            }
+                CurrentClusterNodeUsageModel ext => ValidateCurrentClusterNodeUsageModel(ext),
+                GetCommandTemplateParametersNameModel ext => ValidateGetCommandTemplateParametersNameModele(ext),
+                _ => string.Empty
+            };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateCurrentClusterNodeUsageModel(CurrentClusterNodeUsageModel model)
+        {
+            if (model.ClusterNodeId <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("ClusterNodeId"));
+            }
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateGetCommandTemplateParametersNameModele(GetCommandTemplateParametersNameModel model)
+        {
+            if (model.CommandTemplateId <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("CommandTemplateId"));
+            }
+
+            if (ContainsIllegalCharactersForPath(model.UserScriptPath))
+            {
+                _messageBuilder.AppendLine("UserScriptPath contains illegal characters.");
+            }
+
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
         }
     }
 }

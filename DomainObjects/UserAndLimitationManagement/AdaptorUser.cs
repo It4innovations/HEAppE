@@ -21,6 +21,9 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [Column(TypeName = "text")]
         public string PublicKey { get; set; }
 
+        [StringLength(100)]
+        public string Email { get; set; }
+
         public bool Synchronize { get; set; }
 
         public bool Deleted { get; set; }
