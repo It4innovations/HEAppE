@@ -20,7 +20,6 @@ using Microsoft.AspNetCore.Http;
 using HEAppE.FileTransferFramework;
 using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
-using HEAppE.MiddlewareUtils.LocalDocker;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
 
@@ -75,7 +74,6 @@ namespace HEAppE.RestApi
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
             Configuration.Bind("KeycloakSettings", keycloackConfiguration);
             Configuration.Bind("OpenStackSettings", new OpenStackSettings());
-            Configuration.Bind("LocalDockerSettings", new LocalDockerSettings());
             Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
 
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
@@ -193,16 +191,6 @@ namespace HEAppE.RestApi
             var option = new RewriteOptions();
             option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
             app.UseRewriter(option);
-
-            ConfigureLocalDockerHpc();
-        }
-
-        /// <summary>
-        /// Asynchronous run of docker configuration
-        /// </summary>
-        private void ConfigureLocalDockerHpc()
-        {
-            //todo this method (REMOVE THAT?) konvicka
         }
         #endregion
     }
