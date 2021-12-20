@@ -18,7 +18,10 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 		[StringLength(50)]
 		public string PrivateKeyPassword { get; set; }
 
-        [ForeignKey("Cluster")]
+		[Required]
+		public ClusterAuthenticationCredentialsAuthType AuthenticationType { get; set; }
+		
+		[ForeignKey("Cluster")]
         public long? ClusterId { get; set; }
         public virtual Cluster Cluster { get; set; }
 

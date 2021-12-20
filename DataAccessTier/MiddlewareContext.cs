@@ -187,7 +187,19 @@ namespace HEAppE.DataAccessTier
                 LocalBasepath = c.LocalBasepath,
                 TimeZone = c.TimeZone
             }));
-            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials);
+
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc => new ClusterAuthenticationCredentials
+            {
+                Id = cc.Id,
+                Username = cc.Username,
+                Password = cc.Password,
+                PrivateKeyFile = cc.PrivateKeyFile,
+                PrivateKeyPassword = cc.PrivateKeyPassword,
+                ClusterId = cc.ClusterId,
+                Cluster = cc.Cluster,
+                AuthenticationType = GetCredentialsAuthenticationType(cc)
+            }));
+
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
             InsertOrUpdateSeedData(MiddlewareContextSettings.JobTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.TaskTemplates);
@@ -215,7 +227,7 @@ namespace HEAppE.DataAccessTier
             SaveChanges();
             _log.Info("Seed data into the database completed.");
         }
-
+        
         //sqlserver specific because of identity
         private void InsertOrUpdateSeedData<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
         {
@@ -255,6 +267,18 @@ namespace HEAppE.DataAccessTier
             {
                 Database.CloseConnection();
                 _log.Info($"Inserting or updating seed into {tableName} is completed.");
+            }
+        }
+        public void UpdateEntityOrAddItem<T>(T entity, T item) where T : class
+        {
+            if (entity != null)
+            {
+                Entry(entity).State = EntityState.Detached;
+                Entry(item).State = EntityState.Modified;
+            }
+            else
+            {
+                Set<T>().Add(item);
             }
         }
 
@@ -299,17 +323,36 @@ namespace HEAppE.DataAccessTier
             }
         }
 
-        public void UpdateEntityOrAddItem<T>(T entity, T item) where T : class
+        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential)
         {
-            if (entity != null)
+            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
             {
-                Entry(entity).State = EntityState.Detached;
-                Entry(item).State = EntityState.Modified;
+                return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
             }
-            else
+
+            if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
             {
-                Set<T>().Add(item);
+                return ClusterAuthenticationCredentialsAuthType.PrivateKey;
             }
+
+            if (!string.IsNullOrEmpty(credential.Password))
+            {
+                switch (credential.Cluster.ConnectionProtocol)
+                {
+                    case ClusterConnectionProtocol.MicrosoftHpcApi:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+
+                    case ClusterConnectionProtocol.Ssh:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+
+                    case ClusterConnectionProtocol.SshInteractive:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
+
+                    default:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+                }
+            }
+            return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
         #endregion
         #region Entities
