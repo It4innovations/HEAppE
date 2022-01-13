@@ -13,6 +13,7 @@ using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using log4net;
 using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.ServiceTier.ClusterInformation
 {
@@ -65,6 +66,32 @@ namespace HEAppE.ServiceTier.ClusterInformation
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
                     IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
                     return clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
+                }
+            }
+
+            catch (Exception exc)
+            {
+                //TODO Should be rewrite!
+                if (exc.Message.Contains("No such file or directory"))
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
+                }
+
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, string description, string code, string executableFile, string preparationScript, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                    CommandTemplate commandTemplate = clusterLogic.CreateCommandTemplate(genericCommandTemplateId, name, description, code, executableFile, preparationScript, loggedUser);
+                    return commandTemplate.ConvertIntToExt();
                 }
             }
 
