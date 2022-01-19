@@ -1,11 +1,10 @@
-﻿using log4net;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 
-namespace HEAppE.HpcConnectionFramework.LinuxPbs
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
 {
-    public static class LinuxPbsConversionUtils
+    public static class PbsProConversionUtils
     {
         public static Dictionary<string, string> ReadQstatResultFromJobSource(string jobSource)
         {

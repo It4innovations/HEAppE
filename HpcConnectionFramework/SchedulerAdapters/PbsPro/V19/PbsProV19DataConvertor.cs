@@ -1,18 +1,18 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.ConversionAdapter;
-using HEAppE.HpcConnectionFramework.LinuxPbs.v10;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.MiddlewareUtils;
-using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
 
-namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12 {
-	public class LinuxPbsV12DataConvertor : LinuxPbsV10DataConvertor {
-		#region Constructors
-		public LinuxPbsV12DataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) {}
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
+{
+    public class PbsProV19DataConvertor : PbsProDataConvertor
+    {
+        #region Constructors
+        public PbsProV19DataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) { }
         #endregion
         #region SchedulerDataConvertor Members
         protected override List<object> CreateTasks(JobSpecification jobSpecification, ISchedulerJobAdapter jobAdapter)
@@ -67,11 +67,11 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12 {
         {
             SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();
             ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(task);
-            taskInfo.TaskAllocationNodes = taskAdapter.AllocatedCoreIds?.Select(s=> new SubmittedTaskAllocationNodeInfo 
-                                                                                    { 
-                                                                                        AllocationNodeId = s,
-                                                                                        SubmittedTaskInfoId = long.Parse(taskAdapter.Name)
-                                                                                    }).ToList();
+            taskInfo.TaskAllocationNodes = taskAdapter.AllocatedCoreIds?.Select(s => new SubmittedTaskAllocationNodeInfo
+            {
+                AllocationNodeId = s,
+                SubmittedTaskInfoId = long.Parse(taskAdapter.Name)
+            }).ToList();
             taskInfo.ScheduledJobId = taskAdapter.Id;
             taskInfo.Priority = taskAdapter.Priority;
             taskInfo.Name = taskAdapter.Name;

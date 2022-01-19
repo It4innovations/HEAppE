@@ -6,7 +6,7 @@ using System.Text;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
 {
     public class LinuxLocalJobDTO
     {

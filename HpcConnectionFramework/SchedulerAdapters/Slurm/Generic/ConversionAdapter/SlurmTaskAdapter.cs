@@ -7,12 +7,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter
 {
     /// <summary>
     /// Class: Slurm task adapter
     /// </summary>
-    public class SlurmV18TaskAdapter : ISchedulerTaskAdapter
+    public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
         #region Properties
         /// <summary>
@@ -35,7 +35,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// Constructor
         /// </summary>
         /// <param name="taskSource"></param>
-        public SlurmV18TaskAdapter(string taskSource)
+        public SlurmTaskAdapter(string taskSource)
         {
             //TODO divide create and read task parameters
             _jobTaskBuilder = new StringBuilder(taskSource);

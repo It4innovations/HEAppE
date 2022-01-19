@@ -6,15 +6,15 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.ConversionAdapter;
 
-namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
-    public class LinuxPbsV10TaskAdapter : ISchedulerTaskAdapter
+    public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         #region Constructors
-        public LinuxPbsV10TaskAdapter(object taskSource)
+        public PbsProTaskAdapter(object taskSource)
         {
             this.taskSource = (string)taskSource;
-            qstatInfo = LinuxPbsConversionUtils.ReadQstatResultFromJobSource(this.taskSource);
+            qstatInfo = PbsProConversionUtils.ReadQstatResultFromJobSource(this.taskSource);
         }
         #endregion
 
@@ -29,8 +29,8 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.JOB_ID, out result))
-                    return LinuxPbsConversionUtils.GetJobIdFromJobCode(result).ToString();
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_ID, out result))
+                    return PbsProConversionUtils.GetJobIdFromJobCode(result).ToString();
 
                 return "0";
             }
@@ -41,7 +41,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.PRIORITY, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.PRIORITY, out result))
                     return (TaskPriority)Math.Round(((Convert.ToInt32(result) + 1024) * 8) / 2047f);
                 return 0;
             }
@@ -53,7 +53,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.QUEUE, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.QUEUE, out result))
                     return result;
                 return string.Empty;
             }
@@ -87,10 +87,10 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.EXEC_HOST, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.EXEC_HOST, out result))
                 {
                     result = result.Replace('*', ' ');
-                    string[] allocIds =  result.Split('+');
+                    string[] allocIds = result.Split('+');
                     return allocIds;
                 }
                 return new List<string>();
@@ -102,7 +102,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.JOB_NAME, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_NAME, out result))
                     return result;
                 return string.Empty;
             }
@@ -114,7 +114,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.JOB_STATE, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_STATE, out result))
                 {
                     return ConvertPbsTaskStateToIndependentTaskState(result);
                 }
@@ -127,8 +127,8 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.STIME, out result))
-                    return LinuxPbsConversionUtils.ConvertQstatDateStringToDateTime(result);
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.STIME, out result))
+                    return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
                 return null;
             }
         }
@@ -179,7 +179,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.RERUNNABLE, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RERUNNABLE, out result))
                     return result == "y";
                 return false;
             }
@@ -197,14 +197,14 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.RESOURCE_LIST_WALLTIME, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RESOURCE_LIST_WALLTIME, out result))
                     return Convert.ToInt32(result);
                 return 0;
             }
             set
             {
                 if (value > 0)
-                    taskSource += " -l walltime=" + LinuxPbsConversionUtils.ConvertSecondsToQstatTimeString(value);
+                    taskSource += " -l walltime=" + PbsProConversionUtils.ConvertSecondsToQstatTimeString(value);
             }
         }
 
@@ -213,7 +213,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             set
             {
                 if (!string.IsNullOrEmpty(value))
-					taskSource += " -e " + value;
+                    taskSource += " -e " + value;
             }
         }
 
@@ -228,7 +228,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             set
             {
                 if (!string.IsNullOrEmpty(value))
-					taskSource += " -o " + value;
+                    taskSource += " -o " + value;
             }
         }
 
@@ -237,7 +237,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.JOBDIR, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOBDIR, out result))
                     return result;
                 return string.Empty;
             }
@@ -254,7 +254,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             get
             {
                 string result;
-                if (qstatInfo.TryGetValue(LinuxPbsJobInfoAttributes.RESOURCES_USED_CPUT, out result))
+                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RESOURCES_USED_CPUT, out result))
                 {
                     string[] split = result.Split(':');
                     return Convert.ToInt32(split[0]) * 3600 + Convert.ToInt32(split[1]) * 60 + Convert.ToInt32(split[2]);
@@ -278,11 +278,11 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
                 int requiredNodesMaxCores = coresPerNode * requiredNodes.Count;
                 int remainingCores = maxCores - requiredNodesMaxCores;
                 int cpusPerHost = maxCores > requiredNodesMaxCores
-                                                    ? coresPerNode 
+                                                    ? coresPerNode
                                                     : maxCores / requiredNodes.Count;
 
 
-                List<TaskParalizationSpecification> parSpecsForReqNodes = paralizationSpecs.Where(w => w.MaxCores % coresPerNode == 0 
+                List<TaskParalizationSpecification> parSpecsForReqNodes = paralizationSpecs.Where(w => w.MaxCores % coresPerNode == 0
                                                                                                   && w.MaxCores / coresPerNode == 1).ToList();
 
                 int i = 0;
@@ -345,17 +345,17 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
             taskSourceSb.Append($"echo ' cd {nodefileDir}; ~/.key_scripts/nodefile.sh; ");
             taskSourceSb.Append($"cd {workDir}; ");
             taskSourceSb.Append(
-                string.IsNullOrEmpty(recursiveSymlinkCommand) 
-                    ? string.Empty 
+                string.IsNullOrEmpty(recursiveSymlinkCommand)
+                    ? string.Empty
                     : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};");
 
             taskSourceSb.Append(
-                string.IsNullOrEmpty(preparationScript) 
-                    ? string.Empty 
+                string.IsNullOrEmpty(preparationScript)
+                    ? string.Empty
                     : preparationScript.Last().Equals(';') ? preparationScript : $"{preparationScript};");
             taskSourceSb.Append(
-                string.IsNullOrEmpty(commandLine) 
-                    ? string.Empty 
+                string.IsNullOrEmpty(commandLine)
+                    ? string.Empty
                     : commandLine.Last().Equals(';') ? commandLine : $"{commandLine};");
             taskSourceSb.Append($"1>> {stdOutFile} ");
             taskSourceSb.Append($"2>> {stdErrFile} ");
@@ -400,7 +400,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10.ConversionAdapter
                 }
 
                 int remainingCores = coreCount - paralizationSpecs.Sum(s => s.MaxCores);
-                if(remainingCores > 0)
+                if (remainingCores > 0)
                 {
                     int nodeCount = remainingCores / coresPerNode;
                     nodeCount = (remainingCores % coresPerNode) > 0 ? nodeCount + 1 : nodeCount;

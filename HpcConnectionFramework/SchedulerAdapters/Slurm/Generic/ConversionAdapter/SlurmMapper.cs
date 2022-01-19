@@ -1,16 +1,13 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Enums;
 using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Text;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter
 {
     /// <summary>
     /// Class: Mapper class
     /// </summary>
-    internal static class MapperV18
+    internal static class SlurmMapper
     {
         /// <summary>
         /// Method: Mapping job state from Slurm state

@@ -1,8 +1,4 @@
-﻿// CSharpServer.cs
-// compile with: /target:library
-// post-build command: regasm CSharpServer.dll /tlb:CSharpServer.tlb
-
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System.Collections.Generic;
@@ -14,10 +10,6 @@ namespace HEAppE.HpcConnectionFramework {
 		void CancelJob(string scheduledJobId, ClusterAuthenticationCredentials credentials);
 
 		void CancelJob(string scheduledJobId, string message, ClusterAuthenticationCredentials credentials);
-
-		SubmittedJobInfo GetActualJobInfo(string scheduledJobId, ClusterAuthenticationCredentials credentials);
-
-		SubmittedJobInfo[] GetActualJobsInfo(int[] scheduledJobIds, Cluster cluster);
 
         SubmittedTaskInfo[] GetActualTasksInfo(string[] scheduledJobIds, Cluster cluster);
 

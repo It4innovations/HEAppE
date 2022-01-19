@@ -1,8 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Enums
 {
     /// <summary>
     /// Enum: Slurm states

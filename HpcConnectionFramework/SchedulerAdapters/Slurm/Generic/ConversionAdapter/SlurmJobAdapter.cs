@@ -3,15 +3,14 @@ using HEAppE.HpcConnectionFramework.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter
 {
     /// <summary>
     /// Class: Slurm job adapter
     /// </summary>
-    internal class SlurmV18JobAdapter : ISchedulerJobAdapter
+    internal class SlurmJobAdapter : ISchedulerJobAdapter
     {
         #region Properties
         /// <summary>
@@ -34,7 +33,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAd
         /// Constructor
         /// </summary>
         /// <param name="jobSource"></param>
-        public SlurmV18JobAdapter(string jobSource)
+        public SlurmJobAdapter(string jobSource)
         {
             //TODO divide create and read job parameters
             _jobCommandBuilder = new StringBuilder(jobSource);

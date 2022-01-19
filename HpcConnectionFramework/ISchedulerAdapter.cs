@@ -9,13 +9,13 @@ namespace HEAppE.HpcConnectionFramework {
 
 		void CancelJob(object scheduler, string scheduledJobId, string message);
 
-		SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId);
+		//SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId);
 
-        SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds);
+  //      SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds);
 
         SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds);
 
-        SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds);
+        //SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds);
 
 		ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType);
 

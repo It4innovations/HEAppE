@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
+﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
 {
     /// <summary>
     /// Class: Clusters scripts used in schedulers
@@ -34,6 +30,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Path to create job directory script
         /// </summary>
         internal string CreateJobDirectoryCmdPath { get; } = "~/.key_scripts/create_job_directory.sh";
+
+        /// <summary>
+        /// Path to execute command from Base64
+        /// </summary>
+        internal string ExecutieCmdPath { get; } = "~/.key_scripts/run_command.sh.sh";
         #endregion
     }
 }

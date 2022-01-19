@@ -1,21 +1,18 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.ConversionAdapter;
-using HEAppE.HpcConnectionFramework.LinuxPbs.v10;
 using HEAppE.MiddlewareUtils;
 using System;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Text;
-using HEAppE.HpcConnectionFramework.LinuxPbs.v12;
 //using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionAdapter;
 using System.Text.Json;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
 {
-    public class LinuxLocalDataConvertor : LinuxPbsV12DataConvertor
+    public class LinuxLocalDataConvertor : SchedulerDataConvertor
     {
         #region Constructors
         public LinuxLocalDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) { }

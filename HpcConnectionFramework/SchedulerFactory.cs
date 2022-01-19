@@ -2,55 +2,47 @@
 using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal;
-using HEAppE.HpcConnectionFramework.LinuxPbs.v10;
-using HEAppE.HpcConnectionFramework.LinuxPbs.v12;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19;
 
 namespace HEAppE.HpcConnectionFramework
 {
     public abstract class SchedulerFactory
     {
-        #region Instantiation
+        #region Instances
+        private readonly Dictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
+        private readonly static Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new ();
+
         //TODO add to settings
         private static readonly int ConnectionPoolMinSize = 0;
         private static readonly int ConnectionPoolMaxSize = 10;
         private static readonly int ConnectionPoolCleaningInterval = 60;
         private static readonly int ConnectionPoolMaxUnusedInterval = 1800;
-
+        #endregion
+        #region Static Methods
         public static SchedulerFactory GetInstance(SchedulerType type)
         {
-            if (schedulerFactoryPoolSingletons.ContainsKey(type))
+            if (_schedulerFactoryPoolSingletons.ContainsKey(type))
             {
-                return schedulerFactoryPoolSingletons[type];
+                return _schedulerFactoryPoolSingletons[type];
             }
             else
             {
-                SchedulerFactory factoryInstance;
-                switch (type)
+                SchedulerFactory factoryInstance = type switch
                 {
-                    case SchedulerType.LinuxPbsProV10:
-                        factoryInstance = new LinuxPbsV10SchedulerFactory();
-                        break;
-                    case SchedulerType.LinuxPbsProV12:
-                        factoryInstance = new LinuxPbsV12SchedulerFactory();
-                        break;
-                    case SchedulerType.LinuxSlurmV18:
-                        factoryInstance = new SlurmV18SchedulerFactory();
-                        break;
-                    case SchedulerType.LinuxLocal:
-                        factoryInstance = new LinuxLocalSchedulerFactory();
-                        break;
-                    default:
-                        throw new ApplicationException("Scheduler factory with type \"" + type + "\" does not exist.");
-                }
-                //factoryInstance = new LinuxLocalSchedulerFactory();
-                schedulerFactoryPoolSingletons.Add(type, factoryInstance);
+                    SchedulerType.PbsPro => new PbsProSchedulerFactory(),
+                    SchedulerType.PbsProV19 => new PbsProV19SchedulerFactory(),
+                    SchedulerType.Slurm => new SlurmSchedulerFactory(),
+                    SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
+                    _ => throw new ApplicationException("Scheduler factory with type \"" + type + "\" does not exist."),
+                };
+                _schedulerFactoryPoolSingletons.Add(type, factoryInstance);
                 return factoryInstance;
             }
         }
         #endregion
-
         #region Abstract Methods
         public abstract IRexScheduler CreateScheduler(Cluster configuration);
 
@@ -60,15 +52,13 @@ namespace HEAppE.HpcConnectionFramework
 
         protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration);
         #endregion
-
         #region Local Methods
         protected IConnectionPool GetSchedulerConnectionPool(Cluster configuration)
         {
-            SchedulerEndpoint endpoint = new SchedulerEndpoint(configuration.MasterNodeName,
-                configuration.SchedulerType);
-            if (!schedulerConnectionPoolSingletons.ContainsKey(endpoint))
+            var endpoint = new SchedulerEndpoint(configuration.MasterNodeName, configuration.SchedulerType);
+            if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
             {
-                schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(
+                _schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(
                     configuration.MasterNodeName,
                     configuration.TimeZone,
                     ConnectionPoolMinSize,
@@ -78,13 +68,8 @@ namespace HEAppE.HpcConnectionFramework
                     CreateSchedulerConnector(configuration),
                     configuration.Port);
             }
-            return schedulerConnectionPoolSingletons[endpoint];
+            return _schedulerConnectionPoolSingletons[endpoint];
         }
-        #endregion
-
-        #region Instance Fields
-        private readonly Dictionary<SchedulerEndpoint, IConnectionPool> schedulerConnectionPoolSingletons = new Dictionary<SchedulerEndpoint, IConnectionPool>();
-        private readonly static Dictionary<SchedulerType, SchedulerFactory> schedulerFactoryPoolSingletons = new Dictionary<SchedulerType, SchedulerFactory>();
         #endregion
     }
 }

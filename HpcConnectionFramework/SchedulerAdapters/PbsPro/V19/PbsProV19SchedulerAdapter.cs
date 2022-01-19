@@ -6,102 +6,102 @@ using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.LinuxPbs.v10;
 using HEAppE.MiddlewareUtils;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using Renci.SshNet;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 
-namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
 {
-    public class LinuxPbsV12SchedulerAdapter : LinuxPbsV10SchedulerAdapter
+    public class PbsProV19SchedulerAdapter : PbsProSchedulerAdapter
     {
         #region Constructors
-        public LinuxPbsV12SchedulerAdapter(ISchedulerDataConvertor convertor) : base(convertor) { }
+        public PbsProV19SchedulerAdapter(ISchedulerDataConvertor convertor) : base(convertor) { }
         #endregion
 
         #region ISchedulerAdapter Members
-        public override SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId)
-        {
-            var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), String.Format("bash -lc 'qstat -f -x {0}'", scheduledJobId));
-            return _convertor.ConvertJobToJobInfo(command.Result);
-        }
+        //public override SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId)
+        //{
+        //    var command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), String.Format("bash -lc 'qstat -f -x {0}'", scheduledJobId));
+        //    return _convertor.ConvertJobToJobInfo(command.Result);
+        //}
 
-        public override SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds)
-        {
-            const string JOB_ID_REGEX = @"^(Job\ Id:\ )(\d+)";
+        //public override SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds)
+        //{
+        //    const string JOB_ID_REGEX = @"^(Job\ Id:\ )(\d+)";
 
-            SshCommandWrapper command = null;
-            do
-            {
-                string commandString = String.Format("bash -lc 'qstat -f -x {0}'", String.Join(" ", scheduledJobIds));
-                try
-                {
-                    command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandString);
-                }
-                catch (Exception e)
-                {
-                    string jobIdMath = "qstat: Unknown Job Id";
-                    if (e.Message.Contains(jobIdMath))
-                    {
-                        Match match = Regex.Match(e.Message, @"(?<=Unknown Job Id )\b\w+\b");
-                        if (match.Success)
-                        {
-                            int jobId = Convert.ToInt32(match.Value);
-                            _log.WarnFormat("Unknown Job ID {0} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.", jobId);
-                            scheduledJobIds = scheduledJobIds.Where(val => val != jobId).ToArray();
-                            command = null;
-                        }
-                    }
-                    else _log.ErrorFormat(e.Message);
-                }
-            }
-            while (command == null);
+        //    SshCommandWrapper command = null;
+        //    do
+        //    {
+        //        string commandString = String.Format("bash -lc 'qstat -f -x {0}'", String.Join(" ", scheduledJobIds));
+        //        try
+        //        {
+        //            command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandString);
+        //        }
+        //        catch (Exception e)
+        //        {
+        //            string jobIdMath = "qstat: Unknown Job Id";
+        //            if (e.Message.Contains(jobIdMath))
+        //            {
+        //                Match match = Regex.Match(e.Message, @"(?<=Unknown Job Id )\b\w+\b");
+        //                if (match.Success)
+        //                {
+        //                    int jobId = Convert.ToInt32(match.Value);
+        //                    _log.WarnFormat("Unknown Job ID {0} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.", jobId);
+        //                    scheduledJobIds = scheduledJobIds.Where(val => val != jobId).ToArray();
+        //                    command = null;
+        //                }
+        //            }
+        //            else _log.ErrorFormat(e.Message);
+        //        }
+        //    }
+        //    while (command == null);
 
-            string[] resultLines = command.Result.Split('\n');
+        //    string[] resultLines = command.Result.Split('\n');
 
-            // Search for lines with jobIds
-            Dictionary<int, int> jobLines = new Dictionary<int, int>();
-            for (int i = 0; i < resultLines.Length; i++)
-            {
-                Match match = Regex.Match(resultLines[i], JOB_ID_REGEX);
-                if (match.Success)
-                {
-                    jobLines.Add(Convert.ToInt32(match.Groups[2].Value), i);
-                }
-            }
+        //    // Search for lines with jobIds
+        //    Dictionary<int, int> jobLines = new Dictionary<int, int>();
+        //    for (int i = 0; i < resultLines.Length; i++)
+        //    {
+        //        Match match = Regex.Match(resultLines[i], JOB_ID_REGEX);
+        //        if (match.Success)
+        //        {
+        //            jobLines.Add(Convert.ToInt32(match.Groups[2].Value), i);
+        //        }
+        //    }
 
-            // Iterate through jobIds and extract job info
-            SubmittedJobInfo[] result = new SubmittedJobInfo[scheduledJobIds.Length];
-            for (int i = 0; i < scheduledJobIds.Length; i++)
-            {
-                // Search for jobId in result
-                int jobInfoStartLine = -1;
-                try
-                {
-                    jobInfoStartLine = jobLines[scheduledJobIds[i]];
-                }
-                catch (KeyNotFoundException)
-                {
-                    _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIds[i]);
-                    continue;
-                }
+        //    // Iterate through jobIds and extract job info
+        //    SubmittedJobInfo[] result = new SubmittedJobInfo[scheduledJobIds.Length];
+        //    for (int i = 0; i < scheduledJobIds.Length; i++)
+        //    {
+        //        // Search for jobId in result
+        //        int jobInfoStartLine = -1;
+        //        try
+        //        {
+        //            jobInfoStartLine = jobLines[scheduledJobIds[i]];
+        //        }
+        //        catch (KeyNotFoundException)
+        //        {
+        //            _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIds[i]);
+        //            continue;
+        //        }
 
-                // Get number of lines in qstat output for this job
-                int jobInfoLineCount = 0;
-                do
-                {
-                    jobInfoLineCount++;
-                } while (!Regex.IsMatch(resultLines[jobInfoStartLine + jobInfoLineCount], JOB_ID_REGEX) && jobInfoLineCount + jobInfoStartLine + 1 < resultLines.Length);
+        //        // Get number of lines in qstat output for this job
+        //        int jobInfoLineCount = 0;
+        //        do
+        //        {
+        //            jobInfoLineCount++;
+        //        } while (!Regex.IsMatch(resultLines[jobInfoStartLine + jobInfoLineCount], JOB_ID_REGEX) && jobInfoLineCount + jobInfoStartLine + 1 < resultLines.Length);
 
-                // Cut lines for given job info
-                string[] currentJobLines = new string[jobInfoLineCount];
-                Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
+        //        // Cut lines for given job info
+        //        string[] currentJobLines = new string[jobInfoLineCount];
+        //        Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
 
-                // Get current job info
-                result[i] = _convertor.ConvertJobToJobInfo(String.Join("\n", currentJobLines));
-            }
-            return result;
-        }
+        //        // Get current job info
+        //        result[i] = _convertor.ConvertJobToJobInfo(String.Join("\n", currentJobLines));
+        //    }
+        //    return result;
+        //}
 
         public override SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
@@ -112,7 +112,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
             {
                 command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), job);
 
-                string[] jobIds = LinuxPbsConversionUtils.GetJobIdsFromJobCode(command.Result);
+                string[] jobIds = PbsProConversionUtils.GetJobIdsFromJobCode(command.Result);
                 if (jobIds == null || jobIds.Length == 0)
                     throw new Exception("Exception thrown when submitting a job to the cluster. Submission script result: " + command.Result + "\nError: " + command.Error + "\nCommand line for job submission:\n" + job);
 
@@ -139,7 +139,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
                 {
                     command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandString);
                 }
-                catch(SshCommandException ce)
+                catch (SshCommandException ce)
                 {
                     _log.Warn(ce.Message);
                     break;
@@ -168,7 +168,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
             while (command == null);
 
 
-            if(command is not null)
+            if (command is not null)
             {
                 string[] resultLines = command.Result.Split('\n');
 
@@ -225,7 +225,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
             }
         }
 
-        public override SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds)
+        private SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds)
         {
             SubmittedJobInfo jobInfo = new SubmittedJobInfo();
             jobInfo.Tasks = new List<SubmittedTaskInfo>(GetActualTasksInfo(scheduler, scheduledJobIds));
@@ -238,7 +238,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v12
             string shellCommand = String.Format("cat {0}/{1}/AllocationNodeInfo", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
-            return LinuxPbsConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
+            return PbsProConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
         }
 
         public override void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)

@@ -1,9 +1,8 @@
 ﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
@@ -56,7 +55,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
                             var jobParametersProperty = jobParameters.GetType().GetProperty(slurmProperty.Name);
                             if (jobParametersProperty != null && jobParametersProperty.CanWrite)
                             {
-                                var value = MapperV18.ChangeType(parsedValues[propertyValue], jobParametersProperty.PropertyType);
+                                var value = SlurmMapper.ChangeType(parsedValues[propertyValue], jobParametersProperty.PropertyType);
                                 jobParametersProperty.SetValue(jobParameters, value, null);
                             }
                             break;

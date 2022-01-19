@@ -1,6 +1,6 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Enums;
 using System;
 using System.Collections.Generic;
 
@@ -9,7 +9,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
     /// <summary>
     /// Class: Slurm job DTO
     /// </summary>
-      public class SlurmJobDTO
+    public class SlurmJobDTO
     {
         #region Instances
         /// <summary>
@@ -78,8 +78,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
             {
                 _stateName = value;
                 var slurmState = MappingJobState(value);
-                State = MapperV18.MappingJobState(slurmState);
-                TaskState = MapperV18.MappingTaskState(slurmState);
+                State = SlurmMapper.MappingJobState(slurmState);
+                TaskState = SlurmMapper.MappingTaskState(slurmState);
             }
         }
 

@@ -1,7 +1,6 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -9,14 +8,15 @@ using log4net;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
+using System.Text;
 using System.Text.RegularExpressions;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
 {
     /// <summary>
     /// Class: Slurm scheduler adapter
     /// </summary>
-    internal class SlurmV18SchedulerAdapter : ISchedulerAdapter
+    internal class SlurmSchedulerAdapter : ISchedulerAdapter
     {
         #region Properties
         /// <summary>
@@ -44,10 +44,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
         /// Constructor
         /// </summary>
         /// <param name="convertor"></param>
-        public SlurmV18SchedulerAdapter(ISchedulerDataConvertor convertor)
+        public SlurmSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
             //TODO LinuxCommand and SSH tunnel pass to constructor
-            _log = LogManager.GetLogger(typeof(SlurmV18SchedulerAdapter));
+            _log = LogManager.GetLogger(typeof(SlurmSchedulerAdapter));
             _convertor = convertor;
             _sshTunnelUtil = new SshTunnel();
             _commands = new LinuxCommands();
@@ -64,17 +64,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
         /// <returns></returns>
         public SubmittedJobInfo SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
+            SshCommandWrapper command = null;
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            string sshCommandBase64 = $"{_commands.InterpreterCommand} '~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
             {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
                 int jobId = SlurmConversionUtils.GetJobIdFromJobCode(command.Result);
-                return GetActualJobInfo((SshClient)connectorClient, jobId.ToString());
+                //TODO
+                return GetActualJobInfo((SshClient)connectorClient, new string[3] { "1", "2", "3" });
             }
             catch (FormatException e)
             {
-                throw new Exception($@"Exception thrown when submitting a job to the cluster. Submission script result: 
-                            {sshCommand}{Environment.NewLine}Command line for job submission: {Environment.NewLine}", e);
+                throw new Exception($@"Exception thrown when submitting a job to the cluster {jobSpecification.Cluster.Name}. 
+                                       Submission script result: {command.Result}\nCommand line for job submission:\n" + sshCommandBase64, e);
             }
         }
 
@@ -89,16 +92,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scancel {scheduledJobId}'");
         }
 
-        /// <summary>
-        /// Method: Get actual job information
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="scheduledJobId">Scheduled job id</param>
-        public SubmittedJobInfo GetActualJobInfo(object connectorClient, string scheduledJobId)
-        {
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o'");
-            return _convertor.ConvertJobToJobInfo(command.Result);
-        }
+        ///// <summary>
+        ///// Method: Get actual job information
+        ///// </summary>
+        ///// <param name="connectorClient">Connector</param>
+        ///// <param name="scheduledJobId">Scheduled job id</param>
+        //public SubmittedJobInfo GetActualJobInfo(object connectorClient, string scheduledJobId)
+        //{
+        //    var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o'");
+        //    return _convertor.ConvertJobToJobInfo(command.Result);
+        //}
 
         public virtual SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
         {
@@ -125,7 +128,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
             {
                 NodeType = nodeType,
                 NodesUsed = nodesUsed,
-                Priority= default,
+                Priority = default,
                 TotalJobs = default
             };
         }
@@ -163,33 +166,33 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
             return genericCommandParameters;
         }
 
-        /// <summary>
-        /// Method: Get actual job information
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="scheduledJobIds">Scheduled job Ids</param>
-        public virtual SubmittedJobInfo[] GetActualJobsInfo(object connectorClient, int[] scheduledJobIds)
-        {
-            List<SubmittedJobInfo> submittedJobsInfo = new List<SubmittedJobInfo>();
-            foreach (int scheduledJobId in scheduledJobIds)
-            {
-                try
-                {
-                    var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o'");
-                    var submittedJobInfo = _convertor.ConvertJobToJobInfo(command.Result);
+        ///// <summary>
+        ///// Method: Get actual job information
+        ///// </summary>
+        ///// <param name="connectorClient">Connector</param>
+        ///// <param name="scheduledJobIds">Scheduled job Ids</param>
+        //public virtual SubmittedJobInfo[] GetActualJobsInfo(object connectorClient, int[] scheduledJobIds)
+        //{
+        //    List<SubmittedJobInfo> submittedJobsInfo = new List<SubmittedJobInfo>();
+        //    foreach (int scheduledJobId in scheduledJobIds)
+        //    {
+        //        try
+        //        {
+        //            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o'");
+        //            var submittedJobInfo = _convertor.ConvertJobToJobInfo(command.Result);
 
-                    if (submittedJobInfo != null)
-                    {
-                        submittedJobsInfo.Add(submittedJobInfo);
-                    }
-                }
-                catch (Exception)
-                {
-                    _log.WarnFormat("Unknown Job ID {0} in scontrol output. Setting the job's status to Canceled and retry for remaining jobs.", scheduledJobId);
-                }
-            }
-            return submittedJobsInfo.ToArray();
-        }
+        //            if (submittedJobInfo != null)
+        //            {
+        //                submittedJobsInfo.Add(submittedJobInfo);
+        //            }
+        //        }
+        //        catch (Exception)
+        //        {
+        //            _log.WarnFormat("Unknown Job ID {0} in scontrol output. Setting the job's status to Canceled and retry for remaining jobs.", scheduledJobId);
+        //        }
+        //    }
+        //    return submittedJobsInfo.ToArray();
+        //}
 
         /// <summary>
         /// Method: Allow direct file transfer acces for user

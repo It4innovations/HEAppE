@@ -1,17 +1,15 @@
 ﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.HpcConnectionFramework;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using System;
 using System.Collections.Generic;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
 {
     /// <summary>
     /// Class: Slurm scheduler factory
     /// </summary>
-    internal class SlurmV18SchedulerFactory : SchedulerFactory
+    internal class SlurmSchedulerFactory : SchedulerFactory
     {
         #region Properties
         /// <summary>
@@ -59,7 +57,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
         /// <returns></returns>
         protected override ISchedulerAdapter CreateSchedulerAdapter()
         {
-            return _schedulerAdapterInstance ?? (_schedulerAdapterInstance = new SlurmV18SchedulerAdapter(CreateDataConvertor()));
+            return _schedulerAdapterInstance ?? (_schedulerAdapterInstance = new SlurmSchedulerAdapter(CreateDataConvertor()));
         }
 
         /// <summary>
@@ -68,7 +66,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.v18
         /// <returns></returns>
         protected override ISchedulerDataConvertor CreateDataConvertor()
         {
-            return _convertorSingleton ?? (_convertorSingleton = new SlurmV18DataConvertor(new SlurmV18ConversionAdapterFactory()));
+            return _convertorSingleton ?? (_convertorSingleton = new SlurmDataConvertor(new SlurmConversionAdapterFactory()));
         }
 
         /// <summary>

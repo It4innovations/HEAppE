@@ -12,15 +12,16 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using HEAppE.HpcConnectionFramework.Configuration;
 
-namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
+
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 {
-    public class LinuxPbsV10SchedulerAdapter : ISchedulerAdapter
+    public class PbsProSchedulerAdapter : ISchedulerAdapter
     {
         #region Constructors
-        public LinuxPbsV10SchedulerAdapter(ISchedulerDataConvertor convertor)
+        public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
             _convertor = convertor;
-            _log = LogManager.GetLogger(typeof(LinuxPbsV10SchedulerAdapter));
+            _log = LogManager.GetLogger(typeof(PbsProSchedulerAdapter));
         }
         #endregion
 
@@ -33,8 +34,9 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
             _log.Info(command.Result);
             try
             {
-                string jobId = LinuxPbsConversionUtils.GetJobIdFromJobCode(command.Result);
-                return GetActualJobInfo(scheduler, jobId);
+                string jobId = PbsProConversionUtils.GetJobIdFromJobCode(command.Result);
+                return null;
+                //return GetActualJobInfo(scheduler, jobId);
             }
             catch (FormatException e)
             {
@@ -49,16 +51,16 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
             RunSshCommand(new SshClientAdapter((SshClient)scheduler), String.Format("bash -lc 'qdel {0}'", scheduledJobId));
         }
 
-        public virtual SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId)
-        {
-            var command = RunSshCommand(new SshClientAdapter((SshClient)(scheduler)), String.Format("bash -lc 'qstat -f {0}'", scheduledJobId));
-            return _convertor.ConvertJobToJobInfo(command.Result);
-        }
+        //public virtual SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId)
+        //{
+        //    var command = RunSshCommand(new SshClientAdapter((SshClient)(scheduler)), String.Format("bash -lc 'qstat -f {0}'", scheduledJobId));
+        //    return _convertor.ConvertJobToJobInfo(command.Result);
+        //}
 
-        public virtual SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds)
-        {
-            throw new NotImplementedException();
-        }
+        //public virtual SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds)
+        //{
+        //    throw new NotImplementedException();
+        //}
 
         public virtual SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
         {
@@ -79,17 +81,17 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
                                                     .Select(item => item.Split("="))
                                                     .ToDictionary(s => s[0].Replace(" ", ""), s => s[1]);
 
-            if (resourcesParams.TryGetValue(LinuxPbsNodeUsageAttributes.RESOURCES_ASSIGNED_NODECT, out string nodesUsed))
+            if (resourcesParams.TryGetValue(PbsProNodeUsageAttributes.RESOURCES_ASSIGNED_NODECT, out string nodesUsed))
             {
                 usage.NodesUsed = StringUtils.ExtractInt(nodesUsed);
             }
 
-            if (resourcesParams.TryGetValue(LinuxPbsNodeUsageAttributes.QUEUE_TYPE_PRIORITY, out string priority))
+            if (resourcesParams.TryGetValue(PbsProNodeUsageAttributes.QUEUE_TYPE_PRIORITY, out string priority))
             {
                 usage.Priority = StringUtils.ExtractInt(priority);
             }
 
-            if (resourcesParams.TryGetValue(LinuxPbsNodeUsageAttributes.QUEUE_TYPE_TOTAL_JOBS, out string totalJobs))
+            if (resourcesParams.TryGetValue(PbsProNodeUsageAttributes.QUEUE_TYPE_TOTAL_JOBS, out string totalJobs))
             {
                 usage.TotalJobs = StringUtils.ExtractInt(totalJobs);
             }
@@ -104,7 +106,7 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
             string shellCommand = String.Format("cat {0}/{1}/nodefile", jobInfo.Specification.Cluster.LocalBasepath, jobInfo.Specification.Id);
             var sshCommand = RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
             _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
-            return LinuxPbsConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
+            return PbsProConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
         }
 
         public virtual IEnumerable<string> GetParametersFromGenericUserScript(object scheduler, string userScriptPath)
@@ -279,7 +281,6 @@ namespace HEAppE.HpcConnectionFramework.LinuxPbs.v10
         protected ILog _log;
 
         private static Dictionary<long, Dictionary<string, SshClient>> jobHostTunnels = new Dictionary<long, Dictionary<string, SshClient>>();
-
         #endregion
     }
 }
