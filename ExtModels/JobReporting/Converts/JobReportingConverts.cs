@@ -108,6 +108,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Name = taskInfo.Name,
                 JobId = taskInfo.JobId,
                 JobName = taskInfo.JobName,
+                Project = taskInfo.Project,
                 Priority = taskInfo.Priority.ConvertIntToExt(),
                 State = taskInfo.State.ConvertIntToExt(),
                 CpuHyperThreading = taskInfo.CpuHyperThreading ?? false,
