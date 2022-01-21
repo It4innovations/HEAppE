@@ -15,18 +15,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
         #endregion
         #region SchedulerDataConvertor Members
-        protected override List<object> CreateTasks(JobSpecification jobSpecification, ISchedulerJobAdapter jobAdapter)
-        {
-#warning Only jobs with one task are supported, multiple jobs should be implemented to support multiple tasks for a job (Job Arrays are not suitable for this purpose because they need to have the same parameters for all tasks)
-            if (jobSpecification.Tasks != null && jobSpecification.Tasks.Count > 0)
-            {
-                return new List<object> {
-                    ConvertTaskSpecificationToTask(jobSpecification, jobSpecification.Tasks.FirstOrDefault(), jobAdapter.Source)
-                };
-            }
-            return new List<object>();
-        }
-
         protected override string CreateCommandLineForTask(CommandTemplate template, TaskSpecification taskSpecification,
             JobSpecification jobSpecification, Dictionary<string, string> additionalParameters)
         {
@@ -39,17 +27,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             return base.CreateCommandLineForTask(template, taskSpecification, jobSpecification, additionalParameters);
         }
 
-        protected override string ConvertJobName(JobSpecification jobSpecification)
-        {
-            string result = Regex.Replace(jobSpecification.Name, @"\W+", "_");
-            return result.Substring(0, (result.Length > 15) ? 15 : result.Length);
-        }
+        //protected override string ConvertJobName(JobSpecification jobSpecification)
+        //{
+        //    string result = Regex.Replace(jobSpecification.Name, @"\W+", "_");
+        //    return result.Substring(0, (result.Length > 15) ? 15 : result.Length);
+        //}
 
-        protected override string ConvertTaskName(string taskName, JobSpecification jobSpecification)
-        {
-            string result = Regex.Replace(taskName, @"\W+", "_");
-            return result.Substring(0, (result.Length > 15) ? 15 : result.Length);
-        }
+        //protected override string ConvertTaskName(string taskName, JobSpecification jobSpecification)
+        //{
+        //    string result = Regex.Replace(taskName, @"\W+", "_");
+        //    return result.Substring(0, (result.Length > 15) ? 15 : result.Length);
+        //}
         #endregion
     }
 }

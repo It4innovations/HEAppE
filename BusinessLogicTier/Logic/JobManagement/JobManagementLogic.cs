@@ -326,7 +326,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 //              from task in job.Tasks
                 //              where job.State > JobState.Configuring && task.State > TaskState.Configuring
                 //              select task.ScheduledJobId).Distinct().ToArray();
-#warning retype to int from string
                 var unfinishedTasks = (from job in jobGroup
                                        from task in job.Tasks
                                        where job.State > JobState.Configuring && task.State > TaskState.Configuring

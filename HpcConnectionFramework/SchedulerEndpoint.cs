@@ -1,30 +1,40 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
+using System;
 
-namespace HEAppE.HpcConnectionFramework {
-	internal struct SchedulerEndpoint {
-		public SchedulerEndpoint(string masterNodeName, SchedulerType schedulerType) : this() {
-			this.MasterNodeName = masterNodeName;
+namespace HEAppE.HpcConnectionFramework
+{
+    internal struct SchedulerEndpoint
+    {
+        #region Properties
+        /// <summary>
+        /// Master nodename (host)
+        /// </summary>
+        public string MasterNodeName { get; private set; }
 
-			this.SchedulerType = schedulerType;
-		}
+        /// <summary>
+        /// Scheduler type
+        /// </summary>
+        public SchedulerType SchedulerType { get; private set; }
+        #endregion
+        #region Constructors
+        public SchedulerEndpoint(string masterNodeName, SchedulerType schedulerType)
+        {
+            MasterNodeName = masterNodeName;
+            SchedulerType = schedulerType;
+        }
+        #endregion
+        #region Override Methods
+        public override bool Equals(object obj)
+        {
+            return (obj is SchedulerEndpoint endpoint) &&
+                   (MasterNodeName.Equals(endpoint.MasterNodeName)) &&
+                   (SchedulerType.Equals(endpoint.SchedulerType));
+        }
 
-		public string MasterNodeName { get; private set; }
-
-		public SchedulerType SchedulerType { get; private set; }
-
-		public override bool Equals(object obj) {
-			return (obj is SchedulerEndpoint) &&
-			       (this.MasterNodeName.Equals(((SchedulerEndpoint) obj).MasterNodeName)) &&
-			       (this.SchedulerType.Equals(((SchedulerEndpoint) obj).SchedulerType));
-		}
-
-		public override int GetHashCode() {
-			unchecked {
-				var hash = 17;
-				hash = (23*hash) + this.MasterNodeName.GetHashCode();
-				hash = (23*hash) + this.SchedulerType.GetHashCode();
-				return hash;
-			}
-		}
-	}
+        public override int GetHashCode()
+        {
+            return HashCode.Combine(MasterNodeName, SchedulerType);
+        }
+        #endregion
+    }
 }

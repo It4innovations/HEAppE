@@ -19,7 +19,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         #endregion
 
         #region ISchedulerTaskAdapter Members
-        public object Source
+        public object AllocationCmd
         {
             get { return taskSource; }
         }

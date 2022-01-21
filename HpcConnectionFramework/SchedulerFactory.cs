@@ -2,10 +2,10 @@
 using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal;
 
 namespace HEAppE.HpcConnectionFramework
 {

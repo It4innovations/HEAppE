@@ -5,7 +5,7 @@ namespace HEAppE.HpcConnectionFramework {
 	public interface ISchedulerDataConvertor {
 		SubmittedJobInfo ConvertJobToJobInfo(object job);
 		SubmittedTaskInfo ConvertTaskToTaskInfo(object task);
-		object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object job);
-		object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object task);
+		object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd);
+		object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd);
 	}
 }

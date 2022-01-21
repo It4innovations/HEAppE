@@ -7,7 +7,7 @@ namespace HEAppE.HpcConnectionFramework.ConversionAdapter
 {
     public interface ISchedulerTaskAdapter
     {
-        object Source { get; }
+        object AllocationCmd { get; }
         ICollection<string> AllocatedCoreIds { get; }
         string Name { get; set; }
         TaskState State { get; }

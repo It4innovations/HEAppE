@@ -10,15 +10,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
     public class PbsProJobAdapter : ISchedulerJobAdapter
     {
         #region Constructors
-        public PbsProJobAdapter(object jobSource)
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public PbsProJobAdapter()
         {
-            this.jobSource = (string)jobSource;
-            qstatInfo = PbsProConversionUtils.ReadQstatResultFromJobSource(this.jobSource);
+
+        }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="schedulerJobInformation">Job information from HPC Scheduler</param>
+        public PbsProJobAdapter(object schedulerJobInformation)
+        {
+            qstatInfo = PbsProConversionUtils.ReadQstatResultFromJobSource((string)schedulerJobInformation);
         }
         #endregion
 
         #region ISchedulerJobAdapter Members
-        public object Source
+        public object AllocationCmd
         {
             get { return jobSource; }
         }
@@ -154,10 +164,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
 
         /// <summary>Resources are set in tasks.</summary>
 
-        public object CreateEmptyTaskObject()
-        {
-            return string.Empty;
-        }
+        //public object CreateEmptyTaskObject()
+        //{
+        //    return string.Empty;
+        //}
 
         public void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure)
         {

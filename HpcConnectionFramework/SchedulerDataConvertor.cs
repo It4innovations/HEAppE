@@ -59,27 +59,26 @@ namespace HEAppE.HpcConnectionFramework
             return taskInfo;
         }
 
-        public virtual object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object job)
+        public virtual object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
-            ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter(job);
-            jobAdapter.Name = ConvertJobName(jobSpecification);
-            jobAdapter.SetNotifications(jobSpecification.NotificationEmail,
-                jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish,
-                jobSpecification.NotifyOnAbort);
-            jobAdapter.Project = jobSpecification.Project;
-            jobAdapter.AccountingString = jobSpecification.SubmitterGroup.AccountingString;
-            if (Convert.ToInt32(jobSpecification.WalltimeLimit) > 0)
+            ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter();
+            jobAdapter.SetNotifications(jobSpecification.NotificationEmail,jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+            var tasks = new List<object>();
+            if (jobSpecification.Tasks is not null && jobSpecification.Tasks.Any())
             {
-                jobAdapter.Runtime = Convert.ToInt32(jobSpecification.WalltimeLimit);
+                foreach (var task in jobSpecification.Tasks)
+                {
+                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)});echo $_{task.Id};");
+                }
             }
-            jobAdapter.SetTasks(CreateTasks(jobSpecification, jobAdapter));
-            log.Debug(jobAdapter.Source);
-            return jobAdapter.Source;
+
+            jobAdapter.SetTasks(tasks);
+            return jobAdapter.AllocationCmd;
         }
 
-        public object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object task)
+        public object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
         {
-            ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(task);
+            ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
             taskAdapter.DependsOn = taskSpecification.DependsOn;
             taskAdapter.SetEnvironmentVariablesToTask(taskSpecification.EnvironmentVariables);
             taskAdapter.IsExclusive = taskSpecification.IsExclusive;
@@ -113,10 +112,7 @@ namespace HEAppE.HpcConnectionFramework
 
             taskAdapter.WorkDirectory = workDirectory;
             taskAdapter.JobArrays = taskSpecification.JobArrays;
-            if (!string.IsNullOrEmpty(taskSpecification.JobArrays))
-                taskAdapter.IsRerunnable = true;
-            else
-                taskAdapter.IsRerunnable = taskSpecification.IsRerunnable;
+            taskAdapter.IsRerunnable = !string.IsNullOrEmpty(taskSpecification.JobArrays) || taskSpecification.IsRerunnable;
 
             taskAdapter.Queue = taskSpecification.ClusterNodeType.Queue;
             taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
@@ -124,36 +120,23 @@ namespace HEAppE.HpcConnectionFramework
             CommandTemplate template = taskSpecification.CommandTemplate;
             if (template != null)
             {
-                Dictionary<string, string> templateParameters =
-                    CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification, template.TemplateParameters, taskSpecification.CommandParameterValues);
-                taskAdapter.SetPreparationAndCommand(
-                    workDirectory,
-                    ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
-                    CreateCommandLineForTask(template, taskSpecification, jobSpecification, templateParameters),
-                    stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
+                Dictionary<string, string> templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
+                                                                template.TemplateParameters, taskSpecification.CommandParameterValues);
+                taskAdapter.SetPreparationAndCommand(workDirectory,
+                                                     ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
+                                                     CreateCommandLineForTask(template, taskSpecification, jobSpecification, templateParameters),
+                                                     stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
             }
             else
             {
                 throw new ApplicationException("Command Template \"" + taskSpecification.CommandTemplate.Name + "\" for task \"" +
                                                taskSpecification.Name + "\" does not exist in the adaptor configuration.");
             }
-            return taskAdapter.Source;
+            return taskAdapter.AllocationCmd;
         }
         #endregion
 
         #region Local Methods
-        protected virtual List<object> CreateTasks(JobSpecification jobSpecification, ISchedulerJobAdapter jobAdapter)
-        {
-            List<object> tasks = new List<object>();
-            foreach (TaskSpecification taskSpecification in jobSpecification.Tasks)
-            {
-                object task = jobAdapter.CreateEmptyTaskObject();
-                task = ConvertTaskSpecificationToTask(jobSpecification, taskSpecification, task);
-                tasks.Add(task);
-            }
-            return tasks;
-        }
-
         protected virtual List<SubmittedTaskInfo> ConvertAllTasksToTaskInfos(List<object> tasks)
         {
             if (tasks != null)
@@ -167,6 +150,7 @@ namespace HEAppE.HpcConnectionFramework
             }
             return new List<SubmittedTaskInfo>();
         }
+
 
         protected virtual double CountTotalAllocatedTime(ICollection<SubmittedTaskInfo> tasks)
         {
@@ -284,16 +268,6 @@ namespace HEAppE.HpcConnectionFramework
                                                "\" could not be found either as a property of the task, nor as an additional parameter.");
             });
             return replacedCommandLine;
-        }
-
-        protected virtual string ConvertJobName(JobSpecification jobSpecification)
-        {
-            return jobSpecification.Name;
-        }
-
-        protected virtual string ConvertTaskName(string taskName, JobSpecification jobSpecification)
-        {
-            return taskName;
         }
         #endregion
 

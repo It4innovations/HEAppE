@@ -9,9 +9,22 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19.ConversionA
     public class PbsProV19JobAdapter : PbsProJobAdapter
     {
         #region Constructors
-        public PbsProV19JobAdapter(object jobSource) : base(jobSource) { }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public PbsProV19JobAdapter()
+        {
+        
+        }
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="schedulerJobInformation">Job information from HPC Scheduler</param>
+        public PbsProV19JobAdapter(object schedulerJobInformation) : base(schedulerJobInformation) 
+        { 
+        
+        }
         #endregion
-
         #region ISchedulerJobAdapter Members
         public override string Project
         {

@@ -5,6 +5,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
     public class PbsProConversionAdapterFactory : ConversionAdapterFactory
     {
         #region ConversionAdapterFactory Members
+        public override ISchedulerJobAdapter CreateJobAdapter()
+        {
+            return new PbsProJobAdapter();
+        }
+
         public override ISchedulerJobAdapter CreateJobAdapter(object jobSource)
         {
             return new PbsProJobAdapter(jobSource);

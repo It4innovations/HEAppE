@@ -1,16 +1,15 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
 using HEAppE.MiddlewareUtils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-//using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.ConversionAdapter;
 using System.Text.Json;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
     public class LinuxLocalDataConvertor : SchedulerDataConvertor
     {
@@ -19,25 +18,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
         public LinuxLocalDataConvertor() : base(null) { }
         #endregion
         #region SchedulerDataConvertor Members
-        protected override List<object> CreateTasks(JobSpecification jobSpecification, ISchedulerJobAdapter jobAdapter)
-        {
-            List<object> tasks = new List<object>();
-
-            if (jobSpecification.Tasks != null && jobSpecification.Tasks.Count > 0)
-            {
-
-                foreach (var task in jobSpecification.Tasks)
-                {
-
-                    StringBuilder builder = new StringBuilder("");
-                    builder.Append((string)ConvertTaskSpecificationToTask(jobSpecification, task, jobAdapter.Source));
-
-                    tasks.Add(builder.ToString());
-                }
-            }
-            return tasks;
-        }
-
         protected override string CreateCommandLineForTask(CommandTemplate template, TaskSpecification taskSpecification,
             JobSpecification jobSpecification, Dictionary<string, string> additionalParameters)
         {
@@ -107,7 +87,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
             return taskInfo;
         }
 
-        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object job)
+        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
             var localHpcJobInfo =
                 Convert.ToBase64String(Encoding.UTF8.GetBytes(jobSpecification.ConvertToLocalHPCInfo("Q", "Q")));

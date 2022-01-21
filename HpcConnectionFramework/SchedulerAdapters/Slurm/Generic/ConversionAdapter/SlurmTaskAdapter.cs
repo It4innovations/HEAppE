@@ -28,7 +28,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <summary>
         /// Job priority multiplier for setting priority from range [0-max(int)]
         /// </summary>
-        protected static int _priorityMultiplier = 25000;
+        protected static readonly int _priorityMultiplier = 25000;
         #endregion
         #region Constructors
         /// <summary>
@@ -44,9 +44,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         #endregion
         #region ISchedulerTaskAdapter Members
         /// <summary>
-        /// Task command
+        /// Task allocation command
         /// </summary>
-        public object Source
+        public object AllocationCmd
         {
             get { return _jobTaskBuilder.ToString(); }
         }
@@ -177,7 +177,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
             {
                 if (value != null && value.Count > 0)
                 {
-                    StringBuilder builder = new StringBuilder(" --dependency=afterok");
+                    var builder = new StringBuilder(" --dependency=afterok");
                     foreach (TaskDependency taskDependency in value)
                     {
                         builder.Append(":$_");
@@ -405,10 +405,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             _jobTaskBuilder.Append($" --wrap \'cd {workDir};");
             _jobTaskBuilder.Append(
-                string.IsNullOrEmpty(recursiveSymlinkCommand) 
-                    ? string.Empty 
-                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};");
-            _jobTaskBuilder.Append($"rm {stdOutFile} {stdErrFile};");
+                string.IsNullOrEmpty(recursiveSymlinkCommand)
+                    ? string.Empty
+                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};");
+
+
+            _jobTaskBuilder.Append($"1>> {stdOutFile} ");
+            _jobTaskBuilder.Append($"2>> {stdErrFile} ");
 
             _jobTaskBuilder.Append(
                 string.IsNullOrEmpty(preparationScript)
@@ -418,6 +421,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
                 string.IsNullOrEmpty(commandLine)
                     ? string.Empty
                     : commandLine.Last().Equals(';') ? commandLine : $"{commandLine};");
+
             _jobTaskBuilder.Append('\'');
         }
         #endregion

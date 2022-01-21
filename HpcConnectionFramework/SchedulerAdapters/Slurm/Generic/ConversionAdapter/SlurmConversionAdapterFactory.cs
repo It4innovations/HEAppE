@@ -12,10 +12,21 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// </summary>
         /// <param name="jobSource">Job source</param>
         /// <returns></returns>
+        public override ISchedulerJobAdapter CreateJobAdapter()
+        {
+            return new SlurmJobAdapter();
+        }
+
+        /// <summary>
+        /// Method: Create job adapter
+        /// </summary>
+        /// <param name="jobSource">Job source</param>
+        /// <returns></returns>
         public override ISchedulerJobAdapter CreateJobAdapter(object jobSource)
         {
             return new SlurmJobAdapter((string)jobSource);
         }
+
 
         /// <summary>
         /// Method: Create job task adapter

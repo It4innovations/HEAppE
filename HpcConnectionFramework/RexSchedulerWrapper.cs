@@ -44,6 +44,7 @@ namespace HEAppE.HpcConnectionFramework
 
         public void CancelJob(string scheduledJobId, ClusterAuthenticationCredentials credentials)
         {
+            //TODO verify
             CancelJob(scheduledJobId, "Job cancelled manually by the client.", credentials);
         }
 

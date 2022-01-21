@@ -13,15 +13,21 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
     internal static class SlurmConversionUtils
     {
         /// <summary>
-        /// Method: Get job id from 
+        /// Method: Get job ids after submission
         /// </summary>
         /// <param name="responseMessage">Server response text</param>
         /// <returns></returns>
-        internal static int GetJobIdFromJobCode(string responseMessage)
+        internal static IEnumerable<string> GetJobIds(string responseMessage)
         {
-            int lastTextIndex = responseMessage.LastIndexOf(' ');
-            responseMessage = responseMessage.Substring(lastTextIndex).Replace(Environment.NewLine, string.Empty).Replace("\n", string.Empty);
-            return int.Parse(responseMessage);
+            List<string> scheduledJobIds = new List<string>();
+            foreach (Match match in Regex.Matches(responseMessage, @$"(Submitted batch job)+[\s\t]+[0-9]+", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                if (match.Success)
+                {
+                    scheduledJobIds.Add(match.Value);
+                }
+            }
+            return scheduledJobIds;
         }
 
         /// <summary>

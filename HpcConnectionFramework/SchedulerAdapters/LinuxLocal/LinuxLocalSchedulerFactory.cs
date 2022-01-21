@@ -3,7 +3,7 @@ using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
     public class LinuxLocalSchedulerFactory : SchedulerFactory {
 		#region SchedulerFactory Members

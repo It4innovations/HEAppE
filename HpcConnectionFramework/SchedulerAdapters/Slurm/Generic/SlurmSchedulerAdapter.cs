@@ -70,9 +70,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
-                int jobId = SlurmConversionUtils.GetJobIdFromJobCode(command.Result);
-                //TODO
-                return GetActualJobInfo((SshClient)connectorClient, new string[3] { "1", "2", "3" });
+                var jobIds = SlurmConversionUtils.GetJobIds(command.Result);
+                return GetActualTasksInfo((SshClient)connectorClient, jobIds);
             }
             catch (FormatException e)
             {
@@ -92,18 +91,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scancel {scheduledJobId}'");
         }
 
-        ///// <summary>
-        ///// Method: Get actual job information
-        ///// </summary>
-        ///// <param name="connectorClient">Connector</param>
-        ///// <param name="scheduledJobId">Scheduled job id</param>
-        //public SubmittedJobInfo GetActualJobInfo(object connectorClient, string scheduledJobId)
-        //{
-        //    var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o'");
-        //    return _convertor.ConvertJobToJobInfo(command.Result);
-        //}
+        public virtual SubmittedJobInfo GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds)
+        {
+            //TODO
+            var cmdBuilder = new StringBuilder();
+            foreach(string scheduledJobId in scheduledJobIds)
+            {
+                cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o';");
+            }
 
-        public virtual SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
+            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
+            return _convertor.ConvertJobToJobInfo(command.Result);
+        }
+
+        public SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
         {
             throw new NotImplementedException();
         }
@@ -166,43 +167,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             return genericCommandParameters;
         }
 
-        ///// <summary>
-        ///// Method: Get actual job information
-        ///// </summary>
-        ///// <param name="connectorClient">Connector</param>
-        ///// <param name="scheduledJobIds">Scheduled job Ids</param>
-        //public virtual SubmittedJobInfo[] GetActualJobsInfo(object connectorClient, int[] scheduledJobIds)
-        //{
-        //    List<SubmittedJobInfo> submittedJobsInfo = new List<SubmittedJobInfo>();
-        //    foreach (int scheduledJobId in scheduledJobIds)
-        //    {
-        //        try
-        //        {
-        //            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o'");
-        //            var submittedJobInfo = _convertor.ConvertJobToJobInfo(command.Result);
-
-        //            if (submittedJobInfo != null)
-        //            {
-        //                submittedJobsInfo.Add(submittedJobInfo);
-        //            }
-        //        }
-        //        catch (Exception)
-        //        {
-        //            _log.WarnFormat("Unknown Job ID {0} in scontrol output. Setting the job's status to Canceled and retry for remaining jobs.", scheduledJobId);
-        //        }
-        //    }
-        //    return submittedJobsInfo.ToArray();
-        //}
-
         /// <summary>
         /// Method: Allow direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
         /// <param name="jobInfo">Job info</param>
-        public void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
+        public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
         {
-            _commands.AllowDirectFileTransferAccessForUserToJob(scheduler, publicKey, jobInfo);
+            _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
         }
 
         /// <summary>
@@ -211,9 +184,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="connectorClient">Conenctor</param>
         /// <param name="publicKey">Public key</param>
         /// <param name="jobInfo">Job info</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
+        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(scheduler, publicKey, jobInfo);
+            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
         }
 
         /// <summary>
@@ -221,9 +194,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
-            _commands.CreateJobDirectory(scheduler, jobInfo);
+            _commands.CreateJobDirectory(connectorClient, jobInfo);
         }
 
         /// <summary>
@@ -231,9 +204,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void DeleteJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
+        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
-            _commands.DeleteJobDirectory(scheduler, jobInfo);
+            _commands.DeleteJobDirectory(connectorClient, jobInfo);
         }
 
         /// <summary>
@@ -242,9 +215,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataToTemp(object scheduler, SubmittedJobInfo jobInfo, string hash, string path)
+        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
         {
-            _commands.CopyJobDataToTemp(scheduler, jobInfo, hash, path);
+            _commands.CopyJobDataToTemp(connectorClient, jobInfo, hash, path);
         }
 
         /// <summary>
@@ -254,9 +227,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
         /// <param name="path">Path</param>
-        public void CopyJobDataFromTemp(object scheduler, SubmittedJobInfo jobInfo, string hash)
+        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
         {
-            _commands.CopyJobDataFromTemp(scheduler, jobInfo, hash);
+            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
         }
 
         #region SSH tunnel methods
@@ -294,11 +267,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         public bool SshTunnelExist(long jobId, string nodeHost)
         {
             return _sshTunnelUtil.SshTunnelExist(jobId, nodeHost);
-        }
-
-        public SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds)
-        {
-            throw new NotImplementedException();
         }
         #endregion
         #endregion

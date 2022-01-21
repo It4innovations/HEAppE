@@ -12,7 +12,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
     /// </summary>
     internal class SlurmJobAdapter : ISchedulerJobAdapter
     {
-        #region Properties
+        #region Instances
         /// <summary>
         /// Job command builder (create job)
         /// </summary>
@@ -22,29 +22,40 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// Job parameter (result of job)
         /// </summary>
         protected SlurmJobDTO _jobParameters;
-
-        /// <summary>
-        /// Job priority multiplier for setting priority from range [0-max(int)]
-        /// </summary>
-        protected static int _priorityMultiplier = 25000;
         #endregion
         #region Constructors
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="jobSource"></param>
-        public SlurmJobAdapter(string jobSource)
+        public SlurmJobAdapter()
         {
-            //TODO divide create and read job parameters
-            _jobCommandBuilder = new StringBuilder(jobSource);
-            _jobParameters = SlurmConversionUtils.ReadParametersFromSqueueResponse(jobSource);
+            _jobCommandBuilder = new StringBuilder();
+        }
+
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="schedulerJobInformation">Job information from HPC Scheduler</param>
+        public SlurmJobAdapter(string schedulerJobInformation)
+        {
+            _jobParameters = SlurmConversionUtils.ReadParametersFromSqueueResponse(schedulerJobInformation);
         }
         #endregion
         #region ISchedulerJobAdapter Members
         /// <summary>
-        /// Job command
+        /// Job account
+        /// Note: Slurm does not have Accounting string
         /// </summary>
-        public object Source
+        public string AccountingString
+        {
+            get { return string.Empty; }
+            set { }
+        }
+
+        /// <summary>
+        /// Job Allocation command
+        /// </summary>
+        public object AllocationCmd
         {
             get { return _jobCommandBuilder.ToString(); }
         }
@@ -72,16 +83,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// Note: Slurm does not have project for job
         /// </summary>
         public virtual string Project
-        {
-            get { return string.Empty; }
-            set { }
-        }
-
-        /// <summary>
-        /// Job account
-        /// Note: Slurm does not have Accounting string
-        /// </summary>
-        public string AccountingString
         {
             get { return string.Empty; }
             set { }
@@ -127,15 +128,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
             get { return _jobParameters.EndTime; }
         }
 
-
         /// <summary>
-        /// Job runtime
-        /// Note: Runtime is used in tasks - used Allocated time 
+        /// Method: Set tasks for job
         /// </summary>
-        public int Runtime
+        /// <param name="tasks">Tasks</param>
+        public void SetTasks(List<object> tasks)
         {
-            get { return (int)_jobParameters.AllocatedTime.TotalSeconds; }
-            set { }
+            foreach (var task in tasks)
+            {
+                _jobCommandBuilder.Append((string)task);
+            }
         }
 
         /// <summary>
@@ -148,16 +150,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
             {
                 _jobCommandBuilder.ToString()
             };
-        }
-
-
-        /// <summary>
-        /// Method: Create empty task
-        /// </summary>
-        /// <returns></returns>
-        public object CreateEmptyTaskObject()
-        {
-            return string.Empty;
         }
 
         /// <summary>
@@ -193,19 +185,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
 
                 mailParameters = mailParameters.Remove((mailParameters.Length - 1), 1);
                 _jobCommandBuilder.Append($" --mail-user={mailAddress} --mail-type={mailParameters}");
-            }
-        }
-
-        /// <summary>
-        /// Method: Set tasks for job
-        /// Note: When multiple jobs are implemented, the SetTasks method has to be changed
-        /// </summary>
-        /// <param name="tasks">Tasks</param>
-        public void SetTasks(List<object> tasks)
-        {
-            foreach (var task in tasks)
-            {
-                _jobCommandBuilder.Append((string)task);
             }
         }
         #endregion

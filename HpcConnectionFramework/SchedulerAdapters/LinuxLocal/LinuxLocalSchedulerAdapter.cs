@@ -10,7 +10,7 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using Renci.SshNet;
 using log4net;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
     public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     {
@@ -110,11 +110,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
 
         public List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
         {
-#warning this should use database instead of direct read from file
-            string shellCommand = String.Format("cat {0}/{1}/nodefile", jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification.Id);
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
-            _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
-            return PbsProConversionUtils.ConvertNodesUrlsToList(sshCommand.Result);
+            throw new NotImplementedException();
         }
 
         public void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)

@@ -1,13 +1,9 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading.Tasks;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
 {
     public class LinuxLocalTaskDTO
     {
