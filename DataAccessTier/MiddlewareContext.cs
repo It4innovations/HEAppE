@@ -13,7 +13,7 @@ using log4net;
 using System.Reflection;
 using System;
 using HEAppE.DomainObjects.OpenStack;
-
+using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 
 namespace HEAppE.DataAccessTier
 {
@@ -171,7 +171,7 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserRoles, false);
+            InsertOrUpdateSeedData(GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserRoles), false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
             {
@@ -214,6 +214,60 @@ namespace HEAppE.DataAccessTier
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
+        }
+
+        /// <summary>
+        /// Returns all User to Role mappings and adds cascade roles for specific roles
+        /// </summary>
+        /// <param name="adaptorUserUserRoles"></param>
+        /// <returns></returns>
+        private IEnumerable<AdaptorUserUserRole> GetAllUserRoles(List<AdaptorUserUserRole> adaptorUserUserRoles)
+        {
+            foreach (var userRoleGroup in adaptorUserUserRoles?.GroupBy(x => x.AdaptorUserId))
+            {
+                var userRoles = userRoleGroup.Select(x => x);
+                if (IsRoleInCollection(userRoles, UserRoleType.Administrator))
+                {
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Maintainer, adaptorUserUserRoles);
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Submitter, adaptorUserUserRoles);
+                }
+                else if(IsRoleInCollection(userRoles, UserRoleType.Submitter))
+                {
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
+                }
+            }
+            return adaptorUserUserRoles;
+        }
+
+        /// <summary>
+        /// Checks if role is in collection by RoleID
+        /// </summary>
+        /// <param name="adaptorUserUserRoles"></param>
+        /// <param name="role"></param>
+        /// <returns></returns>
+        bool IsRoleInCollection(IEnumerable<AdaptorUserUserRole> adaptorUserUserRoles, UserRoleType role)
+        {
+            return adaptorUserUserRoles.Any(x => x.AdaptorUserRoleId.Equals((long)role));
+        }
+
+        /// <summary>
+        /// Checks and adds Role to collection when is not in collection grouped by User
+        /// </summary>
+        /// <param name="currentUserUserRoles">Collection of role to user mapping grouped by User</param>
+        /// <param name="roleType"></param>
+        /// <param name="adaptorUserUserRolesCollection">Global role to user collection mapping</param>
+        void CheckAndAddUserUserRole(IEnumerable<AdaptorUserUserRole> currentUserUserRoles, UserRoleType roleType, List<AdaptorUserUserRole> adaptorUserUserRolesCollection)
+        {
+            var userRole = currentUserUserRoles.FirstOrDefault();
+            if (!IsRoleInCollection(currentUserUserRoles, roleType))
+            {
+                adaptorUserUserRolesCollection.Add(new AdaptorUserUserRole()
+                {
+                    AdaptorUserId = userRole.AdaptorUserId,
+                    AdaptorUserRoleId = (long)roleType
+                });
+            }
         }
 
         //sqlserver specific because of identity
