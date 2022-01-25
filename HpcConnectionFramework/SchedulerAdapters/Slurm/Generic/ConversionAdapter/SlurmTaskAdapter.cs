@@ -39,7 +39,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             //TODO divide create and read task parameters
             _jobTaskBuilder = new StringBuilder(taskSource);
-            _taskParameters = SlurmConversionUtils.ReadParametersFromSqueueResponse(taskSource);
+            //_taskParameters = SlurmConversionUtils.ReadParametersFromSqueueResponse(taskSource);
         }
         #endregion
         #region ISchedulerTaskAdapter Members

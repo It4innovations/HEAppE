@@ -19,15 +19,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
         /// <returns></returns>
         internal static IEnumerable<string> GetJobIds(string responseMessage)
         {
-            List<string> scheduledJobIds = new List<string>();
-            foreach (Match match in Regex.Matches(responseMessage, @$"(Submitted batch job)+[\s\t]+[0-9]+", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            var scheduledJobIds = new List<string>();
+            foreach (Match match in Regex.Matches(responseMessage, @$"(?<JobId>Submitted batch job[\s\t]+)([0-9]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
-                if (match.Success)
+                if (match.Success && match.Groups.Count == 3)
                 {
-                    scheduledJobIds.Add(match.Value);
+                    scheduledJobIds.Add(match.Groups[2].Value);
                 }
             }
-            return scheduledJobIds;
+
+            return scheduledJobIds.Any() ? scheduledJobIds : throw new FormatException(responseMessage);
         }
 
         /// <summary>
@@ -35,45 +36,50 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
         /// </summary>
         /// <param name="responseMessage">Server response text</param>
         /// <returns></returns>
-        internal static SlurmJobDTO ReadParametersFromSqueueResponse(string responseMessage)
+        internal static IEnumerable<SlurmJobDTO> ReadParametersFromSqueueResponse(string responseMessage)
         {
-            if (!string.IsNullOrEmpty(responseMessage) && responseMessage.Length > 0 && responseMessage.Contains("="))
+            var jobsParameters = new List<SlurmJobDTO>();
+            foreach (Match match in Regex.Matches(responseMessage, @$"(?<jobParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
-                string modResponseMessage = Regex.Replace(responseMessage, @"\s+", " ").TrimEnd();
-                var pars = modResponseMessage.Split(' ')
-                                              .Select(s => s.Split('=', 2))
-                                              .Select(se => new { Key = se[0], Value = (se[1] == "(null)" || se[1] == "N/A" || se[1] == "Unknown" ? string.Empty : se[1])})
-                                              .Distinct();
-                Dictionary<string, string> parsedValues = pars.ToDictionary(i => i.Key, j => j.Value);
-
-
-                var slurmAttributes = new SlurmJobInfoAttributesDTO();
-                var jobParameters = new SlurmJobDTO(parsedValues);
-
-                var slurmProperties = slurmAttributes.GetType().GetProperties();
-                foreach (var slurmProperty in slurmProperties)
+                if (match.Success && match.Groups.Count == 1)
                 {
-                    List<string> propertyValues = (List<string>)slurmAttributes.GetType().GetProperty(slurmProperty.Name).GetValue(slurmAttributes, null);
-                    foreach (var propertyValue in propertyValues)
+                    //For each HPC scheduler job
+                    var parameters = Regex.Matches(responseMessage, @$"\s?(?<Key>.[^=]*)=(?<Value>.[^=\s]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled)
+                                        .Where(w => w.Success && w.Groups.Count == 2)
+                                        .Select(s => new { Key = s.Groups[0].Value, Value = (s.Groups[1].Value == "(null)" || s.Groups[1].Value == "N/A" || s.Groups[1].Value == "Unknown" ? string.Empty : s.Groups[1].Value) })
+                                        .Distinct();
+
+                    Dictionary<string, string> parsedParameters = parameters.ToDictionary(i => i.Key, j => j.Value);
+
+                    var slurmAttributes = new SlurmJobInfoAttributesDTO();
+                    var jobParameters = new SlurmJobDTO(parsedParameters);
+
+                    var slurmProperties = slurmAttributes.GetType().GetProperties();
+                    foreach (var slurmProperty in slurmProperties)
                     {
-                        if (parsedValues.ContainsKey(propertyValue))
+                        List<string> propertyValues = (List<string>)slurmAttributes.GetType().GetProperty(slurmProperty.Name).GetValue(slurmAttributes, null);
+                        foreach (var propertyValue in propertyValues)
                         {
-                            var jobParametersProperty = jobParameters.GetType().GetProperty(slurmProperty.Name);
-                            if (jobParametersProperty != null && jobParametersProperty.CanWrite)
+                            if (parsedParameters.ContainsKey(propertyValue))
                             {
-                                var value = SlurmMapper.ChangeType(parsedValues[propertyValue], jobParametersProperty.PropertyType);
-                                jobParametersProperty.SetValue(jobParameters, value, null);
+                                var jobParametersProperty = jobParameters.GetType().GetProperty(slurmProperty.Name);
+                                if (jobParametersProperty != null && jobParametersProperty.CanWrite)
+                                {
+                                    var value = SlurmMapper.ChangeType(parsedParameters[propertyValue], jobParametersProperty.PropertyType);
+                                    jobParametersProperty.SetValue(jobParameters, value, null);
+                                }
+                                break;
                             }
-                            break;
                         }
                     }
+                    jobsParameters.Add(jobParameters);
                 }
-                return jobParameters;
+                else
+                {
+                    throw new FormatException("Unable to parse response from HPC scheduler!");
+                }
             }
-            else
-            {
-                return null;
-            }
+            return jobsParameters;
         }
 
         /// <summary>
