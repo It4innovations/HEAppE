@@ -10,6 +10,7 @@ using HEAppE.MiddlewareUtils;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using Renci.SshNet;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
 {

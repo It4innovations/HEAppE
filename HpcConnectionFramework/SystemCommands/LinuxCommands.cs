@@ -10,7 +10,7 @@ using System.Text;
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
     /// <summary>
-    /// Class: Linux system commands
+    /// Linux system commands
     /// </summary>
     internal class LinuxCommands : ICommands
     {
@@ -41,7 +41,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         #endregion
         #region Methods
         /// <summary>
-        /// Method: Copy job data to temp folder
+        /// Copy job data to temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -56,7 +56,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
 
         /// <summary>
-        /// Method: Copy job data from temp folder
+        /// Copy job data from temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -73,7 +73,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
 
         /// <summary>
-        /// Method: Allow direct file transfer acces for user
+        /// Allow direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
@@ -86,7 +86,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
 
         /// <summary>
-        /// Method: Remove direct file transfer acces for user
+        /// Remove direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Conenctor</param>
         /// <param name="publicKey">Public key</param>
@@ -99,7 +99,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
 
         /// <summary>
-        /// Method: Create job directory
+        /// Create job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -115,7 +115,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
 
         /// <summary>
-        /// Method: Delete job directory
+        /// Delete job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>

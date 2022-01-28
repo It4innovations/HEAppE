@@ -9,6 +9,7 @@ using HEAppE.MiddlewareUtils;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using Renci.SshNet;
 using log4net;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {

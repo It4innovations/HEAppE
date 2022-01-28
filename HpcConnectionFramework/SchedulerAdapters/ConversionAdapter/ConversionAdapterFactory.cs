@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.ConversionAdapter
+﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 {
     public abstract class ConversionAdapterFactory
     {

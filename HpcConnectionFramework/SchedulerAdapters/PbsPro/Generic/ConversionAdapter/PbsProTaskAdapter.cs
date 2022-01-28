@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
@@ -82,7 +82,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             }
         }
 
-        public ICollection<string> AllocatedCoreIds
+        public IEnumerable<string> AllocatedCoreIds
         {
             get
             {
@@ -148,11 +148,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             get { return null; }
         }
 
-        public ICollection<TaskDependency> DependsOn
+        public IEnumerable<TaskDependency> DependsOn
         {
             set
             {
-                if (value != null && value.Count > 0)
+                if (value != null && value.Any())
                 {
                     StringBuilder builder = new StringBuilder(" -W depend=afterok");
                     foreach (TaskDependency taskDependency in value)
@@ -268,7 +268,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             get { return qstatInfo; }
         }
 
-        public void SetRequestedResourceNumber(ICollection<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, ICollection<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
+        public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
         {
             StringBuilder allocationCmdBuilder = new StringBuilder(" -l select=");
 
@@ -318,9 +318,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             taskSource += allocationCmdBuilder.ToString();
         }
 
-        public void SetEnvironmentVariablesToTask(ICollection<EnvironmentVariable> variables)
+        public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)
         {
-            if (variables != null && variables.Count > 0)
+            if (variables != null && variables.Any())
             {
                 StringBuilder builder = new StringBuilder(" -v ");
                 bool first = true;
@@ -366,11 +366,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         #endregion
 
         #region Local Methods
-        protected virtual string GenerateSelectPartForRequestedGroups(ICollection<string> requestedNodeGroups, string placementPolicy, ICollection<TaskParalizationSpecification> paralizationSpecs, int coreCount, int coresPerNode)
+        protected virtual string GenerateSelectPartForRequestedGroups(IEnumerable<string> requestedNodeGroups, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int coreCount, int coresPerNode)
         {
             StringBuilder builder = new StringBuilder();
             string reqNodeGroupsCmd = string.Empty;
-            if (requestedNodeGroups?.Count > 0)
+            if (requestedNodeGroups.Any())
             {
                 foreach (string nodeGroup in requestedNodeGroups)
                 {
@@ -380,7 +380,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
                 builder.Clear();
             }
 
-            if (paralizationSpecs?.Count > 0)
+            if (paralizationSpecs.Any())
             {
                 bool first = true;
                 foreach (var pSpec in paralizationSpecs)

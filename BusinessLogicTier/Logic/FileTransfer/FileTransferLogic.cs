@@ -9,11 +9,11 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.FileTransferFramework;
-using HEAppE.HpcConnectionFramework;
 using HEAppE.MiddlewareUtils;
 using log4net;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using Renci.SshNet.Common;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
 namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 {

@@ -4,7 +4,7 @@ using System;
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
     /// <summary>
-    /// Interface: System commands
+    /// ISystem commands
     /// </summary>
     public interface ICommands
     {

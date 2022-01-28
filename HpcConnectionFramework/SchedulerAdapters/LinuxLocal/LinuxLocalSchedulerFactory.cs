@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal

@@ -11,7 +11,7 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using System.Linq;
 using System.Text.RegularExpressions;
 using HEAppE.HpcConnectionFramework.Configuration;
-
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 {

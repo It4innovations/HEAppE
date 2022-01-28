@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
-using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Factory;
@@ -13,7 +12,6 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.HpcConnectionFramework;
 using log4net;
 using System.Text.RegularExpressions;
 using System.Text;
@@ -23,7 +21,8 @@ using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.Utils.Validation;
 using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.BusinessLogicTier.Configuration;
-
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {

@@ -1,4 +1,4 @@
-﻿using HEAppE.HpcConnectionFramework.ConversionAdapter;
+﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {

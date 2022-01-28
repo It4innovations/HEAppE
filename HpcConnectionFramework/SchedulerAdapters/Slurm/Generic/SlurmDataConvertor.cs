@@ -1,5 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO;
 using System;
 using System.Collections.Generic;

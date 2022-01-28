@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
@@ -158,7 +158,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             }
         }
 
-        public virtual void SetTasks(List<object> tasks)
+        public virtual void SetTasks(IEnumerable<object> tasks)
         {
 #warning When multiple jobs are implemented, the SetTasks method has to be changed
             foreach (object task in tasks)

@@ -1,6 +1,6 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.MiddlewareUtils;
 using System.Collections.Generic;
@@ -15,12 +15,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
         public PbsProV19DataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) { }
         #endregion
         #region SchedulerDataConvertor Members
-        protected override string CreateCommandLineForTask(CommandTemplate template, TaskSpecification taskSpecification,
-            JobSpecification jobSpecification, Dictionary<string, string> additionalParameters)
-        {
-            return CreateCommandLineForTemplate(template, additionalParameters);
-        }
-
         //public override SubmittedTaskInfo ConvertTaskToTaskInfo(object task)
         //{
         //    SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();

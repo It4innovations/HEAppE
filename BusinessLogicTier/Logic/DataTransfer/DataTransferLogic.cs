@@ -6,14 +6,13 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.DataTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework;
 using log4net;
 using System.Net;
 using System.Net.Sockets;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer.Exceptions;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.IO;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
 namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
 {

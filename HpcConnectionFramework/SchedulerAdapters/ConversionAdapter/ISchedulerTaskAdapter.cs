@@ -2,7 +2,7 @@
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
-namespace HEAppE.HpcConnectionFramework.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 {
     public interface ISchedulerTaskAdapter
     {
@@ -18,7 +18,7 @@ namespace HEAppE.HpcConnectionFramework.ConversionAdapter
 
         string Name { set; }
 
-        ICollection<TaskDependency> DependsOn { set; }
+        IEnumerable<TaskDependency> DependsOn { set; }
 
         bool IsExclusive { set; }
 
@@ -34,9 +34,9 @@ namespace HEAppE.HpcConnectionFramework.ConversionAdapter
 
         string WorkDirectory { set; }
 
-        void SetRequestedResourceNumber(ICollection<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, ICollection<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode);
+        void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode);
 
-        void SetEnvironmentVariablesToTask(ICollection<EnvironmentVariable> variables);
+        void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables);
 
         void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine, string stdOutFile, string stdErrFile, string recursiveSymlinkCommand);
     }

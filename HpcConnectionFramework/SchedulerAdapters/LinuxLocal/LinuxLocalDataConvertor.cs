@@ -1,13 +1,11 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
 using HEAppE.MiddlewareUtils;
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
-using System.Text.Json;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
@@ -18,12 +16,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         public LinuxLocalDataConvertor() : base(null) { }
         #endregion
         #region SchedulerDataConvertor Members
-        protected override string CreateCommandLineForTask(CommandTemplate template, TaskSpecification taskSpecification,
-            JobSpecification jobSpecification, Dictionary<string, string> additionalParameters)
-        {
-            return CreateCommandLineForTemplate(template, additionalParameters);
-        }
-
         //public override SubmittedJobInfo ConvertJobToJobInfo(object job)//TODO
         //{
         //    SubmittedJobInfo jobInfo = new SubmittedJobInfo();
@@ -102,7 +94,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
                     task.CommandTemplate.TemplateParameters,
                     task.CommandParameterValues
                     );
-                taskCommandLine.Append(CreateCommandLineForTemplate(task.CommandTemplate, commandParameterDictionary));
+                taskCommandLine.Append(ReplaceTemplateDirectivesInCommand($"{task.CommandTemplate.ExecutableFile} {task.CommandTemplate.CommandParameters}", commandParameterDictionary));
 
                 if (!string.IsNullOrEmpty(task.StandardOutputFile))
                 {

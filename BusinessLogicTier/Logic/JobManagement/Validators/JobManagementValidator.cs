@@ -4,11 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.FileTransferFramework;
 using System.Text.RegularExpressions;
 using System;
-using HEAppE.HpcConnectionFramework;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 {

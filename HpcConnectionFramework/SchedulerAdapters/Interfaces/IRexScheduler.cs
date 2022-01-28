@@ -3,15 +3,17 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System.Collections.Generic;
 
-namespace HEAppE.HpcConnectionFramework {
-	public interface IRexScheduler {
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
+{
+    public interface IRexScheduler
+    {
         IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
         IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<string> scheduledJobIds, Cluster cluster);
 
         void CancelJob(string scheduledJobId, ClusterAuthenticationCredentials credentials);
 
-		void CancelJob(string scheduledJobId, string message, ClusterAuthenticationCredentials credentials);
+        void CancelJob(string scheduledJobId, string message, ClusterAuthenticationCredentials credentials);
 
 
 
@@ -23,11 +25,11 @@ namespace HEAppE.HpcConnectionFramework {
 
         bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification);
 
-		void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
+        void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 
-		void RemoveDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
+        void RemoveDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 
-		void CreateJobDirectory(SubmittedJobInfo jobInfo);
+        void CreateJobDirectory(SubmittedJobInfo jobInfo);
 
         void DeleteJobDirectory(SubmittedJobInfo jobInfo);
 

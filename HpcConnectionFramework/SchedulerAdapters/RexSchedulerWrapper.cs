@@ -4,8 +4,9 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System.Collections.Generic;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
-namespace HEAppE.HpcConnectionFramework
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
     public class RexSchedulerWrapper : IRexScheduler
     {
@@ -121,7 +122,7 @@ namespace HEAppE.HpcConnectionFramework
         public bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification)
         {
             int waitingLimit = Convert.ToInt32(jobSpecification.WaitingLimit);
-            if ((waitingLimit > 0) && (job.State < JobState.Running || job.State == JobState.WaitingForServiceAccount) && (job.SubmitTime.HasValue))
+            if (waitingLimit > 0 && (job.State < JobState.Running || job.State == JobState.WaitingForServiceAccount) && job.SubmitTime.HasValue)
                 return DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds > waitingLimit;
             return false;
         }

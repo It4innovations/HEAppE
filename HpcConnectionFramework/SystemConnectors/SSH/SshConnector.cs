@@ -6,12 +6,12 @@ using System;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
-    /// Class: Ssh connector
+    /// Ssh connector
     /// </summary>
     public class SshConnector : HEAppE.ConnectionPool.IPoolableAdapter
     {
         /// <summary>
-        /// Method: Create ssh connection object
+        /// Create ssh connection object
         /// </summary>
         /// <param name="masterNodeName">Master node name</param>
         /// <param name="credentials">Credentials</param>
@@ -31,7 +31,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Connect client to server
+        /// Connect client to server
         /// </summary>
         /// <param name="connectorClient"></param>
         /// <param name="masterNodeName">Master node name</param>
@@ -42,7 +42,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Disconnect client from server
+        /// Disconnect client from server
         /// </summary>
         /// <param name="scheduler"></param>
         public void Disconnect(object connectorClient)
@@ -51,7 +51,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Create connection object using password authentication
+        /// Create connection object using password authentication
         /// </summary>
         /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>
@@ -76,7 +76,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Create connection object using password authentication with keyboard interactive
+        /// Create connection object using password authentication with keyboard interactive
         /// </summary>
         /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>
@@ -96,7 +96,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Create connection object using private key authentication
+        /// Create connection object using private key authentication
         /// </summary>
         /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>
@@ -131,7 +131,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Create connection object using private key and password authentication
+        /// Create connection object using private key and password authentication
         /// </summary>
         /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>
@@ -169,7 +169,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Create connection object using private key stored in memory (ssh-agent)
+        /// Create connection object using private key stored in memory (ssh-agent)
         /// </summary>
         /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>

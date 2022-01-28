@@ -3,20 +3,17 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System.Collections.Generic;
 
-namespace HEAppE.HpcConnectionFramework {
-	public interface ISchedulerAdapter {
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
+{
+    public interface ISchedulerAdapter
+    {
         IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
         IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds);
 
         void CancelJob(object connectorClient, string scheduledJobId, string message);
 
-
-        
-
-        //SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds);
-
-		ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType);
+        ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType);
 
         IEnumerable<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo);
 
@@ -24,9 +21,9 @@ namespace HEAppE.HpcConnectionFramework {
 
         void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo);
 
-		void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo);
+        void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo);
 
-		void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo);
+        void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo);
 
         void DeleteJobDirectory(object scheduler, SubmittedJobInfo jobInfo);
 
@@ -35,7 +32,7 @@ namespace HEAppE.HpcConnectionFramework {
         void CopyJobDataFromTemp(object scheduler, SubmittedJobInfo jobInfo, string hash);
 
         void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials);
-        
+
         void RemoveSshTunnel(long jobId, string nodeHost);
 
         bool SshTunnelExist(long jobId, string nodeHost);

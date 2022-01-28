@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 

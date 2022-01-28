@@ -1,7 +1,7 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 using System;
 
-namespace HEAppE.HpcConnectionFramework
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
     internal struct SchedulerEndpoint
     {
@@ -26,9 +26,9 @@ namespace HEAppE.HpcConnectionFramework
         #region Override Methods
         public override bool Equals(object obj)
         {
-            return (obj is SchedulerEndpoint endpoint) &&
-                   (MasterNodeName.Equals(endpoint.MasterNodeName)) &&
-                   (SchedulerType.Equals(endpoint.SchedulerType));
+            return obj is SchedulerEndpoint endpoint &&
+                   MasterNodeName.Equals(endpoint.MasterNodeName) &&
+                   SchedulerType.Equals(endpoint.SchedulerType);
         }
 
         public override int GetHashCode()

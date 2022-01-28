@@ -71,7 +71,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19.ConversionA
         //    }
         //}
 
-        public override void SetTasks(List<object> tasks)
+        public override void SetTasks(IEnumerable<object> tasks)
         {
             StringBuilder builder = new StringBuilder("");
             foreach (var task in tasks)

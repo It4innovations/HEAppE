@@ -1,10 +1,8 @@
 ﻿using log4net;
-using Renci.SshNet;
-using System;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
-    /// Class: Ssh command utls
+    ///  Ssh command utls
     /// </summary>
     internal static class SshCommandUtils
     {
@@ -25,7 +23,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         #endregion
         #region Methods
         /// <summary>
-        /// Method: Run ssh command
+        /// Run ssh command
         /// </summary>
         /// <param name="client">Client</param>
         /// <param name="command">Command</param>

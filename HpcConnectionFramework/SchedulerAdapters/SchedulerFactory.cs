@@ -6,14 +6,15 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
-namespace HEAppE.HpcConnectionFramework
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
     public abstract class SchedulerFactory
     {
         #region Instances
         private readonly Dictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
-        private readonly static Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new ();
+        private readonly static Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new();
 
         //TODO add to settings
         private static readonly int ConnectionPoolMinSize = 0;

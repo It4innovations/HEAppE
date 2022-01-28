@@ -3,7 +3,7 @@ using System.Linq;
 using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.MiddlewareUtils;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
@@ -31,18 +31,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
         #endregion
         #region SchedulerDataConvertor Members
-        protected override string CreateCommandLineForTask(CommandTemplate template, TaskSpecification taskSpecification,
-            JobSpecification jobSpecification, Dictionary<string, string> additionalParameters)
-        {
-#warning workDir is not using
-            string workDir = ".";
-            string jobClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(jobSpecification.Cluster.LocalBasepath,
-                jobSpecification);
-            if ((jobSpecification.Tasks != null) && (jobSpecification.Tasks.Count > 0))
-                workDir = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectory, taskSpecification.ClusterTaskSubdirectory);
-            return base.CreateCommandLineForTask(template, taskSpecification, jobSpecification, additionalParameters);
-        }
-
         //protected override string ConvertJobName(JobSpecification jobSpecification)
         //{
         //    string result = Regex.Replace(jobSpecification.Name, @"\W+", "_");

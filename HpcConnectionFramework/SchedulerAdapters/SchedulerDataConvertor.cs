@@ -7,22 +7,21 @@ using System.Text;
 using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.MiddlewareUtils;
 using log4net;
 
-namespace HEAppE.HpcConnectionFramework
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
     public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     {
         #region Instances
-
         protected ConversionAdapterFactory _conversionAdapterFactory;
 
-        protected static ILog _log;
+        protected readonly ILog _log;
         #endregion
         #region Constructors
-
         public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory)
         {
             _conversionAdapterFactory = conversionAdapterFactory;
@@ -30,11 +29,10 @@ namespace HEAppE.HpcConnectionFramework
         }
         #endregion
         #region ISchedulerDataConvertor Members
-
         public virtual object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
             ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
-            jobAdapter.SetNotifications(jobSpecification.NotificationEmail,jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+            jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
 
             // Setting global parameters for all tasks
             var globalJobParameters = (string)jobAdapter.AllocationCmd;
@@ -51,7 +49,7 @@ namespace HEAppE.HpcConnectionFramework
             return jobAdapter.AllocationCmd;
         }
 
-        public object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
+        public virtual object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
         {
             ISchedulerTaskAdapter taskAdapter = _conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
             taskAdapter.DependsOn = taskSpecification.DependsOn;
@@ -93,20 +91,18 @@ namespace HEAppE.HpcConnectionFramework
             taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
             CommandTemplate template = taskSpecification.CommandTemplate;
-            if (template != null)
-            {
-                Dictionary<string, string> templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
-                                                                template.TemplateParameters, taskSpecification.CommandParameterValues);
-                taskAdapter.SetPreparationAndCommand(workDirectory,
-                                                     ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
-                                                     CreateCommandLineForTask(template, taskSpecification, jobSpecification, templateParameters),
-                                                     stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
-            }
-            else
+            if (template is null)
             {
                 throw new ApplicationException(@$"Command Template ""{taskSpecification.CommandTemplate.Name}"" for task 
                                                   ""{taskSpecification.Name}"" does not exist in the adaptor configuration.");
             }
+
+            Dictionary<string, string> templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
+                                                            template.TemplateParameters, taskSpecification.CommandParameterValues);
+            taskAdapter.SetPreparationAndCommand(workDirectory, ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
+                                                 ReplaceTemplateDirectivesInCommand($"{template.ExecutableFile} {template.CommandParameters}", templateParameters),
+                                                 stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
+
             return taskAdapter.AllocationCmd;
         }
         #region Abstract Members
@@ -119,95 +115,51 @@ namespace HEAppE.HpcConnectionFramework
         #endregion
         #endregion
         #region Local Methods
-        protected virtual string CreateCommandLineForTask(CommandTemplate template, TaskSpecification taskSpecification,
-                JobSpecification jobSpecification, Dictionary<string, string> templateParameters)
-        {
-            return CreateCommandLineForTemplate(template, templateParameters);
-        }
-
-        protected virtual string CreateCommandLineForTemplate(CommandTemplate template, Dictionary<string, string> templateParameters)
-        {
-            string commandParameters = template.CommandParameters;
-            string commandLine = template.ExecutableFile + " " + commandParameters;
-            return ReplaceTemplateDirectivesInCommand(commandLine, templateParameters);
-        }
-
-        public static Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
+        protected static Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
                 ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues)
         {
-            Dictionary<string, string> finalParameters = new Dictionary<string, string>();
+            var finalParameters = new Dictionary<string, string>();
             foreach (CommandTemplateParameter templateParameter in templateParameters)
             {
-                CommandTemplateParameterValue taskParametersValue = (from parameterValue in taskParametersValues
-                                                                     where parameterValue.TemplateParameter.Identifier == templateParameter.Identifier
-                                                                     select parameterValue).FirstOrDefault();
-                if (taskParametersValue != null)
+                var taskParametersValue = taskParametersValues.Where(w => w.TemplateParameter.Identifier == templateParameter.Identifier)
+                                                               .FirstOrDefault();
+                if (taskParametersValue is not null)
                 {
                     // If taskParametersValue represent already escaped string of generic key-value pairs, don't escape it again.
-                    var isStringOfGenericParameters = templateParameter.CommandTemplate.IsGeneric && Regex.IsMatch(taskParametersValue.Value, "\".+\"");
+                    var isStringOfGenericParameters = templateParameter.CommandTemplate.IsGeneric && Regex.IsMatch(taskParametersValue.Value, @""".+""", RegexOptions.IgnoreCase | RegexOptions.Compiled);
                     finalParameters.Add(templateParameter.Identifier, isStringOfGenericParameters ? taskParametersValue.Value : Regex.Escape(taskParametersValue.Value));
                 }
                 else
                 {
-                    finalParameters.Add(templateParameter.Identifier, GetTemplateParameterValueFromQuery(jobSpecification, taskSpecification, templateParameter.Query));
+                    string templateParameterValueFromQuery = templateParameter.Query;
+                    if (templateParameter.Query.StartsWith("Job."))
+                    {
+                        templateParameterValueFromQuery = GetPropertyValueForQuery(jobSpecification, templateParameter.Query);
+                    }
+
+                    if (templateParameter.Query == "Task.Workdir")
+                    {
+                        string taskClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(jobSpecification.FileTransferMethod.Cluster.LocalBasepath, jobSpecification);
+                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskClusterDirectory, taskSpecification);
+                    }
+
+                    if (templateParameter.Query.StartsWith("Task."))
+                    {
+                        templateParameterValueFromQuery = GetPropertyValueForQuery(taskSpecification, templateParameter.Query);
+                    }
+                    finalParameters.Add(templateParameter.Identifier, templateParameterValueFromQuery);
                 }
             }
             return finalParameters;
         }
 
-        private static string GetTemplateParameterValueFromQuery(JobSpecification jobSpecification, TaskSpecification taskSpecification, string parameterQuery)
+        protected static string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
         {
-            if (parameterQuery.StartsWith("Job."))
+            if (string.IsNullOrEmpty(commandLine))
             {
-                return GetPropertyValueForQuery(jobSpecification, parameterQuery);
-            }
-            else if (parameterQuery == "Task.Workdir")
-            {
-                string taskClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(jobSpecification.FileTransferMethod.Cluster.LocalBasepath, jobSpecification);
-                return FileSystemUtils.GetTaskClusterDirectoryPath(taskClusterDirectory, taskSpecification);
-            }
-            else if (parameterQuery.StartsWith("Task."))
-            {
-                return GetPropertyValueForQuery(taskSpecification, parameterQuery);
-            }
-            return parameterQuery;
-        }
-
-
-        private static string GetPropertyValueForQuery(object objectForQuery, string query)
-        {
-            PropertyInfo property = objectForQuery.GetType().GetProperty(GetPropertyNameFromQuery(query));
-            if (property != null)
-            {
-                object propertyValue = property.GetValue(objectForQuery, null);
-                return propertyValue != null ? propertyValue.ToString() : string.Empty;
-            }
-            return null;
-        }
-
-        protected string CreateTaskDirectorySymlinkCommand(TaskSpecification taskSpecification)
-        {
-            string symlinkCommand = "";
-            if (taskSpecification.DependsOn.Count > 0)
-            {
-                long dependsOnIdLast = taskSpecification.DependsOn.Max(x => x.ParentTaskSpecificationId);
-                var dependsOn = taskSpecification.DependsOn
-                    .Where(x => x.ParentTaskSpecificationId == dependsOnIdLast).First();
-                if (dependsOn != null)
-                    symlinkCommand = $"ln -s ../{dependsOnIdLast}/* .";
-            }
-            return symlinkCommand;
-        }
-
-        private static string GetPropertyNameFromQuery(string parameterQuery)
-        {
-            return parameterQuery.Substring(parameterQuery.IndexOf('.') + 1);
-        }
-
-        public string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
-        {
-            if (commandLine == null)
                 return null;
+            }
+
             string replacedCommandLine = Regex.Replace(commandLine, @"%%\{([\w\.]+)\}", delegate (Match match)
             {
                 string parameterIdentifier = match.Groups[1].Value;
@@ -215,13 +167,38 @@ namespace HEAppE.HpcConnectionFramework
                 {
                     return templateParameters[parameterIdentifier];
                 }
-                throw new ApplicationException("Parameter \"" + parameterIdentifier + "\" in the command template \"" + commandLine +
-                                               "\" could not be found either as a property of the task, nor as an additional parameter.");
+                throw new ApplicationException(@$"Parameter ""{parameterIdentifier}"" in the command template ""{commandLine}"" 
+                                                could not be found either as a property of the task, nor as an additional parameter.");
             });
             return replacedCommandLine;
         }
+
+        protected static string CreateTaskDirectorySymlinkCommand(TaskSpecification taskSpecification)
+        {
+            string symlinkCommand = string.Empty;
+            if (taskSpecification.DependsOn.Any())
+            {
+                long dependsOnIdLast = taskSpecification.DependsOn.Max(x => x.ParentTaskSpecificationId);
+                return taskSpecification.DependsOn.FirstOrDefault(x => x.ParentTaskSpecificationId == dependsOnIdLast) == null
+                                                ? symlinkCommand
+                                                : symlinkCommand = $"ln -s ../{dependsOnIdLast}/* .";
+            }
+
+            return symlinkCommand;
+        }
+
+        private static string GetPropertyValueForQuery(object objectForQuery, string query)
+        {
+            PropertyInfo property = objectForQuery.GetType().GetProperty(query[(query.IndexOf('.') + 1)..]);
+            if (property == null)
+            {
+                return null;
+            }
+
+            object propertyValue = property.GetValue(objectForQuery, null);
+            return propertyValue != null ? propertyValue.ToString() : string.Empty;
+
+        }
         #endregion
-
-
     }
 }

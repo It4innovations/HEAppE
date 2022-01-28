@@ -1,6 +1,6 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -104,11 +104,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <summary>
         /// Task depend on
         /// </summary>
-        public ICollection<TaskDependency> DependsOn
+        public IEnumerable<TaskDependency> DependsOn
         {
             set
             {
-                if (value != null && value.Count > 0)
+                if (value != null && value.Any())
                 {
                     var builder = new StringBuilder(" --dependency=afterok");
                     foreach (TaskDependency taskDependency in value)
@@ -225,7 +225,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <param name="minCores">Task min cores</param>
         /// <param name="maxCores">Task max cores</param>
         /// <param name="coresPerNode">Cores per node</param>
-        public void SetRequestedResourceNumber(ICollection<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, ICollection<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
+        public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
         {
             var allocationCmdBuilder = new StringBuilder();
             string reqNodeGroupsCmd = PrepareNameOfNodesGroup(requestedNodeGroups);
@@ -234,7 +234,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
             nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
 
             TaskParalizationSpecification parSpec = paralizationSpecs.FirstOrDefault();
-            allocationCmdBuilder.Append($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes, nodeCount)}{reqNodeGroupsCmd}");
+            allocationCmdBuilder.Append($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
 
             if (parSpec is not null)
             {
@@ -250,9 +250,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// Set enviroment variables for task
         /// </summary>
         /// <param name="variables"></param>
-        public void SetEnvironmentVariablesToTask(ICollection<EnvironmentVariable> variables)
+        public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)
         {
-            if (variables?.Count > 0)
+            if (variables.Any())
             {
                 var builder = new StringBuilder(" --export ");
                 foreach (EnvironmentVariable variable in variables)
@@ -302,9 +302,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// </summary>
         /// <param name="requestedNodeGroups">Node group names</param>
         /// <returns></returns>
-        private static string PrepareNameOfNodesGroup(ICollection<string> requestedNodeGroups)
+        private static string PrepareNameOfNodesGroup(IEnumerable<string> requestedNodeGroups)
         {
-            if (requestedNodeGroups?.Count > 0)
+            if (requestedNodeGroups.Any())
             {
                 var builder = new StringBuilder($" --partition={requestedNodeGroups.First()}");
                 foreach (string nodeGroup in requestedNodeGroups.Skip(1))

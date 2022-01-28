@@ -1,4 +1,4 @@
-﻿using HEAppE.HpcConnectionFramework.ConversionAdapter;
+﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using System.Collections.Generic;
 using System.Text;
 
@@ -40,7 +40,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// Set tasks for job
         /// </summary>
         /// <param name="tasks">Tasks</param>
-        public void SetTasks(List<object> tasks)
+        public void SetTasks(IEnumerable<object> tasks)
         {
             _jobCommandBuilder.Clear();
             foreach (var task in tasks)
