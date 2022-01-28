@@ -7,43 +7,85 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
 {
+    /// <summary>
+    /// PbsPro V19 scheduler factory
+    /// </summary>
     public class PbsProV19SchedulerFactory : SchedulerFactory
     {
+        #region Instances
+        /// <summary>
+        /// Connectors
+        /// </summary>
+        private readonly Dictionary<string, IPoolableAdapter> _connectorSingletons = new();
+
+        /// <summary>
+        /// Scheduler singeltons
+        /// </summary>
+        private readonly Dictionary<string, IRexScheduler> _schedulerSingletons = new();
+
+        /// <summary>
+        /// Convertor
+        /// </summary>
+        private ISchedulerDataConvertor _convertorSingleton;
+
+        /// <summary>
+        /// Scheduler adapter
+        /// </summary>
+        private ISchedulerAdapter _schedulerAdapterInstance;
+        #endregion
         #region SchedulerFactory Members
+        /// <summary>
+        /// Create scheduler
+        /// </summary>
+        /// <param name="configuration">Cluster configuration data</param>
+        /// <returns></returns>
         public override IRexScheduler CreateScheduler(Cluster configuration)
         {
-            if (!linuxPbsSchedulerSingletons.ContainsKey(configuration.MasterNodeName))
-                linuxPbsSchedulerSingletons[configuration.MasterNodeName] = new RexSchedulerWrapper(
-                    GetSchedulerConnectionPool(configuration), CreateSchedulerAdapter());
-            return linuxPbsSchedulerSingletons[configuration.MasterNodeName];
+            var masterNodeName = configuration.MasterNodeName;
+            if (!_schedulerSingletons.ContainsKey(masterNodeName))
+            {
+                _schedulerSingletons[masterNodeName] = new RexSchedulerWrapper
+                                                       (
+                                                            GetSchedulerConnectionPool(configuration),
+                                                            CreateSchedulerAdapter()
+                                                       );
+            }
+            return _schedulerSingletons[masterNodeName];
         }
 
+        /// <summary>
+        /// Create scheduler adapter
+        /// </summary>
+        /// <returns></returns>
         protected override ISchedulerAdapter CreateSchedulerAdapter()
         {
-            if (linuxPbsSchedulerAdapterInstance == null)
-                linuxPbsSchedulerAdapterInstance = new PbsProV19SchedulerAdapter(CreateDataConvertor());
-            return linuxPbsSchedulerAdapterInstance;
+            return _schedulerAdapterInstance ??= new PbsProV19SchedulerAdapter(CreateDataConvertor());
         }
 
+        /// <summary>
+        /// Create data convertor
+        /// </summary>
+        /// <returns></returns>
         protected override ISchedulerDataConvertor CreateDataConvertor()
         {
-            if (linuxPbsConvertorSingleton == null)
-                linuxPbsConvertorSingleton = new PbsProV19DataConvertor(new PbsProV19ConversionAdapterFactory());
-            return linuxPbsConvertorSingleton;
+            return _convertorSingleton ??= new PbsProV19DataConvertor(new PbsProV19ConversionAdapterFactory());
         }
 
+        /// <summary>
+        /// Create scheduler connector
+        /// </summary>
+        /// <param name="configuration">Cluster configuration data</param>
+        /// <returns></returns>
         protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration)
         {
-            if (!linuxPbsConnectorSingletons.ContainsKey(configuration.MasterNodeName))
-                linuxPbsConnectorSingletons[configuration.MasterNodeName] = new SshConnector();
-            return linuxPbsConnectorSingletons[configuration.MasterNodeName];
+            var masterNodeName = configuration.MasterNodeName;
+            if (!_connectorSingletons.ContainsKey(masterNodeName))
+            {
+                _connectorSingletons[masterNodeName] = new SshConnector();
+            }
+
+            return _connectorSingletons[masterNodeName];
         }
-        #endregion
-        #region Instance Fields
-        private readonly Dictionary<string, IPoolableAdapter> linuxPbsConnectorSingletons = new Dictionary<string, IPoolableAdapter>();
-        private readonly Dictionary<string, IRexScheduler> linuxPbsSchedulerSingletons = new Dictionary<string, IRexScheduler>();
-        private ISchedulerDataConvertor linuxPbsConvertorSingleton;
-        private ISchedulerAdapter linuxPbsSchedulerAdapterInstance;
         #endregion
     }
 }
