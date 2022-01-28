@@ -13,7 +13,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
     /// </summary>
     public class SlurmTaskAdapter : ISchedulerTaskAdapter
     {
-        #region Properties
+        #region Instances
         /// <summary>
         /// Task (HPC job) allocation command builder
         /// </summary>
@@ -40,20 +40,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// </summary>
         public object AllocationCmd
         {
-            get 
+            get
             {
-                return _taskBuilder.ToString(); 
+                return _taskBuilder.ToString();
             }
         }
 
         /// <summary>
-        /// Job priority
+        /// Task priority
         /// </summary>
         public TaskPriority Priority
         {
-            set 
+            set
             {
-                _taskBuilder.Append($" --priority {_priorityMultiplier * (int)value}"); 
+                _taskBuilder.Append($" --priority {_priorityMultiplier * (int)value}");
             }
         }
 
@@ -86,7 +86,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                _taskBuilder.Append(!string.IsNullOrEmpty(value)? $" --array={value}": string.Empty);
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --array={value}" : string.Empty);
             }
         }
 
@@ -95,9 +95,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// </summary>
         public string Name
         {
-            set 
+            set
             {
-                _taskBuilder.Append($" -J {value}"); 
+                _taskBuilder.Append($" -J {value}");
             }
         }
 
@@ -128,10 +128,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                if (value)
-                {
-                    _taskBuilder.Append(" -exclusive=mcs");
-                }
+                _taskBuilder.Append(value ? " -exclusive=mcs" : String.Empty);
             }
         }
 
@@ -140,15 +137,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// </summary>
         public bool IsRerunnable
         {
-            set 
-            { 
-                _taskBuilder.Append(value ? " --requeue" : " --no-requeue"); 
+            set
+            {
+                _taskBuilder.Append(value ? " --requeue" : " --no-requeue");
             }
         }
 
         /// <summary>
         /// Task run time
-        /// Note: Used Allocated time for job
         /// </summary>
         public int Runtime
         {
@@ -166,10 +162,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                {
-                    _taskBuilder.Append($" -e {value}");
-                }
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
             }
         }
 
@@ -180,10 +173,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                {
-                    _taskBuilder.Append($" -i {value}");
-                }
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -i {value}" : string.Empty);
             }
         }
 
@@ -194,10 +184,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                {
-                    _taskBuilder.Append($" -o {value}");
-                }
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
             }
         }
 
@@ -208,10 +195,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                {
-                    _taskBuilder.Append($" -D {value}");
-                }
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -D {value}" : string.Empty);
             }
         }
 
@@ -252,15 +236,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <param name="variables"></param>
         public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)
         {
-            if (variables.Any())
+            if (variables != null && variables.Any())
             {
-                var builder = new StringBuilder(" --export ");
+                _taskBuilder.Append(" --export ");
                 foreach (EnvironmentVariable variable in variables)
                 {
-                    builder.Append($"{variable.Name} = {variable.Value},");
+                    _taskBuilder.Append($"{variable.Name} = {variable.Value},");
                 }
-                builder.Remove(builder.Length - 1, 1);
-                _taskBuilder.Append(builder);
+                _taskBuilder.Remove(_taskBuilder.Length - 1, 1);
             }
         }
 
@@ -280,10 +263,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
                     ? string.Empty
                     : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};");
 
-
-            _taskBuilder.Append($"1>> {stdOutFile} ");
-            _taskBuilder.Append($"2>> {stdErrFile} ");
-
+            _taskBuilder.Append($"1>> {stdOutFile} 2>> {stdErrFile} ");
             _taskBuilder.Append(
                 string.IsNullOrEmpty(preparationScript)
                     ? string.Empty

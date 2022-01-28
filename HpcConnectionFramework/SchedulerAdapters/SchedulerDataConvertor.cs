@@ -1,16 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Text.RegularExpressions;
-using HEAppE.DomainObjects.JobManagement;
+﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.MiddlewareUtils;
 using log4net;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -33,7 +32,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         {
             ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
             jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
-
+            //TODO
+            //jobAdapter.SetEnvironmentVariablesToJob(jobSpecification.EnvironmentVariables);
             // Setting global parameters for all tasks
             var globalJobParameters = (string)jobAdapter.AllocationCmd;
             var tasks = new List<object>();

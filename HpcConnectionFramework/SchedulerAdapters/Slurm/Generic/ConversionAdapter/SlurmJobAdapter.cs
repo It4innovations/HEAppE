@@ -1,5 +1,7 @@
-﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+﻿using HEAppE.DomainObjects.JobManagement;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter

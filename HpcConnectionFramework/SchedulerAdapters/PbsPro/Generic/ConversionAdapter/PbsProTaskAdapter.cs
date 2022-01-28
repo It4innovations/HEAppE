@@ -8,146 +8,98 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
+    /// <summary>
+    /// PbsPro task adapter
+    /// </summary>
     public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
+        #region Instances
+        /// <summary>
+        /// Task (HPC job) allocation command builder
+        /// </summary>
+        protected StringBuilder _taskBuilder;
+        #endregion
         #region Constructors
-        public PbsProTaskAdapter(object taskSource)
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="taskSource"></param>
+        public PbsProTaskAdapter(string taskSource)
         {
-            this.taskSource = (string)taskSource;
-            qstatInfo = PbsProConversionUtils.ReadQstatResultFromJobSource(this.taskSource);
+            _taskBuilder = new StringBuilder(taskSource);
+            //qstatInfo = PbsProConversionUtils.ReadQstatResultFromJobSource(this.taskSource);
         }
         #endregion
-
         #region ISchedulerTaskAdapter Members
+        /// <summary>
+        /// Task allocation command
+        /// </summary>
         public object AllocationCmd
         {
-            get { return taskSource; }
-        }
-
-        public virtual string Id
-        {
             get
             {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_ID, out result))
-                    return PbsProConversionUtils.GetJobIdFromJobCode(result).ToString();
-
-                return "0";
+                return _taskBuilder.ToString();
             }
         }
 
+        /// <summary>
+        /// Task priority
+        /// </summary>
         public TaskPriority Priority
         {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.PRIORITY, out result))
-                    return (TaskPriority)Math.Round(((Convert.ToInt32(result) + 1024) * 8) / 2047f);
-                return 0;
-            }
-            set { taskSource += " -p " + ((int)Math.Round((2047 / 8f) * (int)value) - 1024); }
-        }
-
-        public string Queue
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.QUEUE, out result))
-                    return result;
-                return string.Empty;
-            }
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                    taskSource += " -q " + value;
+                _taskBuilder.Append($" -p {((int)Math.Round((2047 / 8f) * (int)value) - 1024)}");
             }
         }
 
+        /// <summary>
+        /// Task Queue
+        /// </summary>
+        public string Queue
+        {
+            set
+            {
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -q {value}" : string.Empty);
+            }
+        }
+
+        /// <summary>
+        /// CpuHyperThreading
+        /// </summary>
         public bool CpuHyperThreading
         {
             set
             {
-                if (value)
-                    taskSource += " -l cpu_hyper_threading=true";
+                _taskBuilder.Append(value ? " -l cpu_hyper_threading=true" : string.Empty);
             }
         }
 
+        /// <summary>
+        /// JobArrays
+        /// </summary>
         public string JobArrays
         {
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                    taskSource += " -J " + value;
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -J {value}" : string.Empty);
             }
-        }
-
-        public IEnumerable<string> AllocatedCoreIds
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.EXEC_HOST, out result))
-                {
-                    result = result.Replace('*', ' ');
-                    string[] allocIds = result.Split('+');
-                    return allocIds;
-                }
-                return new List<string>();
-            }
-        }
-
-        public string Name
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_NAME, out result))
-                    return result;
-                return string.Empty;
-            }
-            set { taskSource += " -N " + value; }
-        }
-
-        public virtual TaskState State
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_STATE, out result))
-                {
-                    return ConvertPbsTaskStateToIndependentTaskState(result);
-                }
-                return TaskState.Finished;
-            }
-        }
-
-        public DateTime? StartTime
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.STIME, out result))
-                    return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
-                return null;
-            }
-        }
-
-        /// <summary>EndTime is not supported in the Linux PBS Scheduler v10.</summary>
-        public virtual DateTime? EndTime
-        {
-            get { return null; }
         }
 
         /// <summary>
-        ///   ErrorMessage is not supported in the Linux PBS Scheduler. Error messages for the task are in the task's error
-        ///   output file.
+        /// Task name
         /// </summary>
-        public string ErrorMessage
+        public string Name
         {
-            get { return null; }
+            set
+            {
+                _taskBuilder.Append($" -N {value}");
+            }
         }
 
+        /// <summary>
+        /// Task depend on
+        /// </summary>
         public IEnumerable<TaskDependency> DependsOn
         {
             set
@@ -160,130 +112,113 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
                         builder.Append(":$_");
                         builder.Append(taskDependency.ParentTaskSpecification.Id);
                     }
-                    taskSource += builder.ToString();
+                    _taskBuilder.Append(builder);
                 }
             }
         }
 
+        /// <summary>
+        /// Task exclusivity
+        /// </summary>
         public bool IsExclusive
         {
             set
             {
-                if (value)
-                    taskSource += " -l place=free:excl";
+                _taskBuilder.Append(" -l place=free:excl");
             }
         }
 
+        /// <summary>
+        /// Task rerunable
+        /// </summary>
         public bool IsRerunnable
         {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RERUNNABLE, out result))
-                    return result == "y";
-                return false;
-            }
             set
             {
-                if (value)
-                    taskSource += " -r y";
-                else
-                    taskSource += " -r n";
+                _taskBuilder.Append(value ? " -r y" : " -r n");
             }
         }
 
+        /// <summary>
+        /// Task run time
+        /// </summary>
         public int Runtime
         {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RESOURCE_LIST_WALLTIME, out result))
-                    return Convert.ToInt32(result);
-                return 0;
-            }
             set
             {
-                if (value > 0)
-                    taskSource += " -l walltime=" + PbsProConversionUtils.ConvertSecondsToQstatTimeString(value);
+                TimeSpan wallTime = TimeSpan.FromSeconds(value);
+                _taskBuilder.Append($" -l walltime={ wallTime:hh\\:mm\\:ss}");
             }
         }
 
+        /// <summary>
+        /// Task standard error file path
+        /// </summary>
         public string StdErrFilePath
         {
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                    taskSource += " -e " + value;
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -e {value}" : string.Empty);
             }
         }
 
-        /// <summary>Standard input redirection is not supported by Linux PBS scheduler.</summary>
+        /// <summary>
+        /// Task standard input file path
+        /// Note: Not supported
+        /// </summary>
         public string StdInFilePath
         {
-            set { }
+            set
+            {
+            }
         }
 
+        /// <summary>
+        /// Task standard output file path
+        /// </summary>
         public string StdOutFilePath
         {
             set
             {
-                if (!string.IsNullOrEmpty(value))
-                    taskSource += " -o " + value;
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -o {value}" : string.Empty);
             }
         }
 
+        /// <summary>
+        /// Task work directory
+        /// Note: Work directory in the PBS scheduler is set to the actual directory from which the qsub command is ran. This means that the working directory has to be changed before calling qsub
+        /// </summary>
         public string WorkDirectory
         {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOBDIR, out result))
-                    return result;
-                return string.Empty;
-            }
-            ///<summary>Work directory in the PBS scheduler is set to the actual directory from which the qsub command is ran. This means that the working directory has to be changed before calling qsub (in the LinuxPbsSchedulerAdapter.CreateJob method).</summary>
             set
             {
-                /*if (!string.IsNullOrEmpty(value))
-					taskSource += " -d " + value;*/
+                //_taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -d {value}" : string.Empty);
             }
         }
 
-        public double AllocatedTime
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RESOURCES_USED_CPUT, out result))
-                {
-                    string[] split = result.Split(':');
-                    return Convert.ToInt32(split[0]) * 3600 + Convert.ToInt32(split[1]) * 60 + Convert.ToInt32(split[2]);
-                }
-                return 0;
-            }
-        }
-
-        public Dictionary<string, string> AllParameters
-        {
-            get { return qstatInfo; }
-        }
-
+        /// <summary>
+        /// Set requested resources for task
+        /// </summary>
+        /// <param name="requestedNodeGroups">Node group names</param>
+        /// <param name="requiredNodes">Node names</param>
+        /// <param name="placementPolicy">Specify placement policy (on same rack, etc.)</param>
+        /// <param name="paralizationSpecs">Task paralization specifications</param>
+        /// <param name="minCores">Task min cores</param>
+        /// <param name="maxCores">Task max cores</param>
+        /// <param name="coresPerNode">Cores per node</param>
         public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
         {
-            StringBuilder allocationCmdBuilder = new StringBuilder(" -l select=");
+            var allocationCmdBuilder = new StringBuilder(" -l select=");
 
             //For specific node names
             if (requiredNodes?.Count > 0)
             {
                 int requiredNodesMaxCores = coresPerNode * requiredNodes.Count;
                 int remainingCores = maxCores - requiredNodesMaxCores;
-                int cpusPerHost = maxCores > requiredNodesMaxCores
-                                                    ? coresPerNode
-                                                    : maxCores / requiredNodes.Count;
+                int cpusPerHost = maxCores > requiredNodesMaxCores ? coresPerNode : (maxCores / requiredNodes.Count);
 
-
-                List<TaskParalizationSpecification> parSpecsForReqNodes = paralizationSpecs.Where(w => w.MaxCores % coresPerNode == 0
-                                                                                                  && w.MaxCores / coresPerNode == 1).ToList();
+                var parSpecsForReqNodes = paralizationSpecs.Where(w => w.MaxCores % coresPerNode == 0 && w.MaxCores / coresPerNode == 1)
+                                                            .ToList();
 
                 int i = 0;
                 bool first = true;
@@ -305,7 +240,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
 
                 if (remainingCores > 0)
                 {
-                    allocationCmdBuilder.Append("+");
+                    allocationCmdBuilder.Append('+');
                     allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy,
                                                   paralizationSpecs.Except(parSpecsForReqNodes).ToList(), remainingCores, coresPerNode));
                 }
@@ -314,36 +249,43 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             {
                 allocationCmdBuilder.Append(GenerateSelectPartForRequestedGroups(requestedNodeGroups, placementPolicy, paralizationSpecs, maxCores, coresPerNode));
             }
-
-            taskSource += allocationCmdBuilder.ToString();
+            _taskBuilder.Append(allocationCmdBuilder);
         }
 
+        /// <summary>
+        /// Set preparation command for task
+        /// </summary>
+        /// <param name="workDir">Task work dir</param>
+        /// <param name="preparationScript">Task preparation script</param>
+        /// <param name="commandLine">Task command</param>
+        /// <param name="stdOutFile">Standard output file</param>
+        /// <param name="stdErrFile">Standard error file</param>
         public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)
         {
             if (variables != null && variables.Any())
             {
-                StringBuilder builder = new StringBuilder(" -v ");
-                bool first = true;
+                _taskBuilder.Append(" -v ");
                 foreach (EnvironmentVariable variable in variables)
                 {
-                    if (first)
-                        first = false;
-                    else
-                        builder.Append(",");
-                    builder.Append(variable.Name);
-                    builder.Append("=");
-                    builder.Append(variable.Value);
+                    _taskBuilder.Append($"{variable.Name}={variable.Value},");
                 }
-                taskSource += builder.ToString();
+                _taskBuilder.Remove(_taskBuilder.Length - 1, 1);
             }
         }
 
+        /// <summary>
+        /// Set preparation command for task
+        /// </summary>
+        /// <param name="workDir">Task work dir</param>
+        /// <param name="preparationScript">Task preparation script</param>
+        /// <param name="commandLine">Task command</param>
+        /// <param name="stdOutFile">Standard output file</param>
+        /// <param name="stdErrFile">Standard error file</param>
         public void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine, string stdOutFile, string stdErrFile, string recursiveSymlinkCommand)
         {
             string nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
             var taskSourceSb = new StringBuilder();
-            taskSourceSb.Append($"echo ' cd {nodefileDir}; ~/.key_scripts/nodefile.sh; ");
-            taskSourceSb.Append($"cd {workDir}; ");
+            taskSourceSb.Append($"echo 'cd {nodefileDir}; ~/.key_scripts/nodefile.sh;cd {workDir};");
             taskSourceSb.Append(
                 string.IsNullOrEmpty(recursiveSymlinkCommand)
                     ? string.Empty
@@ -353,22 +295,29 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
                 string.IsNullOrEmpty(preparationScript)
                     ? string.Empty
                     : preparationScript.Last().Equals(';') ? preparationScript : $"{preparationScript};");
+
             taskSourceSb.Append(
                 string.IsNullOrEmpty(commandLine)
                     ? string.Empty
                     : commandLine.Last().Equals(';') ? commandLine : $"{commandLine};");
-            taskSourceSb.Append($"1>> {stdOutFile} ");
-            taskSourceSb.Append($"2>> {stdErrFile} ");
-            taskSourceSb.Append($"' | {taskSource}");
 
-            taskSource = taskSourceSb.ToString();
+            taskSourceSb.Append($"1>> {stdOutFile} 2>> {stdErrFile}' | {_taskBuilder}");
+            _taskBuilder = taskSourceSb;
         }
         #endregion
-
-        #region Local Methods
-        protected virtual string GenerateSelectPartForRequestedGroups(IEnumerable<string> requestedNodeGroups, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int coreCount, int coresPerNode)
+        #region Local Members
+        /// <summary>
+        /// Prepare name of node group
+        /// </summary>
+        /// <param name="requestedNodeGroups">Node group names</param>
+        /// <param name="placementPolicy">Placement policy</param>
+        /// <param name="paralizationSpecs">Paralization specifications</param>
+        /// <param name="coreCount">Core count</param>
+        /// <param name="coresPerNode">Cores per node</param>
+        /// <returns></returns>
+        private static string GenerateSelectPartForRequestedGroups(IEnumerable<string> requestedNodeGroups, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int coreCount, int coresPerNode)
         {
-            StringBuilder builder = new StringBuilder();
+            var builder = new StringBuilder();
             string reqNodeGroupsCmd = string.Empty;
             if (requestedNodeGroups.Any())
             {
@@ -420,25 +369,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             }
             return builder.ToString();
         }
-
-        protected virtual TaskState ConvertPbsTaskStateToIndependentTaskState(string taskState)
-        {
-            if (taskState == "H")
-                return TaskState.Configuring;
-            if (taskState == "W")
-                return TaskState.Submitted;
-            if (taskState == "Q" || taskState == "T")
-                return TaskState.Queued;
-            if (taskState == "R" || taskState == "U" || taskState == "S" || taskState == "E")
-                return TaskState.Running;
-            throw new ApplicationException("Task state \"" + taskState +
-                                           "\" could not be converted to any known task state.");
-        }
-        #endregion
-
-        #region Instance Fields
-        protected string taskSource;
-        protected Dictionary<string, string> qstatInfo;
         #endregion
     }
 }
