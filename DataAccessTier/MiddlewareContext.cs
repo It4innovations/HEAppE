@@ -216,60 +216,6 @@ namespace HEAppE.DataAccessTier
             _log.Info("Seed data into the database completed.");
         }
 
-        /// <summary>
-        /// Returns all User to Role mappings and adds cascade roles for specific roles
-        /// </summary>
-        /// <param name="adaptorUserUserRoles"></param>
-        /// <returns></returns>
-        private IEnumerable<AdaptorUserUserRole> GetAllUserRoles(List<AdaptorUserUserRole> adaptorUserUserRoles)
-        {
-            foreach (var userRoleGroup in adaptorUserUserRoles?.GroupBy(x => x.AdaptorUserId))
-            {
-                var userRoles = userRoleGroup.Select(x => x);
-                if (IsRoleInCollection(userRoles, UserRoleType.Administrator))
-                {
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Maintainer, adaptorUserUserRoles);
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Submitter, adaptorUserUserRoles);
-                }
-                else if(IsRoleInCollection(userRoles, UserRoleType.Submitter))
-                {
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
-                }
-            }
-            return adaptorUserUserRoles;
-        }
-
-        /// <summary>
-        /// Checks if role is in collection by RoleID
-        /// </summary>
-        /// <param name="adaptorUserUserRoles"></param>
-        /// <param name="role"></param>
-        /// <returns></returns>
-        bool IsRoleInCollection(IEnumerable<AdaptorUserUserRole> adaptorUserUserRoles, UserRoleType role)
-        {
-            return adaptorUserUserRoles.Any(x => x.AdaptorUserRoleId.Equals((long)role));
-        }
-
-        /// <summary>
-        /// Checks and adds Role to collection when is not in collection grouped by User
-        /// </summary>
-        /// <param name="currentUserUserRoles">Collection of role to user mapping grouped by User</param>
-        /// <param name="roleType"></param>
-        /// <param name="adaptorUserUserRolesCollection">Global role to user collection mapping</param>
-        void CheckAndAddUserUserRole(IEnumerable<AdaptorUserUserRole> currentUserUserRoles, UserRoleType roleType, List<AdaptorUserUserRole> adaptorUserUserRolesCollection)
-        {
-            var userRole = currentUserUserRoles.FirstOrDefault();
-            if (!IsRoleInCollection(currentUserUserRoles, roleType))
-            {
-                adaptorUserUserRolesCollection.Add(new AdaptorUserUserRole()
-                {
-                    AdaptorUserId = userRole.AdaptorUserId,
-                    AdaptorUserRoleId = (long)roleType
-                });
-            }
-        }
-
         //sqlserver specific because of identity
         private void InsertOrUpdateSeedData<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
         {
@@ -353,7 +299,7 @@ namespace HEAppE.DataAccessTier
             }
         }
 
-        public void UpdateEntityOrAddItem<T>(T entity, T item) where T : class
+        private void UpdateEntityOrAddItem<T>(T entity, T item) where T : class
         {
             if (entity != null)
             {
@@ -363,6 +309,61 @@ namespace HEAppE.DataAccessTier
             else
             {
                 Set<T>().Add(item);
+            }
+        }
+
+        /// <summary>
+        /// Returns all User to Role mappings and adds cascade roles for specific roles
+        /// </summary>
+        /// <param name="adaptorUserUserRoles"></param>
+        /// <returns></returns>
+        private static IEnumerable<AdaptorUserUserRole> GetAllUserRoles(List<AdaptorUserUserRole> adaptorUserUserRoles)
+        {
+            foreach (var userRoleGroup in adaptorUserUserRoles?.GroupBy(x => x.AdaptorUserId))
+            {
+                var userRoles = userRoleGroup.ToList();
+                if (IsRoleInCollection(userRoles, UserRoleType.Administrator))
+                {
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Maintainer, adaptorUserUserRoles);
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Submitter, adaptorUserUserRoles);
+                }
+
+                if (IsRoleInCollection(userRoles, UserRoleType.Submitter))
+                {
+                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
+                }
+            }
+            return adaptorUserUserRoles;
+        }
+
+        /// <summary>
+        /// Checks if role is in collection by RoleID
+        /// </summary>
+        /// <param name="adaptorUserUserRoles"></param>
+        /// <param name="role"></param>
+        /// <returns></returns>
+        private static bool IsRoleInCollection(IEnumerable<AdaptorUserUserRole> adaptorUserUserRoles, UserRoleType role)
+        {
+            return adaptorUserUserRoles.Any(x => x.AdaptorUserRoleId.Equals((long)role));
+        }
+
+        /// <summary>
+        /// Checks and adds Role to collection when is not in collection grouped by User
+        /// </summary>
+        /// <param name="currentUserUserRoles">Collection of role to user mapping grouped by User</param>
+        /// <param name="roleType"></param>
+        /// <param name="adaptorUserUserRolesCollection">Global role to user collection mapping</param>
+        private static void CheckAndAddUserUserRole(IEnumerable<AdaptorUserUserRole> currentUserUserRoles, UserRoleType roleType, List<AdaptorUserUserRole> adaptorUserUserRolesCollection)
+        {
+            var userRole = currentUserUserRoles.FirstOrDefault();
+            if (!IsRoleInCollection(currentUserUserRoles, roleType))
+            {
+                adaptorUserUserRolesCollection.Add(new AdaptorUserUserRole()
+                {
+                    AdaptorUserId = userRole.AdaptorUserId,
+                    AdaptorUserRoleId = (long)roleType
+                });
             }
         }
         #endregion
