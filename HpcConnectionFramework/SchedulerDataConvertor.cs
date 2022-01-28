@@ -15,60 +15,35 @@ namespace HEAppE.HpcConnectionFramework
 {
     public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     {
-        protected static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        #region Instances
+
+        protected ConversionAdapterFactory _conversionAdapterFactory;
+
+        protected static ILog _log;
+        #endregion
+        #region Constructors
 
         public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory)
         {
-            this.conversionAdapterFactory = conversionAdapterFactory;
+            _conversionAdapterFactory = conversionAdapterFactory;
+            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         }
-
+        #endregion
         #region ISchedulerDataConvertor Members
-        public virtual SubmittedJobInfo ConvertJobToJobInfo(object job)
-        {
-            SubmittedJobInfo jobInfo = new SubmittedJobInfo();
-            ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter(job);
-            List<object> allTasks = jobAdapter.GetTaskList();
-            jobInfo.Tasks = ConvertAllTasksToTaskInfos(allTasks);
-            jobInfo.Name = jobAdapter.Name;
-            jobInfo.Project = jobAdapter.Project;
-            jobInfo.State = jobAdapter.State;
-            jobInfo.CreationTime = jobAdapter.CreateTime;
-            jobInfo.SubmitTime = jobAdapter.SubmitTime;
-            jobInfo.StartTime = jobAdapter.StartTime;
-            jobInfo.EndTime = jobAdapter.EndTime;
-            jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
-            return jobInfo;
-        }
-
-        public virtual SubmittedTaskInfo ConvertTaskToTaskInfo(object task)
-        {
-            SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();
-            ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(task);
-            taskInfo.TaskAllocationNodes = taskAdapter.AllocatedCoreIds?
-                                                        .Select(s => new SubmittedTaskAllocationNodeInfo()
-                                                        {
-                                                            AllocationNodeId = s,
-                                                        }).ToList();
-            taskInfo.Name = taskAdapter.Name;
-            taskInfo.State = taskAdapter.State;
-            taskInfo.StartTime = taskAdapter.StartTime;
-            taskInfo.EndTime = taskAdapter.EndTime;
-            taskInfo.ErrorMessage = taskAdapter.ErrorMessage;
-            taskInfo.AllocatedTime = taskAdapter.AllocatedTime;
-            taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
-            return taskInfo;
-        }
 
         public virtual object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
-            ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter();
+            ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
             jobAdapter.SetNotifications(jobSpecification.NotificationEmail,jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+
+            // Setting global parameters for all tasks
+            var globalJobParameters = (string)jobAdapter.AllocationCmd;
             var tasks = new List<object>();
             if (jobSpecification.Tasks is not null && jobSpecification.Tasks.Any())
             {
                 foreach (var task in jobSpecification.Tasks)
                 {
-                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)});echo $_{task.Id};");
+                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)}{globalJobParameters});echo $_{task.Id};");
                 }
             }
 
@@ -78,7 +53,7 @@ namespace HEAppE.HpcConnectionFramework
 
         public object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
         {
-            ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
+            ISchedulerTaskAdapter taskAdapter = _conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
             taskAdapter.DependsOn = taskSpecification.DependsOn;
             taskAdapter.SetEnvironmentVariablesToTask(taskSpecification.EnvironmentVariables);
             taskAdapter.IsExclusive = taskSpecification.IsExclusive;
@@ -129,45 +104,21 @@ namespace HEAppE.HpcConnectionFramework
             }
             else
             {
-                throw new ApplicationException("Command Template \"" + taskSpecification.CommandTemplate.Name + "\" for task \"" +
-                                               taskSpecification.Name + "\" does not exist in the adaptor configuration.");
+                throw new ApplicationException(@$"Command Template ""{taskSpecification.CommandTemplate.Name}"" for task 
+                                                  ""{taskSpecification.Name}"" does not exist in the adaptor configuration.");
             }
             return taskAdapter.AllocationCmd;
         }
+        #region Abstract Members
+
+        public abstract IEnumerable<string> GetJobIds(string responseMessage);
+
+        public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage);
+
+        public abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage);
         #endregion
-
+        #endregion
         #region Local Methods
-        protected virtual List<SubmittedTaskInfo> ConvertAllTasksToTaskInfos(List<object> tasks)
-        {
-            if (tasks != null)
-            {
-                List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>(tasks.Count);
-                foreach (object task in tasks)
-                {
-                    taskInfos.Add(ConvertTaskToTaskInfo(task));
-                }
-                return taskInfos;
-            }
-            return new List<SubmittedTaskInfo>();
-        }
-
-
-        protected virtual double CountTotalAllocatedTime(ICollection<SubmittedTaskInfo> tasks)
-        {
-            double totalTime = 0;
-            if (tasks != null)
-            {
-                foreach (SubmittedTaskInfo task in tasks)
-                {
-                    if (task.StartTime.HasValue)
-                    {
-                        totalTime += task.AllocatedTime ?? 0;
-                    }
-                }
-            }
-            return totalTime;
-        }
-
         protected virtual string CreateCommandLineForTask(CommandTemplate template, TaskSpecification taskSpecification,
                 JobSpecification jobSpecification, Dictionary<string, string> templateParameters)
         {
@@ -271,8 +222,6 @@ namespace HEAppE.HpcConnectionFramework
         }
         #endregion
 
-        #region Instance Fields
-        protected ConversionAdapterFactory conversionAdapterFactory;
-        #endregion
+
     }
 }

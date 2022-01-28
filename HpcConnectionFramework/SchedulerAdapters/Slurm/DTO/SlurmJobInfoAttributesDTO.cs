@@ -3,18 +3,18 @@
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
 {
     /// <summary>
-    /// Class: Slurm Attributes (Parsing result of job from Scontrol)
+    /// Slurm attributes (parsing result of job from scontrol command)
     /// </summary>
     public sealed class SlurmJobInfoAttributesDTO
     {
         #region Properties
         /// <summary>
-        /// Scheduled Job id
+        /// Scheduled job id
         /// </summary>
         public List<string> Id { get; }
 
         /// <summary>
-        /// Scheduled Job name
+        /// Scheduled job name
         /// </summary>
         public List<string> Name { get; }
 
@@ -24,19 +24,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         public List<string> Priority { get; }
 
         /// <summary>
-        /// Job work directory
-        /// </summary>
-        public List<string> WorkDirectory { get; }
-
-        /// <summary>
         /// Job queue
         /// </summary>
         public List<string> QueueName { get; }
-
-        /// <summary>
-        /// Job project
-        /// </summary>
-        public List<string> AccountName { get; }
 
         /// <summary>
         /// Job requeue
@@ -93,9 +83,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
             Id = new List<string>() { "JobId" };
             Name = new List<string>() { "JobName" };
             Priority = new List<string>() { "Priority" };
-            WorkDirectory = new List<string>() { "WorkDir" };
-            AccountName = new List<string>() { "Account" };
-            QueueName = new List<string>() { "Queue" };
+            QueueName = new List<string>() { "Partition" };
             Requeue = new List<string>() { "Requeue" };
             StateName = new List<string>() { "JobState" };
 

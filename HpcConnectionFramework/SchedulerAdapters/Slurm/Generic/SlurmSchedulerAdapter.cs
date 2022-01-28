@@ -8,17 +8,18 @@ using log4net;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
 {
     /// <summary>
-    /// Class: Slurm scheduler adapter
+    /// Slurm scheduler adapter
     /// </summary>
     internal class SlurmSchedulerAdapter : ISchedulerAdapter
     {
-        #region Properties
+        #region Instances
         /// <summary>
         /// Convertor reference.
         /// </summary>
@@ -30,7 +31,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         protected ICommands _commands;
 
         /// <summary>
-        /// Log4Net logger
+        /// Logger
         /// </summary>
         protected ILog _log;
 
@@ -46,23 +47,22 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="convertor"></param>
         public SlurmSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
-            //TODO LinuxCommand and SSH tunnel pass to constructor
+            //TODO parse from DI
             _log = LogManager.GetLogger(typeof(SlurmSchedulerAdapter));
             _convertor = convertor;
             _sshTunnelUtil = new SshTunnel();
             _commands = new LinuxCommands();
         }
-
         #endregion
         #region ISchedulerAdapter Members
         /// <summary>
-        /// Method: Submit job
+        /// Submit job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="credentials">Cluster credentials</param>
         /// <returns></returns>
-        public SubmittedJobInfo SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             SshCommandWrapper command = null;
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
@@ -70,18 +70,47 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
-                var jobIds = SlurmConversionUtils.GetJobIds(command.Result);
-                return GetActualTasksInfo((SshClient)connectorClient, jobIds);
+                var jobIds = _convertor.GetJobIds(command.Result);
+                return GetActualTasksInfo(connectorClient, jobIds);
             }
             catch (FormatException e)
             {
-                throw new Exception($@"Exception thrown when submitting a job to the cluster {jobSpecification.Cluster.Name}. 
-                                       Submission script result: {command.Result}\nCommand line for job submission:\n" + sshCommandBase64, e);
+                throw new Exception(@$"Exception thrown when submitting a job: ""{jobSpecification.Name}"" to the cluster: ""{jobSpecification.Cluster.Name}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script error message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommandBase64}"".\n", e);
             }
         }
 
         /// <summary>
-        /// Method: Cancel job
+        /// Get actual tasks
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="scheduledJobIds">Scheduler job ids</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds)
+        {
+            SshCommandWrapper command = null;
+            StringBuilder cmdBuilder = new ();
+            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId {f} -o';"));
+            string sshCommand = cmdBuilder.ToString();
+
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                var submittedTasksInfo = _convertor.ReadParametersFromResponse(command.Result);
+                return submittedTasksInfo;
+            }
+            catch (FormatException e)
+            {
+                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", scheduledJobIds)}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommand}""\n", e);
+            }
+        }
+
+        /// <summary>
+        /// Cancel job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="scheduledJobId">Scheduled job id</param>
@@ -91,26 +120,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scancel {scheduledJobId}'");
         }
 
-        public virtual SubmittedJobInfo GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds)
-        {
-            //TODO
-            var cmdBuilder = new StringBuilder();
-            foreach(string scheduledJobId in scheduledJobIds)
-            {
-                cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId {scheduledJobId} -o';");
-            }
-
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
-            return _convertor.ConvertJobToJobInfo(command.Result);
-        }
-
-        public SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
-        /// Method: Get current cluster node usage
+        /// Get current cluster node usage
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="nodeType">Node type</param>
@@ -133,20 +144,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 TotalJobs = default
             };
         }
-
+        
         /// <summary>
-        /// Method: Get allocated nodes per job
+        /// Get allocated nodes per job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public List<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
+        public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
             var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $@"{_commands.InterpreterCommand} 'scontrol show job {jobInfo.Specification.Id} | grep ' NodeList' | awk -F'=' '{"{{print $2}}"}'");
-            return SlurmConversionUtils.GetAllocatedNodes(command.Result);
+            return Mapper.GetAllocatedNodes(command.Result);
         }
 
         /// <summary>
-        /// Method: Get generic command templates parameters from script
+        /// Get generic command templates parameters from script
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="userScriptPath">Generic script path</param>
@@ -168,7 +179,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Allow direct file transfer acces for user
+        /// Allow direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
@@ -179,7 +190,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Remove direct file transfer acces for user
+        /// Remove direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Conenctor</param>
         /// <param name="publicKey">Public key</param>
@@ -190,7 +201,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Create job directory
+        /// Create job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -200,7 +211,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Delete job directory
+        /// Delete job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -210,7 +221,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Copy job data from temp folder
+        /// Copy job data from temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -221,7 +232,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Copy job data to temp folder
+        /// Copy job data to temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -231,10 +242,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         {
             _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
         }
-
         #region SSH tunnel methods
         /// <summary>
-        /// Method: Create SSH tunnel
+        /// Create SSH tunnel
         /// </summary>
         /// <param name="jobId">Job id</param>
         /// <param name="localHost">Local host</param>
@@ -249,7 +259,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Remove SSH tunnel
+        /// Remove SSH tunnel
         /// </summary>
         /// <param name="jobId">Job id</param>
         /// <param name="nodeHost">Node host</param>
@@ -259,7 +269,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Method: Check if SSH tunnel exist
+        /// Check if SSH tunnel exist
         /// </summary>
         /// <param name="jobId">Job id</param>
         /// <param name="nodeHost">Node host</param>

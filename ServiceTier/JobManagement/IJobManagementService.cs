@@ -1,4 +1,5 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
+using System.Collections.Generic;
 
 namespace HEAppE.ServiceTier.JobManagement
 {
@@ -12,6 +13,6 @@ namespace HEAppE.ServiceTier.JobManagement
         SubmittedJobInfoExt GetCurrentInfoForJob(long submittedJobInfoId, string sessionCode);
         void CopyJobDataToTemp(long submittedJobInfoId, string sessionCode, string path);
         void CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode);
-        string[] GetAllocatedNodesIPs(long submittedJobInfoId, string sessionCode);
+        IEnumerable<string> GetAllocatedNodesIPs(long submittedJobInfoId, string sessionCode);
     }
 }

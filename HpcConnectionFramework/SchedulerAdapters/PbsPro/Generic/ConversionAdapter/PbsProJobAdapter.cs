@@ -33,134 +33,107 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             get { return jobSource; }
         }
 
-        public string Id
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_ID, out result))
-                    return PbsProConversionUtils.GetJobIdFromJobCode(result);
-                return "";
-            }
-        }
+        //public string Name
+        //{
+        //    get
+        //    {
+        //        string result;
+        //        if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_NAME, out result))
+        //            return result;
+        //        return string.Empty;
+        //    }
+        //    ///<summary>Name of the job is set in the appropriate task.</summary>
+        //    set { }
+        //}
 
-        public string Name
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_NAME, out result))
-                    return result;
-                return string.Empty;
-            }
-            ///<summary>Name of the job is set in the appropriate task.</summary>
-            set { }
-        }
+        //public virtual string Project
+        //{
+        //    get
+        //    {
+        //        // Project is not supported in this PBS version
+        //        return string.Empty;
+        //    }
+        //    set
+        //    {
+        //        // Project is not supported in this PBS version
+        //    }
+        //}
 
-        public virtual string Project
-        {
-            get
-            {
-                // Project is not supported in this PBS version
-                return string.Empty;
-            }
-            set
-            {
-                // Project is not supported in this PBS version
-            }
-        }
+        //public virtual JobState State
+        //{
+        //    get
+        //    {
+        //        string result;
+        //        if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_STATE, out result))
+        //            return ConvertPbsJobStateToIndependentJobState(result);
+        //        return JobState.Finished;
+        //    }
+        //}
 
-        public string AccountingString
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.ACCOUNT_NAME, out result))
-                    return result;
-                return string.Empty;
-            }
-            set
-            {
-                if (!string.IsNullOrEmpty(value))
-                    jobSource += " -A " + value;
-            }
-        }
+        //public DateTime CreateTime
+        //{
+        //    get
+        //    {
+        //        string result;
+        //        if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.CTIME, out result))
+        //            return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
+        //        return DateTime.UtcNow;
+        //    }
+        //}
 
-        public virtual JobState State
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.JOB_STATE, out result))
-                    return ConvertPbsJobStateToIndependentJobState(result);
-                return JobState.Finished;
-            }
-        }
+        //public DateTime? SubmitTime
+        //{
+        //    get
+        //    {
+        //        string result;
+        //        if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.ETIME, out result))
+        //            return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
+        //        return null;
+        //    }
+        //}
 
-        public DateTime CreateTime
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.CTIME, out result))
-                    return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
-                return DateTime.UtcNow;
-            }
-        }
+        //public DateTime? StartTime
+        //{
+        //    get
+        //    {
+        //        string result;
+        //        if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.STIME, out result))
+        //            return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
+        //        return null;
+        //    }
+        //}
 
-        public DateTime? SubmitTime
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.ETIME, out result))
-                    return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
-                return null;
-            }
-        }
-
-        public DateTime? StartTime
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.STIME, out result))
-                    return PbsProConversionUtils.ConvertQstatDateStringToDateTime(result);
-                return null;
-            }
-        }
-
-        public virtual DateTime? EndTime
-        {
-            /// <summary>EndTime is not supported in the Linux PBS Scheduler.</summary>
-            get { return null; }
-        }
+        //public virtual DateTime? EndTime
+        //{
+        //    /// <summary>EndTime is not supported in the Linux PBS Scheduler.</summary>
+        //    get { return null; }
+        //}
 
 
-        public int Runtime
-        {
-            get
-            {
-                string result;
-                if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RESOURCE_LIST_WALLTIME, out result))
-                {
-                    return PbsProConversionUtils.ConvertQstatTimeStringToSeconds(result);
-                }
-                return 0;
-            }
-            set
-            {
-                /*if (value > 0)
-					jobSource += " -l walltime=" + LinuxPbsConversionUtils.ConvertSecondsToQstatTimeString(value);*/
-            }
-        }
+     //   public int Runtime
+     //   {
+     //       get
+     //       {
+     //           string result;
+     //           if (qstatInfo.TryGetValue(PbsProJobInfoAttributes.RESOURCE_LIST_WALLTIME, out result))
+     //           {
+     //               return PbsProConversionUtils.ConvertQstatTimeStringToSeconds(result);
+     //           }
+     //           return 0;
+     //       }
+     //       set
+     //       {
+     //           /*if (value > 0)
+					//jobSource += " -l walltime=" + LinuxPbsConversionUtils.ConvertSecondsToQstatTimeString(value);*/
+     //       }
+     //   }
 
-        public List<object> GetTaskList()
-        {
-            List<object> tasks = new List<object>();
-            tasks.Add(jobSource);
-            return tasks;
-        }
+        //public List<object> GetTaskList()
+        //{
+        //    List<object> tasks = new List<object>();
+        //    tasks.Add(jobSource);
+        //    return tasks;
+        //}
 
         /// <summary>Resources are set in tasks.</summary>
 

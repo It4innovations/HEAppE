@@ -16,6 +16,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement {
 		IList<SubmittedJobInfo> UpdateCurrentStateOfUnfinishedJobs();
         void CopyJobDataToTemp(long submittedJobInfoId, AdaptorUser loggedUser, string hash, string path);
         void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
-        List<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser);
+        IEnumerable<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser);
     }
 }

@@ -11,11 +11,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19.ConversionA
             return new PbsProV19JobAdapter();
         }
 
-        public override ISchedulerJobAdapter CreateJobAdapter(object jobSource)
-        {
-            return new PbsProV19JobAdapter(jobSource);
-        }
-
         public override ISchedulerTaskAdapter CreateTaskAdapter(object taskSource)
         {
             return new PbsProV19TaskAdapter(taskSource);

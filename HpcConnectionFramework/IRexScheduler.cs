@@ -5,17 +5,19 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework {
 	public interface IRexScheduler {
-		SubmittedJobInfo SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
+        IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
-		void CancelJob(string scheduledJobId, ClusterAuthenticationCredentials credentials);
+        IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<string> scheduledJobIds, Cluster cluster);
+
+        void CancelJob(string scheduledJobId, ClusterAuthenticationCredentials credentials);
 
 		void CancelJob(string scheduledJobId, string message, ClusterAuthenticationCredentials credentials);
 
-        SubmittedTaskInfo[] GetActualTasksInfo(string[] scheduledJobIds, Cluster cluster);
+
 
         ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType);
 
-        List<string> GetAllocatedNodes(SubmittedJobInfo jobInfo);
+        IEnumerable<string> GetAllocatedNodes(SubmittedJobInfo jobInfo);
 
         IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, string userScriptPath);
 

@@ -76,7 +76,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 if (isExtraLong)
                 {
-                    DecomposeExtraLongTask(specification, task);
+                    DecomposeExtraLongTask(task);
                 }
             }
 
@@ -154,13 +154,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     }
                 }
 
-                SubmittedJobInfo clusterJobInfo =
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                    .CreateScheduler(jobInfo.Specification.Cluster)
-                    .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
-                jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, clusterJobInfo);
-                jobInfo.SubmitTime = DateTime.UtcNow;
+                var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+                                                      .CreateScheduler(jobInfo.Specification.Cluster)
+                                                      .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
 
+
+                jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
                 _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
                 _unitOfWork.Save();
                 return jobInfo;
@@ -193,8 +192,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     scheduler.CancelJob(scheduledJobId, jobInfo.Specification.ClusterUser);
                 }
             }
-            var clusterTasksInfo = scheduler.GetActualTasksInfo(scheduledJobIds, jobInfo.Specification.Cluster);
-
+            var clusterTasksInfo = scheduler.GetActualTasksInfo(scheduledJobIds, jobInfo.Specification.Cluster).ToArray();
             for (int i = 0; i < clusterTasksInfo.Length; i++)
             {
                 jobInfo.Tasks[i] = CombineSubmittedTaskInfoFromCluster(jobInfo.Tasks[i], clusterTasksInfo[i]);
@@ -448,12 +446,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     .CopyJobDataFromTemp(jobInfo, hash);
         }
 
-        public List<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser)
+        public IEnumerable<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             if (jobInfo.State == JobState.Running)
             {
-                List<string> stringIPs = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).GetAllocatedNodes(jobInfo);
+                var stringIPs = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).GetAllocatedNodes(jobInfo);
                 return stringIPs;
             }
             else
@@ -650,8 +648,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         protected void CompleteTaskSpecification(TaskSpecification taskSpecification, IClusterInformationLogic clusterLogic)
         {
             taskSpecification.ClusterNodeType = clusterLogic.GetClusterNodeTypeById(taskSpecification.ClusterNodeTypeId);
-
             taskSpecification.CommandTemplate = _unitOfWork.CommandTemplateRepository.GetById(taskSpecification.CommandTemplateId);
+
             foreach (var cmdParameterValue in taskSpecification.CommandParameterValues ?? Enumerable.Empty<CommandTemplateParameterValue>())
             {
                 cmdParameterValue.TemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetByCommandTemplateIdAndCommandParamId(taskSpecification.CommandTemplateId, cmdParameterValue.CommandParameterIdentifier);
@@ -665,9 +663,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         /// <summary>
         /// Divide extra long task to smaller tasks
         /// </summary>
-        /// <param name="specification">Specification of the job</param>
         /// <param name="task">Task to divide</param>
-        protected void DecomposeExtraLongTask(JobSpecification specification, TaskSpecification task)
+        protected void DecomposeExtraLongTask(TaskSpecification task)
         {
             if (!(task.WalltimeLimit.HasValue))
             {
@@ -773,21 +770,15 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 Submitter = specification.Submitter,
                 Tasks = specification.Tasks
                     .OrderByDescending(x => x.Id)
-                    .Select(s => CreateSubmittedTaskInfo(s))
+                    .Select(s => new SubmittedTaskInfo()
+                                {
+                                    Name = s.Name,
+                                    Specification = s,
+                                    State = TaskState.Configuring,
+                                    Priority = s.Priority ?? TaskPriority.Average,
+                                    NodeType = s.ClusterNodeType
+                                })
                     .ToList()
-            };
-            return result;
-        }
-
-        protected static SubmittedTaskInfo CreateSubmittedTaskInfo(TaskSpecification taskSpecification)
-        {
-            SubmittedTaskInfo result = new()
-            {
-                Name = taskSpecification.Name,
-                Specification = taskSpecification,
-                State = TaskState.Configuring,
-                Priority = taskSpecification.Priority ?? TaskPriority.Average,
-                NodeType = taskSpecification.ClusterNodeType
             };
             return result;
         }
@@ -796,58 +787,62 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             dbJobInfo.StartTime = dbJobInfo.Tasks.FirstOrDefault()?.StartTime;
             dbJobInfo.EndTime = dbJobInfo.Tasks.LastOrDefault()?.EndTime;
-            dbJobInfo.TotalAllocatedTime = dbJobInfo.Tasks.Sum(s => s.AllocatedTime);
-            dbJobInfo.State = GetGlobalJobState(dbJobInfo.Tasks.Select(s => s.State));
+            dbJobInfo.TotalAllocatedTime = dbJobInfo.Tasks.Sum(s => s.AllocatedTime ?? 0);
+
+            JobState continuousJobState= JobState.Finished;
+            TaskState minTaskState = TaskState.Canceled;
+            foreach (var task in dbJobInfo.Tasks)
+            {
+                minTaskState = task.State < minTaskState ? task.State : minTaskState;
+                if (task.State == TaskState.Failed)
+                {
+                    continuousJobState = JobState.Failed;
+                    break;
+                }
+
+                if (task.State == TaskState.Running)
+                {
+                    continuousJobState = JobState.Running;
+                    break;
+                }
+
+                if (task.State == TaskState.Canceled)
+                {
+                    continuousJobState = JobState.Canceled;
+                    break;
+                }
+            }
+            dbJobInfo.State = (JobState)minTaskState < continuousJobState ? (JobState)minTaskState : continuousJobState;
         }
 
-        private static JobState GetGlobalJobState(IEnumerable<TaskState> taskStates)
+        protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo, IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
         {
-            if (taskStates.All(t => t.Equals(TaskState.Finished)))
-            {
-                return JobState.Finished;
-            }
-            else if (taskStates.Contains(TaskState.Failed))
-            {
-                return JobState.Failed;
-            }
-            else if (taskStates.Contains(TaskState.Running))
-            {
-                return JobState.Running;
-            }
-            else if (taskStates.Contains(TaskState.Canceled))
-            {
-                return JobState.Canceled;
-            }
-            else
-            {
-                return (JobState)taskStates.Min();
-            }
-        }
+            dbJobInfo.SubmitTime = DateTime.UtcNow;
+            dbJobInfo.Tasks.ForEach(s => CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Id.ToString())));
 
-        protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo, SubmittedJobInfo clusterJobInfo)
-        {
-            dbJobInfo.Tasks = (from dbTask in dbJobInfo.Tasks
-                               join clusterTask in clusterJobInfo.Tasks on dbTask.Specification.Id.ToString(CultureInfo.InvariantCulture) equals clusterTask.Name
-                               select CombineSubmittedTaskInfoFromCluster(dbTask, clusterTask)).ToList();
             UpdateJobStateByTasks(dbJobInfo);
             return dbJobInfo;
         }
 
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
-            dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
+            if (clusterTaskInfo is null)
+            {
+                dbTaskInfo.State = TaskState.Failed;
+                return dbTaskInfo;
+            }
+
             dbTaskInfo.TaskAllocationNodes = dbTaskInfo.TaskAllocationNodes?.Count > 0
                 ? dbTaskInfo.TaskAllocationNodes.Union(clusterTaskInfo.TaskAllocationNodes, new SubmittedTaskAllocationNodeInfoComparer()).ToList()
                 : dbTaskInfo.TaskAllocationNodes = clusterTaskInfo.TaskAllocationNodes;
 
-            dbTaskInfo.AllocatedTime = clusterTaskInfo.AllocatedTime;
-            dbTaskInfo.EndTime = clusterTaskInfo.EndTime;
-            dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
-            dbTaskInfo.StartTime = clusterTaskInfo.StartTime;
-            dbTaskInfo.State = clusterTaskInfo.State;
-            dbTaskInfo.Priority = clusterTaskInfo.Priority;
             dbTaskInfo.ScheduledJobId = clusterTaskInfo.ScheduledJobId;
-            dbTaskInfo.CpuHyperThreading = clusterTaskInfo.CpuHyperThreading;
+            dbTaskInfo.StartTime = clusterTaskInfo.StartTime;
+            dbTaskInfo.EndTime = clusterTaskInfo.EndTime;
+            dbTaskInfo.AllocatedTime = clusterTaskInfo.AllocatedTime;
+            dbTaskInfo.State = clusterTaskInfo.State;
+            dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
+            dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
             return dbTaskInfo;
         }
     }

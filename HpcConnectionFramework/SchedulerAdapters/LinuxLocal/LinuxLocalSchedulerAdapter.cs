@@ -36,11 +36,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
         private SubmittedJobInfo GetActualJobInfo(object scheduler, string pathToJobInfo)
         {
             var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.local_hpc_scripts/get_job_info.sh {pathToJobInfo}");
-            return _convertor.ConvertJobToJobInfo(command.Result);//todo
+            return null;// _convertor.ConvertJobToJobInfo(command.Result);//todo
         }
 
-        public SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification,
-            ClusterAuthenticationCredentials credentials)
+        public IEnumerable<SubmittedTaskInfo> SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             StringBuilder sb = new StringBuilder();
             StringBuilder jobResultInfo = new StringBuilder();
@@ -71,19 +70,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler),
                 $"~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
             #endregion
-            return GetActualJobInfo(scheduler, $"{jobSpecification.Id}/");
+            return null;
+            //return GetActualJobInfo(scheduler, $"{jobSpecification.Id}/");
         }
 
-        public SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object scheduler, IEnumerable<string> scheduledJobIds)
         {
             var submittedTaskInfos = new List<SubmittedTaskInfo>();
-
             foreach (var jobId in scheduledJobIds.Select(x => x.Substring(0, x.IndexOf('.'))).Distinct())
             {
                 submittedTaskInfos.AddRange(GetActualJobInfo(scheduler, $"{jobId}/").Tasks);
             }
-
-            return submittedTaskInfos.ToArray();
+            return submittedTaskInfos;
         }
 
         public void CancelJob(object scheduler, string scheduledJobId, string message)
@@ -108,7 +106,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             return usage;
         }
 
-        public List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
+        public IEnumerable<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
         {
             throw new NotImplementedException();
         }

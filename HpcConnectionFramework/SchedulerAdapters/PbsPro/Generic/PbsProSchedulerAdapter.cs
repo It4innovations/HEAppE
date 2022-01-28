@@ -26,7 +26,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         #endregion
 
         #region ISchedulerAdapter Members
-        public virtual SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             //string job = "bash -lc '" + (string) _convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub") + "'";
             string job = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub");
@@ -62,7 +62,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         //    throw new NotImplementedException();
         //}
 
-        public virtual SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
+        public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object scheduler, IEnumerable<string> scheduledJobIds)
         {
             throw new NotImplementedException();
         }
@@ -100,7 +100,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
 
-        public virtual List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
+        public virtual IEnumerable<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
         {
 #warning this should use database instead of direct read from file
             string shellCommand = String.Format("cat {0}/{1}/nodefile", jobInfo.Specification.Cluster.LocalBasepath, jobInfo.Specification.Id);

@@ -5,21 +5,20 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework {
 	public interface ISchedulerAdapter {
-        SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
+        IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
-		void CancelJob(object scheduler, string scheduledJobId, string message);
+        IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds);
 
-		//SubmittedJobInfo GetActualJobInfo(object scheduler, string scheduledJobId);
+        void CancelJob(object connectorClient, string scheduledJobId, string message);
 
-  //      SubmittedJobInfo GetActualJobInfo(object scheduler, string[] scheduledJobIds);
 
-        SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds);
+        
 
         //SubmittedJobInfo[] GetActualJobsInfo(object scheduler, int[] scheduledJobIds);
 
 		ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType);
 
-        List<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo);
+        IEnumerable<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo);
 
         IEnumerable<string> GetParametersFromGenericUserScript(object scheduler, string userScriptPath);
 

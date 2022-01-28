@@ -1,11 +1,11 @@
 ﻿using System;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Enums
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums
 {
     /// <summary>
-    /// Enum: Slurm states
+    /// Slurm states
     /// </summary>
-    public enum SlurmJobState
+    internal enum SlurmTaskState
     {
         /// <summary>
         /// Job terminated due to launch failure, typically due to a hardware failure 

@@ -1,7 +1,7 @@
 ﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
 {
     /// <summary>
-    /// Class: Clusters scripts used in schedulers
+    /// Clusters scripts used in schedulers
     /// </summary>
     internal sealed class CommandScriptPathDTO
     {

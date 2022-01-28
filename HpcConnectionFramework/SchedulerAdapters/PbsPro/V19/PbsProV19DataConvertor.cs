@@ -21,43 +21,26 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
             return CreateCommandLineForTemplate(template, additionalParameters);
         }
 
-        public override SubmittedJobInfo ConvertJobToJobInfo(object job)
-        {
-            SubmittedJobInfo jobInfo = new SubmittedJobInfo();
-            ISchedulerJobAdapter jobAdapter = conversionAdapterFactory.CreateJobAdapter(job);
-            List<object> allTasks = jobAdapter.GetTaskList();
-            jobInfo.Tasks = ConvertAllTasksToTaskInfos(allTasks);
-            jobInfo.Name = jobAdapter.Name;
-            jobInfo.Project = jobAdapter.Project;
-            jobInfo.State = jobAdapter.State;
-            jobInfo.CreationTime = jobAdapter.CreateTime;
-            jobInfo.SubmitTime = jobAdapter.SubmitTime;
-            jobInfo.StartTime = jobAdapter.StartTime;
-            jobInfo.EndTime = jobAdapter.EndTime;
-            jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
-            return jobInfo;
-        }
-
-        public override SubmittedTaskInfo ConvertTaskToTaskInfo(object task)
-        {
-            SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();
-            ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(task);
-            taskInfo.TaskAllocationNodes = taskAdapter.AllocatedCoreIds?.Select(s => new SubmittedTaskAllocationNodeInfo
-            {
-                AllocationNodeId = s,
-                SubmittedTaskInfoId = long.Parse(taskAdapter.Name)
-            }).ToList();
-            taskInfo.ScheduledJobId = taskAdapter.Id;
-            taskInfo.Priority = taskAdapter.Priority;
-            taskInfo.Name = taskAdapter.Name;
-            taskInfo.State = taskAdapter.State;
-            taskInfo.StartTime = taskAdapter.StartTime;
-            taskInfo.EndTime = taskAdapter.EndTime;
-            taskInfo.ErrorMessage = taskAdapter.ErrorMessage;
-            taskInfo.AllocatedTime = taskAdapter.AllocatedTime;
-            taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
-            return taskInfo;
-        }
+        //public override SubmittedTaskInfo ConvertTaskToTaskInfo(object task)
+        //{
+        //    SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();
+        //    ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(task);
+        //    taskInfo.TaskAllocationNodes = taskAdapter.AllocatedCoreIds?.Select(s => new SubmittedTaskAllocationNodeInfo
+        //    {
+        //        AllocationNodeId = s,
+        //        SubmittedTaskInfoId = long.Parse(taskAdapter.Name)
+        //    }).ToList();
+        //    taskInfo.ScheduledJobId = taskAdapter.Id;
+        //    taskInfo.Priority = taskAdapter.Priority;
+        //    taskInfo.Name = taskAdapter.Name;
+        //    taskInfo.State = taskAdapter.State;
+        //    taskInfo.StartTime = taskAdapter.StartTime;
+        //    taskInfo.EndTime = taskAdapter.EndTime;
+        //    taskInfo.ErrorMessage = taskAdapter.ErrorMessage;
+        //    taskInfo.AllocatedTime = taskAdapter.AllocatedTime;
+        //    taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
+        //    return taskInfo;
+        //}
         #endregion
     }
 }

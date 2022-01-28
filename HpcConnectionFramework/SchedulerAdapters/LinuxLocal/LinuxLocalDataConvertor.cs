@@ -24,22 +24,22 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             return CreateCommandLineForTemplate(template, additionalParameters);
         }
 
-        public override SubmittedJobInfo ConvertJobToJobInfo(object job)//TODO
-        {
-            SubmittedJobInfo jobInfo = new SubmittedJobInfo();
-            var jobAdapter = JsonSerializer.Deserialize<LinuxLocalJobDTO>(job.ToString());
-            var allTasks = jobAdapter.Tasks;
-            jobInfo.Tasks = ConvertTasksToTaskInfoCollection(allTasks, jobAdapter.Id);
-            jobInfo.Name = jobAdapter.Name;
-            jobInfo.Project = jobAdapter.Project;
-            jobInfo.State = jobAdapter.State;
-            jobInfo.CreationTime = jobAdapter.CreateTime;
-            jobInfo.SubmitTime = jobAdapter.SubmitTime;
-            jobInfo.StartTime = jobAdapter.StartTime;
-            jobInfo.EndTime = jobAdapter.EndTime;
-            jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
-            return jobInfo;
-        }
+        //public override SubmittedJobInfo ConvertJobToJobInfo(object job)//TODO
+        //{
+        //    SubmittedJobInfo jobInfo = new SubmittedJobInfo();
+        //    var jobAdapter = JsonSerializer.Deserialize<LinuxLocalJobDTO>(job.ToString());
+        //    var allTasks = jobAdapter.Tasks;
+        //    jobInfo.Tasks = ConvertTasksToTaskInfoCollection(allTasks, jobAdapter.Id);
+        //    jobInfo.Name = jobAdapter.Name;
+        //    jobInfo.Project = jobAdapter.Project;
+        //    jobInfo.State = jobAdapter.State;
+        //    jobInfo.CreationTime = jobAdapter.CreateTime;
+        //    jobInfo.SubmitTime = jobAdapter.SubmitTime;
+        //    jobInfo.StartTime = jobAdapter.StartTime;
+        //    jobInfo.EndTime = jobAdapter.EndTime;
+        //    jobInfo.TotalAllocatedTime = CountTotalAllocatedTime(jobInfo.Tasks);
+        //    return jobInfo;
+        //}
 
         private List<SubmittedTaskInfo> ConvertTasksToTaskInfoCollection(List<LinuxLocalTaskDTO> allTasks, long scheduledJobId)
         {
@@ -66,26 +66,27 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             return taskCollection;
         }
 
-        public override SubmittedTaskInfo ConvertTaskToTaskInfo(object task)
-        {
-            SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();
-            ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(task);
-            taskInfo.TaskAllocationNodes = taskAdapter.AllocatedCoreIds?.Select(s => new SubmittedTaskAllocationNodeInfo
-            {
-                AllocationNodeId = s,
-                SubmittedTaskInfoId = long.Parse(taskAdapter.Name)
-            }).ToList();
-            taskInfo.ScheduledJobId = taskAdapter.Id;
-            taskInfo.Priority = taskAdapter.Priority;
-            taskInfo.Name = taskAdapter.Name;
-            taskInfo.State = taskAdapter.State;
-            taskInfo.StartTime = taskAdapter.StartTime;
-            taskInfo.EndTime = taskAdapter.EndTime;
-            taskInfo.ErrorMessage = taskAdapter.ErrorMessage;
-            taskInfo.AllocatedTime = taskAdapter.AllocatedTime;
-            taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
-            return taskInfo;
-        }
+        //public override SubmittedTaskInfo ConvertTaskToTaskInfo(object task)
+        //{
+            //TODO
+            //SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();
+            //ISchedulerTaskAdapter taskAdapter = conversionAdapterFactory.CreateTaskAdapter(task);
+            //taskInfo.TaskAllocationNodes = taskAdapter.AllocatedCoreIds?.Select(s => new SubmittedTaskAllocationNodeInfo
+            //{
+            //    AllocationNodeId = s,
+            //    SubmittedTaskInfoId = long.Parse(taskAdapter.Name)
+            //}).ToList();
+            //taskInfo.ScheduledJobId = taskAdapter.Id;
+            //taskInfo.Priority = taskAdapter.Priority;
+            //taskInfo.Name = taskAdapter.Name;
+            //taskInfo.State = taskAdapter.State;
+            //taskInfo.StartTime = taskAdapter.StartTime;
+            //taskInfo.EndTime = taskAdapter.EndTime;
+            //taskInfo.ErrorMessage = taskAdapter.ErrorMessage;
+            //taskInfo.AllocatedTime = taskAdapter.AllocatedTime;
+            //taskInfo.AllParameters = StringUtils.ConvertDictionaryToString(taskAdapter.AllParameters);
+            //return taskInfo;
+        //}
 
         public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
@@ -118,6 +119,21 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             //preparation script, prepares job info file to the job directory at local linux "cluster"
             return $"~/.key_scripts/prepare_job_dir.sh " +
                 $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
+        }
+
+        public override IEnumerable<string> GetJobIds(string responseMessage)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object response)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage)
+        {
+            throw new NotImplementedException();
         }
         #endregion
     }

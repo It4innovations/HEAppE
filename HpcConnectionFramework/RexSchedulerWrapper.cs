@@ -28,13 +28,13 @@ namespace HEAppE.HpcConnectionFramework
         }
         #endregion
         #region IRexScheduler Members
-        public SubmittedJobInfo SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                SubmittedJobInfo info = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
-                return info;
+                var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
+                return tasks;
             }
             finally
             {
@@ -61,13 +61,13 @@ namespace HEAppE.HpcConnectionFramework
             }
         }
 
-        public SubmittedTaskInfo[] GetActualTasksInfo(string[] scheduledJobIds, Cluster cluster)
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<string> scheduledJobIds, Cluster cluster)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(cluster.ServiceAccountCredentials);
             try
             {
-                SubmittedTaskInfo[] taskInfoArray = _adapter.GetActualTasksInfo(schedulerConnection.Connection, scheduledJobIds);
-                return taskInfoArray;
+                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, scheduledJobIds);
+                return tasks;
             }
             finally
             {
@@ -91,7 +91,7 @@ namespace HEAppE.HpcConnectionFramework
             }
         }
 
-        public List<string> GetAllocatedNodes(SubmittedJobInfo jobInfo)
+        public IEnumerable<string> GetAllocatedNodes(SubmittedJobInfo jobInfo)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
             try

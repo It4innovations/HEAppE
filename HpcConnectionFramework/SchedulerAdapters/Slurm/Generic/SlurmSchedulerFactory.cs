@@ -7,20 +7,20 @@ using System.Collections.Generic;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
 {
     /// <summary>
-    /// Class: Slurm scheduler factory
+    /// Slurm scheduler factory
     /// </summary>
     internal class SlurmSchedulerFactory : SchedulerFactory
     {
-        #region Properties
+        #region Instances
         /// <summary>
         /// Connectors
         /// </summary>
-        private readonly Dictionary<string, IPoolableAdapter> _connectorSingletons = new Dictionary<string, IPoolableAdapter>();
+        private readonly Dictionary<string, IPoolableAdapter> _connectorSingletons = new();
 
         /// <summary>
         /// Scheduler singeltons
         /// </summary>
-        private readonly Dictionary<string, IRexScheduler> _schedulerSingletons = new Dictionary<string, IRexScheduler>();
+        private readonly Dictionary<string, IRexScheduler> _schedulerSingletons = new();
 
         /// <summary>
         /// Convertor
@@ -32,9 +32,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         private ISchedulerAdapter _schedulerAdapterInstance;
         #endregion
-        #region Override methods
+        #region SchedulerFactory Members
         /// <summary>
-        /// Method: Create scheduler
+        /// Create scheduler
         /// </summary>
         /// <param name="configuration">Cluster configuration data</param>
         /// <returns></returns>
@@ -43,34 +43,35 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             var masterNodeName = configuration.MasterNodeName;
             if (!_schedulerSingletons.ContainsKey(masterNodeName))
             {
-                _schedulerSingletons[masterNodeName] = new RexSchedulerWrapper(
-                        GetSchedulerConnectionPool(configuration),
-                        CreateSchedulerAdapter()
-                    );
+                _schedulerSingletons[masterNodeName] = new RexSchedulerWrapper
+                                                       (
+                                                            GetSchedulerConnectionPool(configuration),
+                                                            CreateSchedulerAdapter()
+                                                       );
             }
             return _schedulerSingletons[masterNodeName];
         }
 
         /// <summary>
-        /// Method: Create scheduler adapter
+        /// Create scheduler adapter
         /// </summary>
         /// <returns></returns>
         protected override ISchedulerAdapter CreateSchedulerAdapter()
         {
-            return _schedulerAdapterInstance ?? (_schedulerAdapterInstance = new SlurmSchedulerAdapter(CreateDataConvertor()));
+            return _schedulerAdapterInstance ??= new SlurmSchedulerAdapter(CreateDataConvertor());
         }
 
         /// <summary>
-        /// Method: Create data convertor
+        /// Create data convertor
         /// </summary>
         /// <returns></returns>
         protected override ISchedulerDataConvertor CreateDataConvertor()
         {
-            return _convertorSingleton ?? (_convertorSingleton = new SlurmDataConvertor(new SlurmConversionAdapterFactory()));
+            return _convertorSingleton ??= new SlurmDataConvertor(new SlurmConversionAdapterFactory());
         }
 
         /// <summary>
-        /// Method: Create scheduler connector
+        /// Create scheduler connector
         /// </summary>
         /// <param name="configuration">Cluster configuration data</param>
         /// <returns></returns>

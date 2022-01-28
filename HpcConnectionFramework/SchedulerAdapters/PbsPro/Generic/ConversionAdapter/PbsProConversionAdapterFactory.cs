@@ -10,11 +10,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             return new PbsProJobAdapter();
         }
 
-        public override ISchedulerJobAdapter CreateJobAdapter(object jobSource)
-        {
-            return new PbsProJobAdapter(jobSource);
-        }
-
         public override ISchedulerTaskAdapter CreateTaskAdapter(object taskSource)
         {
             return new PbsProTaskAdapter(taskSource);

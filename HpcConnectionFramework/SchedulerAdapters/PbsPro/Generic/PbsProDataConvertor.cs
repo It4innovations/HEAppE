@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.ConversionAdapter;
 using HEAppE.MiddlewareUtils;
 
@@ -12,6 +13,21 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         #region Constructors
         public PbsProDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) 
         {
+        }
+
+        public override SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override IEnumerable<string> GetJobIds(string responseMessage)
+        {
+            throw new System.NotImplementedException();
+        }
+
+        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object response)
+        {
+            throw new System.NotImplementedException();
         }
         #endregion
         #region SchedulerDataConvertor Members

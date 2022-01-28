@@ -103,7 +103,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
         //    return result;
         //}
 
-        public override SubmittedJobInfo SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public override IEnumerable<SubmittedTaskInfo> SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             SshCommandWrapper command = null;
             var qsubTaskCommandBytes = System.Text.Encoding.UTF8.GetBytes((string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub"));
@@ -116,7 +116,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
                 if (jobIds == null || jobIds.Length == 0)
                     throw new Exception("Exception thrown when submitting a job to the cluster. Submission script result: " + command.Result + "\nError: " + command.Error + "\nCommand line for job submission:\n" + job);
 
-                return GetActualJobInfo(scheduler, jobIds);
+                return null;// GetActualJobInfo(scheduler, jobIds);
             }
             catch (FormatException e)
             {
@@ -128,13 +128,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
 
 
 
-        public override SubmittedTaskInfo[] GetActualTasksInfo(object scheduler, string[] scheduledJobIds)
+        public override IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object scheduler, IEnumerable<string> scheduledJobIds)
         {
             const string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]\-]+)";
+            var scheduledJobIdsArray = scheduledJobIds.ToArray();
             SshCommandWrapper command = null;
             do
             {
-                string commandString = $"bash -lc 'qstat -f -x {string.Join(" ", scheduledJobIds)}'";
+                string commandString = $"bash -lc 'qstat -f -x {string.Join(" ", scheduledJobIdsArray)}'";
                 try
                 {
                     command = RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandString);
@@ -154,7 +155,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
                         {
                             string jobId = match.Value;
                             _log.Warn($"Unknown Job ID {jobId} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.");
-                            scheduledJobIds = scheduledJobIds?.Where(val => val != jobId)
+                            scheduledJobIdsArray = scheduledJobIdsArray?.Where(val => val != jobId)
                                                                .ToArray();
                             command = null;
                         }
@@ -172,8 +173,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
             {
                 string[] resultLines = command.Result.Split('\n');
 
-
-
                 // Search for lines with jobIds
                 Dictionary<string, int> jobLines = new Dictionary<string, int>();
                 for (int i = 0; i < resultLines.Length; i++)
@@ -187,17 +186,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
 
                 // Iterate through jobIds and extract task info
                 List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>();
-                for (int i = 0; i < scheduledJobIds?.Length; i++)
+                for (int i = 0; i < scheduledJobIdsArray?.Length; i++)
                 {
                     // Search for jobId in result
                     int jobInfoStartLine = -1;
                     try
                     {
-                        jobInfoStartLine = jobLines[scheduledJobIds[i]];
+                        jobInfoStartLine = jobLines[scheduledJobIdsArray[i]];
                     }
                     catch (KeyNotFoundException)
                     {
-                        _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIds[i]);
+                        _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIdsArray[i]);
 
                         taskInfos.Add(new SubmittedTaskInfo());
                         continue;
@@ -215,13 +214,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19
                     Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
 
                     // Get current job info
-                    taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
+                    //TODO
+                    //taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
                 }
-                return taskInfos.ToArray();
+                return taskInfos;
             }
             else
             {
-                return Array.Empty<SubmittedTaskInfo>();
+                return Enumerable.Empty<SubmittedTaskInfo>();
             }
         }
 
