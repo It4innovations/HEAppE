@@ -163,7 +163,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="userScriptPath">Generic script path</param>
         /// <returns></returns>
-        public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+        public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
         {
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";

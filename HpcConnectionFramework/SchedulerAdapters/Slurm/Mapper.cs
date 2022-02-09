@@ -105,49 +105,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
                 }
             }
             return allocatedNodesForJob;
-        }
-
-        /// <summary>
-        /// Change type from object
-        /// </summary>
-        /// <param name="obj">Value for converting</param>
-        /// <param name="type">Type for converting</param>
-        /// <returns></returns>
-        internal static object ChangeType(object obj, Type type)
-        {
-            switch (type.Name)
-            {
-                case "TimeSpan":
-                    {
-                        string parsedText = Convert.ToString(obj);
-                        if (!string.IsNullOrEmpty(parsedText) && TimeSpan.TryParse(parsedText, out TimeSpan timeSpan))
-                        {
-                            return timeSpan;
-                        }
-                        else
-                        {
-                            return new TimeSpan(0);
-                        }
-                    }
-                case "DateTime":
-                    {
-                        string parsedText = Convert.ToString(obj);
-                        if (!string.IsNullOrEmpty(parsedText) && DateTime.TryParse(parsedText, out DateTime date))
-                        {
-                            return date.Kind == DateTimeKind.Utc
-                                ? date
-                                : new DateTime(date.Ticks, DateTimeKind.Local).ToUniversalTime();
-                        }
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                default:
-                    {
-                        return Convert.ChangeType(obj, type);
-                    }
-            }
-        }
+        }      
     }
 }

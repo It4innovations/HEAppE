@@ -49,10 +49,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <returns></returns>
         public override SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage)
         {
-            SlurmJobDTO obj = (SlurmJobDTO)responseMessage;
+            SlurmJobInfo obj = (SlurmJobInfo)responseMessage;
             return new SubmittedTaskInfo()
             {
-                ScheduledJobId = obj.Id,
+                ScheduledJobId = obj.SchedulerJobId,
                 Name = obj.Name,
                 StartTime = obj.StartTime,
                 EndTime = obj.EndTime,
@@ -73,7 +73,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage)
         {
             string response = (string)responseMessage;
-            var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
+            var jobSubmitedTasksInfo = new List<SlurmJobInfo>();
             foreach (Match match in Regex.Matches(response, @"(?<jobParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
@@ -89,38 +89,28 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                         })
                                         .Distinct();
 
-                    Dictionary<string, string> parsedParameters = parameters.ToDictionary(i => i.Key, j => j.Value);
+                    var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
+                    FillingSchedulerJobResultObjectFromSchedulerAttribute(schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
-                    var slurmAttributes = new SlurmJobInfoAttributesDTO();
-                    var jobParameters = new SlurmJobDTO(jobResponseMessage);
-
-                    var slurmProperties = slurmAttributes.GetType().GetProperties();
-                    foreach (var slurmProperty in slurmProperties)
-                    {
-                        var propertyValues = (List<string>)slurmAttributes.GetType().GetProperty(slurmProperty.Name).GetValue(slurmAttributes, null);
-                        foreach (var propertyValue in propertyValues)
-                        {
-                            if (parsedParameters.ContainsKey(propertyValue))
-                            {
-                                var jobParametersProperty = jobParameters.GetType().GetProperty(slurmProperty.Name);
-                                if (jobParametersProperty != null && jobParametersProperty.CanWrite)
-                                {
-                                    var value = Mapper.ChangeType(parsedParameters[propertyValue], jobParametersProperty.PropertyType);
-                                    jobParametersProperty.SetValue(jobParameters, value, null);
-                                }
-                                break;
-                            }
-                        }
-                    }
-                    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(jobParameters));
-                }
-                else
-                {
-                    throw new FormatException("Unable to parse response from HPC scheduler!");
+                    //Todo merge jobArrays
+                    jobSubmitedTasksInfo.Add(schedulerResultObj);
                 }
             }
-            return jobSubmitedTasksInfo;
+
+            if (jobSubmitedTasksInfo.Any())
+            {
+                //ConvertTaskToTaskInfo
+                //var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
+                //TODO combine two task into one submitted object if job-array presents
+                return null;
+            }
+            else
+            {
+                throw new FormatException("Unable to parse response from HPC scheduler!");
+            }
+
         }
         #endregion
+       
     }
 }

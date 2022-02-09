@@ -6,50 +6,63 @@ using System.Collections.Generic;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
 {
     /// <summary>
-    /// Slurm job DTO
+    /// Slurm job info
     /// </summary>
-    public class SlurmJobDTO
+    public class SlurmJobInfo : ISchedulerJobInfo
     {
         #region Instances
         /// <summary>
         /// Job allocated nodes
         /// </summary>
-        private string _allocatedNodes;
+        private IEnumerable<string> _allocatedNodes;
         #endregion
         #region Properties
         /// <summary>
         /// Job scheduled id
         /// </summary>
-        public string Id { get; set; }
+        [Scheduler("JobId")]
+        public string SchedulerJobId { get; set; }
+
+        /// <summary>
+        /// Array job Id (only for job arrray)
+        /// </summary>
+        [Scheduler("ArrayJobId")]
+        public string ArrayJobId { get; set; }
+
+        /// <summary>
+        /// Array task Id (only for job arrray)
+        /// </summary>
+        [Scheduler("ArrayTaskId")]
+        public string ArrayTaskId { get; set; }
 
         /// <summary>
         /// Job Name
         /// </summary>
+        [Scheduler("JobName")]
         public string Name { get; set; }
 
         /// <summary>
         /// Job priority
         /// </summary>
+        [Scheduler("Priority")]
         public int Priority { get; set; }
 
         /// <summary>
         /// Job requeue
         /// </summary>
+        [Scheduler("Requeue")]
         public int Requeue { get; set; }
 
         /// <summary>
         /// Job queue name
         /// </summary>
+        [Scheduler("Partition")]
         public string QueueName { get; set; }
-
-        /// <summary>
-        /// Job task state
-        /// </summary>
-        public TaskState TaskState { get; private set; }
 
         /// <summary>
         /// Task state name
         /// </summary>
+        [Scheduler("JobState")]
         public string StateName
         {
             set
@@ -59,48 +72,65 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         }
 
         /// <summary>
+        /// Job task state
+        /// </summary>
+        public TaskState TaskState { get; private set; }
+
+        /// <summary>
         /// Job creation time
         /// </summary>
+        [Scheduler("SubmitTime")]
         public DateTime CreationTime { get; set; }
 
         /// <summary>
         /// Job submittion time
         /// </summary>
+        [Scheduler("SubmitTime")]
         public DateTime SubmitTime { get; set; }
 
         /// <summary>
         /// Job start time
         /// </summary>
+        [Scheduler("StartTime")]
         public DateTime StartTime { get; set; }
 
         /// <summary>
         /// Job end time
         /// </summary>
+        [Scheduler("EndTime")]
         public DateTime EndTime { get; set; }
 
         /// <summary>
         /// Job allocated time (requirement)
         /// </summary>
+        [Scheduler("TimeLimit")]
         public TimeSpan AllocatedTime { get; set; }
-
-        /// <summary>
-        /// Job allocated nodes
-        /// </summary>
-        public string AllocatedNodesSplit
-        {       
-            set 
-            { 
-                _allocatedNodes = value;
-                AllocatedNodes = Mapper.GetAllocatedNodes(_allocatedNodes);
-            }
-        }
-
-        public IEnumerable<string> AllocatedNodes { get; set; }
 
         /// <summary>
         /// Job run time
         /// </summary>
+        [Scheduler("RunTime")]
         public TimeSpan RunTime { get; set; }
+
+        /// <summary>
+        /// Job allocated nodes
+        /// </summary>
+        [Scheduler("NodeList")]
+        public string AllocatedNodesSplit
+        {
+            set
+            {
+                _allocatedNodes = Mapper.GetAllocatedNodes(value);
+            }
+        }
+
+        public IEnumerable<string> AllocatedNodes
+        {
+            get
+            {
+                return _allocatedNodes;
+            }
+        }
 
         /// <summary>
         /// Job scheduler response raw data
@@ -112,7 +142,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Constructor
         /// </summary>
         /// <param name="schedulerResponseParameters"></param>
-        public SlurmJobDTO(string schedulerResponseParameters)
+        public SlurmJobInfo(string schedulerResponseParameters)
         {
             SchedulerResponseParameters = schedulerResponseParameters;
         }
@@ -129,8 +159,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
                          .Trim()
                          .ToLower();
             return Enum.TryParse(state, true, out SlurmTaskState taskState)
-                ? taskState
-                : SlurmTaskState.Failed;
+                    ? taskState
+                    : SlurmTaskState.Failed;
         }
         #endregion
     }

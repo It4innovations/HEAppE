@@ -32,8 +32,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         {
             ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
             jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
-            //TODO
-            //jobAdapter.SetEnvironmentVariablesToJob(jobSpecification.EnvironmentVariables);
             // Setting global parameters for all tasks
             var globalJobParameters = (string)jobAdapter.AllocationCmd;
             var tasks = new List<object>();
@@ -105,12 +103,34 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
             return taskAdapter.AllocationCmd;
         }
+
+        public void FillingSchedulerJobResultObjectFromSchedulerAttribute(object schedulerResultObj, Dictionary<string, string> parsedParameters)
+        {
+            var properties = schedulerResultObj.GetType()
+                                                .GetProperties();
+
+            foreach (var property in properties)
+            {
+                var schedulerPropertyNames = property.GetCustomAttributes(typeof(SchedulerAttribute), true)
+                                                      .Cast<SchedulerAttribute>()
+                                                      .FirstOrDefault()?.Names ?? Enumerable.Empty<string>();
+                foreach (var schedulerPropertyName in schedulerPropertyNames)
+                {
+                    if (parsedParameters.ContainsKey(schedulerPropertyName))
+                    {
+                        if (property.CanWrite)
+                        {
+                            var value = ChangeType(parsedParameters[schedulerPropertyName], property.PropertyType);
+                            property.SetValue(schedulerResultObj, value, null);
+                        }
+                        break;
+                    }
+                }
+            }
+        }
         #region Abstract Members
-
         public abstract IEnumerable<string> GetJobIds(string responseMessage);
-
         public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage);
-
         public abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage);
         #endregion
         #endregion
@@ -187,6 +207,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return symlinkCommand;
         }
 
+        protected static TaskState AgregateTaskStateforSubTasks(IEnumerable<TaskState> taskStates)
+        {
+            TaskState continuousTaskState = TaskState.Finished;
+            foreach (var taskState in taskStates)
+            {
+                if (taskState is TaskState.Failed or TaskState.Canceled or TaskState.Running)
+                {
+                    continuousTaskState = taskState;
+                    break;
+                }
+                
+                if (taskState is TaskState.Configuring or TaskState.Submitted or TaskState.Queued)
+                {
+                    continuousTaskState = taskState;
+                }
+            }
+            return continuousTaskState;
+        }
+
         private static string GetPropertyValueForQuery(object objectForQuery, string query)
         {
             PropertyInfo property = objectForQuery.GetType().GetProperty(query[(query.IndexOf('.') + 1)..]);
@@ -198,6 +237,49 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             object propertyValue = property.GetValue(objectForQuery, null);
             return propertyValue != null ? propertyValue.ToString() : string.Empty;
 
+        }
+
+        /// <summary>
+        /// Change type from object
+        /// </summary>
+        /// <param name="obj">Value for converting</param>
+        /// <param name="type">Type for converting</param>
+        /// <returns></returns>
+        private static object ChangeType(object obj, Type type)
+        {
+            switch (type.Name)
+            {
+                case "TimeSpan":
+                    {
+                        string parsedText = Convert.ToString(obj);
+                        if (!string.IsNullOrEmpty(parsedText) && TimeSpan.TryParse(parsedText, out TimeSpan timeSpan))
+                        {
+                            return timeSpan;
+                        }
+                        else
+                        {
+                            return new TimeSpan(0);
+                        }
+                    }
+                case "DateTime":
+                    {
+                        string parsedText = Convert.ToString(obj);
+                        if (!string.IsNullOrEmpty(parsedText) && DateTime.TryParse(parsedText, out DateTime date))
+                        {
+                            return date.Kind == DateTimeKind.Utc
+                                ? date
+                                : new DateTime(date.Ticks, DateTimeKind.Local).ToUniversalTime();
+                        }
+                        else
+                        {
+                            return null;
+                        }
+                    }
+                default:
+                    {
+                        return Convert.ChangeType(obj, type);
+                    }
+            }
         }
         #endregion
     }

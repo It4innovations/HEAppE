@@ -27,7 +27,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         public PbsProTaskAdapter(string taskSource)
         {
             _taskBuilder = new StringBuilder(taskSource);
-            //qstatInfo = PbsProConversionUtils.ReadQstatResultFromJobSource(this.taskSource);
         }
         #endregion
         #region ISchedulerTaskAdapter Members

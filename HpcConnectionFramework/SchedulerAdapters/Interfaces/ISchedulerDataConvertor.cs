@@ -11,6 +11,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd);
 
+        void FillingSchedulerJobResultObjectFromSchedulerAttribute(object schedulerResultObj, Dictionary<string, string> parsedParameters);
+
         abstract IEnumerable<string> GetJobIds(string responseMessage);
 
         public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage);

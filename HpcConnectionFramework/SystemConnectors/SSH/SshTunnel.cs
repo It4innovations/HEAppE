@@ -110,9 +110,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <returns></returns>
         internal bool SshTunnelExist(long jobId, string nodeHost)
         {
-            return _jobHostTunnels.ContainsKey(jobId) && _jobHostTunnels[jobId].ContainsKey(nodeHost)
-                ? true
-                : false;
+            return _jobHostTunnels.ContainsKey(jobId) && _jobHostTunnels[jobId].ContainsKey(nodeHost);
         }
         #endregion
     }
