@@ -43,18 +43,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
-        public void CancelJob(string scheduledJobId, ClusterAuthenticationCredentials credentials)
-        {
-            //TODO verify
-            CancelJob(scheduledJobId, "Job cancelled manually by the client.", credentials);
-        }
-
-        public void CancelJob(string scheduledJobId, string message, ClusterAuthenticationCredentials credentials)
+        public void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                _adapter.CancelJob(schedulerConnection.Connection, scheduledJobId, message);
+                _adapter.CancelJob(schedulerConnection.Connection, scheduledJobIds, message);
             }
             finally
             {
@@ -62,9 +56,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<string> scheduledJobIds, Cluster cluster)
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<string> scheduledJobIds, ClusterAuthenticationCredentials credentials)
         {
-            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(cluster.ServiceAccountCredentials);
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
                 var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, scheduledJobIds);

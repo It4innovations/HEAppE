@@ -85,10 +85,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             return submittedTaskInfos;
         }
 
-        public void CancelJob(object scheduler, string scheduledJobId, string message)
+        public void CancelJob(object scheduler, IEnumerable<string> scheduledJobIds, string message)
         {
-            scheduledJobId = scheduledJobId.Substring(0, scheduledJobId.IndexOf('.'));
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.local_hpc_scripts/cancel_job.sh {scheduledJobId}/");
+            //TODO
+            //scheduledJobId = scheduledJobId.Substring(0, scheduledJobId.IndexOf('.'));
+            //var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"~/.local_hpc_scripts/cancel_job.sh {scheduledJobId}/");
         }
 
         public ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)

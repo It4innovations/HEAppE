@@ -114,11 +114,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// Cancel job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="scheduledJobId">Scheduled job id</param>
+        /// <param name="scheduledJobIds>Scheduled job ids</param>
         /// <param name="message">Message</param>
-        public void CancelJob(object connectorClient, string scheduledJobId, string message)
+        public void CancelJob(object connectorClient, IEnumerable<string> scheduledJobIds, string message)
         {
-            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'scancel {scheduledJobId}'");
+            StringBuilder cmdBuilder = new();
+            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'scancel {f}';"));
+            string sshCommand = cmdBuilder.ToString();
+
+            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
         }
 
         /// <summary>

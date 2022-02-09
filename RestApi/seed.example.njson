@@ -69,7 +69,8 @@
         "TimeZone": "CET",
         "SchedulerType": 2,
         "ConnectionProtocol": 2,
-        "ServiceAccountCredentialsId": 1
+        "ServiceAccountCredentialsId": 1,
+        "UpdateJobStateByServiceAccount": true
       }
     ],
     "ClusterAuthenticationCredentials": [

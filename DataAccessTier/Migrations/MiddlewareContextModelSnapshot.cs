@@ -63,6 +63,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<bool?>("UpdateJobStateByServiceAccount")
+                        .HasColumnType("bit");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ServiceAccountCredentialsId");

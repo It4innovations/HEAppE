@@ -11,7 +11,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds);
 
-        void CancelJob(object connectorClient, string scheduledJobId, string message);
+        void CancelJob(object connectorClient, IEnumerable<string> scheduledJobIds, string message);
 
         ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType);
 

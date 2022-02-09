@@ -12,6 +12,13 @@ namespace HEAppE.DataAccessTier.Migrations
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "UpdateJobStateByServiceAccount",
+                table: "Cluster",
+                type: "bit",
+                nullable: true,
+                defaultValue: true);
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
@@ -19,6 +26,10 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropColumn(
                 name: "AuthenticationType",
                 table: "ClusterAuthenticationCredentials");
+
+            migrationBuilder.DropColumn(
+                name: "UpdateJobStateByServiceAccount",
+                table: "Cluster");
         }
     }
 }

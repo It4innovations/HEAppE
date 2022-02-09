@@ -185,7 +185,8 @@ namespace HEAppE.DataAccessTier
                 NodeTypes = c.NodeTypes,
                 SchedulerType = c.SchedulerType,
                 LocalBasepath = c.LocalBasepath,
-                TimeZone = c.TimeZone
+                TimeZone = c.TimeZone,
+                UpdateJobStateByServiceAccount = c.UpdateJobStateByServiceAccount
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc => new ClusterAuthenticationCredentials

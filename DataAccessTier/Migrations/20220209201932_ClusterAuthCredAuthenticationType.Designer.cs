@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20220117142131_ClusterAuthCredAuthenticationType")]
+    [Migration("20220209201932_ClusterAuthCredAuthenticationType")]
     partial class ClusterAuthCredAuthenticationType
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -64,6 +64,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
+
+                    b.Property<bool?>("UpdateJobStateByServiceAccount")
+                        .HasColumnType("bit");
 
                     b.HasKey("Id");
 

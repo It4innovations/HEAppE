@@ -180,11 +180,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// Cancel job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="scheduledJobId">Scheduled job id</param>
+        /// <param name="scheduledJobIds">Scheduled job ids</param>
         /// <param name="message">Message</param>
-        public virtual void CancelJob(object connectorClient, string scheduledJobId, string message)
+        public virtual void CancelJob(object connectorClient, IEnumerable<string> scheduledJobIds, string message)
         {
-            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"bash -lc 'qdel {scheduledJobId}'");
+            StringBuilder cmdBuilder = new();
+            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"bash -lc 'qdel {f}';"));
+            string sshCommand = cmdBuilder.ToString();
+
+            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
         }
 
         public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)

@@ -13,7 +13,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement {
 		IList<SubmittedJobInfo> ListJobsForUser(AdaptorUser loggedUser);
 		IList<SubmittedJobInfo> ListNotFinishedJobInfosForSubmitterId(long submitterId);
 		IList<SubmittedJobInfo> ListNotFinishedJobInfos();
-		IList<SubmittedJobInfo> UpdateCurrentStateOfUnfinishedJobs();
+		void UpdateCurrentStateOfUnfinishedJobs();
         void CopyJobDataToTemp(long submittedJobInfoId, AdaptorUser loggedUser, string hash, string path);
         void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
         IEnumerable<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser);
