@@ -23,6 +23,9 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 		[StringLength(30)]
 		public string Queue { get; set; }
 
+		[StringLength(40)]
+		public string ClusterAllocationName { get; set; }
+
 		public int? MaxWalltime { get; set; }
 
         [ForeignKey("Cluster")]

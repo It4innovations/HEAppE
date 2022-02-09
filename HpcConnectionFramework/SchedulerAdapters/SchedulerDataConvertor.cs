@@ -86,6 +86,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             taskAdapter.IsRerunnable = !string.IsNullOrEmpty(taskSpecification.JobArrays) || taskSpecification.IsRerunnable;
 
             taskAdapter.Queue = taskSpecification.ClusterNodeType.Queue;
+            taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
             taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
             CommandTemplate template = taskSpecification.CommandTemplate;

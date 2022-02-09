@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20220209201932_ClusterAuthCredAuthenticationType")]
+    [Migration("20220209204505_ClusterAuthCredAuthenticationType")]
     partial class ClusterAuthCredAuthenticationType
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -118,6 +118,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .UseIdentityColumn();
+
+                    b.Property<string>("ClusterAllocationName")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<long?>("ClusterId")
                         .HasColumnType("bigint");

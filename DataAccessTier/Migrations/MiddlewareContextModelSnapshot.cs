@@ -117,6 +117,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint")
                         .UseIdentityColumn();
 
+                    b.Property<string>("ClusterAllocationName")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<long?>("ClusterId")
                         .HasColumnType("bigint");
 

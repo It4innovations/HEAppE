@@ -64,6 +64,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         }
 
         /// <summary>
+        /// Task cluster allocation name
+        /// Note: Not supported
+        /// </summary>
+        public string ClusterAllocationName
+        {
+            set
+            { 
+            }
+        }
+
+        /// <summary>
         /// CpuHyperThreading
         /// </summary>
         public bool CpuHyperThreading

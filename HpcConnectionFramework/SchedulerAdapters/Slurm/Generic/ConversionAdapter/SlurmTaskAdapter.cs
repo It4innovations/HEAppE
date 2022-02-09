@@ -58,7 +58,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         }
 
         /// <summary>
-        /// Task Queue
+        /// Task queue
         /// </summary>
         public string Queue
         {
@@ -67,6 +67,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
                 _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --partition={value}" : string.Empty);
             }
         }
+
+        /// <summary>
+        /// Task cluster allocation name
+        /// </summary>
+        public string ClusterAllocationName
+        {
+            set
+            {
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --clusters={value}" : string.Empty);
+            }
+        }
+
 
         /// <summary>
         /// CpuHyperThreading

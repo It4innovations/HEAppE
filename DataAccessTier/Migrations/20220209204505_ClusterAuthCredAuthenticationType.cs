@@ -6,6 +6,13 @@ namespace HEAppE.DataAccessTier.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<string>(
+                name: "ClusterAllocationName",
+                table: "ClusterNodeType",
+                type: "nvarchar(40)",
+                maxLength: 40,
+                nullable: true);
+
             migrationBuilder.AddColumn<int>(
                 name: "AuthenticationType",
                 table: "ClusterAuthenticationCredentials",
@@ -23,6 +30,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "ClusterAllocationName",
+                table: "ClusterNodeType");
+
             migrationBuilder.DropColumn(
                 name: "AuthenticationType",
                 table: "ClusterAuthenticationCredentials");
