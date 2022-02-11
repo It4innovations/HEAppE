@@ -9,7 +9,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
     {
         IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
-        IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<string> scheduledJobIds, ClusterAuthenticationCredentials credentials);
+        IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, ClusterAuthenticationCredentials credentials);
 
         void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials);
 

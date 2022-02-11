@@ -87,7 +87,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                _taskBuilder.Append(value ? " --hint=multithread" : " --hint=nomultithread");
+                _taskBuilder.Append(value ? " --hint=multithread" : string.Empty);
             }
         }
 

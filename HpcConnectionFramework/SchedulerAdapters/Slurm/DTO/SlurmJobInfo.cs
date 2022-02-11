@@ -24,18 +24,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         public string SchedulerJobId { get; set; }
 
         /// <summary>
-        /// Array job Id (only for job arrray)
-        /// </summary>
-        [Scheduler("ArrayJobId")]
-        public string ArrayJobId { get; set; }
-
-        /// <summary>
-        /// Array task Id (only for job arrray)
-        /// </summary>
-        [Scheduler("ArrayTaskId")]
-        public string ArrayTaskId { get; set; }
-
-        /// <summary>
         /// Job Name
         /// </summary>
         [Scheduler("JobName")]
@@ -68,6 +56,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
             set
             {
                 TaskState = MappingTaskState(value).Map();
+                AggregateTaskState = TaskState;
             }
         }
 
@@ -136,6 +125,29 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Job scheduler response raw data
         /// </summary>
         public string SchedulerResponseParameters { get; private set; }
+        #region Job Arrays Properties
+        /// <summary>
+        /// Array job Id (only for job arrray)
+        /// </summary>
+        [Scheduler("ArrayJobId")]
+        public string ArrayJobId { get; set; }
+
+        /// <summary>
+        /// Array task Id (only for job arrray)
+        /// </summary>
+        [Scheduler("ArrayTaskId")]
+        public string ArrayTaskId { get; set; }
+
+        /// <summary>
+        /// Aggregate job scheduler raw response for data
+        /// </summary>
+        public string AggregateSchedulerResponseParameters { get; set; }
+
+        /// <summary>
+        /// Aggregate task state
+        /// </summary>
+        public TaskState AggregateTaskState { get; set; }
+        #endregion
         #endregion
         #region Constructors
         /// <summary>

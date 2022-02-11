@@ -75,13 +75,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             //return GetActualJobInfo(scheduler, $"{jobSpecification.Id}/");
         }
 
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object scheduler, IEnumerable<string> scheduledJobIds)
+
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
             var submittedTaskInfos = new List<SubmittedTaskInfo>();
-            foreach (var jobId in scheduledJobIds.Select(x => x.Substring(0, x.IndexOf('.'))).Distinct())
-            {
-                submittedTaskInfos.AddRange(GetActualJobInfo(scheduler, $"{jobId}/").Tasks);
-            }
+            //TODO
+            //foreach (var jobId in scheduledJobIds.Select(x => x.Substring(0, x.IndexOf('.'))).Distinct())
+            //{
+            //    submittedTaskInfos.AddRange(GetActualJobInfo(scheduler, $"{jobId}/").Tasks);
+            //}
             return submittedTaskInfos;
         }
 

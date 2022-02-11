@@ -178,14 +178,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             if (jobInfo.State is not JobState.Configuring and (< JobState.Finished or JobState.WaitingForServiceAccount))
             {
-                var scheduledJobIds = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
-                                                    .Select(s => s.ScheduledJobId)
-                                                    .ToList();
-
+                var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
+                                                  .ToList();
+                                                    
                 var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
-                scheduler.CancelJob(scheduledJobIds, "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
+                scheduler.CancelJob(submittedTask.Select(s=>s.ScheduledJobId), "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
-                var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(scheduledJobIds, jobInfo.Specification.Cluster.ServiceAccountCredentials)
+                var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, jobInfo.Specification.Cluster.ServiceAccountCredentials)
                                                                     .ToList();
 
                 foreach (var task in jobInfo.Tasks)
@@ -723,7 +722,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                            .ToList();
 
             return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster)
-                                                                       .GetActualTasksInfo(unfinishedTasks.Select(s => s.ScheduledJobId), credential);
+                                                                       .GetActualTasksInfo(unfinishedTasks, credential);
         }
 
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)

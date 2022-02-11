@@ -86,13 +86,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// Get actual tasks
         /// </summary>
         /// <param name="connectorClient">Connector</param>
+        /// <param name="submitedTasksInfo">Submitted tasks ids</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        {
+            return GetActualTasksInfo(connectorClient, submitedTasksInfo.Select(s => s.ScheduledJobId));
+        }
+
+        /// <summary>
+        /// Get actual tasks
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
         /// <param name="scheduledJobIds">Scheduler job ids</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds)
+        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds)
         {
             SshCommandWrapper command = null;
-            StringBuilder cmdBuilder = new ();
+            StringBuilder cmdBuilder = new();
             scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId {f} -o';"));
             string sshCommand = cmdBuilder.ToString();
 
@@ -149,7 +161,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 TotalJobs = default
             };
         }
-        
+
         /// <summary>
         /// Get allocated nodes per job
         /// </summary>

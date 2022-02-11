@@ -73,7 +73,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage)
         {
             string response = (string)responseMessage;
-            var jobSubmitedTasksInfo = new List<SlurmJobInfo>();
+            var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
+            SlurmJobInfo aggregateResultObj = null;
+
             foreach (Match match in Regex.Matches(response, @"(?<jobParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
@@ -92,25 +94,51 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                     var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
                     FillingSchedulerJobResultObjectFromSchedulerAttribute(schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
-                    //Todo merge jobArrays
-                    jobSubmitedTasksInfo.Add(schedulerResultObj);
+                    if (schedulerResultObj.ArrayJobId is null)
+                    {
+                        jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
+                    }
+                    else
+                    {
+                        if(aggregateResultObj is null)
+                        {
+                            aggregateResultObj = schedulerResultObj;
+                            aggregateResultObj.AggregateSchedulerResponseParameters = $"<JOB_ARRAY_ITERATION>\n{schedulerResultObj.SchedulerResponseParameters}";
+                        }
+                        else
+                        {
+                            if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
+                            {
+                                aggregateResultObj.RunTime += schedulerResultObj.RunTime;
+                                aggregateResultObj.EndTime = schedulerResultObj.EndTime;
+                                aggregateResultObj.AllocatedNodes = aggregateResultObj.AllocatedNodes.Union(schedulerResultObj.AllocatedNodes);
+
+                                aggregateResultObj.AggregateSchedulerResponseParameters += $"\n<JOB_ARRAY_ITERATION>\n{schedulerResultObj.SchedulerResponseParameters}";
+
+                                if (aggregateResultObj.AggregateTaskState != schedulerResultObj.AggregateTaskState && aggregateResultObj.AggregateTaskState <= TaskState.Finished && schedulerResultObj.AggregateTaskState > TaskState.Queued)
+                                {
+                                    aggregateResultObj.AggregateTaskState = schedulerResultObj.AggregateTaskState;
+                                }
+                            }
+                            else
+                            {
+                                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+                                aggregateResultObj = schedulerResultObj;
+                                aggregateResultObj.AggregateSchedulerResponseParameters = $"<JOB_ARRAY_ITERATION>\n{schedulerResultObj.SchedulerResponseParameters}";
+                            }
+                        }
+                    }
                 }
             }
 
-            if (jobSubmitedTasksInfo.Any())
+            if (aggregateResultObj is not null)
             {
-                //ConvertTaskToTaskInfo
-                //var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
-                //TODO combine two task into one submitted object if job-array presents
-                return null;
-            }
-            else
-            {
-                throw new FormatException("Unable to parse response from HPC scheduler!");
+                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             }
 
+            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from HPC scheduler!");
         }
         #endregion
-       
+
     }
 }

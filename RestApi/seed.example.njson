@@ -96,15 +96,16 @@
         "Id": 1,
         "Name": "{Name}",
         "Description": "{Description}",
-        "NumberOfNodes": {NumberOfNodes},
-        "CoresPerNode": {CoresPerNode},
+        "NumberOfNodes": "{NumberOfNodes}",
+        "CoresPerNode": "{CoresPerNode}",
         "Queue": "{Queue}",
         "RequestedNodeGroups": null,
-        "MaxWalltime": {MaxWalltime},
+        "MaxWalltime": "{MaxWalltime}",
         "ClusterId": 1,
         "FileTransferMethodId": 1,
         "JobTemplateId": 1,
-        "TaskTemplateId": 1
+        "TaskTemplateId": 1,
+        "ClusterAllocationName": null
       }
     ],
     "CommandTemplates": [

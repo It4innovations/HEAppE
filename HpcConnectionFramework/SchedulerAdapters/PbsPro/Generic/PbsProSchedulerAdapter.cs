@@ -75,6 +75,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// Get actual tasks
         /// </summary>
         /// <param name="connectorClient">Connector</param>
+        /// <param name="submitedTasksInfo">Submitted tasks ids</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        {
+            return null;
+        }
+
+
+        /// <summary>
+        /// Get actual tasks
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
         /// <param name="scheduledJobIds">Scheduler job ids</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>

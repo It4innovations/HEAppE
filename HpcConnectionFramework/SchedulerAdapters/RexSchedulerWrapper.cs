@@ -43,12 +43,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
-        public void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials)
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                _adapter.CancelJob(schedulerConnection.Connection, scheduledJobIds, message);
+                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, submitedTasksInfo);
+                return tasks;
             }
             finally
             {
@@ -56,13 +57,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<string> scheduledJobIds, ClusterAuthenticationCredentials credentials)
+        public void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, scheduledJobIds);
-                return tasks;
+                _adapter.CancelJob(schedulerConnection.Connection, scheduledJobIds, message);
             }
             finally
             {
