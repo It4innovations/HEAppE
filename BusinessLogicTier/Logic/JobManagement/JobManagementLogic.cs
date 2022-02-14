@@ -297,7 +297,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                             if (actualUnfinishedSchedulerTaskInfo is null)
                             {
                                 // Cancel job which is not returned from HPC scheduler
-                                submittedTask.State = TaskState.Canceled;
+                                submittedTask.State = TaskState.Failed;
                                 isNeedUpdateJobState = true;
                             }
                             else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
@@ -718,7 +718,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(Cluster cluster, ClusterAuthenticationCredentials credential, IEnumerable<SubmittedTaskInfo> jobTasks)
         {
-            var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and < TaskState.Running)
+            var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and <= TaskState.Running)
                                            .ToList();
 
             return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster)
