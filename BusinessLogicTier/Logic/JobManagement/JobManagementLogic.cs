@@ -200,7 +200,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 _unitOfWork.Save();
             }
 
-
             return jobInfo;
         }
 

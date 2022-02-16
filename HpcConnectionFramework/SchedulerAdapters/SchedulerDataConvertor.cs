@@ -208,25 +208,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return symlinkCommand;
         }
 
-        protected static TaskState AgregateTaskStateforSubTasks(IEnumerable<TaskState> taskStates)
-        {
-            TaskState continuousTaskState = TaskState.Finished;
-            foreach (var taskState in taskStates)
-            {
-                if (taskState is TaskState.Failed or TaskState.Canceled or TaskState.Running)
-                {
-                    continuousTaskState = taskState;
-                    break;
-                }
-                
-                if (taskState is TaskState.Configuring or TaskState.Submitted or TaskState.Queued)
-                {
-                    continuousTaskState = taskState;
-                }
-            }
-            return continuousTaskState;
-        }
-
         private static string GetPropertyValueForQuery(object objectForQuery, string query)
         {
             PropertyInfo property = objectForQuery.GetType().GetProperty(query[(query.IndexOf('.') + 1)..]);

@@ -1,7 +1,9 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
 {
@@ -15,6 +17,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Job allocated nodes
         /// </summary>
         private IEnumerable<string> _allocatedNodes;
+
+        /// <summary>
+        /// Job array id
+        /// </summary>
+        private string _arrayJobId;
         #endregion
         #region Properties
         /// <summary>
@@ -39,7 +46,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Job requeue
         /// </summary>
         [Scheduler("Requeue")]
-        public int Requeue { get; set; }
+        public bool Requeue { get; set; }
 
         /// <summary>
         /// Job queue name
@@ -56,7 +63,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
             set
             {
                 TaskState = MappingTaskState(value).Map();
-                AggregateTaskState = TaskState;
             }
         }
 
@@ -81,13 +87,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Job start time
         /// </summary>
         [Scheduler("StartTime")]
-        public DateTime StartTime { get; set; }
+        public DateTime? StartTime { get; set; }
 
         /// <summary>
         /// Job end time
         /// </summary>
         [Scheduler("EndTime")]
-        public DateTime EndTime { get; set; }
+        public DateTime? EndTime { get; set; }
 
         /// <summary>
         /// Job allocated time (requirement)
@@ -125,28 +131,39 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Job scheduler response raw data
         /// </summary>
         public string SchedulerResponseParameters { get; private set; }
+
         #region Job Arrays Properties
+        /// <summary>
+        /// Is job with job arrays 
+        /// </summary>
+        public bool IsJobArrayJob { get; private set; }
+
         /// <summary>
         /// Array job Id (only for job arrray)
         /// </summary>
         [Scheduler("ArrayJobId")]
-        public string ArrayJobId { get; set; }
+        public string ArrayJobId 
+        { 
+            get
+            {
+                return _arrayJobId;
+            }
+            set 
+            { 
+                if(value is not null)
+                {
+                    _arrayJobId = value;
 
-        /// <summary>
-        /// Array task Id (only for job arrray)
-        /// </summary>
-        [Scheduler("ArrayTaskId")]
-        public string ArrayTaskId { get; set; }
+                    IsJobArrayJob = true;
+                    AggregateSchedulerResponseParameters = $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{SchedulerResponseParameters}\n";
+                }
+            }
+        }
 
         /// <summary>
         /// Aggregate job scheduler raw response for data
         /// </summary>
-        public string AggregateSchedulerResponseParameters { get; set; }
-
-        /// <summary>
-        /// Aggregate task state
-        /// </summary>
-        public TaskState AggregateTaskState { get; set; }
+        public string AggregateSchedulerResponseParameters { get; private set; }
         #endregion
         #endregion
         #region Constructors
@@ -161,18 +178,37 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         #endregion
         #region Methods
         /// <summary>
+        /// Combine two jobs with job arrays parameter
+        /// </summary>
+        /// <param name="jobInfo">Job info</param>
+        internal void CombineJobs(SlurmJobInfo jobInfo)
+        {
+            StartTime = (StartTime > jobInfo.StartTime && jobInfo.StartTime.HasValue) ? StartTime : jobInfo.StartTime;
+            EndTime = (EndTime > jobInfo.EndTime && jobInfo.EndTime.HasValue) ? EndTime : jobInfo.EndTime;
+            RunTime += jobInfo.RunTime;
+
+            if (TaskState != jobInfo.TaskState && TaskState <= TaskState.Finished && jobInfo.TaskState >= TaskState.Queued)
+            {
+                TaskState = jobInfo.TaskState;
+            }
+
+            _allocatedNodes = jobInfo.AllocatedNodes.Union(_allocatedNodes);
+            AggregateSchedulerResponseParameters += $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{jobInfo.SchedulerResponseParameters}";
+        }
+
+        /// <summary>
         /// Method: Mapping task state from text representation of state
         /// </summary>
         /// <param name="state">Task state</param>
         /// <returns></returns>
         private static SlurmTaskState MappingTaskState(string state)
         {
-            state = state.Replace("_", "")
-                         .Trim()
-                         .ToLower();
+            state = state.Replace("_", string.Empty)
+                          .Trim()
+                          .ToLower();
             return Enum.TryParse(state, true, out SlurmTaskState taskState)
-                    ? taskState
-                    : SlurmTaskState.Failed;
+                            ? taskState
+                            : SlurmTaskState.Failed;
         }
         #endregion
     }

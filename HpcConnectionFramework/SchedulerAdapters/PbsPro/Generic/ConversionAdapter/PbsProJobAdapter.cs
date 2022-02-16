@@ -36,6 +36,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         }
 
         /// <summary>
+        /// Set tasks for job
+        /// </summary>
+        /// <param name="tasks">Tasks</param>
+        public void SetTasks(IEnumerable<object> tasks)
+        {
+            _jobCommandBuilder.Clear();
+            foreach (var task in tasks)
+            {
+                _jobCommandBuilder.Append((string)task);
+            }
+        }
+
+        /// <summary>
         /// Set notification for job
         /// </summary>
         /// <param name="mailAddress">Mail address</param>
@@ -51,19 +64,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
                 var onStartValue = (notifyOnStart ?? false ? "b" : string.Empty);
                 var onCompletionValue = (notifyOnCompletion ?? false ? "e" : string.Empty);
                 _jobCommandBuilder.Append(@$" -M {mailAddress} -m {onFailureValue}{onStartValue}{onCompletionValue}");
-            }
-        }
-
-        /// <summary>
-        /// Set tasks for job
-        /// </summary>
-        /// <param name="tasks">Tasks</param>
-        public void SetTasks(IEnumerable<object> tasks)
-        {
-            _jobCommandBuilder.Clear();
-            foreach (var task in tasks)
-            {
-                _jobCommandBuilder.Append((string)task);
             }
         }
         #endregion

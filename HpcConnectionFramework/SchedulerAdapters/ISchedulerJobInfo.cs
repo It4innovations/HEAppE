@@ -26,7 +26,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <summary>
         /// Job requeue
         /// </summary>
-        int Requeue { get; set; }
+        bool Requeue { get; set; }
 
         /// <summary>
         /// Job queue name
@@ -51,12 +51,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <summary>
         /// Job start time
         /// </summary>
-        DateTime StartTime { get; set; }
+        DateTime? StartTime { get; set; }
 
         /// <summary>
         /// Job end time
         /// </summary>
-        DateTime EndTime { get; set; }
+        DateTime? EndTime { get; set; }
 
         /// <summary>
         /// Job allocated time (requirement)

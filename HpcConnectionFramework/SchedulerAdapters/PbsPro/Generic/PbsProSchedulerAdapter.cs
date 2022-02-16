@@ -49,7 +49,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             _commands = new LinuxCommands();
         }
         #endregion
-
         #region ISchedulerAdapter Members
         public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {

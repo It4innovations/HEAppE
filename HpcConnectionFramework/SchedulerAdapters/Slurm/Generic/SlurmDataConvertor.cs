@@ -74,7 +74,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         {
             string response = (string)responseMessage;
             var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
-            //SlurmJobInfo aggregateResultObj = null;
+            SlurmJobInfo aggregateResultObj = null;
 
             foreach (Match match in Regex.Matches(response, @"(?<jobParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
@@ -94,47 +94,33 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                     var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
                     FillingSchedulerJobResultObjectFromSchedulerAttribute(schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
-                    if (schedulerResultObj.ArrayJobId is null)
+                    if (!schedulerResultObj.IsJobArrayJob)
                     {
                         jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
+                        continue;
                     }
-                    //else
-                    //{
-                    //    if(aggregateResultObj is null)
-                    //    {
-                    //        aggregateResultObj = schedulerResultObj;
-                    //        aggregateResultObj.AggregateSchedulerResponseParameters = $"<JOB_ARRAY_ITERATION>\n{schedulerResultObj.SchedulerResponseParameters}";
-                    //    }
-                    //    else
-                    //    {
-                    //        if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
-                    //        {
-                    //            aggregateResultObj.RunTime += schedulerResultObj.RunTime;
-                    //            aggregateResultObj.EndTime = schedulerResultObj.EndTime;
-                    //            aggregateResultObj.AllocatedNodes = aggregateResultObj.AllocatedNodes.Union(schedulerResultObj.AllocatedNodes);
 
-                    //            aggregateResultObj.AggregateSchedulerResponseParameters += $"\n<JOB_ARRAY_ITERATION>\n{schedulerResultObj.SchedulerResponseParameters}";
+                    if (aggregateResultObj is null)
+                    {
+                        aggregateResultObj = schedulerResultObj;
+                        continue;
+                    }
 
-                    //            if (aggregateResultObj.AggregateTaskState != schedulerResultObj.AggregateTaskState && aggregateResultObj.AggregateTaskState <= TaskState.Finished && schedulerResultObj.AggregateTaskState > TaskState.Queued)
-                    //            {
-                    //                aggregateResultObj.AggregateTaskState = schedulerResultObj.AggregateTaskState;
-                    //            }
-                    //        }
-                    //        else
-                    //        {
-                    //            jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-                    //            aggregateResultObj = schedulerResultObj;
-                    //            aggregateResultObj.AggregateSchedulerResponseParameters = $"<JOB_ARRAY_ITERATION>\n{schedulerResultObj.SchedulerResponseParameters}";
-                    //        }
-                    //    }
-                    //}
+                    if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
+                    {
+                        aggregateResultObj.CombineJobs(schedulerResultObj);
+                        continue;
+                    }
+
+                    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+                    aggregateResultObj = schedulerResultObj;
                 }
             }
 
-            //if (aggregateResultObj is not null)
-            //{
-            //    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-            //}
+            if (aggregateResultObj is not null)
+            {
+                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+            }
 
             return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from HPC scheduler!");
         }

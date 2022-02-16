@@ -105,7 +105,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         {
             SshCommandWrapper command = null;
             StringBuilder cmdBuilder = new();
-            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId {f} -o';"));
+            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'scontrol show JobId -Mcm2 {f} -o';"));
             string sshCommand = cmdBuilder.ToString();
 
             try

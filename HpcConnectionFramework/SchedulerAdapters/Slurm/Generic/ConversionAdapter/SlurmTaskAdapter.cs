@@ -140,7 +140,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         {
             set
             {
-                _taskBuilder.Append(value ? " -exclusive=mcs" : String.Empty);
+                _taskBuilder.Append(value ? " -exclusive=mcs" : string.Empty);
             }
         }
 
