@@ -17,7 +17,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         #region SchedulerDataConvertor Members
         public override SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage)
         {
-            throw new NotImplementedException();
+            PbsProJobInfo obj = (PbsProJobInfo)responseMessage;
+            return new SubmittedTaskInfo()
+            {
+                ScheduledJobId = obj.SchedulerJobId,
+                Name = obj.Name,
+                StartTime = obj.StartTime,
+                EndTime = obj.EndTime,
+                AllocatedTime = obj.RunTime.TotalSeconds,
+                State = obj.TaskState,
+                TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo() { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
+                                                          .ToList(),
+                ErrorMessage = default,
+                AllParameters = obj.IsJobArrayJob ? obj.AggregateSchedulerResponseParameters : obj.SchedulerResponseParameters
+            };
         }
 
         /// <summary>
@@ -41,8 +54,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage)
         {
+            //TODO Regex check!
             string response = (string)responseMessage;
-            var jobSubmitedTasksInfo = new List<ISchedulerJobInfo>();
+            var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
+            PbsProJobInfo aggregateResultObj = null;
+
             foreach (Match match in Regex.Matches(response, @"(?<jobParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
@@ -60,64 +76,37 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 
                     var schedulerResultObj = new PbsProJobInfo(jobResponseMessage);
                     FillingSchedulerJobResultObjectFromSchedulerAttribute(schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
-                    //TODO JobArrays
-                    jobSubmitedTasksInfo.Add(schedulerResultObj);
-                }
-            }
 
-            //return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from HPC scheduler!");
-            return null;
-        }
-
-
-
-
-        protected virtual TaskState ConvertPbsTaskStateToIndependentTaskState(string taskState, string exitStatus)
-        {
-            if (taskState == "W")
-                return TaskState.Submitted;
-            if (taskState == "Q" || taskState == "T" || taskState == "H")
-                return TaskState.Queued;
-            if (taskState == "R" || taskState == "U" || taskState == "S" || taskState == "E" || taskState == "B")
-                return TaskState.Running;
-            if (taskState == "F" || taskState == "X")
-            {
-                if (!string.IsNullOrEmpty(exitStatus))
-                {
-                    int exitStatusInt = Convert.ToInt32(exitStatus);
-                    if (exitStatusInt == 0)
-                        return TaskState.Finished;
-                    if (exitStatusInt > 0 && exitStatusInt < 256)
+                    if (!schedulerResultObj.IsJobArrayJob)
                     {
-                        return TaskState.Failed;
+                        jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
+                        continue;
                     }
-                    if (exitStatusInt >= 256)
+
+                    if (aggregateResultObj is null)
                     {
-                        return TaskState.Canceled;
+                        aggregateResultObj = schedulerResultObj;
+                        continue;
                     }
-                }
-                return TaskState.Canceled;
-            }
-            throw new ApplicationException("Task state \"" + taskState +
-                                           "\" could not be converted to any known task state.");
-        }
 
-        public static List<string> ConvertNodesUrlsToList(string result)
-        {
-            List<string> nodesUrls = new List<string>();
-            if (!string.IsNullOrEmpty(result))
+                    if (aggregateResultObj.SchedulerJobIdWoJobArrayIndex == schedulerResultObj.SchedulerJobIdWoJobArrayIndex)
+                    {
+                        aggregateResultObj.CombineJobs(schedulerResultObj);
+                        continue;
+                    }
+
+                    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+                    aggregateResultObj = schedulerResultObj;
+                }
+            }
+
+            if (aggregateResultObj is not null)
             {
-                string[] lines = result.Split('\n');
-                for (int i = 0; i < lines.Length; i++)
-                {
-                    string nodeId = lines[i].Trim();
-                    if (nodeId != null && nodeId != "")
-                        nodesUrls.Add(nodeId);
-                }
+                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             }
-            return nodesUrls;
-        }
 
+            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from HPC scheduler!");
+        }
         #endregion
     }
 }

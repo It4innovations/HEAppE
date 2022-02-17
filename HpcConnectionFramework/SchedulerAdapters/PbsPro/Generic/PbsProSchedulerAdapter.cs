@@ -52,15 +52,24 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         #region ISchedulerAdapter Members
         public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
+            var jobIdsWithJobArrayIndexes = new List<string>();
             SshCommandWrapper command = null;
+
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub");
             string sshCommandBase64 = $"bash -lc '~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
-                var jobIds = _convertor.GetJobIds(command.Result);
+                var jobIds = _convertor.GetJobIds(command.Result).ToList();
 
-                return null;// GetActualJobInfo(scheduler, jobIds);
+                for (int i = 0; i < jobSpecification.Tasks.Count; i++)
+                {
+                    jobIdsWithJobArrayIndexes.AddRange(string.IsNullOrEmpty(jobSpecification.Tasks[i].JobArrays)
+                                                        ? new List<string> { jobIds[i] }
+                                                        : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
+
+                }
+                return GetActualTasksInfo(connectorClient, jobIdsWithJobArrayIndexes);
             }
             catch (FormatException e)
             {
@@ -79,7 +88,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <exception cref="Exception"></exception>
         public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
-            return null;
+            var jobIdsWithJobArrayIndexes = submitedTasksInfo.SelectMany(s => string.IsNullOrEmpty(s.Specification.JobArrays) 
+                                                                                    ? new List<string>() { s.ScheduledJobId } 
+                                                                                    : CombineScheduledJobIdWithJobArrayIndexes(s.ScheduledJobId, s.Specification.JobArrays));
+            return GetActualTasksInfo(connectorClient, jobIdsWithJobArrayIndexes);
         }
 
 
@@ -375,6 +387,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             return _sshTunnelUtil.SshTunnelExist(jobId, nodeHost);
         }
         #endregion
+        #endregion
+        #region Private Methods
+        private static IEnumerable<string> CombineScheduledJobIdWithJobArrayIndexes(string scheduledJobId, string jobArrayParameter)
+        {
+            var combJobIdAndJobArrayIndex = new List<string>() { scheduledJobId };
+            var jobArraysParameters = Regex.Split(jobArrayParameter, @"\D+").Select(x => int.Parse(x))
+                                                                             .ToList();
+
+            int minIndex = jobArraysParameters[0];
+            int maxIndex = jobArraysParameters[1];
+            int step = jobArraysParameters.Count == 3 ? jobArraysParameters[2] : 1;
+
+            for (int i = minIndex; i <= maxIndex; i += step)
+            {
+                combJobIdAndJobArrayIndex.Add(scheduledJobId.Replace("[]", $"[{i}]"));
+            }
+
+            return combJobIdAndJobArrayIndex;
+        }
         #endregion
     }
 }

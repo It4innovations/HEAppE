@@ -65,7 +65,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <returns></returns>
         public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
+            var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
             SshCommandWrapper command = null;
+
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
             string sshCommandBase64 = $"{_commands.InterpreterCommand} '~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
@@ -73,7 +75,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
                 var jobIds = _convertor.GetJobIds(command.Result).ToList();
 
-                var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
                 for (int i = 0; i < jobSpecification.Tasks.Count; i++)
                 {
                     schedulerJobIdClusterAllocationNamePairs.Add((jobIds[i], jobSpecification.Tasks[i].ClusterNodeType.ClusterAllocationName));

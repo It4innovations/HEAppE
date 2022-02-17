@@ -136,7 +136,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// <summary>
         /// Is job with job arrays 
         /// </summary>
-        public bool IsJobArrayJob { get; private set; }
+        public bool IsJobArrayJob { get; private set; } = false;
 
         /// <summary>
         /// Array job Id (only for job arrray)

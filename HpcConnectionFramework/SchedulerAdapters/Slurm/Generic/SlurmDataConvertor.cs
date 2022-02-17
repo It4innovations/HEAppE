@@ -61,7 +61,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo() { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
                                                           .ToList(),
                 ErrorMessage = default,
-                AllParameters = obj.SchedulerResponseParameters
+                AllParameters = obj.IsJobArrayJob ? obj.AggregateSchedulerResponseParameters : obj.SchedulerResponseParameters
             };
         }
 
