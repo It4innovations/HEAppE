@@ -74,7 +74,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 var jobIds = _convertor.GetJobIds(command.Result).ToList();
 
                 var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
-                for (int i =0; i< jobSpecification.Tasks.Count; i++ )
+                for (int i = 0; i < jobSpecification.Tasks.Count; i++)
                 {
                     schedulerJobIdClusterAllocationNamePairs.Add((jobIds[i], jobSpecification.Tasks[i].ClusterNodeType.ClusterAllocationName));
                 }
@@ -117,7 +117,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             {
                 var allocationCluster = string.Empty;
 
-                if(!string.IsNullOrEmpty(ClusterAllocationName))
+                if (!string.IsNullOrEmpty(ClusterAllocationName))
                 {
                     allocationCluster = $"-M {ClusterAllocationName} ";
                 }
@@ -162,23 +162,32 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="nodeType">Node type</param>
         public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
-            //TODO
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commands.InterpreterCommand} 'sinfo -t alloc --partition={nodeType.Queue} -h -o \"%.6D\"'");
-            int nodesUsed = default;
+            var sshCommand = $"{_commands.InterpreterCommand} 'sinfo -t alloc --partition={nodeType.Queue} -h -o \"%.6D\"'";
+            SshCommandWrapper command = null;
 
-            if (!string.IsNullOrEmpty(command.Result))
+            try
             {
-                string nodeUsed = command.Result.Replace("\n", "").Replace(" ", "");
-                nodesUsed = int.Parse(nodeUsed);
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                string parsedNodeUsedLine = Regex.Replace(command.Result, @"[ ]|[\n]{2}", string.Empty);
+                if (!int.TryParse(parsedNodeUsedLine, out int nodesUsed))
+                {
+                    throw new FormatException("Unable to parse cluster node usage from HPC scheduler!");
+                }
+               
+                return new ClusterNodeUsage
+                {
+                    NodeType = nodeType,
+                    NodesUsed = nodesUsed,
+                    Priority = default,
+                    TotalJobs = default
+                };
             }
-
-            return new ClusterNodeUsage
+            catch (FormatException e)
             {
-                NodeType = nodeType,
-                NodesUsed = nodesUsed,
-                Priority = default,
-                TotalJobs = default
-            };
+                throw new Exception($@"Exception thrown when retrieving usage of Cluster node: ""{nodeType.Name}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for queue usage: ""{sshCommand}""\n", e);
+            }
         }
 
         /// <summary>
@@ -188,9 +197,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="jobInfo">Job information</param>
         public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
-            //TODO
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $@"{_commands.InterpreterCommand} 'scontrol show job {jobInfo.Specification.Id} | grep ' NodeList' | awk -F'=' '{"{{print $2}}"}'");
-            return Mapper.GetAllocatedNodes(command.Result);
+            StringBuilder cmdBuilder = new();
+            SshCommandWrapper command = null;
+
+            jobInfo.Tasks.ForEach(f => cmdBuilder.Append($@"{_commands.InterpreterCommand} 'scontrol show job {f.ScheduledJobId} | grep ' NodeList' | awk -F'=' '{"{{print $2}}"}'"));
+            string sshCommand = cmdBuilder.ToString();
+
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                return Mapper.GetAllocatedNodes(command.Result);
+            }
+            catch (FormatException e)
+            {
+                throw new Exception($@"Exception thrown when retrieving allocation nodes used by running HPC job: ""{string.Join(", ", jobInfo.Tasks.Select(s => s.ScheduledJobId).ToList())}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for queue usage: ""{sshCommand}""\n", e);
+            }
         }
 
         /// <summary>
