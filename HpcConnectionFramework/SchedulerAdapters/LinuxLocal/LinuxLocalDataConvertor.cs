@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
@@ -123,7 +124,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
             throw new NotImplementedException();
         }
 
-        public override SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage)
+        public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType)
         {
             throw new NotImplementedException();
         }

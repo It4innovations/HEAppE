@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
@@ -130,8 +131,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
         #region Abstract Members
+        public abstract ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType);
         public abstract IEnumerable<string> GetJobIds(string responseMessage);
-        public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage);
+        public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo);
         public abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage);
         #endregion
         #endregion

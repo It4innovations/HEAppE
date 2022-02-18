@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO;
 using System;
@@ -24,10 +25,37 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         #endregion
         #region Local Members
         /// <summary>
+        /// Read actual queue status
+        /// </summary>
+        /// <param name="responseMessage">Server response text</param>
+        /// <param name="nodeType">NodeType</param>
+        /// <returns></returns>
+        /// <exception cref="FormatException"></exception>
+        public override ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType)
+        {
+            string response = (string)responseMessage;
+
+            string parsedNodeUsedLine = Regex.Replace(response, @"[ ]|[\n]{2}", string.Empty);
+            if (!int.TryParse(parsedNodeUsedLine, out int nodesUsed))
+            {
+                throw new FormatException("Unable to parse cluster node usage from HPC scheduler!");
+            }
+
+            return new ClusterNodeUsage
+            {
+                NodeType = nodeType,
+                NodesUsed = nodesUsed,
+                Priority = default,
+                TotalJobs = default
+            };
+        }
+
+        /// <summary>
         /// Get job ids after submission
         /// </summary>
         /// <param name="responseMessage">Server response text</param>
         /// <returns></returns>
+        /// <exception cref="FormatException"></exception>
         public override IEnumerable<string> GetJobIds(string responseMessage)
         {
             var scheduledJobIds = new List<string>();
@@ -45,11 +73,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <summary>
         /// Convert HPC task information from DTO object
         /// </summary>
-        /// <param name="responseMessage">Server response text</param>
+        /// <param name="jobInfo">HPC Job Info</param>
         /// <returns></returns>
-        public override SubmittedTaskInfo ConvertTaskToTaskInfo(object responseMessage)
+        public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo)
         {
-            SlurmJobInfo obj = (SlurmJobInfo)responseMessage;
+            SlurmJobInfo obj = (SlurmJobInfo)jobInfo;
             return new SubmittedTaskInfo()
             {
                 ScheduledJobId = obj.SchedulerJobId,
@@ -70,6 +98,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="responseMessage">Server response text</param>
         /// <returns></returns>
+        /// <exception cref="FormatException"></exception>
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage)
         {
             string response = (string)responseMessage;

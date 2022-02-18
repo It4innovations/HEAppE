@@ -1,4 +1,4 @@
-﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
+﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
     /// <summary>
     /// Clusters scripts used in schedulers

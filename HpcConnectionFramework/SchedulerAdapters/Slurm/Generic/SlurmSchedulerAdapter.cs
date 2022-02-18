@@ -169,19 +169,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                string parsedNodeUsedLine = Regex.Replace(command.Result, @"[ ]|[\n]{2}", string.Empty);
-                if (!int.TryParse(parsedNodeUsedLine, out int nodesUsed))
-                {
-                    throw new FormatException("Unable to parse cluster node usage from HPC scheduler!");
-                }
-               
-                return new ClusterNodeUsage
-                {
-                    NodeType = nodeType,
-                    NodesUsed = nodesUsed,
-                    Priority = default,
-                    TotalJobs = default
-                };
+                return _convertor.ReadQueueActualInformation(command.Result, nodeType);
             }
             catch (FormatException e)
             {

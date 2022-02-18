@@ -2,7 +2,6 @@
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.MiddlewareUtils;
 using log4net;
 using Renci.SshNet;
 using System.Collections.Generic;
@@ -94,7 +93,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             return GetActualTasksInfo(connectorClient, jobIdsWithJobArrayIndexes);
         }
 
-
         /// <summary>
         /// Get actual tasks
         /// </summary>
@@ -104,99 +102,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <exception cref="Exception"></exception>
         public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds)
         {
-            //TODO rewrite
-            const string JOB_ID_REGEX = @"^(Job\ Id:\ )([a-zA-Z0-9\.\[\]\-]+)";
-            var scheduledJobIdsArray = scheduledJobIds.ToArray();
             SshCommandWrapper command = null;
-            do
+            StringBuilder cmdBuilder = new();
+
+            cmdBuilder.Append($"bash -lc 'qstat -f -x {string.Join(" ", scheduledJobIds)}");
+            string sshCommand = cmdBuilder.ToString();
+
+            try
             {
-                string commandString = $"bash -lc 'qstat -f -x {string.Join(" ", scheduledJobIdsArray)}'";
-                try
-                {
-                    command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), commandString);
-                }
-                catch (SshCommandException ce)
-                {
-                    _log.Warn(ce.Message);
-                    break;
-                }
-                catch (Exception e)
-                {
-                    string jobIdMath = "qstat: Unknown Job Id";
-                    if (e.Message.Contains(jobIdMath))
-                    {
-                        Match match = Regex.Match(e.Message, @$"(?<={jobIdMath} )\b\w+[.\w]*\b", RegexOptions.Compiled);
-                        if (match.Success)
-                        {
-                            string jobId = match.Value;
-                            _log.Warn($"Unknown Job ID {jobId} in qstat output. Setting the job's status to Canceled and retry for remaining jobs.");
-                            scheduledJobIdsArray = scheduledJobIdsArray?.Where(val => val != jobId)
-                                                               .ToArray();
-                            command = null;
-                        }
-                    }
-                    else
-                    {
-                        _log.ErrorFormat(e.Message);
-                    }
-                }
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                var submittedTasksInfo = _convertor.ReadParametersFromResponse(command.Result);
+                return submittedTasksInfo;
             }
-            while (command == null);
-
-
-            if (command is not null)
+            catch (FormatException e)
             {
-                string[] resultLines = command.Result.Split('\n');
-
-                // Search for lines with jobIds
-                Dictionary<string, int> jobLines = new Dictionary<string, int>();
-                for (int i = 0; i < resultLines.Length; i++)
-                {
-                    Match match = Regex.Match(resultLines[i], JOB_ID_REGEX);
-                    if (match.Success)
-                    {
-                        jobLines.Add(match.Groups[2].Value, i);
-                    }
-                }
-
-                // Iterate through jobIds and extract task info
-                List<SubmittedTaskInfo> taskInfos = new List<SubmittedTaskInfo>();
-                for (int i = 0; i < scheduledJobIdsArray?.Length; i++)
-                {
-                    // Search for jobId in result
-                    int jobInfoStartLine = -1;
-                    try
-                    {
-                        jobInfoStartLine = jobLines[scheduledJobIdsArray[i]];
-                    }
-                    catch (KeyNotFoundException)
-                    {
-                        _log.ErrorFormat("Job ID {0} not found in qstat output.", scheduledJobIdsArray[i]);
-
-                        taskInfos.Add(new SubmittedTaskInfo());
-                        continue;
-                    }
-
-                    // Get number of lines in qstat output for this job
-                    int jobInfoLineCount = 0;
-                    do
-                    {
-                        jobInfoLineCount++;
-                    } while (!Regex.IsMatch(resultLines[jobInfoStartLine + jobInfoLineCount], JOB_ID_REGEX) && jobInfoLineCount + jobInfoStartLine + 1 < resultLines.Length);
-
-                    // Cut lines for given job info
-                    string[] currentJobLines = new string[jobInfoLineCount];
-                    Array.Copy(resultLines, jobInfoStartLine, currentJobLines, 0, jobInfoLineCount);
-
-                    // Get current job info
-                    //TODO
-                    //taskInfos.Add(_convertor.ConvertTaskToTaskInfo(String.Join("\n", currentJobLines)));
-                }
-                return taskInfos;
-            }
-            else
-            {
-                return Enumerable.Empty<SubmittedTaskInfo>();
+                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", scheduledJobIds)}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommand}""\n", e);
             }
         }
 
@@ -217,51 +139,34 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 
         public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)
         {
-            //TODO rewrite
-            ClusterNodeUsage usage = new ClusterNodeUsage
-            {
-                NodeType = nodeType
-            };
+            SshCommandWrapper command = null;
+            string sshCommand = $"bash -lc 'qstat -Q -f {nodeType.Queue}'";
 
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"bash -lc 'qstat -Q -f {nodeType.Queue}'");
-            var resourcesParams = command.Result.Replace("\n\t", "")
-                                                 .Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                                                    .Skip(1)
-                                                    .Select(item => item.Split("="))
-                                                    .ToDictionary(s => s[0].Replace(" ", ""), s => s[1]);
-
-            if (resourcesParams.TryGetValue(PbsProNodeUsageAttributes.RESOURCES_ASSIGNED_NODECT, out string nodesUsed))
+            try
             {
-                usage.NodesUsed = StringUtils.ExtractInt(nodesUsed);
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), sshCommand);
+                return _convertor.ReadQueueActualInformation(command.Result, nodeType);
             }
-
-            if (resourcesParams.TryGetValue(PbsProNodeUsageAttributes.QUEUE_TYPE_PRIORITY, out string priority))
+            catch (FormatException e)
             {
-                usage.Priority = StringUtils.ExtractInt(priority);
+                throw new Exception($@"Exception thrown when retrieving parameters of queue: ""{nodeType.Name}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommand}""\n", e);
             }
-
-            if (resourcesParams.TryGetValue(PbsProNodeUsageAttributes.QUEUE_TYPE_TOTAL_JOBS, out string totalJobs))
-            {
-                usage.TotalJobs = StringUtils.ExtractInt(totalJobs);
-            }
-
-            return usage;
         }
-
 
         /// <summary>
         /// Get allocated nodes per job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-
         public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
             //TODO rewrite
 #warning this should use database instead of direct read from file
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"cat {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/AllocationNodeInfo");
             _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
-            return null;// _convertor.ConvertNodesUrlsToList(sshCommand.Result);
+            return null;
         }
 
         /// <summary>
@@ -270,11 +175,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="userScriptPath">Generic script path</param>
         /// <returns></returns>
-        public virtual IEnumerable<string> GetParametersFromGenericUserScript(object scheduler, string userScriptPath)
+        public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
         {
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
 
             foreach (Match match in Regex.Matches(sshCommand.Result, @$"{HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {

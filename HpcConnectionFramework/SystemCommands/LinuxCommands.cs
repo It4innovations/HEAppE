@@ -1,6 +1,6 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.MiddlewareUtils;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using log4net;
 using Renci.SshNet;
@@ -108,7 +108,11 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             var cmdBuilder = new StringBuilder($"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id};");
             foreach (var task in jobInfo.Tasks)
             {
-                cmdBuilder.Append($"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id};");
+                var path = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
+                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory};"
+                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id};";
+
+                cmdBuilder.Append(path);
             }
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
             _log.Info($"Create job directory result: {sshCommand.Result}");

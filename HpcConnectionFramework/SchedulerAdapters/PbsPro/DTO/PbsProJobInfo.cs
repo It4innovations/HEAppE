@@ -5,7 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
 {
     public class PbsProJobInfo : ISchedulerJobInfo
     {
