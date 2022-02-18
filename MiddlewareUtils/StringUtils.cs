@@ -34,10 +34,5 @@ namespace HEAppE.MiddlewareUtils {
 		public static string RemoveWhitespace(string source) {
 			return Regex.Replace(source, @"\s+", "");
 		}
-
-        public static string ConvertDictionaryToString(object allParameters)
-        {
-            throw new NotImplementedException();
-        }
     }
 }

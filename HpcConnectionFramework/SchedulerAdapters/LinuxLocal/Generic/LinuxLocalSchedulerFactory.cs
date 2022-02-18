@@ -4,7 +4,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 {
     public class LinuxLocalSchedulerFactory : SchedulerFactory {
 		#region SchedulerFactory Members
