@@ -1,10 +1,13 @@
-﻿using System;
-using HEAppE.ConnectionPool;
+﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using System.Collections.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using log4net;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -20,10 +23,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         ///   Reference to the scheduler connection pool.
         /// </summary>
         protected IConnectionPool _connectionPool;
+
+        /// <summary>
+        /// Logger
+        /// </summary>
+        protected ILog _log;
         #endregion
         #region Constructors
         public RexSchedulerWrapper(IConnectionPool connectionPool, ISchedulerAdapter adapter)
         {
+            _log = LogManager.GetLogger(typeof(RexSchedulerWrapper));
             _connectionPool = connectionPool;
             _adapter = adapter;
         }
@@ -51,6 +60,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, submitedTasksInfo);
                 return tasks;
             }
+            //catch (SshCommandException ce)
+            //{
+            //    _log.Warn(ce.Message);
+            //    //TODO reduce jobIds
+            //    List<SubmittedJobInfo> reductedTaskInfo = new List<SubmittedJobInfo>();
+
+
+            //    if (submitedTasksInfo.Count() == reductedTaskInfo.Count)
+            //    {
+            //        throw new Exception(ce.Message);
+            //    }
+            //    return GetActualTasksInfo(submitedTasksInfo, credentials);
+            //}
             finally
             {
                 _connectionPool.ReturnConnection(schedulerConnection);
