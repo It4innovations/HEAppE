@@ -178,7 +178,7 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public string[] GetAllocatedNodesIPs(long submittedJobInfoId, string sessionCode)
+        public IEnumerable<string> GetAllocatedNodesIPs(long submittedJobInfoId, string sessionCode)
         {
             try
             {
@@ -186,7 +186,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    List<string> nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedJobInfoId, loggedUser);
+                    var nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedJobInfoId, loggedUser);
                     return nodesIPs.ToArray();
                 }
             }

@@ -63,6 +63,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
 
+                    b.Property<bool?>("UpdateJobStateByServiceAccount")
+                        .HasColumnType("bit");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ServiceAccountCredentialsId");
@@ -76,6 +79,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .UseIdentityColumn();
+
+                    b.Property<int>("AuthenticationType")
+                        .HasColumnType("int");
 
                     b.Property<long?>("ClusterId")
                         .HasColumnType("bigint");
@@ -110,6 +116,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .UseIdentityColumn();
+
+                    b.Property<string>("ClusterAllocationName")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
 
                     b.Property<long?>("ClusterId")
                         .HasColumnType("bigint");

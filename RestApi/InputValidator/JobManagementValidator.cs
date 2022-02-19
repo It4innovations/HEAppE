@@ -357,11 +357,6 @@ namespace HEAppE.RestApi.InputValidator
                         $"Standard input file for task \"{task.Name}\" contains illegal characters.");
                 }
             }
-            /*else
-            {
-                _messageBuilder.AppendLine(
-                        $"Standard input file for task \"{task.Name}\" is not set.");
-            }*/
 
             if (!string.IsNullOrEmpty(task.StandardOutputFile))
             {
@@ -392,11 +387,6 @@ namespace HEAppE.RestApi.InputValidator
                         $"Standard error file for task \"{task.Name}\" contains illegal characters.");
                 }
             }
-            /*else
-            {
-                _messageBuilder.AppendLine(
-                        $"Standard error file for task \"{task.Name}\" is not set.");
-            }*/
 
             if (!string.IsNullOrEmpty(task.ProgressFile))
             {
@@ -433,6 +423,21 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine(
                         $"Log file for task \"{task.Name}\" is not set.");
+            }
+
+            if (!string.IsNullOrEmpty(task.ClusterTaskSubdirectory))
+            {
+                if (task.ClusterTaskSubdirectory.Length > 50)
+                {
+                    _messageBuilder.AppendLine(
+                        $"Cluster task subdirectory for task \"{task.Name}\" cannot be longer than 50 characters.");
+                }
+
+                if (ContainsIllegalCharacters(task.ClusterTaskSubdirectory))
+                {
+                    _messageBuilder.AppendLine(
+                        $"Cluster task subdirectory for task \"{task.Name}\" contains illegal characters.");
+                }
             }
 
             if (task.RequiredNodes != null)

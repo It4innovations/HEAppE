@@ -3,10 +3,9 @@
 namespace HEAppE.DomainObjects.ClusterInformation {
 	[Flags]
 	public enum SchedulerType {
-		LinuxPbsProV10 = 1,
-		LinuxPbsProV12 = 2,
-		WindowsHpc = 4,
-        LinuxSlurmV18 = 8,
-		LinuxLocal = 16
+		PbsPro = 1,
+		PbsProV19 = 2,
+        Slurm = 4,
+		LinuxLocal = 8
 	}
 }

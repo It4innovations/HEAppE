@@ -2,14 +2,13 @@
 using log4net;
 using Renci.SshNet;
 using Renci.SshNet.Common;
-using System;
 using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     //TODO not used
     /// <summary>
-    /// Class: SSH tunnels
+    /// SSH tunnels
     /// </summary>
     internal sealed class SshTunnel
     {
@@ -36,7 +35,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         #endregion
         #region Methods
         /// <summary>
-        /// Method: Create SSH tunnel
+        /// Create SSH tunnel
         /// </summary>
         /// <param name="jobId">Job id</param>
         /// <param name="localHost">Local host</param>
@@ -79,7 +78,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Remove SSH tunnel
+        /// Remove SSH tunnel
         /// </summary>
         /// <param name="jobId">Job id</param>
         /// <param name="nodeHost">Node host</param>
@@ -104,16 +103,14 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Check if SSH tunnel exist
+        /// Check if SSH tunnel exist
         /// </summary>
         /// <param name="jobId">Job id</param>
         /// <param name="nodeHost">Node host</param>
         /// <returns></returns>
         internal bool SshTunnelExist(long jobId, string nodeHost)
         {
-            return _jobHostTunnels.ContainsKey(jobId) && _jobHostTunnels[jobId].ContainsKey(nodeHost)
-                ? true
-                : false;
+            return _jobHostTunnels.ContainsKey(jobId) && _jobHostTunnels[jobId].ContainsKey(nodeHost);
         }
         #endregion
     }

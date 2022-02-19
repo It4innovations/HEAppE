@@ -32,7 +32,9 @@ namespace HEAppE.DomainObjects.ClusterInformation {
         [ForeignKey("ServiceAccountCredentials")]
         public long? ServiceAccountCredentialsId { get; set; }
 
-        public SchedulerType SchedulerType { get; set; }
+		public bool? UpdateJobStateByServiceAccount { get; set; } = true;
+		
+		public SchedulerType SchedulerType { get; set; }
 
 		public virtual ClusterConnectionProtocol ConnectionProtocol { get; set; }
 
@@ -46,7 +48,7 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 		public virtual List<FileTransferMethod> FileTransferMethods { get; set; } = new List<FileTransferMethod>();
 
         public override string ToString() {
-			return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, LocalBasepath={LocalBasepath}, SchedulerType={SchedulerType},		TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
+			return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, LocalBasepath={LocalBasepath}, SchedulerType={SchedulerType}, TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
 		}
 	}
 }

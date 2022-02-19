@@ -7,15 +7,15 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.HpcConnectionFramework;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using log4net;
 
 namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 {
-    internal class ClusterInformationLogic : IClusterInformationLogic
-    {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        private readonly IUnitOfWork unitOfWork;
+    internal class ClusterInformationLogic : IClusterInformationLogic {
+		private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+		private readonly IUnitOfWork unitOfWork;
 
         internal ClusterInformationLogic(IUnitOfWork unitOfWork)
         {

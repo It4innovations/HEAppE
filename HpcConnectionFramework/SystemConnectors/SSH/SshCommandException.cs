@@ -1,11 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
-    /// Class: Ssh command exception
+    /// Ssh command exception
     /// </summary>
     public class SshCommandException : ApplicationException
     {
