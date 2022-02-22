@@ -9,12 +9,22 @@
         /// <summary>
         /// Generic command key parameter
         /// </summary>
-        public static string GenericCommandKeyParameter { get; set; } = "#HEAPPE_PARAM";
+        public static string GenericCommandKeyParameter { get; set; }
 
         /// <summary>
-        /// Database Job Array delimiter
+        /// Database job array delimiter
         /// </summary>
-        public static string JobArrayDbDelimiter { get; set; } = "<JOB_ARRAY_ITERATION>";
+        public static string JobArrayDbDelimiter { get; set; }
+
+        /// <summary>
+        /// Command scripts path configuration
+        /// </summary>
+        public static CommandScriptPathConfiguration CommandScriptsPathConfiguration { get; } = new CommandScriptPathConfiguration();
+
+        /// <summary>
+        /// Linux local command scripts path configuration
+        /// </summary>
+        public static LinuxLocalCommandScriptPathConfiguration LinuxLocalCommandScriptPathConfiguration { get; } = new LinuxLocalCommandScriptPathConfiguration();
         #endregion
     }
 }

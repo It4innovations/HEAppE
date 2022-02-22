@@ -69,7 +69,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             }
 
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{LinuxLocalCommandScriptPathConfiguration.PrepareJobDirCmdPath} " +
+            return $"{HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathConfiguration.PrepareJobDirCmdPath} " +
                 $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
 
