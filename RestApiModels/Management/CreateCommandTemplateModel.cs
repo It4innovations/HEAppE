@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
-namespace HEAppE.RestApiModels.ClusterInformation
+namespace HEAppE.RestApiModels.Management
 {
     [DataContract(Name = "CreateCommandTemplateModel")]
     public class CreateCommandTemplateModel : SessionCodeModel

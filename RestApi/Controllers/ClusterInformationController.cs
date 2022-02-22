@@ -86,41 +86,6 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// Creates Command Template from Generic Command Template
-        /// </summary>
-        /// <returns></returns>
-        [HttpPost("CreateCommandTemplate")]
-        [RequestSizeLimit(535)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult CreateCommandTemplate(CreateCommandTemplateModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CreateCommandTemplate\"");
-                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
-                if (!validationResult.IsValid)
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.CreateCommandTemplate(
-                                                            model.GenericCommandTemplateId, 
-                                                            model.Name, 
-                                                            model.Description, 
-                                                            model.Code, 
-                                                            model.ExecutableFile, 
-                                                            model.PreparationScript, 
-                                                            model.SessionCode
-                        ));
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
-        /// <summary>
         /// Get actual cluster node usage
         /// </summary>
         /// <param name="model"></param>
