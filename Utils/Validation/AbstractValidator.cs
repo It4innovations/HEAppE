@@ -111,6 +111,18 @@ namespace HEAppE.Utils.Validation
             return Regex.IsMatch(text, @"^(www\.){0,1}((?![0-9-])[A-Za-z0-9-]{1,63})((\.[A-Za-z]{2,33}))+(\/[A-Za-z0-9-]+)*(\/){0,1}$", RegexOptions.Compiled);
         }
 
+        protected static bool IsIpAddressWithPort(string text)
+        {
+            string[] adressWithPort = text.Split(':');
+            return adressWithPort.Length == 2 && IsIpAddress(adressWithPort[0]) && int.TryParse(adressWithPort[1], out int x);
+        }
+
+        protected static bool IsDomainNamePort(string text)
+        {
+            string[] adressWithPort = text.Split(':');
+            return adressWithPort.Length == 2 && IsDomainName(adressWithPort[0]) && int.TryParse(adressWithPort[1], out int x);
+        }
+
         /// <summary>
         /// Returns id Id has valid signed not zero value
         /// </summary>
