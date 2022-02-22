@@ -38,6 +38,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// </summary>
         protected static SshTunnel _sshTunnelUtil;
         #endregion
+
         #region Constructors
         public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
@@ -55,7 +56,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             SshCommandWrapper command = null;
 
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub");
-            string sshCommandBase64 = $"bash -lc '~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+            string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecutieCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
@@ -135,7 +136,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             SshCommandWrapper command = null;
             StringBuilder cmdBuilder = new();
 
-            cmdBuilder.Append($"bash -lc 'qstat -f -x {string.Join(" ", scheduledJobIds)}");
+            cmdBuilder.Append($"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", scheduledJobIds)}");
             string sshCommand = cmdBuilder.ToString();
 
             try
@@ -161,7 +162,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         public virtual void CancelJob(object connectorClient, IEnumerable<string> scheduledJobIds, string message)
         {
             StringBuilder cmdBuilder = new();
-            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"bash -lc 'qdel {f}';"));
+            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f}';"));
             string sshCommand = cmdBuilder.ToString();
 
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
@@ -170,7 +171,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)
         {
             SshCommandWrapper command = null;
-            string sshCommand = $"bash -lc 'qstat -Q -f {nodeType.Queue}'";
+            string sshCommand = $"{_commands.InterpreterCommand} 'qstat -Q -f {nodeType.Queue}'";
 
             try
             {

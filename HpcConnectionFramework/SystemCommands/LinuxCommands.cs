@@ -1,10 +1,9 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.MiddlewareUtils;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.MiddlewareUtils;
 using log4net;
 using Renci.SshNet;
-using System;
 using System.Text;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
@@ -18,7 +17,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <summary>
         /// Command
         /// </summary>
-        protected CommandScriptPathDTO _commandScripts;
+        protected CommandScriptPathConfiguration _commandScripts;
 
         /// <summary>
         /// Log4Net logger
@@ -31,12 +30,18 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         public string InterpreterCommand { get { return "bash -c"; } }
         #endregion
+        #region Properties
+        /// <summary>
+        /// Execute commnad script path
+        /// </summary>
+        public string ExecutieCmdScriptPath => _commandScripts.ExecutieCmdPath;
+        #endregion
         #region Constructors
         internal LinuxCommands()
         {
             //TODO Loading from config paths
             _log = LogManager.GetLogger(typeof(LinuxCommands));
-            _commandScripts = new CommandScriptPathDTO();
+            _commandScripts = new CommandScriptPathConfiguration();
         }
         #endregion
         #region Methods

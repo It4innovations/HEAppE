@@ -1,12 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Configuration
+﻿namespace HEAppE.HpcConnectionFramework.Configuration
 {
-    internal sealed class CommandScriptPath
+    internal sealed class LinuxLocalCommandScriptPathConfiguration
     {
         #region LocalHPC Scripts Properties
         private static string LocalHPCScriptDirectory { get; } = "~/.local_hpc_scripts/";

@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Generic;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 {
     public interface ISchedulerJobInfo
     {

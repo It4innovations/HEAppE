@@ -1,10 +1,9 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
 using HEAppE.MiddlewareUtils;
 using System;
 using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 using System.Text.Json.Serialization;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
@@ -85,7 +84,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
             }
         }
 
-        private LinuxLocalTaskState MappingTaskState(string value)
+        private static LinuxLocalTaskState MappingTaskState(string value)
         {
             return Enum.TryParse(value, true, out LinuxLocalTaskState taskState)
                     ? taskState

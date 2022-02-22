@@ -2,23 +2,27 @@
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Configuration;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
-using HEAppE.MiddlewareUtils;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 {
     public class LinuxLocalDataConvertor : SchedulerDataConvertor
     {
         #region Constructors
-        public LinuxLocalDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) { }
-        public LinuxLocalDataConvertor() : base(null) { }
+        public LinuxLocalDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) 
+        {
+        }
+        public LinuxLocalDataConvertor() : base(null) 
+        {
+        }
         #endregion
         #region SchedulerDataConvertor Members
         private List<SubmittedTaskInfo> ConvertTasksToTaskInfoCollection(LinuxLocalInfo jobInfo, List<LinuxLocalJobDTO> allTasks)
@@ -28,7 +32,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             foreach (var taskAdapter in allTasks)
             {
                 taskAdapter.CreationTime = jobInfo.CreateTime;
-                taskAdapter.SubmitTime = jobInfo.SubmitTime.HasValue ? jobInfo.SubmitTime.Value : default(DateTime);
+                taskAdapter.SubmitTime = jobInfo.SubmitTime ?? default(DateTime);
                 taskCollection.Add(ConvertTaskToTaskInfo(taskAdapter));
             }
             return taskCollection;
@@ -39,8 +43,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var localHpcJobInfo = Convert.ToBase64String(Encoding.UTF8.GetBytes(
                     jobSpecification.ConvertToLocalHPCInfo(LinuxLocalTaskState.Q.ToString(), LinuxLocalTaskState.Q.ToString()))
                 );
-            StringBuilder commands = new StringBuilder();
-            StringBuilder taskCommandLine = new StringBuilder();
+            StringBuilder commands = new ();
+            StringBuilder taskCommandLine = new ();
             foreach (var task in jobSpecification.Tasks)
             {
                 var commandParameterDictionary = CreateTemplateParameterValuesDictionary(
@@ -65,7 +69,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             }
 
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{CommandScriptPath.PrepareJobDirCmdPath} " +
+            return $"{LinuxLocalCommandScriptPathConfiguration.PrepareJobDirCmdPath} " +
                 $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
 
@@ -89,7 +93,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 
         public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobDTO)
         {
-            SubmittedTaskInfo taskInfo = new SubmittedTaskInfo();
+            var taskInfo = new SubmittedTaskInfo();
             taskInfo.ScheduledJobId = jobDTO.SchedulerJobId.ToString();
             taskInfo.Name = jobDTO.Name;
             taskInfo.State = jobDTO.TaskState;

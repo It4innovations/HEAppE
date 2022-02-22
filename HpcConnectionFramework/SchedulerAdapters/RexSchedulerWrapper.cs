@@ -4,7 +4,6 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using log4net;
-using System;
 using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters

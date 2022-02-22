@@ -1,9 +1,9 @@
-﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
+﻿namespace HEAppE.HpcConnectionFramework.Configuration
 {
     /// <summary>
     /// Clusters scripts used in schedulers
     /// </summary>
-    internal sealed class CommandScriptPathDTO
+    internal sealed class CommandScriptPathConfiguration
     {
         #region Properties
         /// <summary>

@@ -13,8 +13,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials);
 
-
-
         ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType);
 
         IEnumerable<string> GetAllocatedNodes(SubmittedJobInfo jobInfo);

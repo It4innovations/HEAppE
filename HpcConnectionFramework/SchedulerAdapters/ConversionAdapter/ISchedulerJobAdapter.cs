@@ -6,7 +6,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
     {
         object AllocationCmd { get; }
 
-        void SetTasks(IEnumerable<object> list);
+        void SetTasks(IEnumerable<object> tasksAllocationcmd);
 
         void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure);
     }
