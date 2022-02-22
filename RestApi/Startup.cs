@@ -22,6 +22,7 @@ using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.BackgroundThread.Configuration;
 
 namespace HEAppE.RestApi
 {
@@ -70,11 +71,14 @@ namespace HEAppE.RestApi
             //Other configuration
             var middlewareContextSettings = new MiddlewareContextSettings();
             var keycloackConfiguration = new KeycloakConfiguration();
+
+            Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
+            Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
             Configuration.Bind("MiddlewareContextSettings", middlewareContextSettings);
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
             Configuration.Bind("KeycloakSettings", keycloackConfiguration);
             Configuration.Bind("OpenStackSettings", new OpenStackSettings());
-            Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
+
 
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();

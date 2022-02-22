@@ -1,30 +1,40 @@
 ﻿using System;
 using System.Collections.Generic;
+using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BackgroundThread.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
 
-namespace HEAppE.BackgroundThread {
-	public class MiddlewareBackgroundTaskRunner {
-		private readonly List<IBackgroundTask> tasks;
+namespace HEAppE.BackgroundThread
+{
+    public class MiddlewareBackgroundTaskRunner
+    {
+        #region Instances
+        private readonly List<IBackgroundTask> _tasks = new();
+        #endregion
+        #region Constructors
+        public MiddlewareBackgroundTaskRunner()
+        {
+            _tasks.Add(new GetAllJobsInfo(TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck)));
+            _tasks.Add(new CloseConnectionToFinishedJobs(TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck)));
+            _tasks.Add(new ClusterAccountRotationJob(TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck)));
+        }
+        #endregion
+        #region Methods
+        public void Start()
+        {
+            foreach (var task in _tasks)
+            {
+                task.StartTimer();
+            }
+        }
 
-		public MiddlewareBackgroundTaskRunner() {
-			tasks = new List<IBackgroundTask>();
-			tasks.Add(new GetAllJobsInfo(new TimeSpan(0, 0, 30)));
-			//tasks.Add(new SynchronizeJobFileContents(new TimeSpan(0, 0, 30)));
-            tasks.Add(new CloseConnectionToFinishedJobs(new TimeSpan(0, 0, 30)));
-			tasks.Add(new ClusterAccountRotationJob(new TimeSpan(0, 0, 30)));
-		}
-
-		public void Start() {
-			foreach (var task in tasks) {
-				task.StartTimer();
-			}
-		}
-
-		public void Stop() {
-			foreach (var task in tasks) {
-				task.StopTimer();
-			}
-		}
-	}
+        public void Stop()
+        {
+            foreach (var task in _tasks)
+            {
+                task.StopTimer();
+            }
+        }
+        #endregion
+    }
 }

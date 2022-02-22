@@ -119,14 +119,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
-        public bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification)
-        {
-            int waitingLimit = Convert.ToInt32(jobSpecification.WaitingLimit);
-            if (waitingLimit > 0 && (job.State < JobState.Running || job.State == JobState.WaitingForServiceAccount) && job.SubmitTime.HasValue)
-                return DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds > waitingLimit;
-            return false;
-        }
-
         public void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
