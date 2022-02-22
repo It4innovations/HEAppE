@@ -1,19 +1,17 @@
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SystemCommands;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using log4net;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.MiddlewareUtils;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using Renci.SshNet;
-using log4net;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.Configuration;
 using System.Text.RegularExpressions;
-using HEAppE.HpcConnectionFramework.SystemCommands;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Configuration;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 {
@@ -49,7 +47,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var submittedTaskInfos = new List<SubmittedTaskInfo>();
             foreach (var jobId in scheduledJobIds.Select(x => x).Distinct())
             {
-                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"{CommandScriptPath.GetJobInfoCmdPath} {jobId}/");
+                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"{HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathConfiguration.GetJobInfoCmdPath} {jobId}/");
                 submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(command.Result));
             }
             return submittedTaskInfos;
@@ -67,7 +65,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 NodeType = nodeType
             };
 
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), CommandScriptPath.CountJobsCmdPath);
+            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathConfiguration.CountJobsCmdPath);
             if (int.TryParse(command.Result, out int totalJobs))
             {
                 usage.TotalJobs = totalJobs;
@@ -98,7 +96,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             #endregion
 
             #region Compose Local run script
-            shellCommandSb.Append($"{CommandScriptPath.RunLocalCmdPath} " +
+            shellCommandSb.Append($"{HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathConfiguration.RunLocalCmdPath} " +
                 $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");//run job (script on local linux docker machine)
             jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
@@ -138,7 +136,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         public void CancelJob(object scheduler, IEnumerable<string> scheduledJobIds, string message)
         {
             StringBuilder commandSb = new();
-            scheduledJobIds.ToList().ForEach(scheduledJobId => commandSb.Append($"{CommandScriptPath.CancelJobCmdPath} {scheduledJobId};"));
+            scheduledJobIds.ToList().ForEach(scheduledJobId => commandSb.Append($"{HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathConfiguration.CancelJobCmdPath} {scheduledJobId};"));
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandSb.ToString());
         }
 

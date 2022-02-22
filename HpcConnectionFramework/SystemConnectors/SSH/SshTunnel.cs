@@ -6,7 +6,6 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
-    //TODO not used
     /// <summary>
     /// SSH tunnels
     /// </summary>

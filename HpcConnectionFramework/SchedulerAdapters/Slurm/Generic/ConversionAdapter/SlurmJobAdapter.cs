@@ -39,11 +39,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <summary>
         /// Set tasks for job
         /// </summary>
-        /// <param name="tasks">Tasks</param>
-        public void SetTasks(IEnumerable<object> tasks)
+        /// <param name="tasksAllocationcmd">Tasks</param>
+        public void SetTasks(IEnumerable<object> tasksAllocationcmd)
         {
             _jobCommandBuilder.Clear();
-            foreach (var task in tasks)
+            foreach (var task in tasksAllocationcmd)
             {
                 _jobCommandBuilder.Append((string)task);
             }

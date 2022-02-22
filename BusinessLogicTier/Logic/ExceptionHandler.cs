@@ -56,7 +56,10 @@ namespace HEAppE.BusinessLogicTier.Logic
                 {
                     throw new InvalidRequestException(exception.Message);
                 }
-
+                else if (exception is InsufficientRoleException)
+                {
+                    throw new InsufficientRoleException(exception.Message);
+                }
                 if (exception is OpenIdAuthenticationException)
                 {
                     throw new OpenIdAuthenticationException(exception.Message);

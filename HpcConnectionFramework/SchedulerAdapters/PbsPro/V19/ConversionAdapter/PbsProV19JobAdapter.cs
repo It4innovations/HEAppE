@@ -10,7 +10,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19.ConversionA
         /// </summary>
         public PbsProV19JobAdapter()
         {
-        
         }
         #endregion
     }

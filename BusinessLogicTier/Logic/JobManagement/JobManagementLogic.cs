@@ -1,29 +1,28 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
+﻿using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
+using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using log4net;
-using System.Text.RegularExpressions;
-using System.Text;
-using System.Transactions;
-using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
-using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
-using HEAppE.Utils.Validation;
-using HEAppE.DomainObjects.JobManagement.Comparers;
-using HEAppE.BusinessLogicTier.Configuration;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.Utils.Validation;
+using log4net;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
 using System.Threading;
+using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -180,9 +179,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             {
                 var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
                                                   .ToList();
-                                                    
+
                 var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
-                scheduler.CancelJob(submittedTask.Select(s=>s.ScheduledJobId), "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
+                scheduler.CancelJob(submittedTask.Select(s => s.ScheduledJobId), "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
                 var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, jobInfo.Specification.Cluster.ServiceAccountCredentials)
                                                                     .ToList();
@@ -274,17 +273,40 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 foreach (var jobGroup in jobsGroup)
                 {
                     Cluster cluster = jobGroup.Key;
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
 
                     var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
                     if (cluster.UpdateJobStateByServiceAccount.Value)
                     {
-                        actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(cluster, cluster.ServiceAccountCredentials, jobGroup.SelectMany(s => s.Tasks)).ToList();
+                        var tasksExceedWaitLimit = jobGroup.Where(w => IsWaitingLimitExceeded(w))
+                                                            .SelectMany(s => s.Tasks)
+                                                            .Where(w => !w.Specification.DependsOn.Any())
+                                                            .ToList();
+
+                        if (tasksExceedWaitLimit.Any())
+                        {
+                            scheduler.CancelJob(tasksExceedWaitLimit.Select(s => s.ScheduledJobId), "Job cancelled automatically by exceeding waiting limit.", cluster.ServiceAccountCredentials);
+                        }
+                        actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, cluster.ServiceAccountCredentials, jobGroup.SelectMany(s => s.Tasks)).ToList();
                     }
                     else
                     {
                         var userJobsGroup = jobGroup.GroupBy(g => g.Specification.ClusterUser)
                                                      .ToList();
-                        userJobsGroup.ForEach(f => actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(cluster, f.Key, f.SelectMany(s => s.Tasks))));
+
+                        foreach(var userJobGroup in userJobsGroup)
+                        {
+                            var tasksExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w))
+                                                                    .SelectMany(s => s.Tasks)
+                                                                    .Where(w => !w.Specification.DependsOn.Any())
+                                                                    .ToList();
+
+                            if (tasksExceedWaitLimit.Any())
+                            {
+                                scheduler.CancelJob(tasksExceedWaitLimit.Select(s => s.ScheduledJobId), "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
+                            }
+                            actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, userJobGroup.Key, userJobGroup.SelectMany(s => s.Tasks)));
+                        }
                     }
 
                     bool isNeedUpdateJobState = false;
@@ -506,7 +528,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                                 .ToList();
             }
         }
-
         private string AddGenericCommandUserDefinedCommands(List<CommandTemplateParameterValue> templateParameters)
         {
             if (templateParameters.Count == 0)
@@ -715,13 +736,24 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return dbJobInfo;
         }
 
-        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(Cluster cluster, ClusterAuthenticationCredentials credential, IEnumerable<SubmittedTaskInfo> jobTasks)
+        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IRexScheduler scheduler, ClusterAuthenticationCredentials credential, IEnumerable<SubmittedTaskInfo> jobTasks)
         {
-            var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and <= TaskState.Running)
+            var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
                                            .ToList();
 
-            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster)
-                                                                       .GetActualTasksInfo(unfinishedTasks, credential);
+            return scheduler.GetActualTasksInfo(unfinishedTasks, credential);
+        }
+
+        private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)
+        {
+            if (job.Specification.WaitingLimit.HasValue && job.Specification.WaitingLimit > 0
+                && (job.State < JobState.Running || job.State == JobState.WaitingForServiceAccount))
+            {
+                var waitingLimit = job.Specification.WaitingLimit.Value;
+                return DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds > waitingLimit;
+            }
+
+            return false;
         }
 
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)

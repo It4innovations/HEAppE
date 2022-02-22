@@ -1,8 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Linq;
+﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+using System.Collections.Generic;
 using System.Text;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
@@ -38,11 +36,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         /// <summary>
         /// Set tasks for job
         /// </summary>
-        /// <param name="tasks">Tasks</param>
-        public void SetTasks(IEnumerable<object> tasks)
+        /// <param name="tasksAllocationcmd">Tasks</param>
+        public void SetTasks(IEnumerable<object> tasksAllocationcmd)
         {
             _jobCommandBuilder.Clear();
-            foreach (var task in tasks)
+            foreach (var task in tasksAllocationcmd)
             {
                 _jobCommandBuilder.Append((string)task);
             }

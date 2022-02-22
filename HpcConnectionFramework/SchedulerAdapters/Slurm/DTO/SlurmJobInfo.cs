@@ -1,5 +1,6 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
 using System;
 using System.Collections.Generic;

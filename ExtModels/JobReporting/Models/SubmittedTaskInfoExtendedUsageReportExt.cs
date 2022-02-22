@@ -14,9 +14,11 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember(Name = "JobName")]
         public string JobName { get; set; }
 
+        [DataMember(Name = "Project")]
+        public string Project { get; set; }
         public override string ToString()
         {
-            return $"SubmittedTaskInfoUsageExtendedReportExt(id={Id}; name={Name}; jobId={JobId}; jobName={JobName}; priority={Priority}; state={State}; cpuHyperThreading={CpuHyperThreading}; schedulerJobId={ScheduledJobId}; commandTemplateId={CommandTemplateId}; allocatedTime={AllocatedTime}; corehoursUsage={CorehoursUsage}; startTime={StartTime}; endTime={EndTime})";
+            return $"SubmittedTaskInfoUsageExtendedReportExt(id={Id}; name={Name}; jobId={JobId}; jobName={JobName}; project={Project} priority={Priority}; state={State}; cpuHyperThreading={CpuHyperThreading}; schedulerJobId={ScheduledJobId}; commandTemplateId={CommandTemplateId}; allocatedTime={AllocatedTime}; corehoursUsage={CorehoursUsage}; startTime={StartTime}; endTime={EndTime})";
         }
     }
 }

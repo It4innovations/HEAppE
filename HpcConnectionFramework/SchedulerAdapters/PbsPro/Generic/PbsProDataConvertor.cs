@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic

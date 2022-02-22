@@ -13,6 +13,7 @@ using System.Reflection;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.ExtModels.DataTransfer.Converts;
 using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 
 namespace HEAppE.ServiceTier.DataTransfer
 {
@@ -28,7 +29,7 @@ namespace HEAppE.ServiceTier.DataTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
                     DataTransferMethod dataTransferMethod = dataTransferLogic.GetDataTransferMethod(ipAddress, port, jobInfo, loggedUser);
@@ -48,7 +49,7 @@ namespace HEAppE.ServiceTier.DataTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(usedTransferMethod.SubmittedJobId, loggedUser);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
                     dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), jobInfo, loggedUser);
@@ -66,7 +67,7 @@ namespace HEAppE.ServiceTier.DataTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
                     return dataTransferLogic.HttpGetToJobNode(httpRequest, httpHeaders, jobInfo.Id, ipAddress);
@@ -85,7 +86,7 @@ namespace HEAppE.ServiceTier.DataTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
                     return dataTransferLogic.HttpPostToJobNode(httpRequest, httpHeaders, httpPayload, jobInfo.Id, ipAddress);

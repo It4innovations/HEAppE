@@ -13,15 +13,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials);
 
-
-
         ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType);
 
         IEnumerable<string> GetAllocatedNodes(SubmittedJobInfo jobInfo);
 
         IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, string userScriptPath);
-
-        bool IsWaitingLimitExceeded(SubmittedJobInfo job, JobSpecification jobSpecification);
 
         void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 

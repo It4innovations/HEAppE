@@ -8,7 +8,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19.ConversionA
     public class PbsProV19TaskAdapter : PbsProTaskAdapter
     {
         #region Constructors
-        public PbsProV19TaskAdapter(string taskSource) : base(taskSource) { }
+        public PbsProV19TaskAdapter(string taskSource) : base(taskSource) 
+        {
+        }
         #endregion
     }
 }

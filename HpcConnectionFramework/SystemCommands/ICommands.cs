@@ -14,6 +14,11 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         string InterpreterCommand { get; }
 
         /// <summary>
+        /// Execution command script path
+        /// </summary>
+        string ExecutieCmdScriptPath { get; }
+
+        /// <summary>
         /// Copy job data to temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>

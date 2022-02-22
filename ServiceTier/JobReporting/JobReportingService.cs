@@ -7,12 +7,12 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Logic.JobReporting.Exceptions;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
+using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.JobReporting.Converts;
 using HEAppE.BusinessLogicTier.Logic;
@@ -29,7 +29,7 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer);
                     //TODO OR ADMIN
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     IList<AdaptorUserGroup> groups = jobReportingLogic.ListAdaptorUserGroups();
@@ -49,7 +49,7 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     if (loggedUser.Id != userId) //TODO OR ADMIN
                         throw new NotAllowedException("Logged user is not allowed to request this report.");
 
@@ -70,7 +70,7 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
                     var group = loggedUser.Groups.FirstOrDefault(val => val.Id == groupId);
 
                     if (group == null) //TODO OR ADMIN
@@ -93,7 +93,7 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
                     //if (loggedUser.Id != userId) //TODO OR ADMIN
                     //    throw new NotAllowedException("Logged user is not allowed to request this report.");
 
