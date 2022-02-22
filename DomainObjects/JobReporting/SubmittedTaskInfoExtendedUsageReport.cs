@@ -9,5 +9,7 @@ namespace HEAppE.DomainObjects.JobReporting
         public long JobId { get; set; }
 
         public string JobName { get; set; }
+
+        public string Project { get; set; }
     }
 }

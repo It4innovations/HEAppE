@@ -78,6 +78,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
                 Name = task.Name,
                 JobId = job.Id,
                 JobName = job.Name,
+                Project = job.Project,
                 Priority = task.Priority,
                 State = task.State,
                 CpuHyperThreading = task.CpuHyperThreading ?? false,
