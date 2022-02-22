@@ -1,11 +1,4 @@
-﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
+﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
 {
     public class PbsProQueueInfo
     {

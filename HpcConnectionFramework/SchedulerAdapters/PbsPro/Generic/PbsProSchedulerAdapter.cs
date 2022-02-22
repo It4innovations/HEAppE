@@ -192,11 +192,27 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="jobInfo">Job information</param>
         public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
-            //TODO rewrite
-#warning this should use database instead of direct read from file
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"cat {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/AllocationNodeInfo");
-            _log.InfoFormat("Allocated nodes: {0}", sshCommand.Result);
-            return null;
+            SshCommandWrapper command = null;
+            StringBuilder cmdBuilder = new();
+            var nodeNames = jobInfo.Tasks.Where(w => w.State == TaskState.Running)
+                                          .SelectMany(s => s.TaskAllocationNodes)
+                                          .Select(s => $"{s.AllocationNodeId}.{jobInfo.Specification.FileTransferMethod.ServerHostname}")
+                                          .ToList();
+
+            nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
+            string sshCommand = cmdBuilder.ToString();
+
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                return command.Result.Split('\n');
+            }
+            catch (FormatException e)
+            {
+                throw new Exception($@"Exception thrown when retrieving allocation nodes used by running HPC job: ""{string.Join(", ", jobInfo.Tasks.Select(s => s.ScheduledJobId).ToList())}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommand}""\n", e);
+            }
         }
 
         /// <summary>

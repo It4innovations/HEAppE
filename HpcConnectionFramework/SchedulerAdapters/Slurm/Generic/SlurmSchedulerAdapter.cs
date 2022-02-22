@@ -224,22 +224,26 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="jobInfo">Job information</param>
         public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
-            StringBuilder cmdBuilder = new();
             SshCommandWrapper command = null;
+            StringBuilder cmdBuilder = new();
+            var nodeNames = jobInfo.Tasks.Where(w => w.State == TaskState.Running)
+                                          .SelectMany(s => s.TaskAllocationNodes)
+                                          .Select(s => s.AllocationNodeId)
+                                          .ToList();
 
-            jobInfo.Tasks.ForEach(f => cmdBuilder.Append($@"{_commands.InterpreterCommand} 'scontrol show job {f.ScheduledJobId} | grep ' NodeList' | awk -F'=' '{"{{print $2}}"}'"));
+            nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
             string sshCommand = cmdBuilder.ToString();
 
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                return Mapper.GetAllocatedNodes(command.Result);
+                return command.Result.Split('\n');
             }
             catch (FormatException e)
             {
                 throw new Exception($@"Exception thrown when retrieving allocation nodes used by running HPC job: ""{string.Join(", ", jobInfo.Tasks.Select(s => s.ScheduledJobId).ToList())}"". 
                                        Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for queue usage: ""{sshCommand}""\n", e);
+                                       Command line for job submission: ""{sshCommand}""\n", e);
             }
         }
 
