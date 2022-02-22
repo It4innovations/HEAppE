@@ -55,20 +55,21 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             double? groupTotalUsage = 0;
             var userAggregatedReports = new List<UserAggregatedUsage>();
 
-            var userResourceUsageReport = GetUserResourceUsageReport(userId, startTime, endTime).ConvertUsageReportToAggregatedUsage();
+            //get report of user who is asking for report
+           /* var userResourceUsageReport = GetUserResourceUsageReport(userId, startTime, endTime).ConvertUsageReportToAggregatedUsage();
             groupTotalUsage += userResourceUsageReport?.TotalUsage;
 
-            userAggregatedReports.Add(userResourceUsageReport);
+            userAggregatedReports.Add(userResourceUsageReport);*/
 
-            //TODO prepare for all users but must be solved HEAppEUserRoles
-            //AdaptorUserGroup group = unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
-            //foreach (AdaptorUser user in group.Users)
-            //{
-            //    var userResourceUsageReport = GetUserResourceUsageReport(user.Id, startTime, endTime).ConvertUsageReportToAggregatedUsage();
-            //    groupTotalUsage += userResourceUsageReport?.TotalUsage;
+            //go thru by all users in group
+            AdaptorUserGroup group = unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
+            foreach (AdaptorUser user in group.Users)
+            {
+                var userResourceUsageReport = GetUserResourceUsageReport(user.Id, startTime, endTime).ConvertUsageReportToAggregatedUsage();
+                groupTotalUsage += userResourceUsageReport?.TotalUsage;
 
-            //    userAggregatedReports.Add(userResourceUsageReport);
-            //}
+                userAggregatedReports.Add(userResourceUsageReport);
+            }
 
             var userGroupReport = new UserGroupResourceUsageReport
             {

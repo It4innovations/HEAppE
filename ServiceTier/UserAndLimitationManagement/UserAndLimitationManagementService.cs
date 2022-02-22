@@ -7,12 +7,14 @@ using System.Text;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
+using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using log4net;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement
@@ -101,7 +103,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
                     IUserAndLimitationManagementLogic userLogic =
                         LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
                     IList<ResourceUsage> usages = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser);
@@ -119,6 +121,26 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 			throw new NotImplementedException();
 		}*/
 
+        /// <summary>
+        /// Get user for given <paramref name="sessionCode"/> and check if the user has <paramref name="requiredUserRole"/>.
+        /// </summary>
+        /// <param name="sessionCode">User session code.</param>
+        /// <param name="unitOfWork">Unit of work.</param>
+        /// <param name="requiredUserRole">Required user role.</param>
+        /// <returns>AdaptorUser object if user has required user role.</returns>
+        /// <exception cref="InsufficientRoleException">Is thrown if the user doesn't have <paramref name="requiredUserRole"/>.</exception>
+        internal static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, UserRoleType requiredUserRole)
+        {
+            IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+
+            CheckUserRole(loggedUser, requiredUserRole);
+
+            return loggedUser;
+        }
+         
+
+        [Obsolete("You should probably call " + nameof(GetValidatedUserForSessionCode) + " which checks the user role.")]
         internal static AdaptorUser GetUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork)
         {
             IUserAndLimitationManagementLogic authenticationLogic =
@@ -128,9 +150,26 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         }
 
         /// <summary>
+        /// Check whether the user has any of the allowed roles to access given functionality.
+        /// </summary>
+        /// <param name="user">User account with roles.</param>
+        /// <param name="requiredRole">Required user role.</param>
+        /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="allowedRoles"/></exception>
+        internal static void CheckUserRole(AdaptorUser user, UserRoleType requiredUserRole)
+        {
+            bool hasRequiredRole = user.Roles.Any(userRole => (UserRoleType)userRole.Id == requiredUserRole);
+            if (!hasRequiredRole)
+            {
+                using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+                var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)requiredUserRole);
+                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.Roles);
+            }
+        }
+
+        /// <summary>
         ///   Combines username with random salt.
         ///   Username is inserted into salt string on position
-        ///   given by integer value of first character of the salt modulo length of the salt.
+        ///   given by integer value of first character of the salt moduFlo length of the salt.
         /// </summary>
         /// <param name="username">Username</param>
         /// <param name="salt">Salt</param>
