@@ -99,7 +99,45 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <exception cref="Exception"></exception>
         public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
-            return GetActualTasksInfo(connectorClient, submitedTasksInfo.Select(s => (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
+            var submitedTasksInfoList = submitedTasksInfo.ToList();
+            try
+            {
+                return GetActualTasksInfo(connectorClient, submitedTasksInfoList.Select(s => (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
+            }
+            catch (SshCommandException ce)
+            {
+                _log.Warn(ce.Message);
+
+                //Reducing unknown job ids!
+                var unMissingJobIdsIndexes = new List<int>();
+                int i = 0;
+                foreach (Match match in Regex.Matches(ce.Message, @"(?<ErrorMessage>.*)\n", RegexOptions.Compiled))
+                {
+                    if (match.Success && match.Groups.Count == 2)
+                    {
+                        string jobErrResponseMessage = match.Groups.GetValueOrDefault("ErrorMessage").Value;
+                        if (jobErrResponseMessage != "slurm_load_jobs error: Invalid job id specified")
+                        {
+                            unMissingJobIdsIndexes.Add(i);
+                        }
+                        i++;
+                    }
+                }
+
+                var reducedjobIdsWithJobArrayIndexes = new List<SubmittedTaskInfo>();
+                for (i = 0; i < unMissingJobIdsIndexes.Count; i++)
+                {
+                    var index = unMissingJobIdsIndexes[i];
+                    reducedjobIdsWithJobArrayIndexes.Add(submitedTasksInfoList[index]);
+                }
+
+                if (!unMissingJobIdsIndexes.Any() || reducedjobIdsWithJobArrayIndexes.Count >= submitedTasksInfo.Count())
+                {
+                    throw new Exception(ce.Message);
+                }
+
+                return GetActualTasksInfo(connectorClient, reducedjobIdsWithJobArrayIndexes);
+            }
         }
 
         /// <summary>

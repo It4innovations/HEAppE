@@ -87,10 +87,40 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <exception cref="Exception"></exception>
         public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
-            var jobIdsWithJobArrayIndexes = submitedTasksInfo.SelectMany(s => string.IsNullOrEmpty(s.Specification.JobArrays) 
-                                                                                    ? new List<string>() { s.ScheduledJobId } 
-                                                                                    : CombineScheduledJobIdWithJobArrayIndexes(s.ScheduledJobId, s.Specification.JobArrays));
-            return GetActualTasksInfo(connectorClient, jobIdsWithJobArrayIndexes);
+            IEnumerable<string> jobIdsWithJobArrayIndexes = Enumerable.Empty<string>();
+            try
+            {
+                jobIdsWithJobArrayIndexes = submitedTasksInfo.SelectMany(s => string.IsNullOrEmpty(s.Specification.JobArrays)
+                                                                                        ? new List<string>() { s.ScheduledJobId }
+                                                                                        : CombineScheduledJobIdWithJobArrayIndexes(s.ScheduledJobId, s.Specification.JobArrays));
+
+                return GetActualTasksInfo(connectorClient, jobIdsWithJobArrayIndexes);
+            }
+            catch (SshCommandException ce)
+            {
+                _log.Warn(ce.Message);
+
+                //Reducing unknown job ids!
+                var missingJobIds = Enumerable.Empty<string>();
+                foreach (Match match in Regex.Matches(ce.Message, @"(?<ErrorMessage>.*)\n", RegexOptions.Compiled))
+                {
+                    if (match.Success && match.Groups.Count == 2)
+                    {
+                        string jobErrResponseMessage = match.Groups.GetValueOrDefault("ErrorMessage").Value;
+
+                        missingJobIds = Regex.Matches(jobErrResponseMessage, @"(qstat: Unknown Job Id )(?<JobId>\d*(\[[0-9]*\])*)?(.[a-z-]*[\d]*)?", RegexOptions.Compiled)
+                                                  .Where(w => w.Success && string.IsNullOrEmpty(w.Groups.GetValueOrDefault("JobId").Value))
+                                                  .Select(s => s.Groups.GetValueOrDefault("JobId").Value);
+                    }
+                }
+                var reducedjobIdsWithJobArrayIndexes = jobIdsWithJobArrayIndexes.Except(missingJobIds);
+                if (!missingJobIds.Any() || reducedjobIdsWithJobArrayIndexes.Count() >= jobIdsWithJobArrayIndexes.Count())
+                {
+                    throw new Exception(ce.Message);
+                }
+
+                return GetActualTasksInfo(connectorClient, reducedjobIdsWithJobArrayIndexes);
+            }
         }
 
         /// <summary>

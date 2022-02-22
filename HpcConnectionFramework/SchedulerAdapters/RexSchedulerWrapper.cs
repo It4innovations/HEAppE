@@ -51,7 +51,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 _connectionPool.ReturnConnection(schedulerConnection);
             }
         }
-
         public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
@@ -60,19 +59,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, submitedTasksInfo);
                 return tasks;
             }
-            //catch (SshCommandException ce)
-            //{
-            //    _log.Warn(ce.Message);
-            //    //TODO reduce jobIds
-            //    List<SubmittedJobInfo> reductedTaskInfo = new List<SubmittedJobInfo>();
-
-
-            //    if (submitedTasksInfo.Count() == reductedTaskInfo.Count)
-            //    {
-            //        throw new Exception(ce.Message);
-            //    }
-            //    return GetActualTasksInfo(submitedTasksInfo, credentials);
-            //}
             finally
             {
                 _connectionPool.ReturnConnection(schedulerConnection);
