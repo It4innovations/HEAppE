@@ -69,7 +69,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             }
 
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathConfiguration.PrepareJobDirCmdPath} " +
+            return $"{HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings.PrepareJobDirCmdPath} " +
                 $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
 
@@ -81,7 +81,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return jobIds;
         }
 
-        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object response)
+        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object response)
         {
             List<SubmittedTaskInfo> taskInfos = new();
             LinuxLocalInfo jobsAdapter = JsonSerializer.Deserialize<LinuxLocalInfo>(response.ToString());

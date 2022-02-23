@@ -17,7 +17,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <summary>
         /// Command
         /// </summary>
-        protected CommandScriptPathConfiguration _commandScripts;
+        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
 
         /// <summary>
         /// Log4Net logger
@@ -41,7 +41,6 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             //TODO Loading from config paths
             _log = LogManager.GetLogger(typeof(LinuxCommands));
-            _commandScripts = new CommandScriptPathConfiguration();
         }
         #endregion
         #region Methods

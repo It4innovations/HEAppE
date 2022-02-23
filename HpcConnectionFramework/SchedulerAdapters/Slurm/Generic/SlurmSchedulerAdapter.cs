@@ -80,7 +80,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                     schedulerJobIdClusterAllocationNamePairs.Add((jobIds[i], jobSpecification.Tasks[i].ClusterNodeType.ClusterAllocationName));
                 }
 
-                return GetActualTasksInfo(connectorClient, schedulerJobIdClusterAllocationNamePairs);
+                return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, schedulerJobIdClusterAllocationNamePairs);
             }
             catch (FormatException e)
             {
@@ -94,15 +94,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// Get actual tasks
         /// </summary>
         /// <param name="connectorClient">Connector</param>
+        /// <param name="cluster">Cluster</param>
         /// <param name="submitedTasksInfo">Submitted tasks ids</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
             var submitedTasksInfoList = submitedTasksInfo.ToList();
             try
             {
-                return GetActualTasksInfo(connectorClient, submitedTasksInfoList.Select(s => (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
+                return GetActualTasksInfo(connectorClient, cluster, submitedTasksInfoList.Select(s => (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
             }
             catch (SshCommandException ce)
             {
@@ -136,7 +137,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                     throw new Exception(ce.Message);
                 }
 
-                return GetActualTasksInfo(connectorClient, reducedjobIdsWithJobArrayIndexes);
+                return GetActualTasksInfo(connectorClient, cluster, reducedjobIdsWithJobArrayIndexes);
             }
         }
 
@@ -144,10 +145,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// Get actual tasks
         /// </summary>
         /// <param name="connectorClient">Connector</param>
+        /// <param name="cluster">Cluster</param>
         /// <param name="schedulerJobIdClusterAllocationNamePairs">Submitted tasks ids</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<(string ScheduledJobId, string ClusterAllocationName)> schedulerJobIdClusterAllocationNamePairs)
+        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<(string ScheduledJobId, string ClusterAllocationName)> schedulerJobIdClusterAllocationNamePairs)
         {
             SshCommandWrapper command = null;
             StringBuilder cmdBuilder = new();
@@ -168,7 +170,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                var submittedTasksInfo = _convertor.ReadParametersFromResponse(command.Result);
+                var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
                 return submittedTasksInfo;
             }
             catch (FormatException e)

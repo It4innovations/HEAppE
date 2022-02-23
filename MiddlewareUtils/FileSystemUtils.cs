@@ -15,6 +15,7 @@ namespace HEAppE.MiddlewareUtils
 
         public static string GetJobClusterDirectoryPath(string basePath, JobSpecification jobSpecification)
         {
+
             return ConcatenatePaths(basePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
         }
 

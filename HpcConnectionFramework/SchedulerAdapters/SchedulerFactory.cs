@@ -7,7 +7,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -16,12 +16,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         #region Instances
         private readonly Dictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
         private readonly static Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new();
-
-        //TODO add to settings
-        private static readonly int ConnectionPoolMinSize = 0;
-        private static readonly int ConnectionPoolMaxSize = 10;
-        private static readonly int ConnectionPoolCleaningInterval = 60;
-        private static readonly int ConnectionPoolMaxUnusedInterval = 1800;
+        private static readonly Dictionary<string, ClusterConnectionPoolConfiguration> _connectionPoolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
         #endregion
         #region Static Methods
         public static SchedulerFactory GetInstance(SchedulerType type)
@@ -55,20 +50,33 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration);
         #endregion
         #region Local Methods
-        protected IConnectionPool GetSchedulerConnectionPool(Cluster configuration)
+        protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf)
         {
-            var endpoint = new SchedulerEndpoint(configuration.MasterNodeName, configuration.SchedulerType);
+            var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, clusterConf.SchedulerType);
             if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
             {
+                int connectionPoolMinSize = 0;
+                int connectionPoolMaxSize = 5;
+                int connectionPoolCleaningInterval = 60;
+                int connectionPoolMaxUnusedInterval = 1800;
+
+                if (HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings.ContainsKey(clusterConf.MasterNodeName))
+                {
+                    connectionPoolMinSize = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolMinSize;
+                    connectionPoolMaxSize = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolMaxSize;
+                    connectionPoolCleaningInterval = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolCleaningInterval;
+                    connectionPoolMaxUnusedInterval = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolMaxUnusedInterval;
+                }
+
                 _schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(
-                    configuration.MasterNodeName,
-                    configuration.TimeZone,
-                    ConnectionPoolMinSize,
-                    ConnectionPoolMaxSize,
-                    ConnectionPoolCleaningInterval,
-                    ConnectionPoolMaxUnusedInterval,
-                    CreateSchedulerConnector(configuration),
-                    configuration.Port);
+                            clusterConf.MasterNodeName,
+                            clusterConf.TimeZone,
+                            connectionPoolMinSize,
+                            connectionPoolMaxSize,
+                            connectionPoolCleaningInterval,
+                            connectionPoolMaxUnusedInterval,
+                            CreateSchedulerConnector(clusterConf),
+                            clusterConf.Port);
             }
             return _schedulerConnectionPoolSingletons[endpoint];
         }
