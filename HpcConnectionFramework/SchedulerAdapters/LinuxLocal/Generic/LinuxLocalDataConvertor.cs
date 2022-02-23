@@ -16,6 +16,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 {
     public class LinuxLocalDataConvertor : SchedulerDataConvertor
     {
+        #region Instances
+        /// <summary>
+        /// Command
+        /// </summary>
+        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
+        #endregion
         #region Constructors
         public LinuxLocalDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) 
         {
@@ -32,7 +38,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             foreach (var taskAdapter in allTasks)
             {
                 taskAdapter.CreationTime = jobInfo.CreateTime;
-                taskAdapter.SubmitTime = jobInfo.SubmitTime ?? default(DateTime);
+                taskAdapter.SubmitTime = jobInfo.SubmitTime ?? default;
                 taskCollection.Add(ConvertTaskToTaskInfo(taskAdapter));
             }
             return taskCollection;
@@ -53,8 +59,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                     task.CommandTemplate.TemplateParameters,
                     task.CommandParameterValues
                     );
-                taskCommandLine.Append(
-                    ReplaceTemplateDirectivesInCommand($"{task.CommandTemplate.ExecutableFile} {task.CommandTemplate.CommandParameters}", commandParameterDictionary));
+                taskCommandLine.Append(ReplaceTemplateDirectivesInCommand($"{task.CommandTemplate.ExecutableFile} {task.CommandTemplate.CommandParameters}", commandParameterDictionary));
 
                 if (!string.IsNullOrEmpty(task.StandardOutputFile))
                 {
@@ -69,8 +74,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             }
 
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings.PrepareJobDirCmdPath} " +
-                $"{jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
+            return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
 
         public override IEnumerable<string> GetJobIds(string responseMessage)

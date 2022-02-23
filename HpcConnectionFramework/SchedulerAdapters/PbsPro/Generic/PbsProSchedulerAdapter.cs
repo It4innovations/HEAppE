@@ -37,8 +37,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// SSH tunnel
         /// </summary>
         protected static SshTunnel _sshTunnelUtil;
-        #endregion
 
+        /// <summary>
+        /// Generic commnad key parameter
+        /// </summary>
+        protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
+        #endregion
         #region Constructors
         public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
@@ -231,7 +235,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             string shellCommand = $"cat {userScriptPath}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
 
-            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
                 {

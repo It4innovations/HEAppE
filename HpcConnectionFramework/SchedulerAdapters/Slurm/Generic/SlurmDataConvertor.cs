@@ -123,7 +123,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                         .Distinct();
 
                     var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
-                    FillingSchedulerJobResultObjectFromSchedulerAttribute(schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
+                    FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
                     if (!schedulerResultObj.IsJobArrayJob)
                     {

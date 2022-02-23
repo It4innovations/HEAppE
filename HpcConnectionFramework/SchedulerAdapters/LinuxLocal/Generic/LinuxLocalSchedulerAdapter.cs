@@ -24,6 +24,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         protected ILog _log;
 
         /// <summary>
+        ///   Convertor reference.
+        /// </summary>
+        protected ISchedulerDataConvertor _convertor;
+
+        /// <summary>
         /// Commands
         /// </summary>
         protected ICommands _commands;
@@ -34,9 +39,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
 
         /// <summary>
-        ///   Convertor reference.
+        /// Generic commnad key parameter
         /// </summary>
-        protected ISchedulerDataConvertor _convertor;
+        protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
         #endregion
         #region Constructors
         public LinuxLocalSchedulerAdapter(ISchedulerDataConvertor convertor)
@@ -65,7 +70,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 
         public ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)
         {
-            ClusterNodeUsage usage = new ClusterNodeUsage
+            var usage = new ClusterNodeUsage
             {
                 NodeType = nodeType
             };
@@ -86,8 +91,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 
         public IEnumerable<SubmittedTaskInfo> SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
-            StringBuilder shellCommandSb = new StringBuilder();
-            StringBuilder jobResultInfo = new StringBuilder();
+            var shellCommandSb = new StringBuilder();
+            var jobResultInfo = new StringBuilder();
 
             #region Prepare Job Directory
             string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
@@ -125,13 +130,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         }
 
         #region JobManagement
-
         public void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
         {
             StringBuilder shellCommandSb = new StringBuilder();
             shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id};");
-            jobInfo.Tasks.ForEach(task => shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh " +
-                $"{jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id};"));
+            jobInfo.Tasks.ForEach(task => shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id};"));
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommandSb.ToString());
             _log.InfoFormat("Create job directory result: {0}", sshCommand.Result);
@@ -159,17 +162,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         {
             _commands.CopyJobDataFromTemp(scheduler, jobInfo, hash);
         }
-
         #endregion
-
         public IEnumerable<string> GetParametersFromGenericUserScript(object scheduler, string userScriptPath)
         {
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
 
-            foreach (Match match in Regex.Matches(sshCommand.Result,
-                @$"{HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
                 {
@@ -193,8 +193,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         {
             throw new NotImplementedException();
         }
-
-
         #endregion
     }
 }
