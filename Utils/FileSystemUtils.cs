@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using HEAppE.DomainObjects.JobManagement;
 
-namespace HEAppE.MiddlewareUtils
+namespace HEAppE.Utils
 {
     public class FileSystemUtils
     {

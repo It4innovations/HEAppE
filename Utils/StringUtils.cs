@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
 
-namespace HEAppE.MiddlewareUtils {
+namespace HEAppE.Utils {
 	public class StringUtils {
 		public static string[] SplitStringToArray(string source, char delimiter) {
 			if (source == null || source.Trim().Length == 0)

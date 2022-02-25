@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio Version 16
-VisualStudioVersion = 16.0.29318.209
+# Visual Studio Version 17
+VisualStudioVersion = 17.1.32203.90
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestApi", "RestApi\RestApi.csproj", "{4B4ACA72-B0C8-4B6D-B9EE-3EA026B97DBD}"
 EndProject
@@ -20,8 +20,6 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FileTransferFramework", "FileTransferFramework\FileTransferFramework.csproj", "{9F0EF790-C972-4A93-8766-883D638EBEDE}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HpcConnectionFramework", "HpcConnectionFramework\HpcConnectionFramework.csproj", "{23B7549B-6FD3-4A65-A0AB-61ADFE824F89}"
-EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "MiddlewareUtils", "MiddlewareUtils\MiddlewareUtils.csproj", "{0472B183-CB09-43B4-9339-E5CAFF6C7B4D}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceTier", "ServiceTier\ServiceTier.csproj", "{53A0FEEE-65E0-4754-8D53-082AB438AAEA}"
 EndProject
@@ -85,10 +83,6 @@ Global
 		{23B7549B-6FD3-4A65-A0AB-61ADFE824F89}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{23B7549B-6FD3-4A65-A0AB-61ADFE824F89}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{23B7549B-6FD3-4A65-A0AB-61ADFE824F89}.Release|Any CPU.Build.0 = Release|Any CPU
-		{0472B183-CB09-43B4-9339-E5CAFF6C7B4D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{0472B183-CB09-43B4-9339-E5CAFF6C7B4D}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{0472B183-CB09-43B4-9339-E5CAFF6C7B4D}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{0472B183-CB09-43B4-9339-E5CAFF6C7B4D}.Release|Any CPU.Build.0 = Release|Any CPU
 		{53A0FEEE-65E0-4754-8D53-082AB438AAEA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{53A0FEEE-65E0-4754-8D53-082AB438AAEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53A0FEEE-65E0-4754-8D53-082AB438AAEA}.Release|Any CPU.ActiveCfg = Release|Any CPU

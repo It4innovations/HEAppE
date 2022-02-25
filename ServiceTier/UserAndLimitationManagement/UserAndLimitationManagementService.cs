@@ -4,6 +4,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
@@ -23,7 +24,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        public string AuthenticateUser(AuthenticationCredentialsExt credentials)
+        public async Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials)
         {
             try
             {
@@ -65,7 +66,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 {
                     IUserAndLimitationManagementLogic userLogic =
                         LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    var result = userLogic.AuthenticateUser(credentialsIn);
+                    var result = await userLogic.AuthenticateUserAsync(credentialsIn);
                     return result;
                 }
             }
@@ -76,14 +77,14 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
         }
 
-        public OpenStackApplicationCredentialsExt AuthenticateUserToOpenStack(AuthenticationCredentialsExt credentials)
+        public async Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials)
         {
             if (credentials is OpenIdCredentialsExt openIdCredentials)
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    var appCreds = userLogic.AuthenticateUserToOpenStack(new OpenIdCredentials
+                    var appCreds =  await userLogic.AuthenticateUserToOpenStackAsync(new OpenIdCredentials
                     {
                         OpenIdAccessToken = openIdCredentials.OpenIdAccessToken
                     });
@@ -116,10 +117,6 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 return null;
             }
         }
-
-        /*public AdaptorUserGroupExt[] GetPossibleSubmitterGroupsForCurrentUser(string sessionCode) {
-			throw new NotImplementedException();
-		}*/
 
         /// <summary>
         /// Get user for given <paramref name="sessionCode"/> and check if the user has <paramref name="requiredUserRole"/>.

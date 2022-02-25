@@ -54,7 +54,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUser(model.Credentials));
+                return Ok(_service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
             {
@@ -82,7 +82,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUserToOpenStack(model.Credentials));
+                return Ok(_service.AuthenticateUserToOpenStackAsync(model.Credentials));
             }
             catch (Exception e)
             {
@@ -110,7 +110,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUser(model.Credentials));
+                return Ok(_service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
             {
@@ -138,7 +138,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUser(model.Credentials));
+                return Ok(_service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
             {

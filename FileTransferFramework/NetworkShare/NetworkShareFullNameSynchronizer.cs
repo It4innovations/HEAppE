@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
+﻿using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.Utils;
+using System.Collections.Generic;
 using System.IO;
-using HEAppE.DomainObjects.FileTransfer;
-using HEAppE.MiddlewareUtils;
 
 namespace HEAppE.FileTransferFramework.NetworkShare
 {

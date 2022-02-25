@@ -7,14 +7,13 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="log4net" Version="2.0.12" />
-      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="5.0.0" />
-      <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-      <PackageReference Include="RestSharp" Version="106.11.7" />
+      <PackageReference Include="log4net" Version="2.0.14" />
+      <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="6.0.0" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+      <PackageReference Include="RestSharp" Version="107.3.0" />
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\MiddlewareUtils\MiddlewareUtils.csproj" />
       <ProjectReference Include="..\RestUtils\RestUtils.csproj" />
       <ProjectReference Include="..\Utils\Utils.csproj" />
     </ItemGroup>

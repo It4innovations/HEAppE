@@ -13,7 +13,7 @@ namespace HEAppE.RestUtils
         /// <param name="request">Rest request.</param>
         /// <param name="jsonBody">Serialized json object.</param>
         /// <returns>The request with the body.</returns>
-        public static IRestRequest AddSerializedJsonBody(this IRestRequest request, string jsonBody)
+        public static RestRequest AddSerializedJsonBody(this RestRequest request, string jsonBody)
         {
             request.AddParameter("application/json", jsonBody, ParameterType.RequestBody);
             return request;
@@ -25,13 +25,13 @@ namespace HEAppE.RestUtils
         /// <param name="request">Request to add authorization header to.</param>
         /// <param name="token">Authentication token.</param>
         /// <returns>The request with the authorization header.</returns>
-        public static IRestRequest AddXAuthTokenToHeader(this IRestRequest request, string token)
+        public static RestRequest AddXAuthTokenToHeader(this RestRequest request, string token)
         {
             request.AddHeader("X-Auth-Token", token);
             return request;
         }
 
-        public static IRestRequest AddXWwwFormUrlEncodedBody(this IRestRequest request, params ValueTuple<string, string>[] parameters)
+        public static RestRequest AddXWwwFormUrlEncodedBody(this RestRequest request, params ValueTuple<string, string>[] parameters)
         {
             StringBuilder builder = new StringBuilder();
             for (var i = 0; i < parameters.Length; i++)
