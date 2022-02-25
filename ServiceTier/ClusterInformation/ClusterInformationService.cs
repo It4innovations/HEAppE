@@ -108,5 +108,26 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 return null;
             }
         }
+
+        public string RemoveCommandTemplate(long commandTemplateId, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    //TODO (konvicka): change to non obsolete method
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                    clusterLogic.RemoveCommandTemplate(commandTemplateId, loggedUser);
+                    return $"CommandTemplate with id {commandTemplateId} has been removed.";
+                }
+            }
+
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
     }
 }

@@ -62,6 +62,17 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             }
         }
 
+        public void RemoveCommandTemplate(long commandTemplateId, AdaptorUser loggedUser)
+        {
+            CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
+            if (commandTemplate == null)
+                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+            //delete 'cascade' on CommandTemplateParameterRepository
+            commandTemplate.TemplateParameters.ForEach(unitOfWork.CommandTemplateParameterRepository.Delete);
+            unitOfWork.CommandTemplateRepository.Delete(commandTemplate);
+            unitOfWork.Save();
+        }
+
         public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, string description, string code, string executableFile, string preparationScript, AdaptorUser loggedUser)
         {
             CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);

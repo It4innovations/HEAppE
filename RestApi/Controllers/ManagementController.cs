@@ -30,8 +30,7 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpPost("CreateCommandTemplate")]
-        //TODO (konvicka): compute payload
-        [RequestSizeLimit(535)]
+        [RequestSizeLimit(1520)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -42,7 +41,7 @@ namespace HEAppE.RestApi.Controllers
             //TODO (konvicka): Add role checking to Admin
             try
             {
-                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CreateCommandTemplate\"");
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
@@ -53,6 +52,37 @@ namespace HEAppE.RestApi.Controllers
                                                             model.Code,
                                                             model.ExecutableFile,
                                                             model.PreparationScript,
+                                                            model.SessionCode
+                        ));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+
+        /// Removes Command Template from repository
+        /// </summary>
+        /// <returns></returns>
+        [HttpPost("RemoveCommandTemplate")]
+        [RequestSizeLimit(84)]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
+        {
+            //TODO (konvicka): Add role checking to Admin
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
+                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                return Ok(_service.RemoveCommandTemplate(
+                                                            model.CommandTemplateId,
                                                             model.SessionCode
                         ));
             }
