@@ -15,13 +15,13 @@ using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 using Renci.SshNet;
 using RestSharp;
-using RestSharp.Serialization.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace RestSharpWebClient.Pages
 {
@@ -46,11 +46,11 @@ namespace RestSharpWebClient.Pages
         {
         }
 
-        public IActionResult OnPostListAvailableClusters()
+        public async Task<IActionResult> OnPostListAvailableClustersAsync()
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("ClusterInformation/ListAvailableClusters", Method.GET);
-            var response = client.Execute(request);
+            var request = new RestRequest("ClusterInformation/ListAvailableClusters", Method.Get);
+            var response = await client.ExecuteAsync(request);
             var content = response.Content;
 
             if (response.StatusCode == System.Net.HttpStatusCode.OK)
@@ -60,7 +60,7 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostCreateAndSubmitTestJob()
+        public async Task<IActionResult> OnPostCreateAndSubmitTestJobAsync()
         {
             string response = "";
             try
@@ -71,7 +71,7 @@ namespace RestSharpWebClient.Pages
 
                 //AuthenticateUserPassword
                 sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
                 //string sessionCode = AuthenticateUserKeycloakOpenId(openIdToken);
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
@@ -81,16 +81,16 @@ namespace RestSharpWebClient.Pages
                 sb.AppendLine(jobSpec.ToString());
 
                 //CreateJob
-                SubmittedJobInfoExt submittedJob = CreateJob(jobSpec, sessionCode);
+                SubmittedJobInfoExt submittedJob = await CreateJobAsync(jobSpec, sessionCode);
                 sb.AppendLine(String.Format("Job {0} created", submittedJob.Id));
                 sb.AppendLine(submittedJob.ToString());
 
                 //FileUpload
-                UploadInputFiles((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
+                UploadInputFilesAsync((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
                 sb.AppendLine(String.Format("All files uploaded"));
 
                 //SubmitJob
-                SubmitJob((long)submittedJob.Id, sessionCode);
+                SubmitJobAsync((long)submittedJob.Id, sessionCode);
                 sb.AppendLine(String.Format("Job submitted"));
 
                 //MonitorJob         
@@ -106,16 +106,16 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostCreateAndSubmitASBJob()
+        public async Task<IActionResult> OnPostCreateAndSubmitASBJobAsync()
         {
             try
             {
                 string username = "testuser";
                 string password = "testpass";
-                
+
                 //AuthenticateUserPassword
                 sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
                 //string sessionCode = AuthenticateUserKeycloakOpenId(openIdToken);
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
@@ -127,7 +127,7 @@ namespace RestSharpWebClient.Pages
                 sb.AppendLine(jobSpec.ToString());
 
                 //CreateJob
-                SubmittedJobInfoExt submittedJob = CreateJob(jobSpec, sessionCode);
+                SubmittedJobInfoExt submittedJob = await CreateJobAsync(jobSpec, sessionCode);
                 sb.AppendLine(String.Format("Job {0} created", submittedJob.Id));
                 sb.AppendLine(submittedJob.ToString());
 
@@ -136,7 +136,7 @@ namespace RestSharpWebClient.Pages
                 //sb.AppendLine(String.Format("All files uploaded"));
 
                 //SubmitJob
-                SubmitJob((long)submittedJob.Id, sessionCode);
+                SubmitJobAsync((long)submittedJob.Id, sessionCode);
                 sb.AppendLine(String.Format("Job submitted"));
 
                 AsbSubmittedJob = (long)submittedJob.Id;
@@ -144,7 +144,7 @@ namespace RestSharpWebClient.Pages
                 while (submittedJob.State != JobStateExt.Running)
                 {
                     Thread.Sleep(30000);
-                    submittedJob = GetCurrentInfoForJob((long)submittedJob.Id, sessionCode);
+                    submittedJob = await GetCurrentInfoForJobAsync((long)submittedJob.Id, sessionCode);
                 }
 
                 sb.AppendLine(String.Format("Job is running"));
@@ -158,7 +158,7 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostCreateSshTunnelASBJob()
+        public async Task<IActionResult> OnPostCreateSshTunnelASBJobAsync()
         {
             try
             {
@@ -167,19 +167,19 @@ namespace RestSharpWebClient.Pages
 
                 //AuthenticateUserPassword
                 sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
                 //string sessionCode = AuthenticateUserKeycloakOpenId(openIdToken);
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
                 //GetAllocatedNodesIps
                 var client = new RestClient(baseUrl);
-                var request = new RestRequest("JobManagement/GetAllocatedNodesIPs", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+                var request = new RestRequest("JobManagement/GetAllocatedNodesIPs", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                     new GetAllocatedNodesIPsModel
                     {
                         SubmittedJobInfoId = AsbSubmittedJob,
                         SessionCode = sessionCode
                     });
-                var response = client.Execute(request);
+                var response = await client.ExecuteAsync(request);
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                     throw new Exception(response.Content.ToString());
                 string[] nodeIps = JsonConvert.DeserializeObject<string[]>(response.Content.ToString());
@@ -187,7 +187,7 @@ namespace RestSharpWebClient.Pages
 
                 //GetDataTransferMethod
                 client = new RestClient(baseUrl);
-                request = new RestRequest("DataTransfer/GetDataTransferMethod", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+                request = new RestRequest("DataTransfer/GetDataTransferMethod", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                     new GetDataTransferMethodModel
                     {
                         IpAddress = nodeIps[0],
@@ -195,7 +195,7 @@ namespace RestSharpWebClient.Pages
                         SubmittedJobInfoId = AsbSubmittedJob,
                         SessionCode = sessionCode
                     });
-                response = client.Execute(request);
+                response = await client.ExecuteAsync(request);
                 if (response.StatusCode != System.Net.HttpStatusCode.OK)
                     throw new Exception(response.Content.ToString());
                 DataTransferMethodExt dt = JsonConvert.DeserializeObject<DataTransferMethodExt>(response.Content.ToString());
@@ -211,7 +211,7 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostHttpGetToJobNode()
+        public async Task<IActionResult> OnPostHttpGetToJobNodeAsync()
         {
             string requestParams = Request.Form["httpGetRequest"];
             string requestHeadersString = Request.Form["httpGetHeaders"];
@@ -224,12 +224,12 @@ namespace RestSharpWebClient.Pages
 
             //AuthenticateUserPassword
             sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-            string sessionCode = AuthenticateUserPassword(username, password);
+            string sessionCode = await AuthenticateUserPasswordAsync(username, password);
             sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
             //HttpGetToJobNode
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("DataTransfer/HttpGetToJobNode", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("DataTransfer/HttpGetToJobNode", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new HttpGetToJobNodeModel
                 {
                     HttpRequest = requestParams,
@@ -238,15 +238,15 @@ namespace RestSharpWebClient.Pages
                     IpAddress = AsbDataTransfer.IpAddress,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
             ResponseContent = response.Content.ToString();
-           
+
             return Page();
         }
 
-        public IActionResult OnPostHttpPostToJobNode()
+        public async Task<IActionResult> OnPostHttpPostToJobNodeAsync()
         {
             string requestParams = Request.Form["httpPostRequest"];
             string requestHeadersString = Request.Form["httpPostHeaders"];
@@ -260,12 +260,12 @@ namespace RestSharpWebClient.Pages
 
             //AuthenticateUserPassword
             sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-            string sessionCode = AuthenticateUserPassword(username, password);
+            string sessionCode = await AuthenticateUserPasswordAsync(username, password);
             sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
             //HttpGetToJobNode
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("DataTransfer/HttpPostToJobNode", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("DataTransfer/HttpPostToJobNode", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new HttpPostToJobNodeModel
                 {
                     HttpRequest = requestParams,
@@ -275,7 +275,7 @@ namespace RestSharpWebClient.Pages
                     IpAddress = AsbDataTransfer.IpAddress,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
             ResponseContent = response.Content.ToString();
@@ -283,14 +283,14 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostCancelASBJob()
+        public async Task<IActionResult> OnPostCancelASBJobAsync()
         {
             string username = "testuser";
             string password = "testpass";
 
             //AuthenticateUserPassword
             sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-            string sessionCode = AuthenticateUserPassword(username, password);
+            string sessionCode = await AuthenticateUserPasswordAsync(username, password);
             //string sessionCode = AuthenticateUserKeycloakOpenId(openIdToken);
             sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
@@ -299,24 +299,24 @@ namespace RestSharpWebClient.Pages
 
             //EndDataTransfer
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("DataTransfer/EndDataTransfer", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("DataTransfer/EndDataTransfer", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new EndDataTransferModel
                 {
                     UsedTransferMethod = AsbDataTransfer,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
             //CancelJob
-            CancelJob(AsbSubmittedJob, sessionCode);
+            CancelJobAsync(AsbSubmittedJob, sessionCode);
 
             ResponseContent = "ASB job was canceled";
             return Page();
         }
 
-        public IActionResult OnPostGetCurrentInfoForJob()
+        public async Task<IActionResult> OnPostGetCurrentInfoForJobAsync()
         {
             try
             {
@@ -324,10 +324,10 @@ namespace RestSharpWebClient.Pages
                 string password = "testpass";
 
                 //AuthenticateUserPassword
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
 
                 //GetCurrentInfoForJob
-                SubmittedJobInfoExt submittedJobInfo = GetCurrentInfoForJob(lastSubmittedJobId, sessionCode);
+                SubmittedJobInfoExt submittedJobInfo = await GetCurrentInfoForJobAsync(lastSubmittedJobId, sessionCode);
                 sb.AppendLine(String.Format("Job {0} info:", submittedJobInfo.Id));
                 sb.AppendLine(submittedJobInfo.ToString());
 
@@ -341,7 +341,7 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostTestSubmitAndCancelJob()
+        public async Task<IActionResult> OnPostTestSubmitAndCancelJobAsync()
         {
             try
             {
@@ -350,7 +350,7 @@ namespace RestSharpWebClient.Pages
 
                 //AuthenticateUserPassword
                 sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
                 //CreateJobSpecification
@@ -359,16 +359,16 @@ namespace RestSharpWebClient.Pages
                 sb.AppendLine(jobSpec.ToString());
 
                 //CreateJob
-                SubmittedJobInfoExt submittedJob = CreateJob(jobSpec, sessionCode);
+                SubmittedJobInfoExt submittedJob = await CreateJobAsync(jobSpec, sessionCode);
                 sb.AppendLine(String.Format("Job {0} created", submittedJob.Id));
                 sb.AppendLine(submittedJob.ToString());
 
                 //FileUpload
-                UploadInputFiles((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
+                UploadInputFilesAsync((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
                 sb.AppendLine(String.Format("All files uploaded"));
 
                 //SubmitJob
-                SubmitJob((long)submittedJob.Id, sessionCode);
+                SubmitJobAsync((long)submittedJob.Id, sessionCode);
                 sb.AppendLine(String.Format("Job submitted"));
 
                 //TODO DELETE LATER - only for getCurrentInfoForJob
@@ -377,7 +377,7 @@ namespace RestSharpWebClient.Pages
                 //wait for job to be in running state and then cancel this job and delete job content on cluster
                 while (true)
                 {
-                    submittedJob = GetCurrentInfoForJob((long)submittedJob.Id, sessionCode);
+                    submittedJob = await GetCurrentInfoForJobAsync((long)submittedJob.Id, sessionCode);
 
                     if (submittedJob.State == JobStateExt.Running)
                     {
@@ -385,12 +385,12 @@ namespace RestSharpWebClient.Pages
 
                         //CancelJob
                         sb.AppendLine(String.Format("Canceling job {0} ...", submittedJob.Id));
-                        submittedJob = CancelJob((long)submittedJob.Id, sessionCode);
+                        submittedJob = await CancelJobAsync((long)submittedJob.Id, sessionCode);
                         sb.AppendLine(String.Format("Job {0} was canceled.", submittedJob.Id));
 
                         //DeleteJob
                         sb.AppendLine(String.Format("Deleting job {0} ...", submittedJob.Id));
-                        string deleteJobResponse = DeleteJob((long)submittedJob.Id, sessionCode);
+                        string deleteJobResponse = await DeleteJobAsync((long)submittedJob.Id, sessionCode);
                         sb.AppendLine(deleteJobResponse);
 
                         break;
@@ -409,7 +409,7 @@ namespace RestSharpWebClient.Pages
         }
 
         //************** REPORTING ************************
-        public IActionResult OnPostGetUserResourceUsageReport()
+        public async Task<IActionResult> OnPostGetUserResourceUsageReportAsync()
         {
             try
             {
@@ -418,18 +418,18 @@ namespace RestSharpWebClient.Pages
 
                 //AuthenticateUserPassword
                 sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
                 //GetUserResourceUsageReport
                 //TODO GET USER ID and DATE TIME
                 sb.AppendLine(String.Format("Getting report for User: {0}", 1));
-                UserResourceUsageReportExt userUsageReport = GetUserResourceUsageReport(1, new DateTime(2019, 6, 1), DateTime.UtcNow, sessionCode);
+                UserResourceUsageReportExt userUsageReport = await GetUserResourceUsageReportAsync(1, new DateTime(2019, 6, 1), DateTime.UtcNow, sessionCode);
                 //sb.AppendLine(String.Format(userUsageReport.ToString()));
 
                 ResponseContent = sb.ToString();
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 ResponseContent = e.Message;
             }
@@ -437,7 +437,7 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostGetUserGroupResourceUsageReport()
+        public async Task<IActionResult> OnPostGetUserGroupResourceUsageReportAsync()
         {
             try
             {
@@ -446,12 +446,12 @@ namespace RestSharpWebClient.Pages
 
                 //AuthenticateUserPassword
                 sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
                 //GetUserGroupResourceUsageReport
                 sb.AppendLine(String.Format("Getting report for Group: {0}", 1));
-                UserGroupResourceUsageReportExt userGroupUsageReport = GetUserGroupResourceUsageReport(1, new DateTime(2019, 6, 1), DateTime.UtcNow, sessionCode); //TODO GET USER ID and DATE TIME
+                UserGroupResourceUsageReportExt userGroupUsageReport = await GetUserGroupResourceUsageReportAsync(1, new DateTime(2019, 6, 1), DateTime.UtcNow, sessionCode); //TODO GET USER ID and DATE TIME
                 //sb.AppendLine(String.Format(userGroupUsageReport.ToString()));
 
                 ResponseContent = sb.ToString();
@@ -464,7 +464,7 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        public IActionResult OnPostGetResourceUsageReportForJob()
+        public async Task<IActionResult> OnPostGetResourceUsageReportForJobAsync()
         {
             try
             {
@@ -473,12 +473,12 @@ namespace RestSharpWebClient.Pages
 
                 //AuthenticateUserPassword
                 sb.AppendLine(String.Format("username: {0}, password: {1}", username, password));
-                string sessionCode = AuthenticateUserPassword(username, password);
+                string sessionCode = await AuthenticateUserPasswordAsync(username, password);
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
                 //GetResourceUsageReportForJob
                 sb.AppendLine(String.Format("Getting usage report for Job: {0}", 1));
-                SubmittedJobInfoUsageReportExt resourceUsageReportforJob = GetResourceUsageReportForJob(lastSubmittedJobId, sessionCode); //TODO replace lastSubmittedJobId
+                SubmittedJobInfoUsageReportExt resourceUsageReportforJob = await GetResourceUsageReportForJobAsync(lastSubmittedJobId, sessionCode); //TODO replace lastSubmittedJobId
                 //sb.AppendLine(String.Format(resourceUsageReportforJob.ToString()));
 
                 ResponseContent = sb.ToString();
@@ -491,10 +491,10 @@ namespace RestSharpWebClient.Pages
             return Page();
         }
 
-        private static UserResourceUsageReportExt GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
+        private static async Task<UserResourceUsageReportExt> GetUserResourceUsageReportAsync(long userId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobReporting/GetUserResourceUsageReport", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobReporting/GetUserResourceUsageReport", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new GetUserResourceUsageReportModel
                 {
                     UserId = userId,
@@ -502,7 +502,7 @@ namespace RestSharpWebClient.Pages
                     EndTime = endTime,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
             else sb.AppendLine(JToken.Parse(response.Content).ToString(Newtonsoft.Json.Formatting.Indented));
@@ -511,10 +511,10 @@ namespace RestSharpWebClient.Pages
             return userUsageReport;
         }
 
-        private static UserGroupResourceUsageReportExt GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
+        private static async Task<UserGroupResourceUsageReportExt> GetUserGroupResourceUsageReportAsync(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobReporting/GetUserGroupResourceUsageReport", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobReporting/GetUserGroupResourceUsageReport", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new GetUserGroupResourceUsageReportModel
                 {
                     GroupId = groupId,
@@ -522,7 +522,7 @@ namespace RestSharpWebClient.Pages
                     EndTime = endTime,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
             else sb.AppendLine(JToken.Parse(response.Content).ToString(Newtonsoft.Json.Formatting.Indented));
@@ -531,34 +531,34 @@ namespace RestSharpWebClient.Pages
             return userUsageReport;
         }
 
-        private static SubmittedJobInfoUsageReportExt GetResourceUsageReportForJob(long jobId, string sessionCode)
+        private static async Task<SubmittedJobInfoUsageReportExt> GetResourceUsageReportForJobAsync(long jobId, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobReporting/GetResourceUsageReportForJob", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobReporting/GetResourceUsageReportForJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new GetResourceUsageReportForJobModel
                 {
                     JobId = jobId,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
             else sb.AppendLine(JToken.Parse(response.Content).ToString(Newtonsoft.Json.Formatting.Indented));
-            
+
             SubmittedJobInfoUsageReportExt jobUsageReport = JsonConvert.DeserializeObject<SubmittedJobInfoUsageReportExt>(response.Content.ToString());
             return jobUsageReport;
         }
 
-        private static SubmittedJobInfoExt GetCurrentInfoForJob(long jobId, string sessionCode)
+        private static async Task<SubmittedJobInfoExt> GetCurrentInfoForJobAsync(long jobId, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobManagement/GetCurrentInfoForJob", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobManagement/GetCurrentInfoForJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new GetCurrentInfoForJobModel
                 {
                     SubmittedJobInfoId = jobId,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
@@ -567,10 +567,10 @@ namespace RestSharpWebClient.Pages
         }
 
 
-        private static string AuthenticateUserPassword(string username, string password)
+        private static async Task<string> AuthenticateUserPasswordAsync(string username, string password)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("UserAndLimitationManagement/AuthenticateUserPassword", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("UserAndLimitationManagement/AuthenticateUserPassword", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new AuthenticateUserPasswordModel
                 {
                     Credentials = new PasswordCredentialsExt
@@ -579,30 +579,30 @@ namespace RestSharpWebClient.Pages
                         Password = password
                     }
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
-            string sessionCode = new JsonDeserializer().Deserialize<string>(response);
+            string sessionCode = JsonConvert.DeserializeObject<string>(response.Content.ToString());
             return sessionCode;
         }
 
-        private static string AuthenticateUserKeycloakOpenId(string openIdAccessToken)
+        private static async Task<string> AuthenticateUserKeycloakOpenIdAsync(string openIdAccessToken)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("UserAndLimitationManagement/AuthenticateUserKeycloakOpenId", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("UserAndLimitationManagement/AuthenticateUserKeycloakOpenId", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new AuthenticateUserOpenIdModel
                 {
                     Credentials = new OpenIdCredentialsExt
                     {
                         OpenIdAccessToken = openIdAccessToken
                     }
-                }) ;
-            var response = client.Execute(request);
+                });
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
-            string sessionCode = new JsonDeserializer().Deserialize<string>(response);
+            string sessionCode = JsonConvert.DeserializeObject<string>(response.Content.ToString());
             return sessionCode;
         }
 
@@ -645,7 +645,7 @@ namespace RestSharpWebClient.Pages
             //        new CommandTemplateParameterValueExt() { CommandParameterIdentifier = "inputParam", ParameterValue = "someStringParam" }
             //    };
 
-           
+
             JobSpecificationExt testJob = new JobSpecificationExt();
             testJob.Name = "ASBTestJob";
             testJob.Project = "ExpTests";
@@ -664,16 +664,16 @@ namespace RestSharpWebClient.Pages
             return testJob;
         }
 
-        private static SubmittedJobInfoExt CreateJob(JobSpecificationExt jobSpec, string sessionCode)
+        private static async Task<SubmittedJobInfoExt> CreateJobAsync(JobSpecificationExt jobSpec, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobManagement/CreateJob", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobManagement/CreateJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new CreateJobModel
                 {
                     JobSpecification = jobSpec,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
@@ -681,16 +681,16 @@ namespace RestSharpWebClient.Pages
             return jobInfo;
         }
 
-        private static SubmittedJobInfoExt CancelJob(long jobId, string sessionCode)
+        private static async Task<SubmittedJobInfoExt> CancelJobAsync(long jobId, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobManagement/CancelJob", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobManagement/CancelJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new CancelJobModel
                 {
                     SubmittedJobInfoId = jobId,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
@@ -698,16 +698,16 @@ namespace RestSharpWebClient.Pages
             return canceledJobInfo;
         }
 
-        private static string DeleteJob(long jobId, string sessionCode)
+        private static async Task<string> DeleteJobAsync(long jobId, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobManagement/DeleteJob", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobManagement/DeleteJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new DeleteJobModel
                 {
                     SubmittedJobInfoId = jobId,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
@@ -715,16 +715,16 @@ namespace RestSharpWebClient.Pages
         }
 
 
-        private static void UploadInputFiles(long jobId, List<long?> taskIds, string sessionCode)
+        private static async Task UploadInputFilesAsync(long jobId, List<long?> taskIds, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("FileTransfer/GetFileTransferMethod", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("FileTransfer/GetFileTransferMethod", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new GetFileTransferMethodModel
                 {
                     SubmittedJobInfoId = jobId,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
@@ -748,28 +748,28 @@ namespace RestSharpWebClient.Pages
             }
 
             client = new RestClient(baseUrl);
-            request = new RestRequest("FileTransfer/EndFileTransfer", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            request = new RestRequest("FileTransfer/EndFileTransfer", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new EndFileTransferModel
                 {
                     SubmittedJobInfoId = jobId,
                     UsedTransferMethod = ft,
                     SessionCode = sessionCode
                 });
-            response = client.Execute(request);
+            response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
         }
 
-        private static SubmittedJobInfoExt SubmitJob(long jobId, string sessionCode)
+        private static async Task<SubmittedJobInfoExt> SubmitJobAsync(long jobId, string sessionCode)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("JobManagement/SubmitJob", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("JobManagement/SubmitJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new SubmitJobModel
                 {
                     CreatedJobInfoId = jobId,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
@@ -777,20 +777,20 @@ namespace RestSharpWebClient.Pages
             return jobInfo;
         }
 
-        private static void MonitorJob(SubmittedJobInfoExt submittedJob, string sessionCode)
+        private static async void MonitorJob(SubmittedJobInfoExt submittedJob, string sessionCode)
         {
             bool jobDone = false;
 
             while (!jobDone)
             {
-                submittedJob = GetCurrentInfoForJob((long)submittedJob.Id, sessionCode);
+                submittedJob = await GetCurrentInfoForJobAsync((long)submittedJob.Id, sessionCode);
 
                 switch (submittedJob.State)
                 {
                     case JobStateExt.Canceled:
                         //DeleteJob
                         sb.AppendLine(String.Format("Cleaning job {0} ...", submittedJob.Id));
-                        string deleteJobResponse = DeleteJob((long)submittedJob.Id, sessionCode);
+                        string deleteJobResponse = await DeleteJobAsync((long)submittedJob.Id, sessionCode);
                         sb.AppendLine(deleteJobResponse);
                         sb.AppendLine(String.Format("Job {0} was canceled.", submittedJob.Id));
                         jobDone = true;
@@ -798,22 +798,22 @@ namespace RestSharpWebClient.Pages
                     case JobStateExt.Failed:
                         //DeleteJob
                         sb.AppendLine(String.Format("Cleaning job {0} ...", submittedJob.Id));
-                        deleteJobResponse = DeleteJob((long)submittedJob.Id, sessionCode);
+                        deleteJobResponse = await DeleteJobAsync((long)submittedJob.Id, sessionCode);
                         sb.AppendLine(deleteJobResponse);
                         sb.AppendLine(String.Format("Job {0} failed.", submittedJob.Id));
                         jobDone = true;
                         break;
                     case JobStateExt.Running:
-                    //    DownloadStdOutAndErrFiles((long)submittedJob.id, sessionCode, (long)submittedJob.tasks.First().id);
+                        //    DownloadStdOutAndErrFiles((long)submittedJob.id, sessionCode, (long)submittedJob.tasks.First().id);
                         break;
                     case JobStateExt.Finished:
                         //Download output files
                         sb.AppendLine(String.Format("Downloading output files..."));
-                        DownloadOutputFiles((long)submittedJob.Id, sessionCode);
+                        DownloadOutputFilesAsync((long)submittedJob.Id, sessionCode);
                         sb.AppendLine(String.Format("Output files downloaded."));
                         //DeleteJob
                         sb.AppendLine(String.Format("Cleaning job {0} ...", submittedJob.Id));
-                        deleteJobResponse = DeleteJob((long)submittedJob.Id, sessionCode);
+                        deleteJobResponse = await DeleteJobAsync((long)submittedJob.Id, sessionCode);
                         sb.AppendLine(String.Format("Job {0} finished.", submittedJob.Id));
                         jobDone = true;
                         break;
@@ -823,10 +823,10 @@ namespace RestSharpWebClient.Pages
                 }
             }
         }
-        private static void DownloadStdOutAndErrFiles(long jobId, string sessionCode, long TaskId)
+        private static async Task DownloadStdOutAndErrFilesAsync(long jobId, string sessionCode, long TaskId)
         {
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("FileTransfer/DownloadPartsOfJobFilesFromCluster", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("FileTransfer/DownloadPartsOfJobFilesFromCluster", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new DownloadPartsOfJobFilesFromClusterModel
                 {
                     SubmittedJobInfoId = jobId,
@@ -838,37 +838,37 @@ namespace RestSharpWebClient.Pages
                         }},
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
             JobFileContentExt[] contents = JsonConvert.DeserializeObject<JobFileContentExt[]>(response.Content.ToString());
         }
 
-        private static void DownloadOutputFiles(long jobId, string sessionCode)
+        private static async Task DownloadOutputFilesAsync(long jobId, string sessionCode)
         {
             //GetFileTransferMethod
             var client = new RestClient(baseUrl);
-            var request = new RestRequest("FileTransfer/GetFileTransferMethod", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            var request = new RestRequest("FileTransfer/GetFileTransferMethod", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new GetFileTransferMethodModel
                 {
                     SubmittedJobInfoId = jobId,
                     SessionCode = sessionCode
                 });
-            var response = client.Execute(request);
+            var response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
             FileTransferMethodExt ft = JsonConvert.DeserializeObject<FileTransferMethodExt>(response.Content.ToString());
 
             //ListChangedFilesForJob
-            request = new RestRequest("FileTransfer/ListChangedFilesForJob", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            request = new RestRequest("FileTransfer/ListChangedFilesForJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new ListChangedFilesForJobModel
                 {
                     SubmittedJobInfoId = jobId,
                     SessionCode = sessionCode
                 });
-            response = client.Execute(request);
+            response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
 
@@ -903,14 +903,14 @@ namespace RestSharpWebClient.Pages
             }
 
             //EndFileTransfer
-            request = new RestRequest("FileTransfer/EndFileTransfer", Method.POST) { RequestFormat = DataFormat.Json }.AddJsonBody(
+            request = new RestRequest("FileTransfer/EndFileTransfer", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                 new EndFileTransferModel
                 {
                     SubmittedJobInfoId = jobId,
                     UsedTransferMethod = ft,
                     SessionCode = sessionCode
                 });
-            response = client.Execute(request);
+            response = await client.ExecuteAsync(request);
             if (response.StatusCode != System.Net.HttpStatusCode.OK)
                 throw new Exception(response.Content.ToString());
         }

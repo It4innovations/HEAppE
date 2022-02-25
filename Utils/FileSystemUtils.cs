@@ -7,7 +7,7 @@ using System.Text;
 using System.Threading;
 using HEAppE.DomainObjects.JobManagement;
 
-namespace HEAppE.MiddlewareUtils
+namespace HEAppE.Utils
 {
     public class FileSystemUtils
     {
@@ -15,6 +15,7 @@ namespace HEAppE.MiddlewareUtils
 
         public static string GetJobClusterDirectoryPath(string basePath, JobSpecification jobSpecification)
         {
+
             return ConcatenatePaths(basePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
         }
 

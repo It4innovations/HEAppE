@@ -1,7 +1,7 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
-using HEAppE.MiddlewareUtils;
+using HEAppE.Utils;
 using System;
 using System.Collections.Generic;
 using System.Text.Json.Serialization;

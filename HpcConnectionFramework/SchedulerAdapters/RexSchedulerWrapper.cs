@@ -53,7 +53,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, submitedTasksInfo);
+                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, credentials.Cluster, submitedTasksInfo);
                 return tasks;
             }
             finally

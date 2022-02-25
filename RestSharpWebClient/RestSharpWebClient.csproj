@@ -5,8 +5,8 @@
     <UserSecretsId>dab15c82-52af-4b49-a1e0-16114b0cc218</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="RestSharp" Version="106.11.7" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="RestSharp" Version="107.3.0" />
     <PackageReference Include="SSH.NET" Version="2020.0.1" />
   </ItemGroup>
   <ItemGroup>

@@ -11,7 +11,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd);
 
-        void FillingSchedulerJobResultObjectFromSchedulerAttribute(object schedulerResultObj, Dictionary<string, string> parsedParameters);
+        void FillingSchedulerJobResultObjectFromSchedulerAttribute(Cluster cluster, object schedulerResultObj, Dictionary<string, string> parsedParameters);
 
         abstract ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType);
 
@@ -19,6 +19,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         abstract SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo);
 
-        abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage);
+        abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage);
     }
 }

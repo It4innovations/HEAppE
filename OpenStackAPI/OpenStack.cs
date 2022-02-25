@@ -2,8 +2,10 @@
 using System.Linq;
 using System.Net;
 using System.Net.Cache;
+using System.Net.Http.Headers;
 using System.Reflection;
 using System.Text;
+using System.Threading.Tasks;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
@@ -30,7 +32,7 @@ namespace HEAppE.OpenStackAPI
         /// Get RestClient for the base keycloak url.
         /// </summary>
         /// <returns>Configured rest client.</returns>
-        private readonly IRestClient _basicRestClient;
+        private readonly RestClient _basicRestClient;
         #endregion
         #region Constructor
         /// <summary>
@@ -40,11 +42,17 @@ namespace HEAppE.OpenStackAPI
         public OpenStack(string openStackAddress)
         {
             _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-            _basicRestClient = new RestClient($"{openStackAddress}:{OpenStackSettings.IdentityPort}/")
+            var options = new RestClientOptions($"{openStackAddress}:{OpenStackSettings.IdentityPort}/")
             {
                 Encoding = Encoding.UTF8,
-                CachePolicy = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore)
+                CachePolicy = new CacheControlHeaderValue()
+                {
+                    NoCache = true,
+                    NoStore = true 
+                },
+                Timeout = 10000
             };
+            _basicRestClient = new RestClient(options);
         }
         #endregion
         /// <summary>
@@ -54,15 +62,15 @@ namespace HEAppE.OpenStackAPI
         /// <param name="project">OpenStack project.</param>
         /// <returns>Authentication response from the rest api with the authentication token.</returns>
         /// <exception cref="OpenStackAPIException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
-        public AuthenticationResponse Authenticate(OpenStackServiceAccDTO serviceAcc, OpenStackProjectDTO project)
+        public async Task<AuthenticationResponse> AuthenticateAsync(OpenStackServiceAccDTO serviceAcc, OpenStackProjectDTO project)
         {
             var requestObject = AuthenticationRequest.CreateScopedAuthenticationPasswordRequest(serviceAcc, project);
             string requestBody = JsonConvert.SerializeObject(requestObject, IgnoreNullSerializer.Instance);
 
-            IRestRequest request = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/auth/tokens", Method.POST)
+            RestRequest request = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/auth/tokens", Method.Post)
                                         .AddSerializedJsonBody(requestBody);
 
-            IRestResponse response = _basicRestClient.Execute(request);
+            RestResponse response = await _basicRestClient.ExecuteAsync(request);
             AuthenticationResponse result = ParseHelper.ParseJsonOrThrow<AuthenticationResponse, OpenStackAPIException>(response, HttpStatusCode.Created);
             result.AuthToken = (string)response.Headers.Single(p => p.Name == "X-Subject-Token").Value;
 
@@ -74,7 +82,7 @@ namespace HEAppE.OpenStackAPI
         /// </summary>
         /// <param name="requestedUserName">Username of the requester.</param>
         /// <returns>Created application credentials.</returns>
-        public ApplicationCredentialsDTO CreateApplicationCredentials(string requestedUserName, AuthenticationResponse authResponse)
+        public async Task<ApplicationCredentialsDTO> CreateApplicationCredentialsAsync(string requestedUserName, AuthenticationResponse authResponse)
         {
             string uniqueTokenName = requestedUserName + '_' + Guid.NewGuid();
             var sessionExpiresAt = DateTime.UtcNow.AddSeconds(OpenStackSettings.OpenStackSessionExpiration);
@@ -82,11 +90,11 @@ namespace HEAppE.OpenStackAPI
             var requestObject = ApplicationCredentialsRequest.CreateApplicationCredentialsRequest(uniqueTokenName, sessionExpiresAt);
             string requestBody = JsonConvert.SerializeObject(requestObject, IgnoreNullSerializer.Instance);
 
-            IRestRequest restRequest = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/users/{authResponse.Token.User.Id}/application_credentials", Method.POST)
+            RestRequest restRequest = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/users/{authResponse.Token.User.Id}/application_credentials", Method.Post)
                                         .AddSerializedJsonBody(requestBody)
                                         .AddXAuthTokenToHeader(authResponse.AuthToken);
 
-            IRestResponse response = _basicRestClient.Execute(restRequest);
+            RestResponse response = await _basicRestClient.ExecuteAsync(restRequest);
             ApplicationCredentialsResponse result = ParseHelper.ParseJsonOrThrow<ApplicationCredentialsResponse, OpenStackAPIException>(response, HttpStatusCode.Created);
 
             return new ApplicationCredentialsDTO

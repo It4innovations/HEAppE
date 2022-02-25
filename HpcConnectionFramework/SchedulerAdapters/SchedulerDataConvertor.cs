@@ -3,7 +3,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.MiddlewareUtils;
+using HEAppE.Utils;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -70,8 +70,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 taskAdapter.Runtime = Convert.ToInt32(taskSpecification.WalltimeLimit);
             }
 
-            string taskClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(jobSpecification.FileTransferMethod.Cluster.LocalBasepath, jobSpecification);
-            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskClusterDirectory, taskSpecification);
+            string jobClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(jobSpecification.FileTransferMethod.Cluster.LocalBasepath, jobSpecification);
+            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectory, taskSpecification);
 
             string stdErrFilePath = FileSystemUtils.ConcatenatePaths(workDirectory, taskSpecification.StandardErrorFile);
             taskAdapter.StdErrFilePath = workDirectory.Equals(stdErrFilePath) ? string.Empty : stdErrFilePath;
@@ -106,7 +106,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return taskAdapter.AllocationCmd;
         }
 
-        public void FillingSchedulerJobResultObjectFromSchedulerAttribute(object schedulerResultObj, Dictionary<string, string> parsedParameters)
+        public void FillingSchedulerJobResultObjectFromSchedulerAttribute(Cluster cluster, object schedulerResultObj, Dictionary<string, string> parsedParameters)
         {
             var properties = schedulerResultObj.GetType()
                                                 .GetProperties();
@@ -122,7 +122,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                     {
                         if (property.CanWrite)
                         {
-                            var value = ChangeType(parsedParameters[schedulerPropertyName], property.PropertyType);
+                            var value = ChangeType(cluster, parsedParameters[schedulerPropertyName], property.PropertyType);
                             property.SetValue(schedulerResultObj, value, null);
                         }
                         break;
@@ -134,7 +134,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         public abstract ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType);
         public abstract IEnumerable<string> GetJobIds(string responseMessage);
         public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo);
-        public abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage);
+        public abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage);
         #endregion
         #endregion
         #region Local Methods
@@ -226,10 +226,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <summary>
         /// Change type from object
         /// </summary>
+        /// <param name="cluster">Cluster</param>
         /// <param name="obj">Value for converting</param>
         /// <param name="type">Type for converting</param>
         /// <returns></returns>
-        private static object ChangeType(object obj, Type type)
+        private static object ChangeType(Cluster cluster, object obj, Type type)
         {
             switch (type.Name)
             {
@@ -250,9 +251,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                         string parsedText = Convert.ToString(obj);
                         if (!string.IsNullOrEmpty(parsedText) && DateTime.TryParse(parsedText, out DateTime date))
                         {
-                            return date.Kind == DateTimeKind.Utc
-                                ? date
-                                : new DateTime(date.Ticks, DateTimeKind.Local).ToUniversalTime();
+                            return date.Convert(cluster.TimeZone);
                         }
                         else
                         {

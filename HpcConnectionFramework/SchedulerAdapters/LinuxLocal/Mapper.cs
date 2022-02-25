@@ -5,7 +5,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
     internal static class Mapper
     {
-
         internal static TaskState Map(this LinuxLocalTaskState taskState)
         {
             return taskState switch

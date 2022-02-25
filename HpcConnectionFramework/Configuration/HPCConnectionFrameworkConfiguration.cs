@@ -1,4 +1,6 @@
-﻿namespace HEAppE.HpcConnectionFramework.Configuration
+﻿using System.Collections.Generic;
+
+namespace HEAppE.HpcConnectionFramework.Configuration
 {
     /// <summary>
     /// HPC connection framework configuration
@@ -19,12 +21,17 @@
         /// <summary>
         /// Command scripts path configuration
         /// </summary>
-        public static CommandScriptPathConfiguration CommandScriptsPathConfiguration { get; } = new CommandScriptPathConfiguration();
+        public static CommandScriptPathConfiguration CommandScriptsPathSettings { get; } = new CommandScriptPathConfiguration();
 
         /// <summary>
         /// Linux local command scripts path configuration
         /// </summary>
-        public static LinuxLocalCommandScriptPathConfiguration LinuxLocalCommandScriptPathConfiguration { get; } = new LinuxLocalCommandScriptPathConfiguration();
+        public static LinuxLocalCommandScriptPathConfiguration LinuxLocalCommandScriptPathSettings { get; } = new LinuxLocalCommandScriptPathConfiguration();
+
+        /// <summary>
+        /// Clusters connection Pool configuration
+        /// </summary>
+        public static Dictionary<string, ClusterConnectionPoolConfiguration> ClustersConnectionPoolSettings { get; } = new Dictionary<string, ClusterConnectionPoolConfiguration>();
         #endregion
     }
 }

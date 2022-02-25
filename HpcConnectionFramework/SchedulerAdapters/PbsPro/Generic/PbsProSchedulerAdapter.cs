@@ -37,8 +37,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// SSH tunnel
         /// </summary>
         protected static SshTunnel _sshTunnelUtil;
-        #endregion
 
+        /// <summary>
+        /// Generic commnad key parameter
+        /// </summary>
+        protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
+        #endregion
         #region Constructors
         public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
@@ -55,6 +59,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             var jobIdsWithJobArrayIndexes = new List<string>();
             SshCommandWrapper command = null;
 
+            Cluster cluster = jobSpecification.Cluster;
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub");
             string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecutieCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
@@ -69,7 +74,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                                                         : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
 
                 }
-                return GetActualTasksInfo(connectorClient, jobIdsWithJobArrayIndexes);
+                return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
             }
             catch (FormatException e)
             {
@@ -83,10 +88,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// Get actual tasks
         /// </summary>
         /// <param name="connectorClient">Connector</param>
+        /// <param name="cluster">Cluster</param>
         /// <param name="submitedTasksInfo">Submitted tasks ids</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
             IEnumerable<string> jobIdsWithJobArrayIndexes = Enumerable.Empty<string>();
             try
@@ -95,7 +101,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                                                                                         ? new List<string>() { s.ScheduledJobId }
                                                                                         : CombineScheduledJobIdWithJobArrayIndexes(s.ScheduledJobId, s.Specification.JobArrays));
 
-                return GetActualTasksInfo(connectorClient, jobIdsWithJobArrayIndexes);
+                return GetActualTasksInfo(connectorClient, cluster, jobIdsWithJobArrayIndexes);
             }
             catch (SshCommandException ce)
             {
@@ -120,7 +126,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                     throw new Exception(ce.Message);
                 }
 
-                return GetActualTasksInfo(connectorClient, reducedjobIdsWithJobArrayIndexes);
+                return GetActualTasksInfo(connectorClient, cluster, reducedjobIdsWithJobArrayIndexes);
             }
         }
 
@@ -128,10 +134,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// Get actual tasks
         /// </summary>
         /// <param name="connectorClient">Connector</param>
+        /// <param name="cluster">Cluster</param>
         /// <param name="scheduledJobIds">Scheduler job ids</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, IEnumerable<string> scheduledJobIds)
+        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<string> scheduledJobIds)
         {
             SshCommandWrapper command = null;
             StringBuilder cmdBuilder = new();
@@ -142,7 +149,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                var submittedTasksInfo = _convertor.ReadParametersFromResponse(command.Result);
+                var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
                 return submittedTasksInfo;
             }
             catch (FormatException e)
@@ -228,7 +235,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             string shellCommand = $"cat {userScriptPath}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
 
-            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
                 {

@@ -97,10 +97,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <summary>
         /// Read job parameters
         /// </summary>
+        /// <param name="cluster">Cluster</param>
         /// <param name="responseMessage">Server response text</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
-        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage)
+        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
         {
             string response = (string)responseMessage;
             var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
@@ -122,7 +123,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                         .Distinct();
 
                     var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
-                    FillingSchedulerJobResultObjectFromSchedulerAttribute(schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
+                    FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
                     if (!schedulerResultObj.IsJobArrayJob)
                     {

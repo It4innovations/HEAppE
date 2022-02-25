@@ -4,7 +4,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.MiddlewareUtils;
+using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;

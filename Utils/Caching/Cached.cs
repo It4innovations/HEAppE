@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace HEAppE.MiddlewareUtils.Caching
+namespace HEAppE.Utils.Caching
 {
     /// <summary>
     /// Wrapper for cached value.

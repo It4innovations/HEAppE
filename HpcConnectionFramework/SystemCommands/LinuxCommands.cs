@@ -1,7 +1,7 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using HEAppE.MiddlewareUtils;
+using HEAppE.Utils;
 using log4net;
 using Renci.SshNet;
 using System.Text;
@@ -17,7 +17,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <summary>
         /// Command
         /// </summary>
-        protected CommandScriptPathConfiguration _commandScripts;
+        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
 
         /// <summary>
         /// Log4Net logger
@@ -41,7 +41,6 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             //TODO Loading from config paths
             _log = LogManager.GetLogger(typeof(LinuxCommands));
-            _commandScripts = new CommandScriptPathConfiguration();
         }
         #endregion
         #region Methods

@@ -51,7 +51,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                                     })
                                     .Distinct();
 
-                FillingSchedulerJobResultObjectFromSchedulerAttribute(queueInfo, parameters.ToDictionary(i => i.Key, j => j.Value));
+                FillingSchedulerJobResultObjectFromSchedulerAttribute(nodeType.Cluster, queueInfo, parameters.ToDictionary(i => i.Key, j => j.Value));
                 return new ClusterNodeUsage
                 {
                     NodeType = nodeType,
@@ -112,10 +112,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <summary>
         /// Read job parameters
         /// </summary>
+        /// <param name="cluster">Cluster</param>
         /// <param name="responseMessage">Server response text</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
-        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(object responseMessage)
+        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
         {
             string response = (string)responseMessage;
             var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
@@ -137,7 +138,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                                         .Distinct();
 
                     var schedulerResultObj = new PbsProJobInfo(jobResponseMessage);
-                    FillingSchedulerJobResultObjectFromSchedulerAttribute(schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
+                    FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
                     if (!schedulerResultObj.IsJobArrayJob)
                     {

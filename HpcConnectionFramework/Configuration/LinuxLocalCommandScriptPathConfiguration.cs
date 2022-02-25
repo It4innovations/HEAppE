@@ -1,9 +1,12 @@
 ﻿namespace HEAppE.HpcConnectionFramework.Configuration
 {
+    /// <summary>
+    /// Cluster scripts used in linux local
+    /// </summary>
     public sealed class LinuxLocalCommandScriptPathConfiguration
     {
         #region Properties
-        // <summary>
+        /// <summary>
         /// Path to Prepare LocalHPC job directory
         /// </summary>
         public string PrepareJobDirCmdPath { get; set; }
