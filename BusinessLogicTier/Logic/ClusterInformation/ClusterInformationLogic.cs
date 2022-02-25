@@ -135,6 +135,65 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
         }
 
+        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, string description, string code, string executableFile, string preparationScript, AdaptorUser loggedUser)
+        {
+            CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
+            if (commandTemplate == null)
+                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+
+            if (commandTemplate.IsGeneric)
+                throw new InputValidationException("The specified command template is generic.");
+
+            if(name != null)
+            {
+                commandTemplate.Name = name;
+            }
+            if (description != null)
+            {
+                commandTemplate.Description = description;
+            }
+            if (code != null)
+            {
+                commandTemplate.Code = code;
+            }
+            if (executableFile != null)
+            {
+                Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
+                var commandTemplateParameters = new List<string>() { };
+                commandTemplateParameters.AddRange(
+                    SchedulerFactory.GetInstance(cluster.SchedulerType)
+                                    .CreateScheduler(cluster)
+                                    .GetParametersFromGenericUserScript(cluster, executableFile)
+                                    .ToList()
+                );
+
+                List<CommandTemplateParameter> templateParameters = new List<CommandTemplateParameter>();
+                foreach (string parameter in commandTemplateParameters)
+                {
+                    templateParameters.Add(new CommandTemplateParameter()
+                    {
+                        Identifier = parameter,
+                        Description = parameter,
+                        Query = string.Empty
+                    }
+                    );
+                }
+
+                commandTemplate.TemplateParameters.ForEach(unitOfWork.CommandTemplateParameterRepository.Delete);
+                commandTemplate.TemplateParameters.AddRange(templateParameters);
+                commandTemplate.ExecutableFile = executableFile;
+                commandTemplate.CommandParameters = string.Join(' ', commandTemplateParameters.Select(x => $"%%{"{"}{x}{"}"}"));
+            }
+
+            if (preparationScript != null)
+            {
+                commandTemplate.PreparationScript = preparationScript;
+            }
+
+            unitOfWork.Save();
+            return commandTemplate;
+        }
+
         public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId)
         {
             // Get credentials for cluster
@@ -210,5 +269,6 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
             return userRunningJobs.Any() ? false : true;
         }
+
     }
 }

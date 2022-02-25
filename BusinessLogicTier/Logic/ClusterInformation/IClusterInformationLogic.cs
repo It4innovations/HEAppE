@@ -16,6 +16,8 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
         CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, string description, string code, string executableFile, string preparationScript, AdaptorUser loggedUser);
 
+        CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, string description, string code, string executableFile, string preparationScript, AdaptorUser loggedUser);
+
         void RemoveCommandTemplate(long commandTemplateId, AdaptorUser loggedUser);
 
         ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId);
