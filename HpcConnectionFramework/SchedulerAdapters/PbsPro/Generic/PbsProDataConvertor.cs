@@ -38,7 +38,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             var queueInfo = new PbsProQueueInfo();
 
             Match match = Regex.Match(response, @"(?<QueueParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-            if (match.Success && match.Groups.Count == 2)
+            if (match.Success)
             {
                 string jobResponseMessage = match.Groups.GetValueOrDefault("QueueParameters").Value;
                 //For each HPC scheduler job
@@ -75,9 +75,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         public override IEnumerable<string> GetJobIds(string responseMessage)
         {
             var scheduledJobIds = new List<string>();
-            foreach (Match match in Regex.Matches(responseMessage, @"(?<JobId>.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            foreach (Match match in Regex.Matches(responseMessage, @"(?<JobId>.+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
-                if (match.Success && match.Groups.Count == 3)
+                if (match.Success)
                 {
                     scheduledJobIds.Add(match.Groups.GetValueOrDefault("JobId").Value);
                 }

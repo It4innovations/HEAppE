@@ -18,7 +18,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         /// </summary>
         public PbsProJobAdapter()
         {
-
+            _jobCommandBuilder = new StringBuilder();
         }
         #endregion
         #region ISchedulerJobAdapter Members

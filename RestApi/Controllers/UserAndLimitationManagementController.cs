@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using HEAppE.Utils.Validation;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.BusinessLogicTier.Logic;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -74,7 +75,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult AuthenticateUserOpenStack(AuthenticateUserOpenIdModel model)
+        public async Task<IActionResult> AuthenticateUserOpenStackAsync(AuthenticateUserOpenIdModel model)
         {
             try
             {
@@ -82,7 +83,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUserToOpenStackAsync(model.Credentials));
+                return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials));
             }
             catch (Exception e)
             {
@@ -102,7 +103,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult AuthenticateUserPassword(AuthenticateUserPasswordModel model)
+        public async Task<IActionResult> AuthenticateUserPasswordAsync(AuthenticateUserPasswordModel model)
         {
             try
             {
@@ -110,7 +111,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUserAsync(model.Credentials));
+                return Ok(await _service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
             {
@@ -130,7 +131,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult AuthenticateUserDigitalSignature(AuthenticateUserDigitalSignatureModel model)
+        public async Task<IActionResult> AuthenticateUserDigitalSignatureAsync(AuthenticateUserDigitalSignatureModel model)
         {
             try
             {
@@ -138,7 +139,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUserAsync(model.Credentials));
+                return Ok(await _service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
             {
