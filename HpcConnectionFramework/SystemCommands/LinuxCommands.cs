@@ -20,7 +20,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
 
         /// <summary>
-        /// Log4Net logger
+        /// Logger
         /// </summary>
         protected ILog _log;
 
@@ -37,33 +37,34 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         public string ExecutieCmdScriptPath => _commandScripts.ExecutieCmdPath;
         #endregion
         #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
         internal LinuxCommands()
         {
-            //TODO Loading from config paths
             _log = LogManager.GetLogger(typeof(LinuxCommands));
         }
         #endregion
-        #region Methods
+        #region ICommands Members
         /// <summary>
         /// Copy job data to temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
-        /// <param name="path">Path</param>
         public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
         {
             string inputDirectory = $"{jobInfo.Specification.Cluster.LocalBasepath}Temp/{hash}/.";
             string outputDirectory = $"{jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.CopyDataFromTempCmdPath} {inputDirectory} {outputDirectory}");
-            _log.Info($"Temp data {hash} were copied to job directory {jobInfo.Specification.Id}, result: {sshCommand.Result}");
+            _log.Info($"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
         /// Copy job data from temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
         public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
         {
@@ -73,7 +74,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             string outputDirectory = $"{jobInfo.Specification.Cluster.LocalBasepath}Temp/{hash}";
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.CopyDataToTempCmdPath} {inputDirectory} {outputDirectory}");
-            _log.Info($"Job data {jobInfo.Specification.Id}/{path} were copied to temp directory {hash}, result: {sshCommand.Result}");
+            _log.Info($"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
@@ -81,32 +82,31 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.AddFiletransferKeyCmdPath} {publicKey} {jobInfo.Specification.Id}");
-            _log.InfoFormat($"Allow file transfer result: {sshCommand.Result}");
+            _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
         /// Remove direct file transfer acces for user
         /// </summary>
-        /// <param name="connectorClient">Conenctor</param>
+        /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
+        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
         {
             publicKey = StringUtils.RemoveWhitespace(publicKey);
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.RemoveFiletransferKeyCmdPath} {publicKey}");
-            _log.Info($"Remove permission for direct file transfer result: {sshCommand.Result}");
+            _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
         /// Create job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
             var cmdBuilder = new StringBuilder($"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id};");
@@ -119,19 +119,19 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
                 cmdBuilder.Append(path);
             }
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
-            _log.Info($"Create job directory result: {sshCommand.Result}");
+            _log.Info($"Create job directory result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
         /// Delete job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
             string shellCommand = $"rm -Rf {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
-            _log.Info($"Job directory {jobInfo.Specification.Id} was deleted. Result: {sshCommand.Result}");
+            _log.Info($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
         }
         #endregion
     }

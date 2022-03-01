@@ -109,20 +109,21 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         public void FillingSchedulerJobResultObjectFromSchedulerAttribute(Cluster cluster, object schedulerResultObj, Dictionary<string, string> parsedParameters)
         {
             var properties = schedulerResultObj.GetType()
-                                                .GetProperties();
+                                           .GetProperties();
 
             foreach (var property in properties)
             {
-                var schedulerPropertyNames = property.GetCustomAttributes(typeof(SchedulerAttribute), true)
-                                                      .Cast<SchedulerAttribute>()
-                                                      .FirstOrDefault()?.Names ?? Enumerable.Empty<string>();
-                foreach (var schedulerPropertyName in schedulerPropertyNames)
+                var schedulerAttribute = property.GetCustomAttributes(typeof(SchedulerAttribute), true)
+                                                    .Cast<SchedulerAttribute>()
+                                                    .FirstOrDefault();
+
+                foreach (var schedulerPropertyName in schedulerAttribute?.Names ?? Enumerable.Empty<string>())
                 {
                     if (parsedParameters.ContainsKey(schedulerPropertyName))
                     {
                         if (property.CanWrite)
                         {
-                            var value = ChangeType(cluster, parsedParameters[schedulerPropertyName], property.PropertyType);
+                            var value = ChangeType(cluster, parsedParameters[schedulerPropertyName], property.PropertyType, schedulerAttribute?.Format);
                             property.SetValue(schedulerResultObj, value, null);
                         }
                         break;
@@ -131,7 +132,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
         #region Abstract Members
-        public abstract ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType);
+        public abstract ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage);
         public abstract IEnumerable<string> GetJobIds(string responseMessage);
         public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo);
         public abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage);
@@ -229,39 +230,58 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="cluster">Cluster</param>
         /// <param name="obj">Value for converting</param>
         /// <param name="type">Type for converting</param>
+        /// <param name="format">Format for converting</param>
         /// <returns></returns>
-        private static object ChangeType(Cluster cluster, object obj, Type type)
+        private object ChangeType(Cluster cluster, object obj, Type type, string format)
         {
-            switch (type.Name)
+            try
             {
-                case "TimeSpan":
-                    {
-                        string parsedText = Convert.ToString(obj);
-                        if (!string.IsNullOrEmpty(parsedText) && TimeSpan.TryParse(parsedText, out TimeSpan timeSpan))
+                type = Nullable.GetUnderlyingType(type) is null ? type : Nullable.GetUnderlyingType(type);
+                switch (type.Name)
+                {
+                    case "TimeSpan":
                         {
-                            return timeSpan;
+                            string parsedText = Convert.ToString(obj);
+                            if (string.IsNullOrEmpty(parsedText))
+                            {
+                                return null;
+                            }
+
+                            if (TimeSpan.TryParse(parsedText, out TimeSpan timeSpan))
+                            {
+                                return timeSpan;
+                            }
+
+                            return default;
                         }
-                        else
+                    case "DateTime":
                         {
-                            return new TimeSpan(0);
+                            string parsedText = Convert.ToString(obj);
+                            if (string.IsNullOrEmpty(parsedText))
+                            {
+                                return null;
+                            }
+
+                            if (string.IsNullOrEmpty(format) && DateTime.TryParse(parsedText, out DateTime date))
+                            {
+                                return date.Convert(cluster.TimeZone);
+                            }
+                            else
+                            {
+                                date = DateTime.ParseExact(parsedText, format, CultureInfo.InvariantCulture);
+                                return date.Convert(cluster.TimeZone);
+                            }
                         }
-                    }
-                case "DateTime":
-                    {
-                        string parsedText = Convert.ToString(obj);
-                        if (!string.IsNullOrEmpty(parsedText) && DateTime.TryParse(parsedText, out DateTime date))
+                    default:
                         {
-                            return date.Convert(cluster.TimeZone);
+                            return obj is null ? null : Convert.ChangeType(obj, type);
                         }
-                        else
-                        {
-                            return null;
-                        }
-                    }
-                default:
-                    {
-                        return Convert.ChangeType(obj, type);
-                    }
+                }
+            }
+            catch (Exception)
+            {
+                _log.Error($"Error occurred when object was converting property type: \"{type}\" for input data: \"{obj}\" with format: \"{format}\"");
+                throw;
             }
         }
         #endregion

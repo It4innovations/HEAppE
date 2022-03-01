@@ -30,8 +30,9 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser)
         {
             ClusterNodeType nodeType = GetClusterNodeTypeById(clusterNodeId);
-            IRexScheduler scheduler = SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster);
-            return scheduler.GetCurrentClusterNodeUsage(nodeType);
+            return SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster)
+                                    .GetCurrentClusterNodeUsage(nodeType);
+
         }
 
         public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, AdaptorUser loggedUser)

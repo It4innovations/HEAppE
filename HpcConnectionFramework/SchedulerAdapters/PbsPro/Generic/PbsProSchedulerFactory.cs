@@ -8,7 +8,7 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 {
     /// <summary>
-    /// PbsPro scheduler factory
+    /// PBS Professional scheduler factory
     /// </summary>
     public class PbsProSchedulerFactory : SchedulerFactory
     {

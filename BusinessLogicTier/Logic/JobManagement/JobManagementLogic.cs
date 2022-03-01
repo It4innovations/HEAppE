@@ -154,7 +154,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         }
                     }
                 }
-
+                jobInfo.SubmitTime = DateTime.UtcNow;
                 var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                                                       .CreateScheduler(jobInfo.Specification.Cluster)
                                                       .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
@@ -317,7 +317,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                             var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
                             if (actualUnfinishedSchedulerTaskInfo is null)
                             {
-                                // Cancel job which is not returned from HPC scheduler
+                                // Failed job which is not returned from schedulers
                                 submittedTask.State = TaskState.Failed;
                                 isNeedUpdateJobState = true;
                             }
@@ -729,7 +729,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo, IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
         {
-            dbJobInfo.SubmitTime = DateTime.UtcNow;
             dbJobInfo.Tasks.ForEach(s => CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Id.ToString())));
 
             UpdateJobStateByTasks(dbJobInfo);

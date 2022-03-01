@@ -1,13 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.ConnectionPool;
+﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.V19;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -30,7 +29,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 SchedulerFactory factoryInstance = type switch
                 {
                     SchedulerType.PbsPro => new PbsProSchedulerFactory(),
-                    SchedulerType.PbsProV19 => new PbsProV19SchedulerFactory(),
                     SchedulerType.Slurm => new SlurmSchedulerFactory(),
                     SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
                     _ => throw new ApplicationException("Scheduler factory with type \"" + type + "\" does not exist."),

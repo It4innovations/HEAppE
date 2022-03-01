@@ -136,7 +136,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
             try
             {
-                _adapter.RemoveDirectFileTransferAccessForUserToJob(schedulerConnection.Connection, publicKey, jobInfo);
+                _adapter.RemoveDirectFileTransferAccessForUserToJob(schedulerConnection.Connection, publicKey);
             }
             finally
             {

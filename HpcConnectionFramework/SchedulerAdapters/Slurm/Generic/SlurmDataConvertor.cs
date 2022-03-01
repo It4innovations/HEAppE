@@ -28,11 +28,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <summary>
         /// Read actual queue status
         /// </summary>
-        /// <param name="responseMessage">Server response text</param>
         /// <param name="nodeType">NodeType</param>
+        /// <param name="responseMessage">Server response text</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
-        public override ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType)
+        public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
             string response = (string)responseMessage;
 

@@ -13,7 +13,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void FillingSchedulerJobResultObjectFromSchedulerAttribute(Cluster cluster, object schedulerResultObj, Dictionary<string, string> parsedParameters);
 
-        abstract ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType);
+        abstract ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage);
 
         abstract IEnumerable<string> GetJobIds(string responseMessage);
 

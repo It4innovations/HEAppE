@@ -214,7 +214,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                return _convertor.ReadQueueActualInformation(command.Result, nodeType);
+                return _convertor.ReadQueueActualInformation(nodeType, command.Result);
             }
             catch (FormatException e)
             {
@@ -292,10 +292,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Conenctor</param>
         /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
+        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
+            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey);
         }
 
         /// <summary>

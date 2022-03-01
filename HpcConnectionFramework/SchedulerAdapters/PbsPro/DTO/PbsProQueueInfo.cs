@@ -1,5 +1,8 @@
 ﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
 {
+    /// <summary>
+    /// PBS Professional queue allocation information object
+    /// </summary>
     public class PbsProQueueInfo
     {
         #region Properties

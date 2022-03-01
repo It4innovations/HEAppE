@@ -124,9 +124,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             _commands.AllowDirectFileTransferAccessForUserToJob(scheduler, publicKey, jobInfo);
         }
 
-        public void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
+        public void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(scheduler, publicKey, jobInfo);
+            _commands.RemoveDirectFileTransferAccessForUserToJob(scheduler, publicKey);
         }
 
         #region JobManagement
