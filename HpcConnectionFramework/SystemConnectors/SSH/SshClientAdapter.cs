@@ -3,16 +3,30 @@ using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
+    /// <summary>
+    /// Ssh client adapter
+    /// </summary>
     public class SshClientAdapter
     {
+        #region Instances
         private readonly SshClient _sshClient;
-
-
+        #endregion
+        #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="sshClient">Ssh client</param>
         public SshClientAdapter(SshClient sshClient)
         {
             _sshClient = sshClient;
         }
-
+        #endregion
+        #region Local Methods
+        /// <summary>
+        /// Run command
+        /// </summary>
+        /// <param name="command">Command</param>
+        /// <returns></returns>
         public SshCommandWrapper RunCommand(string command)
         {
             if (_sshClient is NoAuthenticationSshClient ownSshCommand)
@@ -25,20 +39,27 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             }
         }
 
-        internal void Connect()
+        /// <summary>
+        /// Connect
+        /// </summary>
+        public void Connect()
         {
-            if (!(_sshClient is NoAuthenticationSshClient))
+            if (_sshClient is not NoAuthenticationSshClient)
             {
                 _sshClient.Connect();
             }
         }
 
-        internal void Disconnect()
+        /// <summary>
+        /// Disconnect
+        /// </summary>
+        public void Disconnect()
         {
-            if (!(_sshClient is NoAuthenticationSshClient))
+            if (_sshClient is not NoAuthenticationSshClient)
             {
                 _sshClient.Disconnect();
             }
         }
+        #endregion
     }
 }

@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 {
+    /// <summary>
+    /// IData convertor
+    /// </summary>
     public interface ISchedulerDataConvertor
     {
         object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd);

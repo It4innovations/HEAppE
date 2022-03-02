@@ -38,18 +38,24 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, AdaptorUser loggedUser)
         {
             CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-            if (commandTemplate == null)
+            if (commandTemplate is null)
+            {
                 throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
-
+            }
+                
             if (commandTemplate.IsGeneric)
             {
                 string scriptPath = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
-                                                                        .First()?.Identifier;
+                                                                        .FirstOrDefault()?.Identifier;
                 if (string.IsNullOrEmpty(scriptPath))
+                {
                     throw new RequestedObjectDoesNotExistException("The user-script command parameter for the generic command template is not defined in HEAppE!");
-
+                }
+                    
                 if (string.IsNullOrEmpty(userScriptPath))
+                {
                     throw new RequestedObjectDoesNotExistException("The generic command template should contain script path!");
+                }               
 
                 Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
                 var commandTemplateParameters = new List<string>() { scriptPath };

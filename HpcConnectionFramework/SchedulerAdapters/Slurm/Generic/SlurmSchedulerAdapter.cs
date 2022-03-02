@@ -53,7 +53,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="convertor"></param>
         public SlurmSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
-            //TODO parse from DI
             _log = LogManager.GetLogger(typeof(SlurmSchedulerAdapter));
             _convertor = convertor;
             _sshTunnelUtil = new SshTunnel();
@@ -62,18 +61,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         #endregion
         #region ISchedulerAdapter Members
         /// <summary>
-        /// Submit job
+        /// Submit job to scheduler
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobSpecification">Job specification</param>
-        /// <param name="credentials">Cluster credentials</param>
+        /// <param name="credentials">Credentials</param>
         /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
             SshCommandWrapper command = null;
 
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
+            _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
             string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecutieCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
             {
@@ -110,79 +111,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             {
                 return GetActualTasksInfo(connectorClient, cluster, submitedTasksInfoList.Select(s => (s.ScheduledJobId, s.Specification.ClusterNodeType.ClusterAllocationName)));
             }
-            catch (SshCommandException ce)
+            catch (SshCommandException)
             {
-                _log.Warn(ce.Message);
-
-                //Reducing unknown job ids!
-                var unMissingJobIdsIndexes = new List<int>();
-                int i = 0;
-                foreach (Match match in Regex.Matches(ce.Message, @"(?<ErrorMessage>.*)\n", RegexOptions.Compiled))
-                {
-                    if (match.Success && match.Groups.Count == 2)
-                    {
-                        string jobErrResponseMessage = match.Groups.GetValueOrDefault("ErrorMessage").Value;
-                        if (jobErrResponseMessage != "slurm_load_jobs error: Invalid job id specified")
-                        {
-                            unMissingJobIdsIndexes.Add(i);
-                        }
-                        i++;
-                    }
-                }
-
-                var reducedjobIdsWithJobArrayIndexes = new List<SubmittedTaskInfo>();
-                for (i = 0; i < unMissingJobIdsIndexes.Count; i++)
-                {
-                    var index = unMissingJobIdsIndexes[i];
-                    reducedjobIdsWithJobArrayIndexes.Add(submitedTasksInfoList[index]);
-                }
-
-                if (!unMissingJobIdsIndexes.Any() || reducedjobIdsWithJobArrayIndexes.Count >= submitedTasksInfo.Count())
-                {
-                    throw new Exception(ce.Message);
-                }
-
-                return GetActualTasksInfo(connectorClient, cluster, reducedjobIdsWithJobArrayIndexes);
-            }
-        }
-
-        /// <summary>
-        /// Get actual tasks
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="cluster">Cluster</param>
-        /// <param name="schedulerJobIdClusterAllocationNamePairs">Submitted tasks ids</param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<(string ScheduledJobId, string ClusterAllocationName)> schedulerJobIdClusterAllocationNamePairs)
-        {
-            SshCommandWrapper command = null;
-            StringBuilder cmdBuilder = new();
-
-            foreach (var (ScheduledJobId, ClusterAllocationName) in schedulerJobIdClusterAllocationNamePairs)
-            {
-                var allocationCluster = string.Empty;
-
-                if (!string.IsNullOrEmpty(ClusterAllocationName))
-                {
-                    allocationCluster = $"-M {ClusterAllocationName} ";
-                }
-
-                cmdBuilder.Append($"{ _commands.InterpreterCommand} 'scontrol show JobId {allocationCluster}{ScheduledJobId} -o';");
-            }
-            string sshCommand = cmdBuilder.ToString();
-
-            try
-            {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
-                return submittedTasksInfo;
-            }
-            catch (FormatException e)
-            {
-                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList())}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommand}""\n", e);
+                _log.Warn($"Scheduled Job ids: \"{string.Join(",",submitedTasksInfoList.Select(s=>s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");
+                return Enumerable.Empty<SubmittedTaskInfo>();
             }
         }
 
@@ -190,26 +122,45 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// Cancel job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="scheduledJobIds>Scheduled job ids</param>
+        /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
         /// <param name="message">Message</param>
-        public void CancelJob(object connectorClient, IEnumerable<string> scheduledJobIds, string message)
+        public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder cmdBuilder = new();
-            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'scancel {f}';"));
+            foreach (var submitedTaskInfo in submitedTasksInfo)
+            {
+                var allocationCluster = string.Empty;
+
+                if (!string.IsNullOrEmpty(submitedTaskInfo.Specification.ClusterNodeType.ClusterAllocationName))
+                {
+                    allocationCluster = $"-M {submitedTaskInfo.Specification.ClusterNodeType.ClusterAllocationName} ";
+                }
+
+                cmdBuilder.Append($"{ _commands.InterpreterCommand} 'scancel {allocationCluster}{submitedTaskInfo.ScheduledJobId}';");
+            }
             string sshCommand = cmdBuilder.ToString();
+            _log.Info($"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
 
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
         }
 
         /// <summary>
-        /// Get current cluster node usage
+        /// Get actual scheduler queue status
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="nodeType">Node type</param>
+        /// <param name="nodeType">Cluster node type</param>
         public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
-            var sshCommand = $"{_commands.InterpreterCommand} 'sinfo -t alloc --partition={nodeType.Queue} -h -o \"%.6D\"'";
             SshCommandWrapper command = null;
+            var allocationCluster = string.Empty;
+
+            if (!string.IsNullOrEmpty(nodeType.ClusterAllocationName))
+            {
+                allocationCluster = $"--clusters={nodeType.ClusterAllocationName} ";
+            }
+
+            var sshCommand = $"{_commands.InterpreterCommand} 'sinfo -t alloc {allocationCluster}--partition={nodeType.Queue} -h -o \"%.6D\"'";
+            _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
 
             try
             {
@@ -235,16 +186,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             StringBuilder cmdBuilder = new();
             var nodeNames = jobInfo.Tasks.Where(w => w.State == TaskState.Running)
                                           .SelectMany(s => s.TaskAllocationNodes)
-                                          .Select(s => s.AllocationNodeId)
+                                          .Select(s => $"{s.AllocationNodeId}.{jobInfo.Specification.Cluster.DomainName?? jobInfo.Specification.Cluster.MasterNodeName}")
                                           .ToList();
 
             nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
             string sshCommand = cmdBuilder.ToString();
-
+            _log.Info($"Get allocation nodes of job \"{jobInfo.Id}\", command \"{sshCommand}\"");
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                return command.Result.Split('\n');
+                return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
+                                                  .ToList(); ;
             }
             catch (FormatException e)
             {
@@ -288,9 +240,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Remove direct file transfer acces for user
+        /// Remove direct file transfer access for user
         /// </summary>
-        /// <param name="connectorClient">Conenctor</param>
+        /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
         public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
         {
@@ -318,7 +270,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Copy job data from temp folder
+        /// Copy job data to temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
@@ -329,12 +281,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Copy job data to temp folder
+        /// Copy job data from temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
-        /// <param name="path">Path</param>
         public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
         {
             _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
@@ -376,6 +327,47 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             return _sshTunnelUtil.SshTunnelExist(jobId, nodeHost);
         }
         #endregion
+        #endregion
+        #region Private Methods
+        /// <summary>
+        /// Get actual tasks (HPC jobs) informations
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="cluster">Cluster"</param>
+        /// <param name="schedulerJobIdClusterAllocationNamePairs">Scheduler job id´s pair</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<(string ScheduledJobId, string ClusterAllocationName)> schedulerJobIdClusterAllocationNamePairs)
+        {
+            SshCommandWrapper command = null;
+            StringBuilder cmdBuilder = new();
+
+            foreach (var (ScheduledJobId, ClusterAllocationName) in schedulerJobIdClusterAllocationNamePairs)
+            {
+                var allocationCluster = string.Empty;
+
+                if (!string.IsNullOrEmpty(ClusterAllocationName))
+                {
+                    allocationCluster = $"-M {ClusterAllocationName} ";
+                }
+
+                cmdBuilder.Append($"{ _commands.InterpreterCommand} 'scontrol show JobId {allocationCluster}{ScheduledJobId} -o';");
+            }
+            string sshCommand = cmdBuilder.ToString();
+
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
+                return submittedTasksInfo;
+            }
+            catch (FormatException e)
+            {
+                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList())}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommand}""\n", e);
+            }
+        }
         #endregion
     }
 }

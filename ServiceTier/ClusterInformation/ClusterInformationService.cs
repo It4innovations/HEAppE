@@ -73,7 +73,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             catch (Exception exc)
             {
                 //TODO Should be rewrite!
-                if (exc.Message.Contains("No such file or directory"))
+                if (exc.Message.Contains("No such file or directory") || exc.Message.Contains("Is a directory"))
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
                 }

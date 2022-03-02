@@ -181,7 +181,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                                   .ToList();
 
                 var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
-                scheduler.CancelJob(submittedTask.Select(s => s.ScheduledJobId), "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
+                scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
                 var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, jobInfo.Specification.Cluster.ServiceAccountCredentials)
                                                                     .ToList();
@@ -266,6 +266,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
             lock (_lockUpdateStateOfJobs)
             {
+
                 var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.ListAllUnfinished()
                                                                        .GroupBy(g => g.Specification.Cluster)
                                                                        .ToList();
@@ -285,7 +286,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                         if (tasksExceedWaitLimit.Any())
                         {
-                            scheduler.CancelJob(tasksExceedWaitLimit.Select(s => s.ScheduledJobId), "Job cancelled automatically by exceeding waiting limit.", cluster.ServiceAccountCredentials);
+                            scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", cluster.ServiceAccountCredentials);
                         }
                         actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, cluster.ServiceAccountCredentials, jobGroup.SelectMany(s => s.Tasks)).ToList();
                     }
@@ -303,7 +304,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                             if (tasksExceedWaitLimit.Any())
                             {
-                                scheduler.CancelJob(tasksExceedWaitLimit.Select(s => s.ScheduledJobId), "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
+                                scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                             }
                             actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, userJobGroup.Key, userJobGroup.SelectMany(s => s.Tasks)));
                         }

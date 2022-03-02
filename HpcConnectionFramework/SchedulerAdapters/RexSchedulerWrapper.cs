@@ -8,6 +8,9 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
+    /// <summary>
+    /// Rex scheduler wrapper
+    /// </summary>
     public class RexSchedulerWrapper : IRexScheduler
     {
         #region Instances
@@ -27,6 +30,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         protected ILog _log;
         #endregion
         #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="connectionPool">Connection pool</param>
+        /// <param name="adapter">Scheduler adapter</param>
         public RexSchedulerWrapper(IConnectionPool connectionPool, ISchedulerAdapter adapter)
         {
             _log = LogManager.GetLogger(typeof(RexSchedulerWrapper));
@@ -35,6 +43,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         }
         #endregion
         #region IRexScheduler Members
+        /// <summary>
+        /// Submit job to scheduler
+        /// </summary>
+        /// <param name="jobSpecification">Job specification</param>
+        /// <param name="credentials">Credentials</param>
+        /// <returns></returns>
         public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
@@ -48,6 +62,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 _connectionPool.ReturnConnection(schedulerConnection);
             }
         }
+        /// <summary>
+        /// Get actual tasks
+        /// </summary>
+        /// <param name="submitedTasksInfo">Submitted tasks ids</param>
+        /// <param name="credentials">Credentials</param>
+        /// <returns></returns>
         public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
@@ -62,12 +82,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
-        public void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials)
+        /// <summary>
+        /// Cancel job
+        /// </summary>
+        /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
+        /// <param name="message">Message</param>
+        /// <param name="credentials">Credentials</param>
+        public void CancelJob(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                _adapter.CancelJob(schedulerConnection.Connection, scheduledJobIds, message);
+                _adapter.CancelJob(schedulerConnection.Connection, submitedTasksInfo, message);
             }
             finally
             {
@@ -75,6 +101,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Get actual scheduler queue status
+        /// </summary>
+        /// <param name="nodeType">Cluster node type</param>
         public ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType)
         {
             Cluster cluster = nodeType.Cluster;
@@ -91,6 +121,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Get allocated nodes per job
+        /// </summary>
+        /// <param name="jobInfo">Job information</param>
         public IEnumerable<string> GetAllocatedNodes(SubmittedJobInfo jobInfo)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
@@ -104,6 +138,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Get generic command templates parameters from script
+        /// </summary>
+        /// <param name="cluster">Cluster</param>
+        /// <param name="userScriptPath">Generic script path</param>
+        /// <returns></returns>
         public IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, string userScriptPath)
         {
             ClusterAuthenticationCredentials creds = cluster.ServiceAccountCredentials;
@@ -118,6 +158,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Allow direct file transfer acces for user
+        /// </summary>
+        /// <param name="publicKey">Public key</param>
+        /// <param name="jobInfo">Job info</param>
         public void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
@@ -131,6 +176,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Remove direct file transfer access for user
+        /// </summary>
+        /// <param name="publicKey">Public key</param>
+        /// <param name="jobInfo">Job info</param>
         public void RemoveDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
@@ -144,6 +194,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Create job directory
+        /// </summary>
+        /// <param name="jobInfo">Job info</param>
         public void CreateJobDirectory(SubmittedJobInfo jobInfo)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
@@ -157,6 +211,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Delete job directory
+        /// </summary>
+        /// <param name="jobInfo">Job info</param>
         public void DeleteJobDirectory(SubmittedJobInfo jobInfo)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
@@ -170,6 +228,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Copy job data to temp folder
+        /// </summary>
+        /// <param name="jobInfo">Job info</param>
+        /// <param name="hash">Hash</param>
+        /// <param name="path">Path</param>
         public void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string hash, string path)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
@@ -183,6 +247,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Copy job data from temp folder
+        /// </summary>
+        /// <param name="jobInfo">Job info</param>
+        /// <param name="hash">Hash</param>
         public void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string hash)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
@@ -196,16 +265,37 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
+        /// <summary>
+        /// Create SSH tunnel
+        /// </summary>
+        /// <param name="jobId">Job id</param>
+        /// <param name="localHost">Local host</param>
+        /// <param name="localPort">Local port</param>
+        /// <param name="loginHost">Login host</param>
+        /// <param name="nodeHost">Node host</param>
+        /// <param name="nodePort">Node port</param>
+        /// <param name="credentials">Credentials</param>
         public void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials)
         {
             _adapter.CreateSshTunnel(jobId, localHost, localPort, loginHost, nodeHost, nodePort, credentials);
         }
 
+        /// <summary>
+        /// Remove SSH tunnel
+        /// </summary>
+        /// <param name="jobId">Job id</param>
+        /// <param name="nodeHost">Node host</param>
         public void RemoveSshTunnel(long jobId, string nodeHost)
         {
             _adapter.RemoveSshTunnel(jobId, nodeHost);
         }
 
+        /// <summary>
+        /// Check if SSH tunnel exist
+        /// </summary>
+        /// <param name="jobId">Job id</param>
+        /// <param name="nodeHost">Node host</param>
+        /// <returns></returns>
         public bool SshTunnelExist(long jobId, string nodeHost)
         {
             return _adapter.SshTunnelExist(jobId, nodeHost);

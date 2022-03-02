@@ -119,7 +119,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
                 cmdBuilder.Append(path);
             }
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
-            _log.Info($"Create job directory result: \"{sshCommand.Result}\"");
+            _log.Info($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>

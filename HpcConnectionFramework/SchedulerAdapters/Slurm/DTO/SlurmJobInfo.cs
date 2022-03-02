@@ -132,7 +132,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Job scheduler response raw data
         /// </summary>
         public string SchedulerResponseParameters { get; private set; }
-
         #region Job Arrays Properties
         /// <summary>
         /// Is job with job arrays 
@@ -143,15 +142,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Array job Id (only for job arrray)
         /// </summary>
         [Scheduler("ArrayJobId")]
-        public string ArrayJobId 
-        { 
+        public string ArrayJobId
+        {
             get
             {
                 return _arrayJobId;
             }
-            set 
-            { 
-                if(value is not null)
+            set
+            {
+                if (value is not null)
                 {
                     _arrayJobId = value;
 
@@ -177,18 +176,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
             SchedulerResponseParameters = schedulerResponseParameters;
         }
         #endregion
-        #region Methods
+        #region Local Methods
         /// <summary>
         /// Combine two jobs with job arrays parameter
         /// </summary>
         /// <param name="jobInfo">Job info</param>
-        internal void CombineJobs(SlurmJobInfo jobInfo)
+        public void CombineJobs(SlurmJobInfo jobInfo)
         {
-            StartTime = (StartTime > jobInfo.StartTime && jobInfo.StartTime.HasValue) ? StartTime : jobInfo.StartTime;
-            EndTime = (EndTime > jobInfo.EndTime && jobInfo.EndTime.HasValue) ? EndTime : jobInfo.EndTime;
+            StartTime = (StartTime.HasValue && jobInfo.StartTime.HasValue && StartTime > jobInfo.StartTime) ? jobInfo.StartTime : StartTime;
+            EndTime = (EndTime.HasValue && jobInfo.EndTime.HasValue && EndTime < jobInfo.EndTime) ? jobInfo.EndTime : EndTime;
             RunTime += jobInfo.RunTime;
 
-            if (TaskState != jobInfo.TaskState && TaskState <= TaskState.Finished && jobInfo.TaskState >= TaskState.Queued)
+             if (TaskState != jobInfo.TaskState && TaskState <= TaskState.Finished
+                && ((jobInfo.TaskState > TaskState.Queued && jobInfo.TaskState != TaskState.Finished) || (TaskState == TaskState.Finished && jobInfo.TaskState == TaskState.Queued)))
             {
                 TaskState = jobInfo.TaskState;
             }

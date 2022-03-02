@@ -24,19 +24,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         {
         }
         #endregion
-        #region Local Members
+        #region ISchedulerAdapter Members
         /// <summary>
-        /// Read actual queue status
+        /// Read actual queue status from scheduler
         /// </summary>
-        /// <param name="nodeType">NodeType</param>
-        /// <param name="responseMessage">Server response text</param>
+        /// <param name="nodeType">Cluster node type</param>
+        /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
         public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
             string response = (string)responseMessage;
 
-            string parsedNodeUsedLine = Regex.Replace(response, @"[ ]|[\n]{2}", string.Empty);
+            string parsedNodeUsedLine = string.IsNullOrEmpty(nodeType.ClusterAllocationName)
+                                                    ? response
+                                                    : response.Replace($"CLUSTER: {nodeType.ClusterAllocationName}\n", string.Empty);
+
+            parsedNodeUsedLine = Regex.Replace(parsedNodeUsedLine, @"[ ]|[\n]{2}", string.Empty);
             if (!int.TryParse(parsedNodeUsedLine, out int nodesUsed))
             {
                 throw new FormatException("Unable to parse cluster node usage from HPC scheduler!");
@@ -52,29 +56,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Get job ids after submission
+        /// Read job parameters from scheduler
         /// </summary>
-        /// <param name="responseMessage">Server response text</param>
+        /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
         public override IEnumerable<string> GetJobIds(string responseMessage)
         {
-            var scheduledJobIds = new List<string>();
-            foreach (Match match in Regex.Matches(responseMessage, @"(Submitted batch job[\s\t]+)(?<JobId>[0-9]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled))
-            {
-                if (match.Success && match.Groups.Count == 3)
-                {
-                    scheduledJobIds.Add(match.Groups.GetValueOrDefault("JobId").Value);
-                }
-            }
+            var scheduledJobIds = Regex.Matches(responseMessage, @"(Submitted batch job[\s\t]+)(?<JobId>[0-9]+)", RegexOptions.Compiled)
+                                .Where(w => w.Success)
+                                .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
+                                .ToList();
 
             return scheduledJobIds.Any() ? scheduledJobIds : throw new FormatException("Unable to parse response from HPC scheduler!");
         }
 
         /// <summary>
-        /// Convert HPC task information from DTO object
+        /// Convert HPC task information from IScheduler job information object
         /// </summary>
-        /// <param name="jobInfo">HPC Job Info</param>
+        /// <param name="jobInfo">Scheduler job information</param>
         /// <returns></returns>
         public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo)
         {
@@ -95,58 +95,60 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Read job parameters
+        /// Read job parameters from scheduler
         /// </summary>
         /// <param name="cluster">Cluster</param>
-        /// <param name="responseMessage">Server response text</param>
+        /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
         {
-            string response = (string)responseMessage;
+            string response = ((string)responseMessage).Replace("\n\t", string.Empty)
+                                                        .Replace("\n  ", string.Empty);
             var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
             SlurmJobInfo aggregateResultObj = null;
 
-            foreach (Match match in Regex.Matches(response, @"(?<jobParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            var jobResponseMessages = Regex.Split(response, @"(?<jobParameters>.*)\n", RegexOptions.Compiled)
+                                              .Where(w => !string.IsNullOrEmpty(w))
+                                              .ToList();
+
+            foreach (string jobResponseMessage in jobResponseMessages)
             {
-                if (match.Success && match.Groups.Count == 2)
-                {
-                    string jobResponseMessage = match.Groups.GetValueOrDefault("jobParameters").Value;
-                    //For each HPC scheduler job
-                    var parameters = Regex.Matches(jobResponseMessage, @"\s?(?<Key>.[^=]*)=(?<Value>.[^\s]*)", RegexOptions.IgnoreCase | RegexOptions.Compiled)
-                                        .Where(w => w.Success && w.Groups.Count == 3)
+                //For each HPC scheduler job
+                var parameters = Regex.Matches(jobResponseMessage, @"\s?(?<Key>.[^=]*)=(?<Value>.[^\s]*)", RegexOptions.Compiled)
+                                        .Where(w => w.Success)
                                         .Select(s => new
                                         {
-                                            Key = s.Groups[1].Value.Trim(),
-                                            Value = (s.Groups[2].Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups[2].Value.Trim())
+                                            Key = s.Groups.GetValueOrDefault("Key").Value,
+                                            Value = (s.Groups.GetValueOrDefault("Value").Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups.GetValueOrDefault("Value").Value)
                                         })
                                         .Distinct();
 
-                    var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
-                    FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
+                var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
+                FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
-                    if (!schedulerResultObj.IsJobArrayJob)
-                    {
-                        jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
-                        continue;
-                    }
-
-                    if (aggregateResultObj is null)
-                    {
-                        aggregateResultObj = schedulerResultObj;
-                        continue;
-                    }
-
-                    if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
-                    {
-                        aggregateResultObj.CombineJobs(schedulerResultObj);
-                        continue;
-                    }
-
-                    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-                    aggregateResultObj = schedulerResultObj;
+                if (!schedulerResultObj.IsJobArrayJob)
+                {
+                    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
+                    continue;
                 }
+
+                if (aggregateResultObj is null)
+                {
+                    aggregateResultObj = schedulerResultObj;
+                    continue;
+                }
+
+                if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
+                {
+                    aggregateResultObj.CombineJobs(schedulerResultObj);
+                    continue;
+                }
+
+                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+                aggregateResultObj = schedulerResultObj;
             }
+
 
             if (aggregateResultObj is not null)
             {

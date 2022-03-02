@@ -32,7 +32,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             _jobHostTunnels = new Dictionary<long, Dictionary<string, SshClient>>();
         }
         #endregion
-        #region Methods
+        #region Local Methods
         /// <summary>
         /// Create SSH tunnel
         /// </summary>

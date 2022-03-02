@@ -10,6 +10,9 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
+    /// <summary>
+    /// Scheduler factory
+    /// </summary>
     public abstract class SchedulerFactory
     {
         #region Instances
@@ -18,6 +21,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         private static readonly Dictionary<string, ClusterConnectionPoolConfiguration> _connectionPoolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
         #endregion
         #region Static Methods
+        /// <summary>
+        /// Get specific instance
+        /// </summary>
+        /// <param name="type">Instance type</param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationException"></exception>
         public static SchedulerFactory GetInstance(SchedulerType type)
         {
             if (_schedulerFactoryPoolSingletons.ContainsKey(type))
@@ -39,15 +48,38 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         }
         #endregion
         #region Abstract Methods
+        /// <summary>
+        /// Create scheduler
+        /// </summary>
+        /// <param name="configuration">Cluster configuration</param>
+        /// <returns></returns>
         public abstract IRexScheduler CreateScheduler(Cluster configuration);
 
+        /// <summary>
+        /// Create scheduler adapter
+        /// </summary>
+        /// <returns></returns>
         protected abstract ISchedulerAdapter CreateSchedulerAdapter();
 
+        /// <summary>
+        /// Create data convertor
+        /// </summary>
+        /// <returns></returns>
         protected abstract ISchedulerDataConvertor CreateDataConvertor();
 
+        /// <summary>
+        /// Create scheduler connector
+        /// </summary>
+        /// <param name="configuration">Cluster configuration</param>
+        /// <returns></returns>
         protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration);
         #endregion
         #region Local Methods
+        /// <summary>
+        /// Get scheduler connection pool
+        /// </summary>
+        /// <param name="clusterConf">Cluster configuration</param>
+        /// <returns></returns>
         protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf)
         {
             var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, clusterConf.SchedulerType);

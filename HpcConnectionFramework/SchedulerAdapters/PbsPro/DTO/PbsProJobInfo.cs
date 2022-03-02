@@ -49,7 +49,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
                 {
                     IsJobArrayJob = true;
                     SchedulerJobIdWoJobArrayIndex = _schedulerJobId.Replace(match.Groups.GetValueOrDefault("IndexArray").Value, string.Empty);
-                    AggregateSchedulerResponseParameters = $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{SchedulerResponseParameters}\n";
+                    AggregateSchedulerResponseParameters = $"{SchedulerResponseParameters}\n";
                 }
             }
         }
