@@ -5,6 +5,6 @@ namespace HEAppE.DomainObjects.FileTransfer {
 	public enum FileTransferProtocol {
 		NetworkShare = 1,
 		SftpScp = 2,
-		LocalSftpScp = 16
+		LocalSftpScp = 4
 	}
 }
