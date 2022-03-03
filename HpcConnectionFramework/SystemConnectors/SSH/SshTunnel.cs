@@ -9,7 +9,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
     /// <summary>
     /// SSH tunnels
     /// </summary>
-    internal sealed class SshTunnel
+    public sealed class SshTunnel
     {
         #region Properties
         /// <summary>
@@ -26,13 +26,13 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <summary>
         /// Constructor
         /// </summary>
-        internal SshTunnel()
+        public SshTunnel()
         {
             _log = LogManager.GetLogger(typeof(SshTunnel));
             _jobHostTunnels = new Dictionary<long, Dictionary<string, SshClient>>();
         }
         #endregion
-        #region Methods
+        #region Local Methods
         /// <summary>
         /// Create SSH tunnel
         /// </summary>
@@ -43,7 +43,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="nodeHost">Node host</param>
         /// <param name="nodePort">Node port</param>
         /// <param name="credentials">Credentials</param>
-        internal void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials)
+        public void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials)
         {
             if (_jobHostTunnels.ContainsKey(jobId) && _jobHostTunnels[jobId].ContainsKey(nodeHost))
             {
@@ -81,7 +81,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// </summary>
         /// <param name="jobId">Job id</param>
         /// <param name="nodeHost">Node host</param>
-        internal void RemoveSshTunnel(long jobId, string nodeHost)
+        public void RemoveSshTunnel(long jobId, string nodeHost)
         {
             if (_jobHostTunnels[jobId][nodeHost] != null)
             {
@@ -107,7 +107,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="jobId">Job id</param>
         /// <param name="nodeHost">Node host</param>
         /// <returns></returns>
-        internal bool SshTunnelExist(long jobId, string nodeHost)
+        public bool SshTunnelExist(long jobId, string nodeHost)
         {
             return _jobHostTunnels.ContainsKey(jobId) && _jobHostTunnels[jobId].ContainsKey(nodeHost);
         }

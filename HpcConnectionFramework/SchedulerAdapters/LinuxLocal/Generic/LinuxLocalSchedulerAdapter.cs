@@ -52,12 +52,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         }
         #endregion
         #region ISchedulerAdapter Members
-        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object scheduler, Cluster cluster, IEnumerable<string> scheduledJobIds)
+        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<string> scheduledJobIds)
         {
             var submittedTaskInfos = new List<SubmittedTaskInfo>();
             foreach (var jobId in scheduledJobIds.Select(x => x).Distinct())
             {
-                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), $"{_linuxLocalCommandScripts.GetJobInfoCmdPath} {jobId}/");
+                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_linuxLocalCommandScripts.GetJobInfoCmdPath} {jobId}/");
                 submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
             }
             return submittedTaskInfos;
@@ -68,14 +68,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return GetActualTasksInfo(connectorClient, cluster, submitedTasksInfo.Select(s => s.ScheduledJobId));
         }
 
-        public ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)
+        public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
             var usage = new ClusterNodeUsage
             {
                 NodeType = nodeType
             };
 
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), _linuxLocalCommandScripts.CountJobsCmdPath);
+            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), _linuxLocalCommandScripts.CountJobsCmdPath);
             if (int.TryParse(command.Result, out int totalJobs))
             {
                 usage.TotalJobs = totalJobs;
@@ -84,12 +84,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return usage;
         }
 
-        public IEnumerable<string> GetAllocatedNodes(object scheduler, SubmittedJobInfo jobInfo)
+        public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerable<SubmittedTaskInfo> SubmitJob(object scheduler, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var shellCommandSb = new StringBuilder();
             var jobResultInfo = new StringBuilder();
@@ -97,7 +97,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             #region Prepare Job Directory
             string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
 
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler),
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 $"~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
             jobResultInfo.Append(sshCommand.Result);
             _log.InfoFormat("Run prepare-job result: {0}", jobResultInfo.ToString());
@@ -113,61 +113,61 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 
             shellCommand = shellCommandSb.ToString();
 
-            sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler),
+            sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 $"~/.key_scripts/run_command.sh {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
             #endregion
-            return GetActualTasksInfo(scheduler, jobSpecification.Cluster, new string[] { $"{jobSpecification.Id}" });
+            return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new string[] { $"{jobSpecification.Id}" });
         }
 
-        public void AllowDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
+        public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
         {
-            _commands.AllowDirectFileTransferAccessForUserToJob(scheduler, publicKey, jobInfo);
+            _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
         }
 
-        public void RemoveDirectFileTransferAccessForUserToJob(object scheduler, string publicKey, SubmittedJobInfo jobInfo)
+        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(scheduler, publicKey, jobInfo);
+            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey);
         }
 
         #region JobManagement
-        public void CreateJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
             StringBuilder shellCommandSb = new StringBuilder();
             shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id};");
             jobInfo.Tasks.ForEach(task => shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id};"));
 
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommandSb.ToString());
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommandSb.ToString());
             _log.InfoFormat("Create job directory result: {0}", sshCommand.Result);
         }
 
-        public void CancelJob(object scheduler, IEnumerable<string> scheduledJobIds, string message)
+        public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder commandSb = new();
-            scheduledJobIds.ToList().ForEach(scheduledJobId => commandSb.Append($"{_linuxLocalCommandScripts.CancelJobCmdPath} {scheduledJobId};"));
-            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), commandSb.ToString());
+            submitedTasksInfo.ToList().ForEach(f => commandSb.Append($"{_linuxLocalCommandScripts.CancelJobCmdPath} {f.ScheduledJobId};"));
+            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), commandSb.ToString());
         }
 
-        public void DeleteJobDirectory(object scheduler, SubmittedJobInfo jobInfo)
+        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
-            _commands.DeleteJobDirectory(scheduler, jobInfo);
+            _commands.DeleteJobDirectory(connectorClient, jobInfo);
         }
 
-        public void CopyJobDataToTemp(object scheduler, SubmittedJobInfo jobInfo, string hash, string path)
+        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
         {
             //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
-            _commands.CopyJobDataToTemp(scheduler, jobInfo, hash, path);
+            _commands.CopyJobDataToTemp(connectorClient, jobInfo, hash, path);
         }
 
-        public void CopyJobDataFromTemp(object scheduler, SubmittedJobInfo jobInfo, string hash)
+        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
         {
-            _commands.CopyJobDataFromTemp(scheduler, jobInfo, hash);
+            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
         }
         #endregion
-        public IEnumerable<string> GetParametersFromGenericUserScript(object scheduler, string userScriptPath)
+        public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
         {
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), shellCommand);
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
 
             foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {

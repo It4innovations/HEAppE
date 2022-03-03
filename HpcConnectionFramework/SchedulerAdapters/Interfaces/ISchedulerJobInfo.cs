@@ -4,6 +4,9 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 {
+    /// <summary>
+    /// IScheduler job info
+    /// </summary>
     public interface ISchedulerJobInfo
     {
         #region Properties

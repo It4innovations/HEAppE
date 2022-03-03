@@ -34,17 +34,17 @@ namespace HEAppE.BackgroundThread.Tasks
             // Run the task in its own thread
             Thread thread = new(delegate ()
             {
-               try
-               {
-                   lock (_lockObj)
-                   {
-                       RunTask();
-                   }
-               }
-               catch (Exception ex)
-               {
-                   _log.Error("An error occured during execution of the background task: {0}", ex);
-               }
+                try
+                {
+                    lock (_lockObj)
+                    {
+                        RunTask();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Error("An error occured during execution of the background task: {0}", ex);
+                }
             })
             {
                 Name = $"Timer - {GetType()}"

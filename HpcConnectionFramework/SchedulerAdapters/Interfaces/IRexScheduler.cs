@@ -5,13 +5,16 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 {
+    /// <summary>
+    /// IResx scheduler
+    /// </summary>
     public interface IRexScheduler
     {
         IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
         IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, ClusterAuthenticationCredentials credentials);
 
-        void CancelJob(IEnumerable<string> scheduledJobIds, string message, ClusterAuthenticationCredentials credentials);
+        void CancelJob(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message, ClusterAuthenticationCredentials credentials);
 
         ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType);
 

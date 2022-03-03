@@ -81,7 +81,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
 
 
         /// <summary>
-        /// CpuHyperThreading
+        /// Task CPU Hyper Threading
         /// </summary>
         public bool CpuHyperThreading
         {
@@ -156,7 +156,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         }
 
         /// <summary>
-        /// Task run time
+        /// Task runtime
         /// </summary>
         public int Runtime
         {

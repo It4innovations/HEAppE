@@ -9,13 +9,13 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
     /// <summary>
-    /// PbsPro task adapter
+    /// PBS Professional task adapter (HPC Job)
     /// </summary>
     public class PbsProTaskAdapter : ISchedulerTaskAdapter
     {
         #region Instances
         /// <summary>
-        /// Task (HPC job) allocation command builder
+        /// Task allocation command builder
         /// </summary>
         protected StringBuilder _taskBuilder;
         #endregion
@@ -23,7 +23,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="taskSource"></param>
+        /// <param name="taskSource">Basic allocation command</param>
         public PbsProTaskAdapter(string taskSource)
         {
             _taskBuilder = new StringBuilder(taskSource);
@@ -71,11 +71,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         {
             set
             { 
+
             }
         }
 
         /// <summary>
-        /// CpuHyperThreading
+        /// Task CPU Hyper Threading
         /// </summary>
         public bool CpuHyperThreading
         {
@@ -264,13 +265,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         }
 
         /// <summary>
-        /// Set preparation command for task
+        /// Set variables for task
         /// </summary>
-        /// <param name="workDir">Task work dir</param>
-        /// <param name="preparationScript">Task preparation script</param>
-        /// <param name="commandLine">Task command</param>
-        /// <param name="stdOutFile">Standard output file</param>
-        /// <param name="stdErrFile">Standard error file</param>
+        /// <param name="variables">Task varibles</param>
         public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)
         {
             if (variables != null && variables.Any())
@@ -287,7 +284,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         /// <summary>
         /// Set preparation command for task
         /// </summary>
-        /// <param name="workDir">Task work dir</param>
+        /// <param name="workDir">Task work directory</param>
         /// <param name="preparationScript">Task preparation script</param>
         /// <param name="commandLine">Task command</param>
         /// <param name="stdOutFile">Standard output file</param>
@@ -296,7 +293,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         {
             string nodefileDir = workDir.Substring(0, workDir.LastIndexOf('/'));
             var taskSourceSb = new StringBuilder();
-            taskSourceSb.Append($"echo 'cd {nodefileDir}; ~/.key_scripts/nodefile.sh;cd {workDir};");
+            taskSourceSb.Append($"echo 'cd {nodefileDir};cd {workDir};");
             taskSourceSb.Append(
                 string.IsNullOrEmpty(recursiveSymlinkCommand)
                     ? string.Empty

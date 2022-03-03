@@ -8,8 +8,9 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
     /// <summary>
     /// Ssh connector
     /// </summary>
-    public class SshConnector : HEAppE.ConnectionPool.IPoolableAdapter
+    public class SshConnector : ConnectionPool.IPoolableAdapter
     {
+        #region Local Methods
         /// <summary>
         /// Create ssh connection object
         /// </summary>
@@ -49,7 +50,8 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         {
             new SshClientAdapter((SshClient)connectorClient).Disconnect();
         }
-
+        #endregion
+        #region Private Methods
         /// <summary>
         /// Create connection object using password authentication
         /// </summary>
@@ -179,5 +181,6 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             var client = new NoAuthenticationSshClient(masterNodeName, username);
             return client;
         }
+        #endregion
     }
 }

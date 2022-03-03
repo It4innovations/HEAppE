@@ -5,6 +5,9 @@ using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 {
+    /// <summary>
+    /// IData convertor
+    /// </summary>
     public interface ISchedulerDataConvertor
     {
         object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd);
@@ -13,7 +16,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void FillingSchedulerJobResultObjectFromSchedulerAttribute(Cluster cluster, object schedulerResultObj, Dictionary<string, string> parsedParameters);
 
-        abstract ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType);
+        abstract ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage);
 
         abstract IEnumerable<string> GetJobIds(string responseMessage);
 

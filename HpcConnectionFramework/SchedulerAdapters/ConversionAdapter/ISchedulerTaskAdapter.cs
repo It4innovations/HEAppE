@@ -4,6 +4,9 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 {
+    /// <summary>
+    /// IScheduler task adapter
+    /// </summary>
     public interface ISchedulerTaskAdapter
     {
         object AllocationCmd { get; }

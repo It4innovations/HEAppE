@@ -4,6 +4,9 @@ using System.Text;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
+    /// <summary>
+    /// PBS Professional job adapter
+    /// </summary>
     public class PbsProJobAdapter : ISchedulerJobAdapter
     {
         #region Instances
@@ -18,7 +21,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         /// </summary>
         public PbsProJobAdapter()
         {
-
+            _jobCommandBuilder = new StringBuilder();
         }
         #endregion
         #region ISchedulerJobAdapter Members

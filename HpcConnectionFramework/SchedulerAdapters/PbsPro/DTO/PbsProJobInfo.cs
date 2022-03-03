@@ -8,13 +8,16 @@ using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
 {
+    /// <summary>
+    /// PBS Professional scheduler job information object
+    /// </summary>
     public class PbsProJobInfo : ISchedulerJobInfo
     {
         #region Instances
         /// <summary>
         /// Job allocated nodes
         /// </summary>
-        private IEnumerable<string> _allocatedNodes;
+        private IEnumerable<string> _allocatedNodes = Enumerable.Empty<string>();
 
         /// <summary>
         /// Job scheduler id
@@ -46,7 +49,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
                 {
                     IsJobArrayJob = true;
                     SchedulerJobIdWoJobArrayIndex = _schedulerJobId.Replace(match.Groups.GetValueOrDefault("IndexArray").Value, string.Empty);
-                    AggregateSchedulerResponseParameters = $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{SchedulerResponseParameters}\n";
+                    AggregateSchedulerResponseParameters = $"{SchedulerResponseParameters}\n";
                 }
             }
         }
@@ -76,7 +79,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         public string QueueName { get; set; }
 
         /// <summary>
-        /// Task state name
+        /// Job state name
         /// </summary>
         [Scheduler("job_state")]
         public string StateName
@@ -89,7 +92,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
                     "Q" or "T" or "H" => TaskState.Queued,
                     "R" or "U" or "S" or "E" or "B" => TaskState.Running,
                     "F" or "X" => TaskState.Failed,
-                    _ => throw new ApplicationException(@$"Task state ""{value}"" could not be converted to any known task state."),
+                    _ => throw new ApplicationException(@$"Task state: ""{value}"" could not be converted to any known task state."),
                 };
             }
         }
@@ -115,7 +118,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
                         0 => TaskState.Finished,
                         > 0 and < 256 => TaskState.Canceled,
                         >= 256 => TaskState.Canceled,
-                        _ => TaskState.Canceled,
+                        _ => TaskState.Failed,
                     };
                 }
             }
@@ -128,25 +131,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         /// <summary>
         /// Job creation time
         /// </summary>
-        [Scheduler("ctime")]
+        [Scheduler("ctime", Format = "ddd MMM  d HH:mm:ss yyyy")]
         public DateTime CreationTime { get; set; }
 
         /// <summary>
         /// Job submittion time
         /// </summary>
-        [Scheduler("etime")]
+        [Scheduler("etime", Format = "ddd MMM  d HH:mm:ss yyyy")]
         public DateTime SubmitTime { get; set; }
 
         /// <summary>
         /// Job start time
         /// </summary>
-        [Scheduler("stime")]
+        [Scheduler("stime", Format = "ddd MMM  d HH:mm:ss yyyy")]
         public DateTime? StartTime { get; set; }
 
         /// <summary>
         /// Job end time
+        /// Note: Not supported!
         /// </summary>
-        [Scheduler("mtime")]
         public DateTime? EndTime { get; set; }
 
         /// <summary>
@@ -171,11 +174,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
             {
                 if (!string.IsNullOrEmpty(value))
                 {
-                    _allocatedNodes = Regex.Split(value, @"[[a-z]*\d*]*[\/]\d+").ToList();
-                }
-                else
-                {
-                    _allocatedNodes = Enumerable.Empty<string>();
+                    _allocatedNodes = Regex.Matches(value, @"(?<AllocationNode>[[a-z]+\d*)", RegexOptions.Compiled)
+                                                .Where(w => w.Success && !string.IsNullOrEmpty(w.Groups.GetValueOrDefault("AllocationNode").Value))
+                                                .Select(s => s.Groups.GetValueOrDefault("AllocationNode").Value)
+                                                .ToList();
                 }
             }
         }
@@ -192,20 +194,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         /// Job scheduler response raw data
         /// </summary>
         public string SchedulerResponseParameters { get; private set; }
-        #endregion
-        #region Constructors
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="schedulerResponseParameters"></param>
-        public PbsProJobInfo(string schedulerResponseParameters)
-        {
-            SchedulerResponseParameters = schedulerResponseParameters;
-        }
         #region Job Arrays Properties
         /// <summary>
         /// Is job with job arrays 
         /// </summary>
+        [Scheduler("array")]
         public bool IsJobArrayJob { get; private set; } = false;
 
         /// <summary>
@@ -219,15 +212,24 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         public string AggregateSchedulerResponseParameters { get; private set; }
         #endregion
         #endregion
+        #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="schedulerResponseParameters"></param>
+        public PbsProJobInfo(string schedulerResponseParameters)
+        {
+            SchedulerResponseParameters = schedulerResponseParameters;
+        }
+        #endregion
         #region Methods
         /// <summary>
         /// Combine two jobs with job arrays parameter
         /// </summary>
         /// <param name="jobInfo">Job info</param>
-        internal void CombineJobs(PbsProJobInfo jobInfo)
+        public void CombineJobs(PbsProJobInfo jobInfo)
         {
             StartTime = (StartTime > jobInfo.StartTime && jobInfo.StartTime.HasValue) ? StartTime : jobInfo.StartTime;
-            EndTime = (EndTime > jobInfo.EndTime && jobInfo.EndTime.HasValue) ? EndTime : jobInfo.EndTime;
             RunTime += jobInfo.RunTime;
 
             _allocatedNodes = jobInfo.AllocatedNodes.Union(_allocatedNodes);

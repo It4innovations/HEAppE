@@ -2,6 +2,9 @@
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 {
+    /// <summary>
+    /// IScheduler job adapter
+    /// </summary>
     public interface ISchedulerJobAdapter
     {
         object AllocationCmd { get; }

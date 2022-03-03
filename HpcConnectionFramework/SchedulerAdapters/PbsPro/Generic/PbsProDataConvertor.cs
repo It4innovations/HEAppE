@@ -11,7 +11,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 {
     /// <summary>
-    /// PbsPro data convertor
+    /// PBS Professional data convertor
     /// </summary>
     public class PbsProDataConvertor : SchedulerDataConvertor
     {
@@ -22,74 +22,66 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
         public PbsProDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
         {
+
         }
         #endregion
         #region SchedulerDataConvertor Members
         /// <summary>
-        /// Read actual queue status
+        /// Read actual queue status from scheduler
         /// </summary>
-        /// <param name="responseMessage">Server response text</param>
-        /// <param name="nodeType">NodeType</param>
+        /// <param name="nodeType">Cluster node type</param>
+        /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
-        public override ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType)
+        public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
             string response = (string)responseMessage;
             var queueInfo = new PbsProQueueInfo();
 
-            Match match = Regex.Match(response, @"(?<QueueParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled);
-            if (match.Success && match.Groups.Count == 2)
-            {
-                string jobResponseMessage = match.Groups.GetValueOrDefault("QueueParameters").Value;
-                //For each HPC scheduler job
-                var parameters = Regex.Matches(jobResponseMessage, @"\s?(?<Key>.[^=]*)=(?<Value>.[^\s]*)", RegexOptions.IgnoreCase | RegexOptions.Compiled)
-                                    .Where(w => w.Success && w.Groups.Count == 3)
+            var parameters = Regex.Matches(response, @"(?<Key>[^\s].*)( = |: )(?<Value>.*)", RegexOptions.Compiled)
+                                    .Where(w => w.Success)
                                     .Select(s => new
-                                    {
-                                        Key = s.Groups[1].Value.Trim(),
-                                        Value = (s.Groups[2].Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups[2].Value.Trim())
-                                    })
-                                    .Distinct();
+                                        {
+                                            Key = s.Groups.GetValueOrDefault("Key").Value,
+                                            Value = s.Groups.GetValueOrDefault("Value").Value,
+                                        });
 
-                FillingSchedulerJobResultObjectFromSchedulerAttribute(nodeType.Cluster, queueInfo, parameters.ToDictionary(i => i.Key, j => j.Value));
-                return new ClusterNodeUsage
-                {
-                    NodeType = nodeType,
-                    NodesUsed = queueInfo.NodesUsed,
-                    Priority = queueInfo.Priority,
-                    TotalJobs = queueInfo.TotalJobs
-                };
-            }
-            else
+
+            if(!parameters.Any())
             {
-                throw new FormatException("Unable to parse response from HPC scheduler!");
+                throw new FormatException("Unable to parse response from PBS Professional HPC scheduler!");
             }
+
+            FillingSchedulerJobResultObjectFromSchedulerAttribute(nodeType.Cluster, queueInfo, parameters.ToDictionary(i => i.Key, j => j.Value));
+            return new ClusterNodeUsage
+            {
+                NodeType = nodeType,
+                NodesUsed = queueInfo.NodesUsed,
+                Priority = queueInfo.Priority,
+                TotalJobs = queueInfo.TotalJobs
+            };
         }
 
         /// <summary>
-        /// Read job parameters
+        /// Read job parameters from scheduler
         /// </summary>
-        /// <param name="responseMessage">Server response text</param>
+        /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
         public override IEnumerable<string> GetJobIds(string responseMessage)
         {
-            var scheduledJobIds = new List<string>();
-            foreach (Match match in Regex.Matches(responseMessage, @"(?<JobId>.+)", RegexOptions.IgnoreCase | RegexOptions.Compiled))
-            {
-                if (match.Success && match.Groups.Count == 3)
-                {
-                    scheduledJobIds.Add(match.Groups.GetValueOrDefault("JobId").Value);
-                }
-            }
+            var scheduledJobIds = Regex.Matches(responseMessage, @"(?<JobId>.+)\n", RegexOptions.Compiled)
+                                            .Where(w => w.Success)
+                                            .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
+                                            .ToList();
 
-            return scheduledJobIds.Any() ? scheduledJobIds : throw new FormatException("Unable to parse response from HPC scheduler!");
+            return scheduledJobIds.Any() ? scheduledJobIds : throw new FormatException("Unable to parse response from PBS Professional HPC scheduler!");
         }
 
         /// <summary>
-        /// Convert HPC task information from DTO object
+        /// Convert HPC task information from IScheduler job information object
         /// </summary>
-        /// <param name="jobInfo">HPC Job Info</param>
+        /// <param name="jobInfo">Scheduler job information</param>
         /// <returns></returns>
         public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo)
         {
@@ -99,7 +91,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 ScheduledJobId = obj.SchedulerJobId,
                 Name = obj.Name,
                 StartTime = obj.StartTime,
-                EndTime = obj.EndTime,
+                EndTime = obj.StartTime.HasValue && jobInfo.TaskState >= TaskState.Finished ? obj.StartTime.Value.AddSeconds(obj.RunTime.TotalSeconds) : null,
                 AllocatedTime = obj.RunTime.TotalSeconds,
                 State = obj.TaskState,
                 TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo() { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
@@ -110,10 +102,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
         /// <summary>
-        /// Read job parameters
+        /// Read job parameters from scheduler
         /// </summary>
         /// <param name="cluster">Cluster</param>
-        /// <param name="responseMessage">Server response text</param>
+        /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
         /// <exception cref="FormatException"></exception>
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
@@ -122,45 +114,45 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
             PbsProJobInfo aggregateResultObj = null;
 
-            foreach (Match match in Regex.Matches(response, @"(?<jobParameters>.*)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            var jobResponseMessages = Regex.Split(response, @"\n\n", RegexOptions.Compiled)
+                                              .Where(w=>!string.IsNullOrEmpty(w))
+                                              .Select(s => s.Replace("\n\t", string.Empty))
+                                              .ToList();
+            foreach (string jobResponseMessage in jobResponseMessages)
             {
-                if (match.Success && match.Groups.Count == 2)
-                {
-                    string jobResponseMessage = match.Groups.GetValueOrDefault("jobParameters").Value;
-                    //For each HPC scheduler job
-                    var parameters = Regex.Matches(jobResponseMessage, @"\s?(?<Key>.[^:]*):(?<Value>.[^\s]*)", RegexOptions.IgnoreCase | RegexOptions.Compiled)
-                                        .Where(w => w.Success && w.Groups.Count == 3)
+                //For each HPC scheduler job
+                var parameters = Regex.Matches(jobResponseMessage, @"(?<Key>[^\s].*)( = |: )(?<Value>.*)", RegexOptions.Compiled)
+                                        .Where(w => w.Success)
                                         .Select(s => new
-                                        {
-                                            Key = s.Groups[1].Value.Trim(),
-                                            Value = (s.Groups[2].Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups[2].Value.Trim())
-                                        })
+                                            {
+                                                Key = s.Groups.GetValueOrDefault("Key").Value,
+                                                Value = (s.Groups.GetValueOrDefault("Value").Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups.GetValueOrDefault("Value").Value)
+                                            })
                                         .Distinct();
 
-                    var schedulerResultObj = new PbsProJobInfo(jobResponseMessage);
-                    FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
+                var schedulerResultObj = new PbsProJobInfo(jobResponseMessage);
+                FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
 
-                    if (!schedulerResultObj.IsJobArrayJob)
-                    {
-                        jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
-                        continue;
-                    }
-
-                    if (aggregateResultObj is null)
-                    {
-                        aggregateResultObj = schedulerResultObj;
-                        continue;
-                    }
-
-                    if (aggregateResultObj.SchedulerJobIdWoJobArrayIndex == schedulerResultObj.SchedulerJobIdWoJobArrayIndex)
-                    {
-                        aggregateResultObj.CombineJobs(schedulerResultObj);
-                        continue;
-                    }
-
-                    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-                    aggregateResultObj = schedulerResultObj;
+                if (!schedulerResultObj.IsJobArrayJob)
+                {
+                    jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
+                    continue;
                 }
+
+                if (aggregateResultObj is null)
+                {
+                    aggregateResultObj = schedulerResultObj;
+                    continue;
+                }
+
+                if (aggregateResultObj.SchedulerJobIdWoJobArrayIndex == schedulerResultObj.SchedulerJobIdWoJobArrayIndex)
+                {
+                    aggregateResultObj.CombineJobs(schedulerResultObj);
+                    continue;
+                }
+
+                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+                aggregateResultObj = schedulerResultObj;
             }
 
             if (aggregateResultObj is not null)
@@ -168,7 +160,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             }
 
-            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from HPC scheduler!");
+            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from PBS Professional HPC scheduler!");
         }
         #endregion
     }

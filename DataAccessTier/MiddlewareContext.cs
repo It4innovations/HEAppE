@@ -180,6 +180,7 @@ namespace HEAppE.DataAccessTier
                 Description = c.Description,
                 Id = c.Id,
                 MasterNodeName = c.MasterNodeName,
+                DomainName = c.DomainName,
                 Port = c.Port,
                 Name = c.Name,
                 NodeTypes = c.NodeTypes,

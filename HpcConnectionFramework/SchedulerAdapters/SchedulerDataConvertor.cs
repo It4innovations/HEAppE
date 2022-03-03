@@ -14,14 +14,27 @@ using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
+    /// <summary>
+    /// Scheduler data convertor
+    /// </summary>
     public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     {
         #region Instances
+        /// <summary>
+        /// Conversion factory
+        /// </summary>
         protected ConversionAdapterFactory _conversionAdapterFactory;
 
+        /// <summary>
+        /// Logger
+        /// </summary>
         protected readonly ILog _log;
         #endregion
         #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
         public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory)
         {
             _conversionAdapterFactory = conversionAdapterFactory;
@@ -29,6 +42,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         }
         #endregion
         #region ISchedulerDataConvertor Members
+        /// <summary>
+        /// Convert job specification to job
+        /// </summary>
+        /// <param name="jobSpecification">Job specification</param>
+        /// <param name="schedulerAllocationCmd">Scheduler allocation command</param>
+        /// <returns></returns>
         public virtual object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
             ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
@@ -48,6 +67,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return jobAdapter.AllocationCmd;
         }
 
+        /// <summary>
+        /// Convert task specification to task
+        /// </summary>
+        /// <param name="jobSpecification">Job specification</param>
+        /// <param name="taskSpecification">Task specification</param>
+        /// <param name="schedulerAllocationCmd">Scheduler allocation cmd</param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationException"></exception>
         public virtual object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
         {
             ISchedulerTaskAdapter taskAdapter = _conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
@@ -106,23 +133,30 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return taskAdapter.AllocationCmd;
         }
 
+        /// <summary>
+        /// Filling scheduler job result object from scheduler attribute
+        /// </summary>
+        /// <param name="cluster">Cluster</param>
+        /// <param name="schedulerResultObj">Scheduler</param>
+        /// <param name="parsedParameters">Parsed parameters</param>
         public void FillingSchedulerJobResultObjectFromSchedulerAttribute(Cluster cluster, object schedulerResultObj, Dictionary<string, string> parsedParameters)
         {
             var properties = schedulerResultObj.GetType()
-                                                .GetProperties();
+                                           .GetProperties();
 
             foreach (var property in properties)
             {
-                var schedulerPropertyNames = property.GetCustomAttributes(typeof(SchedulerAttribute), true)
-                                                      .Cast<SchedulerAttribute>()
-                                                      .FirstOrDefault()?.Names ?? Enumerable.Empty<string>();
-                foreach (var schedulerPropertyName in schedulerPropertyNames)
+                var schedulerAttribute = property.GetCustomAttributes(typeof(SchedulerAttribute), true)
+                                                    .Cast<SchedulerAttribute>()
+                                                    .FirstOrDefault();
+
+                foreach (var schedulerPropertyName in schedulerAttribute?.Names ?? Enumerable.Empty<string>())
                 {
                     if (parsedParameters.ContainsKey(schedulerPropertyName))
                     {
                         if (property.CanWrite)
                         {
-                            var value = ChangeType(cluster, parsedParameters[schedulerPropertyName], property.PropertyType);
+                            var value = ChangeType(cluster, parsedParameters[schedulerPropertyName], property.PropertyType, schedulerAttribute?.Format);
                             property.SetValue(schedulerResultObj, value, null);
                         }
                         break;
@@ -131,13 +165,46 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
         #region Abstract Members
-        public abstract ClusterNodeUsage ReadQueueActualInformation(object responseMessage, ClusterNodeType nodeType);
+        /// <summary>
+        /// Read queue actual information
+        /// </summary>
+        /// <param name="nodeType">Node type</param>
+        /// <param name="responseMessage">Scheduler response message</param>
+        /// <returns></returns>
+        public abstract ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage);
+
+        /// <summary>
+        /// Read job parameters from scheduler
+        /// </summary>
+        /// <param name="responseMessage">Scheduler response message</param>
+        /// <returns></returns>
         public abstract IEnumerable<string> GetJobIds(string responseMessage);
+
+        /// <summary>
+        /// Convert HPC task information from IScheduler job information object
+        /// </summary>
+        /// <param name="jobInfo">Scheduler job information</param>
+        /// <returns></returns>
         public abstract SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo);
+
+        /// <summary>
+        /// Read job parameters from scheduler
+        /// </summary>
+        /// <param name="cluster">Cluster</param>
+        /// <param name="responseMessage">Scheduler response message</param>
+        /// <returns></returns>
         public abstract IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage);
         #endregion
         #endregion
         #region Local Methods
+        /// <summary>
+        /// Create template parameter values dictionary
+        /// </summary>
+        /// <param name="jobSpecification">Job specification</param>
+        /// <param name="taskSpecification">Task specification</param>
+        /// <param name="templateParameters">Template parameters</param>
+        /// <param name="taskParametersValues">Task parameters values</param>
+        /// <returns></returns>
         protected static Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
                 ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues)
         {
@@ -176,6 +243,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return finalParameters;
         }
 
+        /// <summary>
+        /// Replace template directives in Command
+        /// </summary>
+        /// <param name="commandLine">Command line</param>
+        /// <param name="templateParameters">Template parameters</param>
+        /// <returns></returns>
+        /// <exception cref="ApplicationException"></exception>
         protected static string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
         {
             if (string.IsNullOrEmpty(commandLine))
@@ -196,6 +270,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return replacedCommandLine;
         }
 
+        /// <summary>
+        /// Create task directory sym link
+        /// </summary>
+        /// <param name="taskSpecification">Task specification</param>
+        /// <returns></returns>
         protected static string CreateTaskDirectorySymlinkCommand(TaskSpecification taskSpecification)
         {
             string symlinkCommand = string.Empty;
@@ -210,6 +289,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return symlinkCommand;
         }
 
+        /// <summary>
+        /// Get property value for query
+        /// </summary>
+        /// <param name="objectForQuery">Query object</param>
+        /// <param name="query">Query</param>
+        /// <returns></returns>
         private static string GetPropertyValueForQuery(object objectForQuery, string query)
         {
             PropertyInfo property = objectForQuery.GetType().GetProperty(query[(query.IndexOf('.') + 1)..]);
@@ -229,39 +314,62 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="cluster">Cluster</param>
         /// <param name="obj">Value for converting</param>
         /// <param name="type">Type for converting</param>
+        /// <param name="format">Format for converting</param>
         /// <returns></returns>
-        private static object ChangeType(Cluster cluster, object obj, Type type)
+        private object ChangeType(Cluster cluster, object obj, Type type, string format)
         {
-            switch (type.Name)
+            try
             {
-                case "TimeSpan":
-                    {
-                        string parsedText = Convert.ToString(obj);
-                        if (!string.IsNullOrEmpty(parsedText) && TimeSpan.TryParse(parsedText, out TimeSpan timeSpan))
+                type = Nullable.GetUnderlyingType(type) is null ? type : Nullable.GetUnderlyingType(type);
+                switch (type.Name)
+                {
+                    case "Boolean":
                         {
-                            return timeSpan;
+                            return obj is null ? null : Convert.ChangeType(Convert.ToInt32(obj), type);
                         }
-                        else
+                    case "TimeSpan":
                         {
-                            return new TimeSpan(0);
+                            string parsedText = Convert.ToString(obj);
+                            if (string.IsNullOrEmpty(parsedText))
+                            {
+                                return null;
+                            }
+
+                            if (TimeSpan.TryParse(parsedText, out TimeSpan timeSpan))
+                            {
+                                return timeSpan;
+                            }
+
+                            return default;
                         }
-                    }
-                case "DateTime":
-                    {
-                        string parsedText = Convert.ToString(obj);
-                        if (!string.IsNullOrEmpty(parsedText) && DateTime.TryParse(parsedText, out DateTime date))
+                    case "DateTime":
                         {
-                            return date.Convert(cluster.TimeZone);
+                            string parsedText = Convert.ToString(obj);
+                            if (string.IsNullOrEmpty(parsedText))
+                            {
+                                return null;
+                            }
+
+                            if (string.IsNullOrEmpty(format) && DateTime.TryParse(parsedText, out DateTime date))
+                            {
+                                return date.Convert(cluster.TimeZone);
+                            }
+                            else
+                            {
+                                date = DateTime.ParseExact(parsedText, format, CultureInfo.InvariantCulture);
+                                return date.Convert(cluster.TimeZone);
+                            }
                         }
-                        else
+                    default:
                         {
-                            return null;
+                            return obj is null ? null : Convert.ChangeType(obj, type);
                         }
-                    }
-                default:
-                    {
-                        return Convert.ChangeType(obj, type);
-                    }
+                }
+            }
+            catch (Exception)
+            {
+                _log.Error($"Error occurred when object was converting property type: \"{type}\" for input data: \"{obj}\" with format: \"{format}\"");
+                throw;
             }
         }
         #endregion

@@ -15,7 +15,10 @@ using HEAppE.HpcConnectionFramework.SystemCommands;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 {
-    internal class PbsProSchedulerAdapter : ISchedulerAdapter
+    /// <summary>
+    /// PBS Professional scheduler adapter
+    /// </summary>
+    public class PbsProSchedulerAdapter : ISchedulerAdapter
     {
         #region Instances
         /// <summary>
@@ -44,9 +47,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
         #endregion
         #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="convertor">Convertor</param>
         public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
         {
-            //TODO parse from DI
             _log = LogManager.GetLogger(typeof(PbsProSchedulerAdapter));
             _convertor = convertor;
             _sshTunnelUtil = new SshTunnel();
@@ -54,14 +60,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
         #endregion
         #region ISchedulerAdapter Members
+        /// <summary>
+        /// Submit job to scheduler
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="jobSpecification">Job specification</param>
+        /// <param name="credentials">Credentials</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
         public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var jobIdsWithJobArrayIndexes = new List<string>();
             SshCommandWrapper command = null;
 
-            Cluster cluster = jobSpecification.Cluster;
-            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub");
+            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub  -koed");
+            _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
             string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecutieCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
@@ -70,8 +85,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 for (int i = 0; i < jobSpecification.Tasks.Count; i++)
                 {
                     jobIdsWithJobArrayIndexes.AddRange(string.IsNullOrEmpty(jobSpecification.Tasks[i].JobArrays)
-                                                        ? new List<string> { jobIds[i] }
-                                                        : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
+                                                                            ? new List<string> { jobIds[i] }
+                                                                            : CombineScheduledJobIdWithJobArrayIndexes(jobIds[i], jobSpecification.Tasks[i].JobArrays));
 
                 }
                 return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
@@ -85,11 +100,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
         /// <summary>
-        /// Get actual tasks
+        /// Get actual tasks (HPC jobs) informations
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="cluster">Cluster</param>
-        /// <param name="submitedTasksInfo">Submitted tasks ids</param>
+        /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
         public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
@@ -105,25 +120,30 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (SshCommandException ce)
             {
-                _log.Warn(ce.Message);
-
                 //Reducing unknown job ids!
-                var missingJobIds = Enumerable.Empty<string>();
+                var missingJobIds = new List<string>();
                 foreach (Match match in Regex.Matches(ce.Message, @"(?<ErrorMessage>.*)\n", RegexOptions.Compiled))
                 {
-                    if (match.Success && match.Groups.Count == 2)
+                    if (match.Success)
                     {
                         string jobErrResponseMessage = match.Groups.GetValueOrDefault("ErrorMessage").Value;
 
-                        missingJobIds = Regex.Matches(jobErrResponseMessage, @"(qstat: Unknown Job Id )(?<JobId>\d*(\[[0-9]*\])*)?(.[a-z-]*[\d]*)?", RegexOptions.Compiled)
-                                                  .Where(w => w.Success && string.IsNullOrEmpty(w.Groups.GetValueOrDefault("JobId").Value))
-                                                  .Select(s => s.Groups.GetValueOrDefault("JobId").Value);
+                        missingJobIds.AddRange(Regex.Matches(jobErrResponseMessage, @"(qstat: Unknown Job Id )(?<JobId>(\d*(\[[0-9]*\])*)?(.[a-z-]*[\d]*)?)", RegexOptions.Compiled)
+                                                  .Where(w => w.Success && !string.IsNullOrEmpty(w.Groups.GetValueOrDefault("JobId").Value))
+                                                  .Select(s => s.Groups.GetValueOrDefault("JobId").Value));
                     }
                 }
+
+                _log.Warn($"Scheduled Job ids: \"{missingJobIds}\" are not in PBS Professional scheduler database. Mentioned jobs were canceled!");
                 var reducedjobIdsWithJobArrayIndexes = jobIdsWithJobArrayIndexes.Except(missingJobIds);
                 if (!missingJobIds.Any() || reducedjobIdsWithJobArrayIndexes.Count() >= jobIdsWithJobArrayIndexes.Count())
                 {
                     throw new Exception(ce.Message);
+                }
+
+                if(!reducedjobIdsWithJobArrayIndexes.Any())
+                {
+                    return Enumerable.Empty<SubmittedTaskInfo>();
                 }
 
                 return GetActualTasksInfo(connectorClient, cluster, reducedjobIdsWithJobArrayIndexes);
@@ -131,59 +151,38 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
         /// <summary>
-        /// Get actual tasks
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="cluster">Cluster</param>
-        /// <param name="scheduledJobIds">Scheduler job ids</param>
-        /// <returns></returns>
-        /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<string> scheduledJobIds)
-        {
-            SshCommandWrapper command = null;
-            StringBuilder cmdBuilder = new();
-
-            cmdBuilder.Append($"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", scheduledJobIds)}");
-            string sshCommand = cmdBuilder.ToString();
-
-            try
-            {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
-                return submittedTasksInfo;
-            }
-            catch (FormatException e)
-            {
-                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", scheduledJobIds)}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommand}""\n", e);
-            }
-        }
-
-        /// <summary>
         /// Cancel job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="scheduledJobIds">Scheduled job ids</param>
+        /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
         /// <param name="message">Message</param>
-        public virtual void CancelJob(object connectorClient, IEnumerable<string> scheduledJobIds, string message)
+        public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder cmdBuilder = new();
-            scheduledJobIds.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f}';"));
+            submitedTasksInfo.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f.ScheduledJobId}';"));
             string sshCommand = cmdBuilder.ToString();
+            _log.Info($"Cancel jobs \"{string.Join(",",submitedTasksInfo.Select(s=>s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
 
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
         }
 
-        public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object scheduler, ClusterNodeType nodeType)
+        /// <summary>
+        /// Get actual scheduler queue status
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="nodeType">Cluster node type</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
             SshCommandWrapper command = null;
             string sshCommand = $"{_commands.InterpreterCommand} 'qstat -Q -f {nodeType.Queue}'";
+            _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{sshCommand}\"");
 
             try
             {
-                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)scheduler), sshCommand);
-                return _convertor.ReadQueueActualInformation(command.Result, nodeType);
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                return _convertor.ReadQueueActualInformation(nodeType, command.Result);
             }
             catch (FormatException e)
             {
@@ -204,16 +203,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             StringBuilder cmdBuilder = new();
             var nodeNames = jobInfo.Tasks.Where(w => w.State == TaskState.Running)
                                           .SelectMany(s => s.TaskAllocationNodes)
-                                          .Select(s => $"{s.AllocationNodeId}.{jobInfo.Specification.FileTransferMethod.ServerHostname}")
+                                          .Select(s => $"{s.AllocationNodeId}.{jobInfo.Specification.Cluster.DomainName ?? jobInfo.Specification.Cluster.MasterNodeName}")
                                           .ToList();
 
             nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
             string sshCommand = cmdBuilder.ToString();
+            _log.Info($"Get allocation nodes of job \"{jobInfo.Id}\", command \"{sshCommand}\"");
 
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                return command.Result.Split('\n');
+                return command.Result.Split('\n').Where(w=>!string.IsNullOrEmpty(w))
+                                                  .ToList();
             }
             catch (FormatException e)
             {
@@ -234,6 +235,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
+            _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
 
             foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
@@ -246,32 +248,31 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
         /// <summary>
-        /// Allow direct file transfer acces for user
+        /// Allow direct file transfer access for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
         {
             _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
         }
 
         /// <summary>
-        /// Remove direct file transfer acces for user
+        /// Remove direct file transfer access for user
         /// </summary>
-        /// <param name="connectorClient">Conenctor</param>
+        /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
+        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
+            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey);
         }
 
         /// <summary>
         /// Create job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
             _commands.CreateJobDirectory(connectorClient, jobInfo);
@@ -288,23 +289,22 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
         /// <summary>
-        /// Copy job data from temp folder
+        /// Copy job data to temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
-        /// <param name="hash">Hash</param>
+        /// <param name="jobInfo">Job information</param>
+        /// <param name="hash">Hash</param>  
         public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
         {
             _commands.CopyJobDataToTemp(connectorClient, jobInfo, hash, path);
         }
 
         /// <summary>
-        /// Copy job data to temp folder
+        /// Copy job data from temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
-        /// <param name="path">Path</param>
         public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
         {
             _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
@@ -348,6 +348,42 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         #endregion
         #endregion
         #region Private Methods
+        /// <summary>
+        /// Get actual tasks (HPC jobs) informations
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="cluster">Cluster</param>
+        /// <param name="scheduledJobIds">Scheduler job id´s</param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<string> scheduledJobIds)
+        {
+            SshCommandWrapper command = null;
+            StringBuilder cmdBuilder = new();
+
+            cmdBuilder.Append($"{_commands.InterpreterCommand} 'qstat -f -x {string.Join(" ", scheduledJobIds)}'");
+            string sshCommand = cmdBuilder.ToString();
+
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
+                return submittedTasksInfo;
+            }
+            catch (FormatException e)
+            {
+                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", scheduledJobIds)}"". 
+                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
+                                       Command line for job submission: ""{sshCommand}""\n", e);
+            }
+        }
+
+        /// <summary>
+        /// Create all scheduled job id´s combinated (jobarray indexes)
+        /// </summary>
+        /// <param name="scheduledJobId">Scheduled job id</param>
+        /// <param name="jobArrayParameter">Jobarray parameter for job</param>
+        /// <returns></returns>
         private static IEnumerable<string> CombineScheduledJobIdWithJobArrayIndexes(string scheduledJobId, string jobArrayParameter)
         {
             var combJobIdAndJobArrayIndex = new List<string>() { scheduledJobId };

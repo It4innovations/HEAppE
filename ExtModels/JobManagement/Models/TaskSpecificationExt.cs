@@ -32,10 +32,10 @@ namespace HEAppE.ExtModels.JobManagement.Models
         public string JobArrays { get; set; }
 
         [DataMember(Name = "IsExclusive")]
-        public bool? IsExclusive { get; set; }
+        public bool? IsExclusive { get; set; } = false;
 
         [DataMember(Name = "IsRerunnable")]
-        public bool? IsRerunnable { get; set; }
+        public bool? IsRerunnable { get; set; } = false;
 
         [DataMember(Name = "StandardInputFile"), StringLength(30)]
         public string StandardInputFile { get; set; }

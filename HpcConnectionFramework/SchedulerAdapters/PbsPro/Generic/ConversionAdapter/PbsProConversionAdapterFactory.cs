@@ -3,7 +3,7 @@
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
     /// <summary>
-    /// PbsPro conversion adapter factory
+    /// PBS Professional conversion adapter factory
     /// </summary>
     public class PbsProConversionAdapterFactory : ConversionAdapterFactory
     {
