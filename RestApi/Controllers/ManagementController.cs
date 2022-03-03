@@ -26,8 +26,9 @@ namespace HEAppE.RestApi.Controllers
         #endregion
 
         /// <summary>
-        /// Creates Command Template from Generic Command Template
+        /// Create Command Template from Generic Command Template
         /// </summary>
+        /// <param name="model">CreateCommandTemplate</param>
         /// <returns></returns>
         [HttpPost("CreateCommandTemplate")]
         [RequestSizeLimit(1520)]
@@ -62,8 +63,10 @@ namespace HEAppE.RestApi.Controllers
         }
 
 
-        /// Removes Command Template from repository
+        /// <summary>
+        /// Remove command template
         /// </summary>
+        /// <param name="model">RemoveCommandTemplateModel</param>
         /// <returns></returns>
         [HttpPost("RemoveCommandTemplate")]
         [RequestSizeLimit(84)]
@@ -93,8 +96,10 @@ namespace HEAppE.RestApi.Controllers
         }
 
 
-        /// Modifies Command Template
+        /// <summary>
+        /// Modify command template
         /// </summary>
+        /// <param name="model">ModifyCommandTemplateModel</param>
         /// <returns></returns>
         [HttpPost("ModifyCommandTemplate")]
         [RequestSizeLimit(1520)]

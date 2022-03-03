@@ -31,6 +31,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         }
         #endregion
         #region SchedulerDataConvertor Members
+        /// <summary>
+        /// Convert Tasks To TaskInfoCollection
+        /// </summary>
+        /// <param name="jobInfo">Job Clutser DTO</param>
+        /// <param name="allTasks">Task mapped to LinuxLocalJobDTO Collection</param>
+        /// <returns></returns>
         private List<SubmittedTaskInfo> ConvertTasksToTaskInfoCollection(LinuxLocalInfo jobInfo, List<LinuxLocalJobDTO> allTasks)
         {
             List<SubmittedTaskInfo> taskCollection = new();
@@ -43,8 +49,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             }
             return taskCollection;
         }
-
-        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
+        /// <summary>
+        /// Convert JobSpecification ToJob
+        /// </summary>
+        /// <param name="jobSpecification">Internal Job Specification</param>
+        /// <param name="schedulerAllocationCmd">Scheduler command</param>
+        /// <returns></returns>
+        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd = null)
         {
             var localHpcJobInfo = Convert.ToBase64String(Encoding.UTF8.GetBytes(
                     jobSpecification.ConvertToLocalHPCInfo(LinuxLocalTaskState.Q.ToString(), LinuxLocalTaskState.Q.ToString()))
@@ -77,6 +88,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
 
+        /// <summary>
+        /// Get Job IDs (Cluster Jobs)
+        /// </summary>
+        /// <param name="responseMessage">Clustser response message</param>
+        /// <returns></returns>
         public override IEnumerable<string> GetJobIds(string responseMessage)
         {
             List<string> jobIds = new();
@@ -85,6 +101,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return jobIds;
         }
 
+        /// <summary>
+        /// Read Parameters From Response 
+        /// </summary>
+        /// <param name="cluster">Cluster</param>
+        /// <param name="response">Cluster response message</param>
+        /// <returns></returns>
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object response)
         {
             List<SubmittedTaskInfo> taskInfos = new();
@@ -95,6 +117,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return taskInfos;
         }
 
+        /// <summary>
+        /// Convert Task To TaskInfo
+        /// </summary>
+        /// <param name="jobDTO">Cluster Job DTO</param>
+        /// <returns></returns>
         public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobDTO)
         {
             var taskInfo = new SubmittedTaskInfo();
