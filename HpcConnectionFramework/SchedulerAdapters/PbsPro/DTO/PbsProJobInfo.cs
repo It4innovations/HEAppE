@@ -165,6 +165,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         public TimeSpan RunTime { get; set; }
 
         /// <summary>
+        /// Job run number of cores
+        /// </summary>
+        [Scheduler("resources_used.ncpus")]
+        public int? UsedCores { get; set; }
+
+        /// <summary>
         /// Job allocated nodes
         /// </summary>
         [Scheduler("exec_host")]
@@ -230,7 +236,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         public void CombineJobs(PbsProJobInfo jobInfo)
         {
             StartTime = (StartTime > jobInfo.StartTime && jobInfo.StartTime.HasValue) ? StartTime : jobInfo.StartTime;
-            RunTime += jobInfo.RunTime;
+
+            if (UsedCores.HasValue && jobInfo.UsedCores.HasValue && UsedCores != jobInfo.UsedCores)
+            {
+                var normalizedRunTime = (jobInfo.UsedCores.Value * jobInfo.RunTime.TotalSeconds) / UsedCores.Value;
+                RunTime += TimeSpan.FromSeconds(Math.Round(normalizedRunTime, 3));
+            }
+            else
+            {
+                RunTime += jobInfo.RunTime;
+            }
 
             _allocatedNodes = jobInfo.AllocatedNodes.Union(_allocatedNodes);
             AggregateSchedulerResponseParameters += $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{jobInfo.SchedulerResponseParameters}";

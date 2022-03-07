@@ -1,12 +1,4 @@
-﻿using System;
-using System.Linq;
-using System.Net;
-using System.Net.Cache;
-using System.Net.Http.Headers;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
-using HEAppE.OpenStackAPI.Configuration;
+﻿using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.OpenStackAPI.JsonTypes.Authentication;
@@ -14,6 +6,13 @@ using HEAppE.RestUtils;
 using log4net;
 using Newtonsoft.Json;
 using RestSharp;
+using System;
+using System.Linq;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Reflection;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace HEAppE.OpenStackAPI
 {
@@ -42,15 +41,21 @@ namespace HEAppE.OpenStackAPI
         public OpenStack(string openStackAddress)
         {
             _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+            if (string.IsNullOrEmpty(openStackAddress))
+            {
+                throw new OpenStackAPIException("Not specify URL address for OpenStack");
+            }
+
             var options = new RestClientOptions($"{openStackAddress}:{OpenStackSettings.IdentityPort}/")
             {
                 Encoding = Encoding.UTF8,
                 CachePolicy = new CacheControlHeaderValue()
                 {
                     NoCache = true,
-                    NoStore = true 
+                    NoStore = true
                 },
-                Timeout = 10000
+                Timeout = OpenStackSettings.ConnectionTimeout
             };
             _basicRestClient = new RestClient(options);
         }
@@ -68,7 +73,7 @@ namespace HEAppE.OpenStackAPI
             string requestBody = JsonConvert.SerializeObject(requestObject, IgnoreNullSerializer.Instance);
 
             RestRequest request = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/auth/tokens", Method.Post)
-                                        .AddSerializedJsonBody(requestBody);
+                                        .AddStringBody(requestBody, DataFormat.Json);
 
             RestResponse response = await _basicRestClient.ExecuteAsync(request);
             AuthenticationResponse result = ParseHelper.ParseJsonOrThrow<AuthenticationResponse, OpenStackAPIException>(response, HttpStatusCode.Created);
@@ -91,8 +96,8 @@ namespace HEAppE.OpenStackAPI
             string requestBody = JsonConvert.SerializeObject(requestObject, IgnoreNullSerializer.Instance);
 
             RestRequest restRequest = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/users/{authResponse.Token.User.Id}/application_credentials", Method.Post)
-                                        .AddSerializedJsonBody(requestBody)
-                                        .AddXAuthTokenToHeader(authResponse.AuthToken);
+                                            .AddStringBody(requestBody, DataFormat.Json)
+                                            .AddXAuthTokenToHeader(authResponse.AuthToken);
 
             RestResponse response = await _basicRestClient.ExecuteAsync(restRequest);
             ApplicationCredentialsResponse result = ParseHelper.ParseJsonOrThrow<ApplicationCredentialsResponse, OpenStackAPIException>(response, HttpStatusCode.Created);

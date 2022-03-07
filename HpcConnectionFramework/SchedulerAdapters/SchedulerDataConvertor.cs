@@ -325,7 +325,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 {
                     case "Boolean":
                         {
-                            return obj is null ? null : Convert.ChangeType(Convert.ToInt32(obj), type);
+                            string parsedText = Convert.ToString(obj);
+                            if (string.IsNullOrEmpty(parsedText))
+                            {
+                                return null;
+                            }
+                            
+                            return int.TryParse(parsedText, out int value)
+                                            ? Convert.ChangeType(value, type)
+                                            : Convert.ChangeType(parsedText, type);
                         }
                     case "TimeSpan":
                         {

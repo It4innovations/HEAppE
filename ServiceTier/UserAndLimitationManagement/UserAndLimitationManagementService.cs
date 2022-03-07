@@ -48,7 +48,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 }
                 else if (credentials is OpenIdCredentialsExt openIdCredentials)
                 {
-                    // NOTE(Moravec): We don't copy username, as it is not set yet. Username is extracted from the access_token later.
+                    //Username is extracted from the access_token later.
                     credentialsIn = new OpenIdCredentials
                     {
                         OpenIdAccessToken = openIdCredentials.OpenIdAccessToken,

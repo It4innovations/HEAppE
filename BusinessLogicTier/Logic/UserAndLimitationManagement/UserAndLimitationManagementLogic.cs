@@ -105,7 +105,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 case PasswordCredentials:
                     return AuthenticateUserWithPassword(user, (PasswordCredentials)credentials);
                 case OpenIdCredentials:
-                    // NOTE(Moravec): We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
+                    // NOTE: We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
                     return CreateSessionCode(user).UniqueCode;
             }
 
@@ -230,17 +230,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>New or existing user.</returns>
         private async Task<AdaptorUser> HandleOpenIdAuthenticationAsync(OpenIdCredentials openIdCredentials)
         {
-            //TODO at REST API validation
-            if (string.IsNullOrWhiteSpace(openIdCredentials.OpenIdAccessToken))
-            {
-                string error = "Empty access_token in HandleOpenIdAuthentication.";
-                log.Error(error);
-                throw new OpenIdAuthenticationException(error);
-            }
-
             try
             {
-                KeycloakOpenId keycloak = new KeycloakOpenId();
+                var keycloak = new KeycloakOpenId();
                 var tokenIntrospectResult = await keycloak.TokenIntrospectionAsync(openIdCredentials.OpenIdAccessToken);
                 KeycloakOpenId.ValidateUserToken(tokenIntrospectResult);
 
@@ -253,6 +245,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             {
                 log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
                 throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", keycloakException);
+            }
+            catch (OpenIdAuthenticationException OpenIdException)
+            {
+                log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", OpenIdException);
+                throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", OpenIdException);
             }
         }
 
@@ -277,7 +274,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (!openIdUser.ProjectRoles.TryGetValue(KeycloakConfiguration.Project, out IEnumerable<string> openIdRoles))
             {
-                throw new Exception("No roles for specific project is set");
+                throw new OpenIdAuthenticationException("No roles for specific project is set");
             }
 
             var availableRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(openIdRoles).ToList();

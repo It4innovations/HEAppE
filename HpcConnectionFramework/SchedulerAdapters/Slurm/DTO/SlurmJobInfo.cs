@@ -109,6 +109,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         public TimeSpan RunTime { get; set; }
 
         /// <summary>
+        /// Job run number of cores
+        /// </summary>
+        /// Note: Not supported yet
+        public int? UsedCores { get; set; }
+
+        /// <summary>
         /// Job allocated nodes
         /// </summary>
         [Scheduler("NodeList")]
@@ -185,9 +191,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         {
             StartTime = (StartTime.HasValue && jobInfo.StartTime.HasValue && StartTime > jobInfo.StartTime) ? jobInfo.StartTime : StartTime;
             EndTime = (EndTime.HasValue && jobInfo.EndTime.HasValue && EndTime < jobInfo.EndTime) ? jobInfo.EndTime : EndTime;
-            RunTime += jobInfo.RunTime;
 
-             if (TaskState != jobInfo.TaskState && TaskState <= TaskState.Finished
+            if (UsedCores.HasValue && jobInfo.UsedCores.HasValue && UsedCores != jobInfo.UsedCores)
+            {
+                var normalizedRunTime = (jobInfo.UsedCores.Value * jobInfo.RunTime.TotalSeconds) / UsedCores.Value;
+                RunTime += TimeSpan.FromSeconds(Math.Round(normalizedRunTime, 3));
+            }
+            else
+            {
+                RunTime += jobInfo.RunTime;
+            }
+
+            if (TaskState != jobInfo.TaskState && TaskState <= TaskState.Finished
                 && ((jobInfo.TaskState > TaskState.Queued && jobInfo.TaskState != TaskState.Finished) || (TaskState == TaskState.Finished && jobInfo.TaskState == TaskState.Queued)))
             {
                 TaskState = jobInfo.TaskState;

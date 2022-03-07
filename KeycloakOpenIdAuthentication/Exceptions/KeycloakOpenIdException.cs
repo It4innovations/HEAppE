@@ -13,7 +13,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Exceptions
         /// Constructor
         /// </summary>
         /// <param name="message">Message</param>
-        internal KeycloakOpenIdException(string message) : base(message)
+        public KeycloakOpenIdException(string message) : base(message)
         {
 
         }
@@ -23,7 +23,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Exceptions
         /// </summary>
         /// <param name="message">Message</param>
         /// <param name="innerException">Inner exception</param>
-        internal KeycloakOpenIdException(string message, Exception innerException) : base(message, innerException)
+        public KeycloakOpenIdException(string message, Exception innerException) : base(message, innerException)
         {
 
         }

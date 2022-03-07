@@ -106,22 +106,6 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("OpenIdAccessToken contains illegal characters.");
             }
 
-            if (string.IsNullOrEmpty(credentials.Username))
-            {
-                _messageBuilder.AppendLine("Username cannot be empty.");
-            }
-            else
-            {
-                if (ContainsIllegalCharacters(credentials.Username))
-                {
-                    _messageBuilder.AppendLine("Username contains illegal characters.");
-                }
-                if (credentials.Username.Length > UsernameMaxLength)
-                {
-                    _messageBuilder.AppendLine($"Username is too long, maximal length is {UsernameMaxLength}");
-                }
-            }
-
             return _messageBuilder.ToString();
         }
 
