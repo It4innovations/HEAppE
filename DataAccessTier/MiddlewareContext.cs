@@ -35,40 +35,39 @@ namespace HEAppE.DataAccessTier
                     {
                         try
                         {
-                            //Connection to Database works and Database not exist
-                            if (!Database.CanConnect())
+                            string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
+                            if (localRunEnv != "LocalWindows")
                             {
-                                _log.Info("Starting migration and seeding into the new database.");
-                                Database.Migrate();
-                                EnsureDatabaseSeeded();
-                                _isMigrated = true;
-                            }
-                            else
-                            {
-                                var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                                var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-
-                                if (lastAppliedMigration is null)
+                                //Connection to Database works and Database not exist
+                                if (!Database.CanConnect())
                                 {
                                     _log.Info("Starting migration and seeding into the new database.");
                                     Database.Migrate();
                                     EnsureDatabaseSeeded();
                                     _isMigrated = true;
                                 }
-                                else if (lastAppliedMigration == lastDefinedMigration)
-                                {
-                                    _log.Info("Application and database migrations are same. Starting seeding data into database.");
-                                    EnsureDatabaseSeeded();
-                                    _isMigrated = true;
-                                }
                                 else
                                 {
-                                    string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
-                                    if (localRunEnv != "LocalWindows")
+                                    var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
+                                    var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
+
+                                    if (lastAppliedMigration is null)
+                                    {
+                                        _log.Info("Starting migration and seeding into the new database.");
+                                        Database.Migrate();
+                                        EnsureDatabaseSeeded();
+                                        _isMigrated = true;
+                                    }
+
+                                    if (lastAppliedMigration != lastDefinedMigration)
                                     {
                                         _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
                                         throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
                                     }
+
+                                    _log.Info("Application and database migrations are same. Starting seeding data into database.");
+                                    EnsureDatabaseSeeded();
+                                    _isMigrated = true;
                                 }
                             }
                         }
@@ -229,7 +228,7 @@ namespace HEAppE.DataAccessTier
             SaveChanges();
             _log.Info("Seed data into the database completed.");
         }
-        
+
         //sqlserver specific because of identity
         private void InsertOrUpdateSeedData<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
         {

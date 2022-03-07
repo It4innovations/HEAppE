@@ -72,6 +72,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
         TimeSpan RunTime { get; set; }
 
         /// <summary>
+        /// Job run number of cores
+        /// </summary>
+        int? UsedCores { get; set; }
+
+        /// <summary>
         /// Job allocated nodes
         /// </summary>
 

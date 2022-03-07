@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20220302152521_ClusterDomain")]
+    [Migration("20220307121409_ClusterDomain")]
     partial class ClusterDomain
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -475,6 +475,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<string>("AllParameters")
                         .HasColumnType("text");
+
+                    b.Property<int?>("AllocatedCores")
+                        .HasColumnType("int");
 
                     b.Property<double?>("AllocatedTime")
                         .HasColumnType("float");

@@ -474,6 +474,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("AllParameters")
                         .HasColumnType("text");
 
+                    b.Property<int?>("AllocatedCores")
+                        .HasColumnType("int");
+
                     b.Property<double?>("AllocatedTime")
                         .HasColumnType("float");
 

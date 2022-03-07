@@ -6,6 +6,12 @@ namespace HEAppE.DataAccessTier.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<int>(
+                name: "AllocatedCores",
+                table: "SubmittedTaskInfo",
+                type: "int",
+                nullable: true);
+
             migrationBuilder.AddColumn<string>(
                 name: "DomainName",
                 table: "Cluster",
@@ -16,6 +22,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "AllocatedCores",
+                table: "SubmittedTaskInfo");
+
             migrationBuilder.DropColumn(
                 name: "DomainName",
                 table: "Cluster");

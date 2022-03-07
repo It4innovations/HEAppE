@@ -57,6 +57,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
         public TimeSpan AllocatedTime { get; set; }
         public TimeSpan RunTime { get; set; }
 
+        public int? UsedCores { get; set; }
+
         public IEnumerable<string> AllocatedNodes { get; set; }
 
         public string SchedulerResponseParameters => StringUtils.ConvertDictionaryToString(AllParametres);

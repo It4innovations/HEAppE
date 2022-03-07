@@ -92,7 +92,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 Name = obj.Name,
                 StartTime = obj.StartTime,
                 EndTime = obj.StartTime.HasValue && jobInfo.TaskState >= TaskState.Finished ? obj.StartTime.Value.AddSeconds(obj.RunTime.TotalSeconds) : null,
-                AllocatedTime = obj.RunTime.TotalSeconds,
+                AllocatedTime = Math.Round(obj.RunTime.TotalSeconds, 3),
+                AllocatedCores = obj.UsedCores,
                 State = obj.TaskState,
                 TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo() { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
                                                           .ToList(),
