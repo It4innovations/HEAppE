@@ -47,15 +47,18 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult AuthenticateUserOpenId(AuthenticateUserOpenIdModel model)
+        public async Task<IActionResult> AuthenticateUserOpenIdAsync(AuthenticateUserOpenIdModel model)
         {
             try
             {
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenId\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.AuthenticateUserAsync(model.Credentials));
+                }
+
+                return Ok(await _service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
             {
@@ -82,7 +85,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenStack\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials));
             }
             catch (Exception e)
@@ -110,7 +116,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserPassword\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(await _service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
@@ -138,7 +147,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserDigitalSignature\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(await _service.AuthenticateUserAsync(model.Credentials));
             }
             catch (Exception e)
@@ -166,7 +178,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(model.SessionCode));
             }
             catch (Exception e)
