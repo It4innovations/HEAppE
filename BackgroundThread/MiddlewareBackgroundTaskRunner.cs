@@ -1,8 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.BackgroundThread.Configuration;
+﻿using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BackgroundThread.Tasks;
-using HEAppE.BusinessLogicTier.Configuration;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.BackgroundThread
 {

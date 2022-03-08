@@ -107,7 +107,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
             IEnumerable<string> jobIdsWithJobArrayIndexes = Enumerable.Empty<string>();
             try
@@ -156,7 +156,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
         /// <param name="message">Message</param>
-        public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
+        public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder cmdBuilder = new();
             submitedTasksInfo.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f.ScheduledJobId}';"));
@@ -197,7 +197,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
+        public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
             SshCommandWrapper command = null;
             StringBuilder cmdBuilder = new();

@@ -63,12 +63,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return submittedTaskInfos;
         }
 
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
             return GetActualTasksInfo(connectorClient, cluster, submitedTasksInfo.Select(s => s.ScheduledJobId));
         }
 
-        public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+        public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
             var usage = new ClusterNodeUsage
             {
@@ -84,12 +84,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return usage;
         }
 
-        public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
+        public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
             throw new NotImplementedException();
         }
 
-        public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var shellCommandSb = new StringBuilder();
             var jobResultInfo = new StringBuilder();
@@ -130,7 +130,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         }
 
         #region JobManagement
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
         {
             StringBuilder shellCommandSb = new StringBuilder();
             shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id};");
@@ -140,7 +140,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             _log.InfoFormat("Create job directory result: {0}", sshCommand.Result);
         }
 
-        public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
+        public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder commandSb = new();
             submitedTasksInfo.ToList().ForEach(f => commandSb.Append($"{_linuxLocalCommandScripts.CancelJobCmdPath} {f.ScheduledJobId};"));
@@ -163,7 +163,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
         }
         #endregion
-        public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+        public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
         {
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
