@@ -1,7 +1,7 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
-using HEAppE.ServiceTier.ClusterInformation;
+using HEAppE.ServiceTier.Management;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -17,7 +17,7 @@ namespace HEAppE.RestApi.Controllers
     public class ManagementController : BaseController<ManagementController>
     {
         #region Instances
-        private IClusterInformationService _service = new ClusterInformationService();
+        private IManagementService _service = new ManagementService();
         #endregion
         #region Constructors
         public ManagementController(ILogger<ManagementController> logger) : base(logger)
@@ -39,7 +39,6 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CreateCommandTemplate(CreateCommandTemplateModel model)
         {
-            //TODO (konvicka): Add role checking to Admin
             try
             {
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
@@ -77,7 +76,6 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
         {
-            //TODO (konvicka): Add role checking to Admin
             try
             {
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
@@ -110,7 +108,6 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
         {
-            //TODO (konvicka): Add role checking to Admin
             try
             {
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
