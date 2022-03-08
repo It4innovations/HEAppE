@@ -8,6 +8,9 @@ using System.Text.Json.Serialization;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
 {
+    /// <summary>
+    /// Local Linux Job DTO
+    /// </summary>
     public class LinuxLocalJobDTO : ISchedulerJobInfo
     {
         public string SchedulerJobId { get; set; }

@@ -14,6 +14,9 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 {
+    /// <summary>
+    /// Local Linux HPC Data Convertor
+    /// </summary>
     public class LinuxLocalDataConvertor : SchedulerDataConvertor
     {
         #region Instances
@@ -23,9 +26,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
         #endregion
         #region Constructors
-        public LinuxLocalDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory) 
-        {
-        }
         public LinuxLocalDataConvertor() : base(null) 
         {
         }
@@ -140,6 +140,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return taskInfo;
         }
 
+        /// <summary>
+        /// Read actual queue status from scheduler
+        /// </summary>
+        /// <param name="nodeType">Cluster node type</param>
+        /// <param name="responseMessage">Scheduler response message</param>
+        /// <returns></returns>
+        /// <exception cref="FormatException"></exception>
         public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
             throw new NotImplementedException();

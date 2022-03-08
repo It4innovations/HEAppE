@@ -4,6 +4,9 @@ using System.Text.Json.Serialization;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
 {
+    /// <summary>
+    /// Local Linux HPC Job DTOs wrapper
+    /// </summary>
     public class LinuxLocalInfo
     {
         public long Id { get; set; }

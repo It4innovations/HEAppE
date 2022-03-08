@@ -3,8 +3,16 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal
 {
+    /// <summary>
+    /// Mapper for Local Linux HPC formats
+    /// </summary>
     internal static class Mapper
     {
+        /// <summary>
+        /// Map Local Linux Task state to HEAppE Task state
+        /// </summary>
+        /// <param name="taskState"></param>
+        /// <returns></returns>
         internal static TaskState Map(this LinuxLocalTaskState taskState)
         {
             return taskState switch
