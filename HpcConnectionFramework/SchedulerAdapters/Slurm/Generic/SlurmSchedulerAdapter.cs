@@ -68,7 +68,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
             SshCommandWrapper command = null;
@@ -104,7 +104,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="submitedTasksInfo">Submitted tasks ids</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
             var submitedTasksInfoList = submitedTasksInfo.ToList();
             try
@@ -124,7 +124,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
         /// <param name="message">Message</param>
-        public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
+        public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder cmdBuilder = new();
             foreach (var submitedTaskInfo in submitedTasksInfo)
@@ -149,7 +149,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="nodeType">Cluster node type</param>
-        public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+        public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
             SshCommandWrapper command = null;
             var allocationCluster = string.Empty;
@@ -180,7 +180,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
+        public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
             SshCommandWrapper command = null;
             StringBuilder cmdBuilder = new();

@@ -79,15 +79,24 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 }
             }
             return genericCommandParameters;
+                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_linuxLocalCommandScripts.GetJobInfoCmdPath} {jobId}/");
+                submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
+            }
+            return submittedTaskInfos;
         }
 
-        /// <summary>
-        /// Get cluster node usage
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="nodeType">ClusterNode type</param>
-        /// <returns></returns>
-        public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
+        public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        {
+            return GetActualTasksInfo(connectorClient, cluster, submitedTasksInfo.Select(s => s.ScheduledJobId));
+        }
+
+    /// <summary>
+    /// Get cluster node usage
+    /// </summary>
+    /// <param name="connectorClient">Connector</param>
+    /// <param name="nodeType">ClusterNode type</param>
+    /// <returns></returns>
+    public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
             var usage = new ClusterNodeUsage
             {
@@ -104,48 +113,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         }
         #endregion
 
-        #region FileTransfer
-        /// <summary>
-        /// Allow Direct File Transfer Access for user to job
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public Key (RSA)</param>
-        /// <param name="jobInfo">Submitted JobInfo</param>
-        public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
+        public IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
         {
             _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
         }
 
-        /// <summary>
-        /// Remove Direct File Transfer Access for user to job
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public Key (RSA)</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
-        {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey);
-        }
-        #endregion
-
-        #region JobManagement
-        /// <summary>
-        /// Create job directory whith task subdirectories
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Submitted JobInfo</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
-        {
-            _commands.CreateJobDirectory(connectorClient, jobInfo);
-        }
-
-        /// <summary>
-        /// Submit job to cluster
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="jobSpecification">Job Specification</param>
-        /// <param name="credentials">Cluster Authentication Credentials</param>
-        /// <returns></returns>
-        public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+    /// <summary>
+    /// Allow Direct File Transfer Access for user to job
+    /// </summary>
+    /// <param name="connectorClient">Connector</param>
+    /// <param name="publicKey">Public Key (RSA)</param>
+    /// <param name="jobInfo">Submitted JobInfo</param>    
+    public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var shellCommandSb = new StringBuilder();
             var jobResultInfo = new StringBuilder();
@@ -211,14 +190,24 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             return GetActualTasksInfo(connectorClient, cluster, localClusterJobIds);
         }
 
+        #region JobManagement
+        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        {
+            StringBuilder shellCommandSb = new StringBuilder();
+            shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id};");
+            jobInfo.Tasks.ForEach(task => shellCommandSb.Append($"~/.key_scripts/create_job_directory.sh {jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id};"));
 
-        /// <summary>
-        /// Cancel Job
-        /// </summary>
-        /// <param name="connectorClient">Connector</param>
-        /// <param name="submitedTasksInfo">Submitted TaskInfo collection</param>
-        /// <param name="message">Message</param>
-        public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommandSb.ToString());
+            _log.InfoFormat("Create job directory result: {0}", sshCommand.Result);
+        }
+
+    /// <summary>
+    /// Cancel Job
+    /// </summary>
+    /// <param name="connectorClient">Connector</param>
+    /// <param name="submitedTasksInfo">Submitted TaskInfo collection</param>
+    /// <param name="message">Message</param>
+    public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder commandSb = new();
             var localClusterJobIds = submitedTasksInfo
@@ -261,6 +250,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         {
             _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
         }
+        #endregion
+        public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+        {
+            var genericCommandParameters = new List<string>();
+            string shellCommand = $"cat {userScriptPath}";
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
 
         /// <summary>
         /// Get Allocated Nodes
