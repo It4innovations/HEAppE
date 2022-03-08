@@ -80,7 +80,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
-
+            _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
             foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
@@ -105,6 +105,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             };
 
             var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), _linuxLocalCommandScripts.CountJobsCmdPath);
+            _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
             if (int.TryParse(command.Result, out int totalJobs))
             {
                 usage.TotalJobs = totalJobs;
@@ -156,10 +157,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var shellCommandSb = new StringBuilder();
 
             string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
-
+            _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 $"{_commandScripts.ExecutieCmdPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
-            _log.InfoFormat("Run prepare-job result: {0}", sshCommand.Result);
 
             shellCommandSb.Clear();
 
@@ -172,7 +172,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             shellCommandSb.Append($" >> {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/job_log.txt &");
 
             shellCommand = shellCommandSb.ToString();
-
+            
             sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 $"{_commandScripts.ExecutieCmdPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand))}");
 
@@ -209,6 +209,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 .Distinct();
             localClusterJobIds.ToList().ForEach(id => commandSb.Append($"{_linuxLocalCommandScripts.CancelJobCmdPath} {id};"));
             string command = commandSb.ToString();
+            _log.Info($"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{command}\", message \"{message}\"");
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), command);
         }
 
@@ -273,6 +274,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 }
                 allocatedNodes.Add(allocationNodeSb.ToString());
             }
+            _log.Info($"Get allocation nodes of job \"{jobInfo.Id}\"");
             return allocatedNodes.Distinct();
         }
 
@@ -326,6 +328,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             foreach (var jobId in scheduledJobIdsList)
             {
                 var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_linuxLocalCommandScripts.GetJobInfoCmdPath} {jobId}/");
+                _log.Info($"Get actual task info id=\"{jobId}\", command \"{command}\"");
+
                 submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
             }
             return submittedTaskInfos;
