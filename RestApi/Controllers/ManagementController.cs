@@ -42,7 +42,7 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
-                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.CreateCommandTemplate(
@@ -61,6 +61,41 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Modify command template
+        /// </summary>
+        /// <param name="model">ModifyCommandTemplateModel</param>
+        /// <returns></returns>
+        [HttpPost("ModifyCommandTemplate")]
+        [RequestSizeLimit(1520)]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                return Ok(_service.ModifyCommandTemplate(
+                                                            model.CommandTemplateId,
+                                                            model.Name,
+                                                            model.Description,
+                                                            model.Code,
+                                                            model.ExecutableFile,
+                                                            model.PreparationScript,
+                                                            model.SessionCode
+                        ));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
 
         /// <summary>
         /// Remove command template
@@ -79,48 +114,11 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
-                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 return Ok(_service.RemoveCommandTemplate(
                                                             model.CommandTemplateId,
-                                                            model.SessionCode
-                        ));
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
-
-        /// <summary>
-        /// Modify command template
-        /// </summary>
-        /// <param name="model">ModifyCommandTemplateModel</param>
-        /// <returns></returns>
-        [HttpPost("ModifyCommandTemplate")]
-        [RequestSizeLimit(1520)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
-                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
-                if (!validationResult.IsValid)
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.ModifyCommandTemplate(
-                                                            model.CommandTemplateId,
-                                                            model.Name,
-                                                            model.Description,
-                                                            model.Code,
-                                                            model.ExecutableFile,
-                                                            model.PreparationScript,
                                                             model.SessionCode
                         ));
             }

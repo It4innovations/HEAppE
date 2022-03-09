@@ -59,7 +59,7 @@ namespace HEAppE.Utils.Validation
         {
             if (!string.IsNullOrEmpty(text))
             {
-                return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \\\/\.]+", RegexOptions.Compiled);
+                return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \\\/\.\~]+", RegexOptions.Compiled);
             }
             else
             {
