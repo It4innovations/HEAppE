@@ -53,10 +53,9 @@ namespace HEAppE.DataAccessTier
 
                                     if (lastAppliedMigration is null)
                                     {
-                                        _log.Info("Starting migration and seeding into the new database.");
+                                        _log.Info("Starting migration into the new database.");
                                         Database.Migrate();
-                                        EnsureDatabaseSeeded();
-                                        _isMigrated = true;
+                                        lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                     }
 
                                     if (lastAppliedMigration != lastDefinedMigration)
