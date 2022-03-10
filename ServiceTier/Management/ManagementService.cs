@@ -1,6 +1,7 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
+using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
@@ -34,8 +35,8 @@ namespace HEAppE.ServiceTier.Management
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
-                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    CommandTemplate commandTemplate = clusterLogic.CreateCommandTemplate(genericCommandTemplateId, name, description, code, executableFile, preparationScript, loggedUser);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    CommandTemplate commandTemplate = managementLogic.CreateCommandTemplate(genericCommandTemplateId, name, description, code, executableFile, preparationScript);
                     return commandTemplate.ConvertIntToExt();
                 }
             }
@@ -58,8 +59,8 @@ namespace HEAppE.ServiceTier.Management
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
-                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    clusterLogic.RemoveCommandTemplate(commandTemplateId, loggedUser);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    managementLogic.RemoveCommandTemplate(commandTemplateId);
                     return $"CommandTemplate with id {commandTemplateId} has been removed.";
                 }
             }
@@ -77,8 +78,8 @@ namespace HEAppE.ServiceTier.Management
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
-                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    CommandTemplate commandTemplate = clusterLogic.ModifyCommandTemplate(commandTemplateId, name, description, code, executableFile, preparationScript, loggedUser);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    CommandTemplate commandTemplate = managementLogic.ModifyCommandTemplate(commandTemplateId, name, description, code, executableFile, preparationScript);
                     return commandTemplate.ConvertIntToExt();
                 }
             }

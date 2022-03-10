@@ -10,8 +10,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20220307121409_ClusterDomain")]
-    partial class ClusterDomain
+    [Migration("20220310105917_ClusterDomain_CommandTemplateIsEnabled")]
+    partial class ClusterDomain_CommandTemplateIsEnabled
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
@@ -272,6 +272,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsGeneric")
                         .HasColumnType("bit");

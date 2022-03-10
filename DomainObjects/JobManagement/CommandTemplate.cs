@@ -32,7 +32,10 @@ namespace HEAppE.DomainObjects.JobManagement {
         [Required]
         public bool IsGeneric { get; set; } = false;
 
-        public virtual List<CommandTemplateParameter> TemplateParameters { get; set; } = new List<CommandTemplateParameter>();
+		[Required]
+		public bool IsEnabled { get; set; } = true;
+
+		public virtual List<CommandTemplateParameter> TemplateParameters { get; set; } = new List<CommandTemplateParameter>();
 
         [ForeignKey("ClusterNodeType")]
         public long? ClusterNodeTypeId { get; set; }

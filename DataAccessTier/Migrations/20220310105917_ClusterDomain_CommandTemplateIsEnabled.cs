@@ -2,7 +2,7 @@
 
 namespace HEAppE.DataAccessTier.Migrations
 {
-    public partial class ClusterDomain : Migration
+    public partial class ClusterDomain_CommandTemplateIsEnabled : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -11,6 +11,13 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "SubmittedTaskInfo",
                 type: "int",
                 nullable: true);
+
+            migrationBuilder.AddColumn<bool>(
+                name: "IsEnabled",
+                table: "CommandTemplate",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
 
             migrationBuilder.AddColumn<string>(
                 name: "DomainName",
@@ -25,6 +32,10 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropColumn(
                 name: "AllocatedCores",
                 table: "SubmittedTaskInfo");
+
+            migrationBuilder.DropColumn(
+                name: "IsEnabled",
+                table: "CommandTemplate");
 
             migrationBuilder.DropColumn(
                 name: "DomainName",
