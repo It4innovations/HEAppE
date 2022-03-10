@@ -1,10 +1,4 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
