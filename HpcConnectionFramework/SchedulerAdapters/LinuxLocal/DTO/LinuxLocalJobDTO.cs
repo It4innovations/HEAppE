@@ -9,12 +9,14 @@ using System.Text.Json.Serialization;
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
 {
     /// <summary>
-    /// Local Linux Job DTO
+    /// Local Linux job information object
     /// </summary>
     public class LinuxLocalJobDTO : ISchedulerJobInfo
     {
-        public string SchedulerJobId { get; set; }
-
+        #region Properties
+        /// <summary>
+        /// Id
+        /// </summary>
         public long Id
         {
             set
@@ -22,11 +24,36 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                 SchedulerJobId = value.ToString();
             }
         }
+
+        /// <summary>
+        /// Job scheduled id
+        /// </summary>
+        public string SchedulerJobId { get; set; }
+
+        /// <summary>
+        /// Job Name
+        /// </summary>
         public string Name { get; set; }
+
+        /// <summary>
+        /// Job priority
+        /// </summary>
         public int Priority { get; set; }
+
+
+        /// <summary>
+        /// Job requeue
+        /// </summary>
         public bool Requeue { get; set; }
+
+        /// <summary>
+        /// Job queue name
+        /// </summary>
         public string QueueName { get; set; }
 
+        /// <summary>
+        /// Job state name
+        /// </summary>
         [JsonPropertyName("State")]
         public string StateIdentifier
         {
@@ -37,15 +64,29 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
             }
         }
 
+        /// <summary>
+        /// Job task state
+        /// </summary>
         public TaskState TaskState { get; private set; }
 
+        /// <summary>
+        /// Job creation time
+        /// </summary>
         public DateTime CreationTime { get; set; }
 
-
-
-
+        /// <summary>
+        /// Job submittion time
+        /// </summary>
         public DateTime SubmitTime { get; set; }
+
+        /// <summary>
+        /// Job start time
+        /// </summary>
         public DateTime? StartTime { get; set; }
+
+        /// <summary>
+        /// Job end time
+        /// </summary>
         public DateTime? EndTime { get; set; }
 
         [JsonPropertyName(nameof(AllocatedTime))]
@@ -56,14 +97,32 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                 AllocatedTime = TimeSpan.FromSeconds(value);
             }
         }
+
+        /// <summary>
+        /// Job allocated time (requirement)
+        /// </summary>
         [JsonIgnore]
         public TimeSpan AllocatedTime { get; set; }
+
+        /// <summary>
+        /// Job run time
+        /// </summary>
         public TimeSpan RunTime { get; set; }
 
+        /// <summary>
+        /// Job run number of cores
+        /// </summary>
         public int? UsedCores { get; set; }
 
+        /// <summary>
+        /// Job allocated nodes
+        /// </summary>
         public IEnumerable<string> AllocatedNodes { get; set; }
 
+
+        /// <summary>
+        /// Job scheduler response raw data
+        /// </summary>
         public string SchedulerResponseParameters => StringUtils.ConvertDictionaryToString(AllParametres);
 
         [JsonIgnore]
@@ -88,12 +147,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                 };
             }
         }
-
+#endregion
+        #region Methods
+        /// <summary>
+        /// Mapping Task state
+        /// </summary>
+        /// <param name="value">Value</param>
         private static LinuxLocalTaskState MappingTaskState(string value)
         {
             return Enum.TryParse(value, true, out LinuxLocalTaskState taskState)
                     ? taskState
                     : LinuxLocalTaskState.O;
         }
+        #endregion
     }
 }

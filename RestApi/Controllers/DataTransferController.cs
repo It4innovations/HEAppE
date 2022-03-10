@@ -28,6 +28,7 @@ namespace HEAppE.RestApi.Controllers
         #region Constructors
         public DataTransferController(ILogger<DataTransferController> logger) :base(logger)
         {
+
         }
         #endregion
         #region Methods
@@ -50,7 +51,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"GetDataTransferMethod\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetDataTransferMethod(model.IpAddress, model.Port, model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception e)
@@ -78,7 +82,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"EndDataTransfer\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 _service.EndDataTransfer(model.UsedTransferMethod, model.SessionCode);
                 return Ok("EndDataTransfer");
             }
@@ -107,7 +114,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"HttpGetToJobNode\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.HttpGetToJobNode(model.HttpRequest, model.HttpHeaders, model.SubmittedJobInfoId, model.IpAddress, model.SessionCode));
             }
             catch (Exception e)
@@ -135,7 +145,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"HttpPostToJobNode\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.HttpPostToJobNode(model.HttpRequest, model.HttpHeaders, model.HttpPayload, model.SubmittedJobInfoId, model.IpAddress, model.SessionCode));
             }
             catch (Exception e)
@@ -143,56 +156,6 @@ namespace HEAppE.RestApi.Controllers
                 return BadRequest(e.Message);
             }
         }
-
-        /// <summary>
-        /// Write Data to Job node
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        //[HttpPost("WriteDataToJobNode")]
-        //[RequestSizeLimit(50000)]
-        //[ProducesResponseType(typeof(int?), StatusCodes.Status200OK)]
-        //[ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        //[ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        //[ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        //public IActionResult WriteDataToJobNode(WriteDataToJobNodeModel model)
-        //{
-        //    try
-        //    {
-        //        _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"WriteDataToJobNode\" Parameters: \"{model}\"");
-        //        return Ok(_service.WriteDataToJobNode(model.Data, model.SubmittedJobInfoId, model.IpAddress, model.CloseConnection, model.SessionCode));
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        return BadRequest(e.Message);
-        //    }
-        //}
-
-        ///// <summary>
-        ///// Read Data from Job node
-        ///// </summary>
-        ///// <param name="model"></param>
-        ///// <returns></returns>
-        //[HttpPost("ReadDataFromJobNode")]
-        //[RequestSizeLimit(154)]
-        //[ProducesResponseType(typeof(byte[]), StatusCodes.Status200OK)]
-        //[ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        //[ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        //[ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        //public IActionResult ReadDataFromJobNode(ReadDataFromJobNodeModel model)
-        //{
-        //    try
-        //    {
-        //        _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"ReadDataFromJobNode\" Parameters: \"{model}\"");
-        //        return Ok(_service.ReadDataFromJobNode(model.SubmittedJobInfoId, model.IpAddress, model.SessionCode));
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        return BadRequest(e.Message);
-        //    }
-        //}
         #endregion
     }
 }

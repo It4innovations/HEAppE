@@ -22,8 +22,7 @@ namespace HEAppE.RestApi.InputValidator
                 TaskFileOffsetExt ext => ValidateTaskFileOffset(ext),
                 GetFileTransferMethodModel methodModel => ValidateGetFileTransferMethodModel(methodModel),
                 EndFileTransferModel transferModel => ValidateEndFileTransferModel(transferModel),
-                DownloadPartsOfJobFilesFromClusterModel clusterModel => ValidateDownloadPartsOfJobFilesFromClusterModel(
-                    clusterModel),
+                DownloadPartsOfJobFilesFromClusterModel clusterModel => ValidateDownloadPartsOfJobFilesFromClusterModel(clusterModel),
                 ListChangedFilesForJobModel jobModel => ValidateListChangedFilesForJobModel(jobModel),
                 DownloadFileFromClusterModel clusterModel => ValidateDownloadFileFromClusterModel(clusterModel),
                 _ => string.Empty

@@ -24,7 +24,7 @@ namespace HEAppE.RestApi.Controllers
         {
         }
         #endregion
-
+        #region Methods
         /// <summary>
         /// Create Command Template from Generic Command Template
         /// </summary>
@@ -44,16 +44,12 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
                 ValidationResult validationResult = new ManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.CreateCommandTemplate(
-                                                            model.GenericCommandTemplateId,
-                                                            model.Name,
-                                                            model.Description,
-                                                            model.Code,
-                                                            model.ExecutableFile,
-                                                            model.PreparationScript,
-                                                            model.SessionCode
-                        ));
+                }
+
+                return Ok(_service.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name,model.Description,model.Code,
+                                                         model.ExecutableFile, model.PreparationScript,model.SessionCode));
             }
             catch (Exception e)
             {
@@ -80,16 +76,12 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
                 ValidationResult validationResult = new ManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.ModifyCommandTemplate(
-                                                            model.CommandTemplateId,
-                                                            model.Name,
-                                                            model.Description,
-                                                            model.Code,
-                                                            model.ExecutableFile,
-                                                            model.PreparationScript,
-                                                            model.SessionCode
-                        ));
+                }
+
+                return Ok(_service.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.Description, model.Code,
+                                                         model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
             catch (Exception e)
             {
@@ -116,16 +108,17 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
                 ValidationResult validationResult = new ManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.RemoveCommandTemplate(
-                                                            model.CommandTemplateId,
-                                                            model.SessionCode
-                        ));
+                }
+
+                return Ok(_service.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
             }
             catch (Exception e)
             {
                 return BadRequest(e.Message);
             }
         }
+        #endregion
     }
 }

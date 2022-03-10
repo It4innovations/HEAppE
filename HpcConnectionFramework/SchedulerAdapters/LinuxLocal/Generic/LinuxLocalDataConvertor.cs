@@ -26,29 +26,79 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
         #endregion
         #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
         public LinuxLocalDataConvertor() : base(null) 
         {
         }
         #endregion
         #region SchedulerDataConvertor Members
         /// <summary>
-        /// Convert Tasks To TaskInfoCollection
+        /// Read actual queue status from scheduler
         /// </summary>
-        /// <param name="jobInfo">Job Clutser DTO</param>
-        /// <param name="allTasks">Task mapped to LinuxLocalJobDTO Collection</param>
+        /// <param name="nodeType">Cluster node type</param>
+        /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
-        private List<SubmittedTaskInfo> ConvertTasksToTaskInfoCollection(LinuxLocalInfo jobInfo, List<LinuxLocalJobDTO> allTasks)
+        /// <exception cref="FormatException"></exception>
+        public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
-            List<SubmittedTaskInfo> taskCollection = new();
-
-            foreach (var taskAdapter in allTasks)
-            {
-                taskAdapter.CreationTime = jobInfo.CreateTime;
-                taskAdapter.SubmitTime = jobInfo.SubmitTime ?? default;
-                taskCollection.Add(ConvertTaskToTaskInfo(taskAdapter));
-            }
-            return taskCollection;
+            throw new NotImplementedException();
         }
+
+        /// <summary>
+        /// Get Job IDs (Cluster Jobs)
+        /// </summary>
+        /// <param name="responseMessage">Scheduler response message</param>
+        /// <returns></returns>
+        public override IEnumerable<string> GetJobIds(string responseMessage)
+        {
+            List<string> jobIds = new();
+            LinuxLocalInfo jobsAdapter = JsonSerializer.Deserialize<LinuxLocalInfo>(responseMessage.ToString());
+            jobsAdapter.Jobs.ForEach(job => jobIds.Add(job.SchedulerJobId));
+            return jobIds;
+        }
+
+        /// <summary>
+        /// Convert Task To TaskInfo
+        /// </summary>
+        /// <param name="jobDTO">Scheduler job information</param>
+        /// <returns></returns>
+        public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobDTO)
+        {
+            var taskInfo = new SubmittedTaskInfo();
+            taskInfo.ScheduledJobId = jobDTO.SchedulerJobId.ToString();
+            taskInfo.Name = jobDTO.Name;
+            taskInfo.State = jobDTO.TaskState;
+            taskInfo.StartTime = jobDTO.StartTime;
+            taskInfo.EndTime = jobDTO.EndTime;
+            taskInfo.AllocatedTime = jobDTO.AllocatedTime.TotalSeconds;
+            taskInfo.TaskAllocationNodes = taskInfo.TaskAllocationNodes.Select(s => new SubmittedTaskAllocationNodeInfo
+            {
+                AllocationNodeId = s.ToString(),
+                SubmittedTaskInfoId = long.Parse(taskInfo.Name)
+            })
+                                                                       .ToList();
+            taskInfo.AllParameters = jobDTO.SchedulerResponseParameters;
+            return taskInfo;
+        }
+
+        /// <summary>
+        /// Read Parameters From Response 
+        /// </summary>
+        /// <param name="cluster">Cluster</param>
+        /// <param name="response">Scheduler response message</param>
+        /// <returns></returns>
+        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object response)
+        {
+            List<SubmittedTaskInfo> taskInfos = new();
+            LinuxLocalInfo jobsAdapter = JsonSerializer.Deserialize<LinuxLocalInfo>(response.ToString());
+            var allTasks = jobsAdapter.Jobs;
+            taskInfos.AddRange(ConvertTasksToTaskInfoCollection(jobsAdapter, allTasks));
+
+            return taskInfos;
+        }
+
         /// <summary>
         /// Convert JobSpecification ToJob
         /// </summary>
@@ -60,8 +110,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var localHpcJobInfo = Convert.ToBase64String(Encoding.UTF8.GetBytes(
                     jobSpecification.ConvertToLocalHPCInfo(LinuxLocalTaskState.Q.ToString(), LinuxLocalTaskState.Q.ToString()))
                 );
-            StringBuilder commands = new ();
-            StringBuilder taskCommandLine = new ();
+            StringBuilder commands = new();
+            StringBuilder taskCommandLine = new();
             foreach (var task in jobSpecification.Tasks)
             {
                 var commandParameterDictionary = CreateTemplateParameterValuesDictionary(
@@ -87,69 +137,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             //preparation script, prepares job info file to the job directory at local linux "cluster"
             return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
-
+        #endregion
+        #region Local Methods
         /// <summary>
-        /// Get Job IDs (Cluster Jobs)
+        /// Convert Tasks To TaskInfoCollection
         /// </summary>
-        /// <param name="responseMessage">Clustser response message</param>
+        /// <param name="jobInfo">Job Clutser DTO</param>
+        /// <param name="allTasks">Task mapped to LinuxLocalJobDTO Collection</param>
         /// <returns></returns>
-        public override IEnumerable<string> GetJobIds(string responseMessage)
+        private List<SubmittedTaskInfo> ConvertTasksToTaskInfoCollection(LinuxLocalInfo jobInfo, List<LinuxLocalJobDTO> allTasks)
         {
-            List<string> jobIds = new();
-            LinuxLocalInfo jobsAdapter = JsonSerializer.Deserialize<LinuxLocalInfo>(responseMessage.ToString());
-            jobsAdapter.Jobs.ForEach(job => jobIds.Add(job.SchedulerJobId));
-            return jobIds;
-        }
+            List<SubmittedTaskInfo> taskCollection = new();
 
-        /// <summary>
-        /// Read Parameters From Response 
-        /// </summary>
-        /// <param name="cluster">Cluster</param>
-        /// <param name="response">Cluster response message</param>
-        /// <returns></returns>
-        public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object response)
-        {
-            List<SubmittedTaskInfo> taskInfos = new();
-            LinuxLocalInfo jobsAdapter = JsonSerializer.Deserialize<LinuxLocalInfo>(response.ToString());
-            var allTasks = jobsAdapter.Jobs;
-            taskInfos.AddRange(ConvertTasksToTaskInfoCollection(jobsAdapter, allTasks));
-
-            return taskInfos;
-        }
-
-        /// <summary>
-        /// Convert Task To TaskInfo
-        /// </summary>
-        /// <param name="jobDTO">Cluster Job DTO</param>
-        /// <returns></returns>
-        public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobDTO)
-        {
-            var taskInfo = new SubmittedTaskInfo();
-            taskInfo.ScheduledJobId = jobDTO.SchedulerJobId.ToString();
-            taskInfo.Name = jobDTO.Name;
-            taskInfo.State = jobDTO.TaskState;
-            taskInfo.StartTime = jobDTO.StartTime;
-            taskInfo.EndTime = jobDTO.EndTime;
-            taskInfo.AllocatedTime = jobDTO.AllocatedTime.TotalSeconds;
-            taskInfo.TaskAllocationNodes = taskInfo.TaskAllocationNodes.Select(s => new SubmittedTaskAllocationNodeInfo
+            foreach (var taskAdapter in allTasks)
             {
-                AllocationNodeId = s.ToString(),
-                SubmittedTaskInfoId = long.Parse(taskInfo.Name)
-            }).ToList();
-            taskInfo.AllParameters = jobDTO.SchedulerResponseParameters;
-            return taskInfo;
-        }
-
-        /// <summary>
-        /// Read actual queue status from scheduler
-        /// </summary>
-        /// <param name="nodeType">Cluster node type</param>
-        /// <param name="responseMessage">Scheduler response message</param>
-        /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
-        public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
-        {
-            throw new NotImplementedException();
+                taskAdapter.CreationTime = jobInfo.CreateTime;
+                taskAdapter.SubmitTime = jobInfo.SubmitTime ?? default;
+                taskCollection.Add(ConvertTaskToTaskInfo(taskAdapter));
+            }
+            return taskCollection;
         }
         #endregion
     }

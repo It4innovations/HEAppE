@@ -21,19 +21,30 @@ namespace HEAppE.ServiceTier.JobReporting
 {
     public class JobReportingService : IJobReportingService
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        
-        public AdaptorUserGroupExt[] ListAdaptorUserGroups(string sessionCode)
+        #region Instances
+        /// <summary>
+        /// Logger
+        /// </summary>
+        private static ILog _logger;
+        #endregion
+        #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        public JobReportingService()
+        {
+            _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        }
+        #endregion
+        public IEnumerable<AdaptorUserGroupExt> ListAdaptorUserGroups(string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer);
-                    //TODO OR ADMIN
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    IList<AdaptorUserGroup> groups = jobReportingLogic.ListAdaptorUserGroups();
-                    return (from ggroup in groups select ggroup.ConvertIntToExt()).ToArray();
+                    return jobReportingLogic.ListAdaptorUserGroups().Select(s=>s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
@@ -50,8 +61,10 @@ namespace HEAppE.ServiceTier.JobReporting
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
-                    if (loggedUser.Id != userId) //TODO OR ADMIN
+                    if (loggedUser.Id != userId)
+                    {
                         throw new NotAllowedException("Logged user is not allowed to request this report.");
+                    }
 
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     return jobReportingLogic.GetUserResourceUsageReport(userId, startTime, endTime).ConvertIntToExt();
@@ -72,9 +85,10 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
                     var group = loggedUser.Groups.FirstOrDefault(val => val.Id == groupId);
-
-                    if (group == null) //TODO OR ADMIN
+                    if (group == null)
+                    {
                         throw new NotAllowedException("Logged user is not allowed to request this report.");
+                    }
 
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     return jobReportingLogic.GetUserGroupResourceUsageReport(loggedUser.Id, groupId, startTime, endTime).ConvertIntToExt();
@@ -94,9 +108,6 @@ namespace HEAppE.ServiceTier.JobReporting
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
-                    //if (loggedUser.Id != userId) //TODO OR ADMIN
-                    //    throw new NotAllowedException("Logged user is not allowed to request this report.");
-
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     return jobReportingLogic.GetResourceUsageReportForJob(jobId).ConvertIntToExt();
                 }

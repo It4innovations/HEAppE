@@ -1,7 +1,6 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
-using HEAppE.BusinessLogicTier.Logic.JobReporting.Exceptions;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
@@ -12,11 +11,7 @@ using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using log4net;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management
 {

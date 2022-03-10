@@ -1,11 +1,7 @@
 ﻿using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApiModels.DataTransfer;
 using HEAppE.Utils.Validation;
-using System;
-using System.Collections.Generic;
-using System.Drawing.Printing;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -44,7 +40,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if(!IsIpAddress(model.IpAddress))
+            else if (!IsIpAddress(model.IpAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -86,7 +82,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("HttpRequest must be set");
             }
 
-            if(model.HttpHeaders.Any(string.IsNullOrEmpty))
+            if (model.HttpHeaders.Any(string.IsNullOrEmpty))
             {
                 _messageBuilder.AppendLine("HttpHeader cannot be empty");
             }
@@ -132,7 +128,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("HttpRequest must be set");
             }
 
-            if(validationObj.HttpHeaders.Length == 0)
+            if (validationObj.HttpHeaders.Length == 0)
             {
                 _messageBuilder.AppendLine("HttpHeader must be set");
             }
@@ -178,7 +174,7 @@ namespace HEAppE.RestApi.InputValidator
             }
 
             ValidatePort(validationObj.Port);
-                
+
             ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
 
             ValidationResult sessionCodeValidation = new SessionCodeValidator(validationObj.SessionCode).Validate();
@@ -200,7 +196,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
-            
+
             ValidatePort(dataTransferMethodExt.Port);
 
             ValidateId(dataTransferMethodExt.SubmittedJobId, nameof(dataTransferMethodExt.SubmittedJobId));

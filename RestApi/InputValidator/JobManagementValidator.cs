@@ -1,10 +1,7 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.JobManagement;
 using HEAppE.Utils.Validation;
-using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -229,8 +226,7 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     if (string.IsNullOrEmpty(variable.Name))
                     {
-                        _messageBuilder.AppendLine(
-                            $"Environment variable's name for the job cannot be empty. ({variable.Name}={variable.Value})");
+                        _messageBuilder.AppendLine($"Environment variable's name for the job cannot be empty. ({variable.Name}={variable.Value})");
                     }
                 }
             }
@@ -260,8 +256,7 @@ namespace HEAppE.RestApi.InputValidator
 
             if (task.Name.Length > ProjectNameLength)
             {
-                _messageBuilder.AppendLine(
-                    $"Task name \"{task.Name}\" cannot be longer than {ProjectNameLength} characters.");
+                _messageBuilder.AppendLine($"Task name \"{task.Name}\" cannot be longer than {ProjectNameLength} characters.");
             }
 
             if (ContainsIllegalCharacters(task.Name))
@@ -271,20 +266,17 @@ namespace HEAppE.RestApi.InputValidator
 
             if (task.MinCores <= 0)
             {
-                _messageBuilder.AppendLine(
-                    $"Minimal number of cores for task \"{task.Name}\" has to be greater than 0.");
+                _messageBuilder.AppendLine($"Minimal number of cores for task \"{task.Name}\" has to be greater than 0.");
             }
 
             if (task.MaxCores <= 0)
             {
-                _messageBuilder.AppendLine(
-                    $"Maximal number of cores for task \"{task.Name}\" has to be greater than 0.");
+                _messageBuilder.AppendLine($"Maximal number of cores for task \"{task.Name}\" has to be greater than 0.");
             }
 
             if (task.MinCores > task.MaxCores)
             {
-                _messageBuilder.AppendLine(
-                    $"Minimal number of cores for task \"{task.Name}\" cannot be greater than maximal number of cores.");
+                _messageBuilder.AppendLine($"Minimal number of cores for task \"{task.Name}\" cannot be greater than maximal number of cores.");
             }
 
             if (task.WalltimeLimit <= 0)
@@ -302,8 +294,7 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     if (task.JobArrays.Length > 40)
                     {
-                        _messageBuilder.AppendLine(
-                            $"JobArrays specification for task \"{task.Name}\" cannot be longer than 40 characters.");
+                        _messageBuilder.AppendLine($"JobArrays specification for task \"{task.Name}\" cannot be longer than 40 characters.");
                     }
 
                     task.JobArrays = task.JobArrays.Replace(" ", string.Empty);
@@ -330,16 +321,14 @@ namespace HEAppE.RestApi.InputValidator
 
             if (task.TaskParalizationParameters?.Sum(s => s.MaxCores) > task.MaxCores)
             {
-                _messageBuilder.AppendLine(
-                    $"TaskParalizationSpecifications count of maximal cores for task \"{task.Name}\" must be lower or equals to Maximal number of cores in task.");
+                _messageBuilder.AppendLine($"TaskParalizationSpecifications count of maximal cores for task \"{task.Name}\" must be lower or equals to Maximal number of cores in task.");
             }
 
             if (!string.IsNullOrEmpty(task.PlacementPolicy))
             {
                 if (task.PlacementPolicy.Length > 40)
                 {
-                    _messageBuilder.AppendLine(
-                        $"Placement policy specification for task \"{task.Name}\" cannot be longer than 40 characters.");
+                    _messageBuilder.AppendLine($"Placement policy specification for task \"{task.Name}\" cannot be longer than 40 characters.");
                 }
             }
 
@@ -347,14 +336,12 @@ namespace HEAppE.RestApi.InputValidator
             {
                 if (task.StandardInputFile.Length > 30)
                 {
-                    _messageBuilder.AppendLine(
-                        $"Standard input file for task \"{task.Name}\" cannot be longer than 30 characters.");
+                    _messageBuilder.AppendLine($"Standard input file for task \"{task.Name}\" cannot be longer than 30 characters.");
                 }
 
                 if (ContainsIllegalCharacters(task.StandardInputFile))
                 {
-                    _messageBuilder.AppendLine(
-                        $"Standard input file for task \"{task.Name}\" contains illegal characters.");
+                    _messageBuilder.AppendLine($"Standard input file for task \"{task.Name}\" contains illegal characters.");
                 }
             }
 
@@ -362,14 +349,12 @@ namespace HEAppE.RestApi.InputValidator
             {
                 if (task.StandardOutputFile.Length > 30)
                 {
-                    _messageBuilder.AppendLine(
-                        $"Standard output file for task \"{task.Name}\" cannot be longer than 30 characters.");
+                    _messageBuilder.AppendLine($"Standard output file for task \"{task.Name}\" cannot be longer than 30 characters.");
                 }
 
                 if (ContainsIllegalCharacters(task.StandardOutputFile))
                 {
-                    _messageBuilder.AppendLine(
-                        $"Standard output file for task \"{task.Name}\" contains illegal characters.");
+                    _messageBuilder.AppendLine($"Standard output file for task \"{task.Name}\" contains illegal characters.");
                 }
             }
 
@@ -377,8 +362,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 if (task.StandardErrorFile.Length > 30)
                 {
-                    _messageBuilder.AppendLine(
-                        $"Standard error file for task \"{task.Name}\" cannot be longer than 30 characters.");
+                    _messageBuilder.AppendLine($"Standard error file for task \"{task.Name}\" cannot be longer than 30 characters.");
                 }
 
                 if (ContainsIllegalCharacters(task.StandardErrorFile))
@@ -392,8 +376,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 if (task.ProgressFile.Length > 50)
                 {
-                    _messageBuilder.AppendLine(
-                        $"Progress file for task \"{task.Name}\" cannot be longer than 50 characters.");
+                    _messageBuilder.AppendLine($"Progress file for task \"{task.Name}\" cannot be longer than 50 characters.");
                 }
 
                 if (ContainsIllegalCharactersForPath(task.ProgressFile))
@@ -403,16 +386,14 @@ namespace HEAppE.RestApi.InputValidator
             }
             else
             {
-                _messageBuilder.AppendLine(
-                        $"Progress file for task \"{task.Name}\" is not set.");
+                _messageBuilder.AppendLine($"Progress file for task \"{task.Name}\" is not set.");
             }
 
             if (!string.IsNullOrEmpty(task.LogFile))
             {
                 if (task.LogFile.Length > 50)
                 {
-                    _messageBuilder.AppendLine(
-                        $"Log file for task \"{task.Name}\" cannot be longer than 50 characters.");
+                    _messageBuilder.AppendLine($"Log file for task \"{task.Name}\" cannot be longer than 50 characters.");
                 }
                 if (ContainsIllegalCharactersForPath(task.LogFile))
                 {
@@ -421,22 +402,19 @@ namespace HEAppE.RestApi.InputValidator
             }
             else
             {
-                _messageBuilder.AppendLine(
-                        $"Log file for task \"{task.Name}\" is not set.");
+                _messageBuilder.AppendLine($"Log file for task \"{task.Name}\" is not set.");
             }
 
             if (!string.IsNullOrEmpty(task.ClusterTaskSubdirectory))
             {
                 if (task.ClusterTaskSubdirectory.Length > 50)
                 {
-                    _messageBuilder.AppendLine(
-                        $"Cluster task subdirectory for task \"{task.Name}\" cannot be longer than 50 characters.");
+                    _messageBuilder.AppendLine($"Cluster task subdirectory for task \"{task.Name}\" cannot be longer than 50 characters.");
                 }
 
                 if (ContainsIllegalCharacters(task.ClusterTaskSubdirectory))
                 {
-                    _messageBuilder.AppendLine(
-                        $"Cluster task subdirectory for task \"{task.Name}\" contains illegal characters.");
+                    _messageBuilder.AppendLine($"Cluster task subdirectory for task \"{task.Name}\" contains illegal characters.");
                 }
             }
 
@@ -446,13 +424,11 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     if (requiredNode.Length > 40)
                     {
-                        _messageBuilder.AppendLine(
-                            $"Required node \"{requiredNode}\" specification for task \"{task.Name}\" cannot be longer than 40 characters.");
+                        _messageBuilder.AppendLine($"Required node \"{requiredNode}\" specification for task \"{task.Name}\" cannot be longer than 40 characters.");
                     }
                     if (ContainsIllegalCharacters(requiredNode))
                     {
-                        _messageBuilder.AppendLine(
-                            $"Required node \"{requiredNode}\" specification for task \"{task.Name}\" contains illegal characters.");
+                        _messageBuilder.AppendLine($"Required node \"{requiredNode}\" specification for task \"{task.Name}\" contains illegal characters.");
                     }
                 }
             }
@@ -463,8 +439,7 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     if (string.IsNullOrEmpty(variable.Name))
                     {
-                        _messageBuilder.AppendLine(
-                            $"Environment variable's name for task \"{task.Name}\" cannot be empty. ({variable.Name} = {variable.Value})");
+                        _messageBuilder.AppendLine($"Environment variable's name for task \"{task.Name}\" cannot be empty. ({variable.Name} = {variable.Value})");
                     }
                 }
             }

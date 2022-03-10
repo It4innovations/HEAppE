@@ -1,11 +1,5 @@
-﻿using HEAppE.ExtModels.FileTransfer.Models;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using HEAppE.RestApiModels.JobReporting;
+﻿using HEAppE.RestApiModels.JobReporting;
 using HEAppE.Utils.Validation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -13,17 +7,17 @@ namespace HEAppE.RestApi.InputValidator
     {
         public JobReportingValidator(object validationObj) : base(validationObj)
         {
+
         }
 
         public override ValidationResult Validate()
         {
             string message = _validationObject switch
             {
-                
                 GetUserResourceUsageReportModel model => ValidateGetUserResourceUsageReportModel(model),
                 GetResourceUsageReportForJobModel model => ValidateGetResourceUsageReportForJobModel(model),
                 GetUserGroupResourceUsageReportModel model => ValidateGetUserGroupResourceUsageReportModel(model),
-                //TODO ListAdaptorUserGroupsView? does not exist ListAdaptorUserGroupsView view => ValidateListAdaptorUserGroupsView(view)
+                ListAdaptorUserGroupsModel model => ValidateListAdaptorUserGroupsModel(model),
                 _ => string.Empty
             };
 
@@ -69,11 +63,19 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("StartTime must be before EndTime");
             }
 
-            //TODO check if possible send without some of Date
-            //result => Yes it is possible (date will be {01.01.0001 0:00:00})
-
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
-            if(!validationResult.IsValid)
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateListAdaptorUserGroupsModel(ListAdaptorUserGroupsModel validationObj)
+        {
+            ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
+            if (!validationResult.IsValid)
             {
                 _messageBuilder.AppendLine(validationResult.Message);
             }

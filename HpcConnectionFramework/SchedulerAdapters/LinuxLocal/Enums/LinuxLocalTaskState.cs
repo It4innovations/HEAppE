@@ -1,5 +1,8 @@
 ﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums
 {
+    /// <summary>
+    /// Linux local task states
+    /// </summary>
     internal enum LinuxLocalTaskState
     {
         /// <summary>
