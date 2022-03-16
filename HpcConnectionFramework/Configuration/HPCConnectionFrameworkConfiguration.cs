@@ -19,6 +19,11 @@ namespace HEAppE.HpcConnectionFramework.Configuration
         public static string JobArrayDbDelimiter { get; set; }
 
         /// <summary>
+        /// Tunnel configuration
+        /// </summary>
+        public static TunnelConfiguration TunnelSettings { get; } = new TunnelConfiguration();
+
+        /// <summary>
         /// Command scripts path configuration
         /// </summary>
         public static CommandScriptPathConfiguration CommandScriptsPathSettings { get; } = new CommandScriptPathConfiguration();

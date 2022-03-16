@@ -136,7 +136,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         public bool IsUserAvailableToRun(ClusterAuthenticationCredentials user)
         {
             //List all unfinished jobs and 
-            IEnumerable<SubmittedJobInfo> allRunningJobs = unitOfWork.SubmittedJobInfoRepository.ListAllUnfinished();
+            IEnumerable<SubmittedJobInfo> allRunningJobs = unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished();
             List<SubmittedJobInfo> userRunningJobs = allRunningJobs.Where(w => w.Specification.ClusterUser == user && (w.State == JobState.Running
                                                                                                                             || w.State == JobState.Queued
                                                                                                                                 || w.State == JobState.Submitted))

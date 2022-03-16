@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
+namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions
 {
     /// <summary>
     /// Ssh command exception

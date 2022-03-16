@@ -1,6 +1,7 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
@@ -34,10 +35,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string hash);
 
-        void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials);
+        void CreateTunnel(SubmittedTaskInfo taskInfo, string nodeHost, int nodePort);
 
-        void RemoveSshTunnel(long jobId, string nodeHost);
+        void RemoveTunnel(SubmittedTaskInfo taskInfo);
 
-        bool SshTunnelExist(long jobId, string nodeHost);
+        IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost);
     }
 }

@@ -113,7 +113,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    IList<SubmittedJobInfo> jobInfos = jobLogic.ListJobsForUser(loggedUser);
+                    var jobInfos = jobLogic.GetJobsForUser(loggedUser);
                     return jobInfos.Select(s => s.ConvertIntToExt()).ToArray();
                 }
             }

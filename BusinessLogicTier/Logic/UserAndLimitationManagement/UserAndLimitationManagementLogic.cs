@@ -424,9 +424,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser)
         {
-            IList<SubmittedJobInfo> notFinishedJobs = LogicFactory.GetLogicFactory()
-                                                                  .CreateJobManagementLogic(unitOfWork)
-                                                                  .ListNotFinishedJobInfosForSubmitterId(loggedUser.Id);
+            var notFinishedJobs = LogicFactory.GetLogicFactory()
+                                                                      .CreateJobManagementLogic(unitOfWork)
+                                                                      .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
             IList<ClusterNodeType> nodeTypes = LogicFactory.GetLogicFactory()
                                                            .CreateClusterInformationLogic(unitOfWork)
                                                            .ListClusterNodeTypes();
@@ -453,6 +453,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo)
         {
             return jobInfo.Submitter.Id == loggedUser.Id;
+        }
+
+        public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo)
+        {
+            return taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
         }
 
         private bool IsSessionExpired(SessionCode session)

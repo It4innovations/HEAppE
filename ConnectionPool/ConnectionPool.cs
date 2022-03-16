@@ -50,7 +50,7 @@ namespace HEAppE.ConnectionPool {
 			ConnectionInfo connection = null;
 			do {
 				lock (pool) {
-					if (pool.ContainsKey(credentials.Id) && pool[credentials.Id].Last != null) // Intentional "&&" here, second operand is not evaulated if first is false
+					if (pool.ContainsKey(credentials.Id) && pool[credentials.Id].Last != null)
 					{
 						// Free connection found
 						connection = pool[credentials.Id].Last.Value;

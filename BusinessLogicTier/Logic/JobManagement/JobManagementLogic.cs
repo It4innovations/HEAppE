@@ -21,7 +21,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text;
-using System.Threading;
 using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
@@ -30,7 +29,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
     {
         private readonly object _lockCreateJobObj = new();
         private readonly object _lockSubmitJobObj = new();
-        private readonly object _lockUpdateStateOfJobs = new();
 
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected IUnitOfWork _unitOfWork;
@@ -220,46 +218,66 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         public virtual SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             SubmittedJobInfo jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-            if (jobInfo == null)
+            if (jobInfo is null)
             {
-                _logger.Error("Requested job info with Id=" + submittedJobInfoId + " does not exist in the system.");
-                throw new RequestedObjectDoesNotExistException("Requested job info with Id=" + submittedJobInfoId + " does not exist in the system.");
+                var message = $"Requested job info with Id: \"{submittedJobInfoId}\" does not exist in the system.";
+                _logger.Error(message);
+                throw new RequestedObjectDoesNotExistException(message);
             }
             if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork).AuthorizeUserForJobInfo(loggedUser, jobInfo))
             {
-                _logger.Error("Logged user " + loggedUser.GetLogIdentification() + " is not authorized to work with job info with ID " + submittedJobInfoId +
-                          ". This job was submitted by user " + jobInfo.Submitter.GetLogIdentification() + " for group " + jobInfo.Specification.SubmitterGroup.Name);
-                throw new AdaptorUserNotAuthorizedForJobException("Logged user " + loggedUser.GetLogIdentification() + " is not authorized to work with job info with ID " +
-                                                                  submittedJobInfoId);
+                _logger.Error($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with job info with id: \"{submittedJobInfoId}\". This job was submitted by user: \"{jobInfo.Submitter.GetLogIdentification()}\" for group \"{jobInfo.Specification.SubmitterGroup.Name}\"");
+                throw new AdaptorUserNotAuthorizedForJobException($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with job info with id: \"{submittedJobInfoId}\"");
             }
             return jobInfo;
         }
 
-        public virtual IList<SubmittedJobInfo> ListJobsForUser(AdaptorUser loggedUser)
+
+        public virtual SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser)
         {
-            return _unitOfWork.SubmittedJobInfoRepository.ListAllForSubmitterId(loggedUser.Id)
-                                                         .ToList();
+            SubmittedTaskInfo taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+            if (taskInfo == null)
+            {
+                var message = $"Requested task info with Id: \"{submittedTaskInfoId}\" does not exist in the system.";
+                _logger.Error(message);
+                throw new RequestedObjectDoesNotExistException(message);
+            }
+            if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork).AuthorizeUserForTaskInfo(loggedUser, taskInfo))
+            {
+                _logger.Error($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with task info with id: \"{submittedTaskInfoId}\". This task was submitted by user: \"{taskInfo.Specification.JobSpecification.Submitter.GetLogIdentification()}\" for group \"{taskInfo.Specification.JobSpecification.SubmitterGroup.Name}\"");
+                throw new AdaptorUserNotAuthorizedForJobException($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with task info with id: \"{submittedTaskInfoId}\"");
+            }
+            return taskInfo;
         }
 
-        public virtual IList<SubmittedJobInfo> ListNotFinishedJobInfosForSubmitterId(long submitterId)
+
+        public virtual IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser)
         {
-            return _unitOfWork.SubmittedJobInfoRepository.ListNotFinishedForSubmitterId(submitterId)
-                                                         .ToList();
+            return _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
         }
 
-        public virtual IList<SubmittedJobInfo> ListNotFinishedJobInfos()
+        public virtual IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfosForSubmitterId(long submitterId)
         {
-            return _unitOfWork.SubmittedJobInfoRepository.ListAllUnfinished()
-                                                         .ToList();
+            return _unitOfWork.SubmittedJobInfoRepository.GetNotFinishedForSubmitterId(submitterId);
         }
 
+        public virtual IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfos()
+        {
+            return _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished();
+        }
+
+
+        public IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds)
+        {
+            return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished();
+        }
 
         /// <summary>
         /// Updates jobs in db with received info from HPC schedulers
         /// </summary>
         public void UpdateCurrentStateOfUnfinishedJobs()
         {
-            var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.ListAllUnfinished()
+            var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished()
                                                                    .GroupBy(g => g.Specification.Cluster)
                                                                    .ToList();
 

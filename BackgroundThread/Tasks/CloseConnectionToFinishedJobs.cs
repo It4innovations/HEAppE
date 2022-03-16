@@ -2,6 +2,7 @@
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System;
+using System.Linq;
 
 namespace HEAppE.BackgroundThread.Tasks
 {
@@ -12,21 +13,18 @@ namespace HEAppE.BackgroundThread.Tasks
     {
         public CloseConnectionToFinishedJobs(TimeSpan interval) : base(interval)
         {
+
         }
 
         protected override void RunTask()
         {
             using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-            var jobIds = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork).GetJobIdsForOpenTunnels();
-            foreach (long jobId in jobIds)
-            {
-                //check the job's status
-                SubmittedJobInfo jobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(jobId);
-                if (jobInfo.State is >= JobState.Finished and not JobState.WaitingForServiceAccount)
-                {
-                    LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork).CloseAllConnectionsForJob(jobInfo);
-                }
-            }
+            var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+
+            var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
+            LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetAllFinishedTaskInfos(taskIds)
+                                                                                .ToList()
+                                                                                .ForEach(f=> dataTransferLogic.CloseAllTunnelsForTask(f));
         }
 
     }

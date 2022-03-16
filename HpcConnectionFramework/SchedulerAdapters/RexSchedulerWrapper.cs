@@ -3,6 +3,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
 using System.Collections.Generic;
 
@@ -266,39 +267,51 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         }
 
         /// <summary>
-        /// Create SSH tunnel
+        /// Create tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="localHost">Local host</param>
-        /// <param name="localPort">Local port</param>
-        /// <param name="loginHost">Login host</param>
-        /// <param name="nodeHost">Node host</param>
-        /// <param name="nodePort">Node port</param>
-        /// <param name="credentials">Credentials</param>
-        public void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials)
+        /// <param name="taskInfo">Task info</param>
+        /// <param name="nodeHost">Cluster node address</param>
+        /// <param name="nodePort">Cluster node port</param>
+        public void CreateTunnel(SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
         {
-            _adapter.CreateSshTunnel(jobId, localHost, localPort, loginHost, nodeHost, nodePort, credentials);
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(taskInfo.Specification.JobSpecification.ClusterUser);
+            try
+            {
+                _adapter.CreateTunnel(schedulerConnection.Connection, taskInfo, nodeHost, nodePort);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
 
         /// <summary>
-        /// Remove SSH tunnel
+        /// Remove tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="nodeHost">Node host</param>
-        public void RemoveSshTunnel(long jobId, string nodeHost)
+        /// <param name="taskInfo">Task info</param>
+        public void RemoveTunnel(SubmittedTaskInfo taskInfo)
         {
-            _adapter.RemoveSshTunnel(jobId, nodeHost);
+
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(taskInfo.Specification.JobSpecification.ClusterUser);
+            try
+            {
+                _adapter.RemoveTunnel(schedulerConnection, taskInfo);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
 
         /// <summary>
-        /// Check if SSH tunnel exist
+        /// Get tunnels information
         /// </summary>
-        /// <param name="jobId">Job id</param>
+        /// <param name="taskInfo">Task info</param>
         /// <param name="nodeHost">Node host</param>
         /// <returns></returns>
-        public bool SshTunnelExist(long jobId, string nodeHost)
+        public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
-            return _adapter.SshTunnelExist(jobId, nodeHost);
+            return _adapter.GetTunnelsInfos(taskInfo, nodeHost);
         }
         #endregion
     }

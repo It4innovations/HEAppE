@@ -1,4 +1,5 @@
-﻿using log4net;
+﻿using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+using log4net;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>

@@ -96,7 +96,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 
         public IList<SynchronizedJobFiles> SynchronizeAllUnfinishedJobFiles()
         {
-            IList<SubmittedJobInfo> unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).ListNotFinishedJobInfos();
+           var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetNotFinishedJobInfos().ToList();
 
             IEnumerable<IGrouping<FileTransferMethod, SubmittedJobInfo>> fileTransferMethodGroups =
                 (from jobInfo in unfinishedJobs group jobInfo by jobInfo.Specification.FileTransferMethod into fileTransferMethodGroup select fileTransferMethodGroup);

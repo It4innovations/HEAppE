@@ -1,17 +1,19 @@
-﻿using System;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using log4net;
-using Renci.SshNet;
-using System.Collections.Generic;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using System.Linq;
-using System.Text.RegularExpressions;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using System.Text;
 using HEAppE.HpcConnectionFramework.SystemCommands;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+using log4net;
+using Renci.SshNet;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 {
@@ -39,7 +41,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <summary>
         /// SSH tunnel
         /// </summary>
-        protected static SshTunnel _sshTunnelUtil;
+        protected static SshTunnelUtils _sshTunnelUtil;
 
         /// <summary>
         /// Generic commnad key parameter
@@ -55,7 +57,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         {
             _log = LogManager.GetLogger(typeof(PbsProSchedulerAdapter));
             _convertor = convertor;
-            _sshTunnelUtil = new SshTunnel();
+            _sshTunnelUtil = new SshTunnelUtils();
             _commands = new LinuxCommands();
         }
         #endregion
@@ -141,7 +143,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                     throw new Exception(ce.Message);
                 }
 
-                if(!reducedjobIdsWithJobArrayIndexes.Any())
+                if (!reducedjobIdsWithJobArrayIndexes.Any())
                 {
                     return Enumerable.Empty<SubmittedTaskInfo>();
                 }
@@ -161,7 +163,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             StringBuilder cmdBuilder = new();
             submitedTasksInfo.ToList().ForEach(f => cmdBuilder.Append($"{_commands.InterpreterCommand} 'qdel {f.ScheduledJobId}';"));
             string sshCommand = cmdBuilder.ToString();
-            _log.Info($"Cancel jobs \"{string.Join(",",submitedTasksInfo.Select(s=>s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
+            _log.Info($"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{sshCommand}\", message \"{message}\"");
 
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
         }
@@ -213,7 +215,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-                return command.Result.Split('\n').Where(w=>!string.IsNullOrEmpty(w))
+                return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
                                                   .ToList();
             }
             catch (FormatException e)
@@ -311,39 +313,36 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
         #region SSH tunnel methods
         /// <summary>
-        /// Create SSH tunnel
+        /// Create tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="localHost">Local host</param>
-        /// <param name="localPort">Local port</param>
-        /// <param name="loginHost">Login host</param>
-        /// <param name="nodeHost">Node host</param>
-        /// <param name="nodePort">Node port</param>
-        /// <param name="credentials">Credentials</param>
-        public void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials)
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="taskInfo">Task info</param>
+        /// <param name="nodeHost">Cluster node address</param>
+        /// <param name="nodePort">Cluster node port</param>
+        public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
         {
-            _sshTunnelUtil.CreateSshTunnel(jobId, localHost, localPort, loginHost, nodeHost, nodePort, credentials);
+            _sshTunnelUtil.CreateTunnel(connectorClient, taskInfo.Id, nodeHost, nodePort);
         }
 
         /// <summary>
-        /// Remove SSH tunnel
+        /// Remove tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="nodeHost">Node host</param>
-        public void RemoveSshTunnel(long jobId, string nodeHost)
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="taskInfo">Task info</param>
+        public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
         {
-            _sshTunnelUtil.RemoveSshTunnel(jobId, nodeHost);
+            _sshTunnelUtil.RemoveTunnel(connectorClient, taskInfo.Id);
         }
 
         /// <summary>
-        /// Check if SSH tunnel exist
+        /// Get tunnels informations
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="nodeHost">Node host</param>
+        /// <param name="taskInfo">Task info</param>
+        /// <param name="nodeHost">Cluster node address</param>
         /// <returns></returns>
-        public bool SshTunnelExist(long jobId, string nodeHost)
+        public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
-            return _sshTunnelUtil.SshTunnelExist(jobId, nodeHost);
+            return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
         #endregion
         #endregion

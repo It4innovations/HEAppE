@@ -23,7 +23,7 @@ namespace HEAppE.BackgroundThread.Tasks
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
 
                 //Get all jobs in state - waiting for user 
-                IEnumerable<SubmittedJobInfo> allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.ListAllWaitingForServiceAccount();
+                IEnumerable<SubmittedJobInfo> allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.GetAllWaitingForServiceAccount();
 
                 //Try to submit them again
                 foreach (SubmittedJobInfo job in allWaitingJobs)

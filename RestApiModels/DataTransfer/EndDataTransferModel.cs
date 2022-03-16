@@ -1,12 +1,6 @@
 ﻿using HEAppE.ExtModels.DataTransfer.Models;
-using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 using HEAppE.RestApiModels.AbstractModels;
+using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.DataTransfer
 {
@@ -15,6 +9,5 @@ namespace HEAppE.RestApiModels.DataTransfer
     {
         [DataMember(Name = "UsedTransferMethod")]
         public DataTransferMethodExt UsedTransferMethod { get; set; }
-
     }
 }

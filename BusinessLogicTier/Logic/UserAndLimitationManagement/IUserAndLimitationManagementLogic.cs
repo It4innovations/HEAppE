@@ -12,6 +12,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement {
 		Task<ApplicationCredentialsDTO> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials);
 		IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser);
 		bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo);
+		bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo);
 		AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser);
 	}
 }

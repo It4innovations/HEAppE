@@ -5,6 +5,8 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using log4net;
 using Renci.SshNet;
 using System;
@@ -39,7 +41,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <summary>
         /// SSH tunnel
         /// </summary>
-        protected static SshTunnel _sshTunnelUtil;
+        protected static SshTunnelUtils _sshTunnelUtil;
 
         /// <summary>
         /// Generic commnad key parameter
@@ -55,7 +57,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         {
             _log = LogManager.GetLogger(typeof(SlurmSchedulerAdapter));
             _convertor = convertor;
-            _sshTunnelUtil = new SshTunnel();
+            _sshTunnelUtil = new SshTunnelUtils();
             _commands = new LinuxCommands();
         }
         #endregion
@@ -113,7 +115,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             }
             catch (SshCommandException)
             {
-                _log.Warn($"Scheduled Job ids: \"{string.Join(",",submitedTasksInfoList.Select(s=>s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");
+                _log.Warn($"Scheduled Job ids: \"{string.Join(",", submitedTasksInfoList.Select(s => s.ScheduledJobId))}\" are not in Slurm scheduler database. Mentioned jobs were canceled!");
                 return Enumerable.Empty<SubmittedTaskInfo>();
             }
         }
@@ -186,7 +188,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             StringBuilder cmdBuilder = new();
             var nodeNames = jobInfo.Tasks.Where(w => w.State == TaskState.Running)
                                           .SelectMany(s => s.TaskAllocationNodes)
-                                          .Select(s => $"{s.AllocationNodeId}.{jobInfo.Specification.Cluster.DomainName?? jobInfo.Specification.Cluster.MasterNodeName}")
+                                          .Select(s => $"{s.AllocationNodeId}.{jobInfo.Specification.Cluster.DomainName ?? jobInfo.Specification.Cluster.MasterNodeName}")
                                           .ToList();
 
             nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
@@ -292,39 +294,36 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
         #region SSH tunnel methods
         /// <summary>
-        /// Create SSH tunnel
+        /// Create tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="localHost">Local host</param>
-        /// <param name="localPort">Local port</param>
-        /// <param name="loginHost">Login host</param>
-        /// <param name="nodeHost">Node host</param>
-        /// <param name="nodePort">Node port</param>
-        /// <param name="credentials">Credentials</param>
-        public void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials)
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="taskInfo">Task info</param>
+        /// <param name="nodeHost">Cluster node address</param>
+        /// <param name="nodePort">Cluster node port</param>
+        public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
         {
-            _sshTunnelUtil.CreateSshTunnel(jobId, localHost, localPort, loginHost, nodeHost, nodePort, credentials);
+            _sshTunnelUtil.CreateTunnel(connectorClient, taskInfo.Id, nodeHost, nodePort);
         }
 
         /// <summary>
-        /// Remove SSH tunnel
+        /// Remove tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="nodeHost">Node host</param>
-        public void RemoveSshTunnel(long jobId, string nodeHost)
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="taskInfo">Task info</param>
+        public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
         {
-            _sshTunnelUtil.RemoveSshTunnel(jobId, nodeHost);
+            _sshTunnelUtil.RemoveTunnel(connectorClient, taskInfo.Id);
         }
 
         /// <summary>
-        /// Check if SSH tunnel exist
+        /// Get tunnels informations
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="nodeHost">Node host</param>
+        /// <param name="taskInfo">Task info</param>
+        /// <param name="nodeHost">Cluster node address</param>
         /// <returns></returns>
-        public bool SshTunnelExist(long jobId, string nodeHost)
+        public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
-            return _sshTunnelUtil.SshTunnelExist(jobId, nodeHost);
+            return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
         #endregion
         #endregion

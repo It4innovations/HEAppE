@@ -5,6 +5,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
 using Renci.SshNet;
 using System;
@@ -85,7 +86,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
             string sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),$"{_commandScripts.ExecutieCmdPath} {sshCommandBase64}");
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.ExecutieCmdPath} {sshCommandBase64}");
 
             shellCommandSb.Clear();
 
@@ -256,7 +257,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
         public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
-        { 
+        {
             _commands.CopyJobDataToTemp(connectorClient, jobInfo, hash, path);
         }
 
@@ -272,40 +273,40 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         }
         #region SSH tunnel methods
         /// <summary>
-        /// Create SSH tunnel
+        /// Create tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="localHost">Local host</param>
-        /// <param name="localPort">Local port</param>
-        /// <param name="loginHost">Login host</param>
-        /// <param name="nodeHost">Node host</param>
-        /// <param name="nodePort">Node port</param>
-        /// <param name="credentials">Credentials</param>
-        public void CreateSshTunnel(long jobId, string localHost, int localPort, string loginHost, string nodeHost, int nodePort, ClusterAuthenticationCredentials credentials)
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="taskInfo">Task info</param>
+        /// <param name="nodeHost">Cluster node address</param>
+        /// <param name="nodePort">Cluster node port</param>
+        public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
         {
             throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
         }
+
+
         /// <summary>
-        /// Remove SSH tunnel
+        /// Remove tunnel
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="nodeHost">Node host</param>
-        public void RemoveSshTunnel(long jobId, string nodeHost)
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="taskInfo">Task info</param>
+        public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
         {
             throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
         }
+
         /// <summary>
-        /// Check if SSH tunnel exist
+        /// Get tunnels informations
         /// </summary>
-        /// <param name="jobId">Job id</param>
-        /// <param name="nodeHost">Node host</param>
+        /// <param name="taskInfo">Task info</param>
+        /// <param name="nodeHost">Cluster node address</param>
         /// <returns></returns>
-        public bool SshTunnelExist(long jobId, string nodeHost)
+        public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
             throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
         }
         #endregion
-#endregion
+        #endregion
         #region Private Methods
         /// <summary>
         /// Get actual tasks info

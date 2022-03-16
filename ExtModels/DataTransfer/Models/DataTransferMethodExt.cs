@@ -7,19 +7,22 @@ namespace HEAppE.ExtModels.DataTransfer.Models
     public class DataTransferMethodExt
     {
         #region Properties
-        [DataMember(Name = "SubmittedJobId")]
-        public long SubmittedJobId { get; set; }
-
-        [DataMember(Name = "IpAddress"), StringLength(45)]
-        public string IpAddress { get; set; }
+        [DataMember(Name = "SubmittedTaskId")]
+        public long SubmittedTaskId { get; set; }
 
         [DataMember(Name = "Port")]
-        public int Port { get; set; }
+        public int? Port { get; set; }
+
+        [DataMember(Name = "NodeIPAddress"), StringLength(45)]
+        public string NodeIPAddress { get; set; }
+
+        [DataMember(Name = "NodePort")]
+        public int? NodePort { get; set; }
         #endregion
         #region Override Methods
         public override string ToString()
         {
-            return $"DataTransferMethodExt(SubmittedJobId: {SubmittedJobId}, IpAddress: {IpAddress}, Port: {Port})";
+            return $"DataTransferMethodExt(SubmittedTaskId: {SubmittedTaskId}, NodeIPAddress: {NodeIPAddress}, NodePort: {NodePort})";
         }
         #endregion
     }

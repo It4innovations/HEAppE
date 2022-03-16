@@ -215,9 +215,7 @@ namespace RestSharpWebClient.Pages
         {
             string requestParams = Request.Form["httpGetRequest"];
             string requestHeadersString = Request.Form["httpGetHeaders"];
-            string[] requestHeaders = requestHeadersString.Split(',');
-            for (int i = 0; i < requestHeaders.Length; i++)
-                requestHeaders[i] = requestHeaders[i].Trim();
+            string[] requestHeader = requestHeadersString.Split(',');
 
             string username = "testuser";
             string password = "testpass";
@@ -233,9 +231,16 @@ namespace RestSharpWebClient.Pages
                 new HttpGetToJobNodeModel
                 {
                     HttpRequest = requestParams,
-                    HttpHeaders = requestHeaders,
+                    HttpHeaders = new List<HTTPHeaderExt>()
+                    {
+                        new HTTPHeaderExt()
+                        {
+                            Name = requestHeader[0],
+                            Value = requestHeader[1]
+                        } 
+                    },
                     SubmittedJobInfoId = AsbSubmittedJob,
-                    IpAddress = AsbDataTransfer.IpAddress,
+                    NodeIPAddress = AsbDataTransfer.NodeIPAddress,
                     SessionCode = sessionCode
                 });
             var response = await client.ExecuteAsync(request);
@@ -250,9 +255,8 @@ namespace RestSharpWebClient.Pages
         {
             string requestParams = Request.Form["httpPostRequest"];
             string requestHeadersString = Request.Form["httpPostHeaders"];
-            string[] requestHeaders = requestHeadersString.Split(',');
-            for (int i = 0; i < requestHeaders.Length; i++)
-                requestHeaders[i] = requestHeaders[i].Trim();
+            string[] requestHeader = requestHeadersString.Split(',');
+
             string requestPayload = Request.Form["httpPostPayload"];
 
             string username = "testuser";
@@ -269,10 +273,17 @@ namespace RestSharpWebClient.Pages
                 new HttpPostToJobNodeModel
                 {
                     HttpRequest = requestParams,
-                    HttpHeaders = requestHeaders,
+                    HttpHeaders = new List<HTTPHeaderExt>()
+                    {
+                        new HTTPHeaderExt()
+                        {
+                            Name = requestHeader[0],
+                            Value = requestHeader[1]
+                        }
+                    },
                     HttpPayload = requestPayload,
                     SubmittedJobInfoId = AsbSubmittedJob,
-                    IpAddress = AsbDataTransfer.IpAddress,
+                    NodeIPAddress = AsbDataTransfer.NodeIPAddress,
                     SessionCode = sessionCode
                 });
             var response = await client.ExecuteAsync(request);

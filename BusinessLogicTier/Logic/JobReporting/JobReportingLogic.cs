@@ -80,7 +80,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         {
             double? userTotalUsage = 0;
             var selectedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork)
-                                                             .ListJobsForUser(user).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime)
+                                                             .GetJobsForUser(user).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime)
                                                               .ToList();
 
             nodeTypeAggregatedUsage = new List<NodeTypeAggregatedUsage>();

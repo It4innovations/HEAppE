@@ -5,6 +5,7 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
 {
     public interface ISubmittedTaskInfoRepository : IRepository<SubmittedTaskInfo>
     {
-        IEnumerable<SubmittedTaskInfo> ListAllUnfinished();
+        IEnumerable<SubmittedTaskInfo> GetAllUnFinished();
+        IEnumerable<SubmittedTaskInfo> GetAllFinished();
     }
 }
