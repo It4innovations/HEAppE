@@ -19,7 +19,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType);
 
-        IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo);
+        IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo);
 
         IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath);
 

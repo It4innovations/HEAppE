@@ -176,7 +176,7 @@ namespace RestSharpWebClient.Pages
                 var request = new RestRequest("JobManagement/GetAllocatedNodesIPs", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
                     new GetAllocatedNodesIPsModel
                     {
-                        SubmittedJobInfoId = AsbSubmittedJob,
+                        SubmittedTaskInfoId = AsbSubmittedJob,
                         SessionCode = sessionCode
                     });
                 var response = await client.ExecuteAsync(request);

@@ -13,6 +13,6 @@ namespace HEAppE.ServiceTier.JobManagement
         SubmittedJobInfoExt GetCurrentInfoForJob(long submittedJobInfoId, string sessionCode);
         void CopyJobDataToTemp(long submittedJobInfoId, string sessionCode, string path);
         void CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode);
-        IEnumerable<string> GetAllocatedNodesIPs(long submittedJobInfoId, string sessionCode);
+        IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, string sessionCode);
     }
 }

@@ -305,7 +305,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetAllocatedNodesIPs(model.SubmittedJobInfoId, model.SessionCode));
+                return Ok(_service.GetAllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
             }
             catch (Exception e)
             {

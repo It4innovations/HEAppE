@@ -34,7 +34,7 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateGetAllocatedNodesIPsModel(GetAllocatedNodesIPsModel validationObj)
         {
-            ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
+            ValidateId(validationObj.SubmittedTaskInfoId, nameof(validationObj.SubmittedTaskInfoId));
 
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
             if (!validationResult.IsValid)

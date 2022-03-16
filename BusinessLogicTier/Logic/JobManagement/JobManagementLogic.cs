@@ -369,12 +369,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     .CopyJobDataFromTemp(jobInfo, hash);
         }
 
-        public IEnumerable<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser)
+        public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)
         {
-            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Running)
+            var taskInfo = GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+            if (taskInfo.State == TaskState.Running)
             {
-                var stringIPs = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).GetAllocatedNodes(jobInfo);
+                var cluster = taskInfo.Specification.JobSpecification.Cluster;
+                var stringIPs = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetAllocatedNodes(taskInfo);
                 return stringIPs;
             }
             else

@@ -123,15 +123,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         }
 
         /// <summary>
-        /// Get allocated nodes per job
+        /// Get allocated nodes address for task
         /// </summary>
-        /// <param name="jobInfo">Job information</param>
-        public IEnumerable<string> GetAllocatedNodes(SubmittedJobInfo jobInfo)
+        /// <param name="taskInfo">Task information</param>
+        public IEnumerable<string> GetAllocatedNodes(SubmittedTaskInfo taskInfo)
         {
-            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(taskInfo.Specification.JobSpecification.ClusterUser);
             try
             {
-                return _adapter.GetAllocatedNodes(schedulerConnection.Connection, jobInfo);
+                return _adapter.GetAllocatedNodes(schedulerConnection.Connection, taskInfo);
             }
             finally
             {

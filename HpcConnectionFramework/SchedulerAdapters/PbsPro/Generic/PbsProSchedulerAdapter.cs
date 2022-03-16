@@ -195,23 +195,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
         /// <summary>
-        /// Get allocated nodes per job
+        /// Get allocated nodes per task
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job information</param>
-        public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
+        /// <param name="taskInfo">Task information</param>
+        public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
         {
             SshCommandWrapper command = null;
             StringBuilder cmdBuilder = new();
-            var nodeNames = jobInfo.Tasks.Where(w => w.State == TaskState.Running)
-                                          .SelectMany(s => s.TaskAllocationNodes)
-                                          .Select(s => $"{s.AllocationNodeId}.{jobInfo.Specification.Cluster.DomainName ?? jobInfo.Specification.Cluster.MasterNodeName}")
-                                          .ToList();
+
+            var cluster = taskInfo.Specification.JobSpecification.Cluster;
+            var nodeNames = taskInfo.TaskAllocationNodes.Select(s => $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}")
+                                                                    .ToList();
 
             nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
-            string sshCommand = cmdBuilder.ToString();
-            _log.Info($"Get allocation nodes of job \"{jobInfo.Id}\", command \"{sshCommand}\"");
 
+            string sshCommand = cmdBuilder.ToString();
+            _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
@@ -220,7 +220,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (FormatException e)
             {
-                throw new Exception($@"Exception thrown when retrieving allocation nodes used by running HPC job: ""{string.Join(", ", jobInfo.Tasks.Select(s => s.ScheduledJobId).ToList())}"". 
+                throw new Exception($@"Exception thrown when retrieving allocation nodes used by running task (HPC job): ""{taskInfo.ScheduledJobId}"". 
                                        Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
                                        Command line for job submission: ""{sshCommand}""\n", e);
             }

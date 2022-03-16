@@ -161,29 +161,27 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         }
 
         /// <summary>
-        /// Get Allocated Nodes
+        /// Get allocated nodes per task
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Submitted JobInfo</param>
+        /// <param name="taskInfo">Task information</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedJobInfo jobInfo)
+        public virtual IEnumerable<string> GetAllocatedNodes(object connectorClient, SubmittedTaskInfo taskInfo)
         {
             List<string> allocatedNodes = new();
             StringBuilder allocationNodeSb = new();
-            foreach (var task in jobInfo.Tasks)
+
+            allocationNodeSb.Clear();
+            allocationNodeSb.Append(taskInfo.Specification.ClusterNodeType.Cluster.DomainName ?? LocalDomainName);
+
+            if (taskInfo.NodeType.Cluster.Port.HasValue)
             {
-                allocationNodeSb.Clear();
-                allocationNodeSb.Append(task.Specification.ClusterNodeType.Cluster.DomainName ?? LocalDomainName);
-
-                if (task.NodeType.Cluster.Port.HasValue)
-                {
-                    allocationNodeSb.Append($":{task.NodeType.Cluster.Port.Value}");
-                }
-
-                allocatedNodes.Add(allocationNodeSb.ToString());
+                allocationNodeSb.Append($":{taskInfo.NodeType.Cluster.Port.Value}");
             }
-            _log.Info($"Get allocation nodes of job \"{jobInfo.Id}\"");
+
+            allocatedNodes.Add(allocationNodeSb.ToString());
+            _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\"");
             return allocatedNodes.Distinct();
         }
 
