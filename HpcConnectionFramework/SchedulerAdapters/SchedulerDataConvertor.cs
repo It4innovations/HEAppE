@@ -352,7 +352,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                         }
                     case "DateTime":
                         {
-                            string parsedText = Convert.ToString(obj);
+                            string parsedText = Convert.ToString(obj)?.Replace("  ", " ");
+
                             if (string.IsNullOrEmpty(parsedText))
                             {
                                 return null;

@@ -131,19 +131,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         /// <summary>
         /// Job creation time
         /// </summary>
-        [Scheduler("ctime", Format = "ddd MMM  d HH:mm:ss yyyy")]
+        [Scheduler("ctime", Format = "ddd MMM d HH:mm:ss yyyy")]
         public DateTime CreationTime { get; set; }
 
         /// <summary>
         /// Job submittion time
         /// </summary>
-        [Scheduler("etime", Format = "ddd MMM  d HH:mm:ss yyyy")]
+        [Scheduler("etime", Format = "ddd MMM d HH:mm:ss yyyy")]
         public DateTime SubmitTime { get; set; }
 
         /// <summary>
         /// Job start time
         /// </summary>
-        [Scheduler("stime", Format = "ddd MMM  d HH:mm:ss yyyy")]
+        [Scheduler("stime", Format = "ddd MMM d HH:mm:ss yyyy")]
         public DateTime? StartTime { get; set; }
 
         /// <summary>
