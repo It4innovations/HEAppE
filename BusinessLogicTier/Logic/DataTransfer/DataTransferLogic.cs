@@ -153,7 +153,6 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
         /// <returns></returns>
         public IEnumerable<long> GetTaskIdsWithOpenTunnels()
         {
-            _logger.Debug("Listing all tasks with open tunnels:");
             return _taskWithExistingTunnel;
         }
 
