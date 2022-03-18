@@ -34,6 +34,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             var sshCommand = client.RunCommand(command);
             if (sshCommand.ExitStatus != 0)
             {
+                _log.Error($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
                 throw new SshCommandException($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
             }
 
