@@ -23,8 +23,11 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
 
         public IEnumerable<SubmittedJobInfo> GetAllUnfinished()
         {
-            return GetAll().Where(w => w.State < JobState.Finished && w.State > JobState.Configuring || w.State == JobState.WaitingForServiceAccount)
-                            .ToList();
+            return GetAll().Where(w => w.Tasks.Any(we => we.State > TaskState.Configuring && we.State < TaskState.Finished))
+                             .ToList();
+
+            //return GetAll().Where(w => w.State < JobState.Finished && w.State > JobState.Configuring || w.State == JobState.WaitingForServiceAccount)
+            //                 .ToList();
         }
 
         public IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId)

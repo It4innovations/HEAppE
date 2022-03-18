@@ -269,7 +269,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         public IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds)
         {
-            return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished();
+            return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished().Where(w=> taskIds.Contains(w.Id))
+                                                                            .ToList();
         }
 
         /// <summary>

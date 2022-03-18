@@ -165,7 +165,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Session code</param>
         /// <returns></returns>
         [HttpPost("GetCurrentUsageAndLimitationsForCurrentUser")]
-        [RequestSizeLimit(56)]
+        [RequestSizeLimit(58)]
         [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

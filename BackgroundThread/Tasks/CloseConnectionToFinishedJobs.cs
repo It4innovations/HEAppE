@@ -1,6 +1,5 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System;
 using System.Linq;
 
@@ -24,7 +23,7 @@ namespace HEAppE.BackgroundThread.Tasks
             var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
             LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetAllFinishedTaskInfos(taskIds)
                                                                                 .ToList()
-                                                                                .ForEach(f=> dataTransferLogic.CloseAllTunnelsForTask(f));
+                                                                                .ForEach(f => dataTransferLogic.CloseAllTunnelsForTask(f));
         }
 
     }

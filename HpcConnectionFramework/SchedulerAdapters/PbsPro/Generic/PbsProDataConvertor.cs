@@ -91,7 +91,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 ScheduledJobId = obj.SchedulerJobId,
                 Name = obj.Name,
                 StartTime = obj.StartTime,
-                EndTime = obj.StartTime.HasValue && jobInfo.TaskState >= TaskState.Finished ? obj.StartTime.Value.AddSeconds(obj.RunTime.TotalSeconds) : null,
+                EndTime = obj.StartTime.HasValue && obj.TaskState >= TaskState.Finished ? obj.StartTime.Value.AddSeconds(obj.RunTime.TotalSeconds) : null,
                 AllocatedTime = Math.Round(obj.RunTime.TotalSeconds, 3),
                 AllocatedCores = obj.UsedCores,
                 State = obj.TaskState,
