@@ -95,7 +95,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">RemoveCommandTemplateModel</param>
         /// <returns></returns>
         [HttpPost("RemoveCommandTemplate")]
-        [RequestSizeLimit(84)]
+        [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
