@@ -381,7 +381,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
             else
             {
-                throw new InputValidationException("Allocated nodes IP addresses are provided only for running job.");
+                throw new InputValidationException("Allocated nodes IP addresses are provided only for running task.");
             }
         }
 
@@ -710,7 +710,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         protected static void UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
         {
             dbJobInfo.StartTime = dbJobInfo.Tasks.FirstOrDefault()?.StartTime;
-            dbJobInfo.EndTime = dbJobInfo.Tasks.LastOrDefault()?.EndTime;
+            dbJobInfo.EndTime = dbJobInfo.Tasks.Where(t=>t.EndTime.HasValue).Last().EndTime;
             dbJobInfo.TotalAllocatedTime = dbJobInfo.Tasks.Sum(s => s.AllocatedTime ?? 0);
 
             JobState continuousJobState = JobState.Finished;
@@ -783,6 +783,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             dbTaskInfo.StartTime = clusterTaskInfo.StartTime;
             dbTaskInfo.EndTime = clusterTaskInfo.EndTime;
             dbTaskInfo.AllocatedTime = clusterTaskInfo.AllocatedTime;
+            dbTaskInfo.AllocatedCores = clusterTaskInfo.AllocatedCores;
             dbTaskInfo.State = clusterTaskInfo.State;
             dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
             dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;

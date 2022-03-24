@@ -125,8 +125,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
                     var builder = new StringBuilder(" --dependency=afterok");
                     foreach (TaskDependency taskDependency in value)
                     {
-                        builder.Append(":$_");
+                        builder.Append(":set -- $_");
                         builder.Append(taskDependency.ParentTaskSpecification.Id);
+                        builder.Append(";echo $4;");
                     }
                     _taskBuilder.Append(builder);
                 }

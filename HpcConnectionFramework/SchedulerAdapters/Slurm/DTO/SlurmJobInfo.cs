@@ -161,7 +161,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
                     _arrayJobId = value;
 
                     IsJobArrayJob = true;
-                    AggregateSchedulerResponseParameters = $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{SchedulerResponseParameters}\n";
+                    AggregateSchedulerResponseParameters = $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{SchedulerResponseParameters}";
                 }
             }
         }
@@ -209,7 +209,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
             }
 
             _allocatedNodes = jobInfo.AllocatedNodes.Union(_allocatedNodes);
-            AggregateSchedulerResponseParameters += $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{jobInfo.SchedulerResponseParameters}";
+            AggregateSchedulerResponseParameters += $"\n{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{jobInfo.SchedulerResponseParameters}";
         }
 
         /// <summary>
