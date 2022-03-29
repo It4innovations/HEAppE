@@ -41,13 +41,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             var parameters = Regex.Matches(response, @"(?<Key>[^\s].*)( = |: )(?<Value>.*)", RegexOptions.Compiled)
                                     .Where(w => w.Success)
                                     .Select(s => new
-                                        {
-                                            Key = s.Groups.GetValueOrDefault("Key").Value,
-                                            Value = s.Groups.GetValueOrDefault("Value").Value,
-                                        });
+                                    {
+                                        Key = s.Groups.GetValueOrDefault("Key").Value,
+                                        Value = s.Groups.GetValueOrDefault("Value").Value,
+                                    });
 
 
-            if(!parameters.Any())
+            if (!parameters.Any())
             {
                 throw new FormatException("Unable to parse response from PBS Professional HPC scheduler!");
             }
@@ -116,7 +116,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             PbsProJobInfo aggregateResultObj = null;
 
             var jobResponseMessages = Regex.Split(response, @"\n\n", RegexOptions.Compiled)
-                                              .Where(w=>!string.IsNullOrEmpty(w))
+                                              .Where(w => !string.IsNullOrEmpty(w))
                                               .Select(s => s.Replace("\n\t", string.Empty))
                                               .ToList();
             foreach (string jobResponseMessage in jobResponseMessages)
@@ -125,10 +125,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 var parameters = Regex.Matches(jobResponseMessage, @"(?<Key>[^\s].*)( = |: )(?<Value>.*)", RegexOptions.Compiled)
                                         .Where(w => w.Success)
                                         .Select(s => new
-                                            {
-                                                Key = s.Groups.GetValueOrDefault("Key").Value,
-                                                Value = (s.Groups.GetValueOrDefault("Value").Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups.GetValueOrDefault("Value").Value)
-                                            })
+                                        {
+                                            Key = s.Groups.GetValueOrDefault("Key").Value,
+                                            Value = (s.Groups.GetValueOrDefault("Value").Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups.GetValueOrDefault("Value").Value)
+                                        })
                                         .Distinct();
 
                 var schedulerResultObj = new PbsProJobInfo(jobResponseMessage);
