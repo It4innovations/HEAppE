@@ -269,7 +269,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         public IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds)
         {
-            return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished().Where(w=> taskIds.Contains(w.Id))
+            return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished().Where(w => taskIds.Contains(w.Id))
                                                                             .ToList();
         }
 
@@ -288,37 +288,30 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
 
                 var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
-                if (cluster.UpdateJobStateByServiceAccount.Value)
+
+                var userJobsGroup = jobGroup.GroupBy(g => g.Specification.ClusterUser)
+                                                .ToList();
+
+                foreach (var userJobGroup in userJobsGroup)
                 {
-                    var tasksExceedWaitLimit = jobGroup.Where(w => IsWaitingLimitExceeded(w))
-                                                        .SelectMany(s => s.Tasks)
-                                                        .Where(w => !w.Specification.DependsOn.Any())
-                                                        .ToList();
+                    var tasksExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w))
+                                                            .SelectMany(s => s.Tasks)
+                                                            .Where(w => !w.Specification.DependsOn.Any())
+                                                            .ToList();
 
                     if (tasksExceedWaitLimit.Any())
                     {
-                        scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", cluster.ServiceAccountCredentials);
+                        scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     }
+                }
+
+                if (cluster.UpdateJobStateByServiceAccount.Value)
+                {
                     actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, cluster.ServiceAccountCredentials, jobGroup.SelectMany(s => s.Tasks)).ToList();
                 }
                 else
                 {
-                    var userJobsGroup = jobGroup.GroupBy(g => g.Specification.ClusterUser)
-                                                 .ToList();
-
-                    foreach (var userJobGroup in userJobsGroup)
-                    {
-                        var tasksExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w))
-                                                                .SelectMany(s => s.Tasks)
-                                                                .Where(w => !w.Specification.DependsOn.Any())
-                                                                .ToList();
-
-                        if (tasksExceedWaitLimit.Any())
-                        {
-                            scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
-                        }
-                        actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, userJobGroup.Key, userJobGroup.SelectMany(s => s.Tasks)));
-                    }
+                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, f.Key, f.SelectMany(s => s.Tasks))));
                 }
 
                 bool isNeedUpdateJobState = false;
@@ -710,7 +703,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         protected static void UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
         {
             dbJobInfo.StartTime = dbJobInfo.Tasks.FirstOrDefault()?.StartTime;
-            dbJobInfo.EndTime = dbJobInfo.Tasks.Where(t=>t.EndTime.HasValue).Last().EndTime;
+            dbJobInfo.EndTime = dbJobInfo.Tasks.Where(t => t.EndTime.HasValue).LastOrDefault()?.EndTime;
             dbJobInfo.TotalAllocatedTime = dbJobInfo.Tasks.Sum(s => s.AllocatedTime ?? 0);
 
             JobState continuousJobState = JobState.Finished;
