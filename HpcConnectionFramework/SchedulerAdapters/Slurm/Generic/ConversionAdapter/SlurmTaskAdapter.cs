@@ -123,12 +123,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
                 if (value != null && value.Any())
                 {
                     var builder = new StringBuilder(" --dependency=afterok");
-                    foreach (TaskDependency taskDependency in value)
-                    {
-                        builder.Append(":set -- $_");
-                        builder.Append(taskDependency.ParentTaskSpecification.Id);
-                        builder.Append(";echo $4;");
-                    }
+                    value.ToList().ForEach(f => builder.Append($":set -- $_{f.ParentTaskSpecification.Id};echo $4;"));
                     _taskBuilder.Append(builder);
                 }
             }
@@ -274,7 +269,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
             _taskBuilder.Append(
                 string.IsNullOrEmpty(recursiveSymlinkCommand)
                     ? string.Empty
-                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};");
+                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};touch {stdOutFile} {stdErrFile};");
 
             _taskBuilder.Append($"1>> {stdOutFile} 2>> {stdErrFile} ");
             _taskBuilder.Append(

@@ -117,12 +117,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             {
                 if (value != null && value.Any())
                 {
-                    StringBuilder builder = new StringBuilder(" -W depend=afterok");
-                    foreach (TaskDependency taskDependency in value)
-                    {
-                        builder.Append(":$_");
-                        builder.Append(taskDependency.ParentTaskSpecification.Id);
-                    }
+                    var builder = new StringBuilder(" -W depend=afterok");
+                    value.ToList().ForEach(f => builder.Append($":$_{f.ParentTaskSpecification.Id}"));
                     _taskBuilder.Append(builder);
                 }
             }
@@ -297,7 +293,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             taskSourceSb.Append(
                 string.IsNullOrEmpty(recursiveSymlinkCommand)
                     ? string.Empty
-                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};");
+                    : recursiveSymlinkCommand.Last().Equals(';') ? recursiveSymlinkCommand : $"{recursiveSymlinkCommand};rm {stdOutFile} {stdErrFile};touch {stdOutFile} {stdErrFile};");
 
             taskSourceSb.Append(
                 string.IsNullOrEmpty(preparationScript)
