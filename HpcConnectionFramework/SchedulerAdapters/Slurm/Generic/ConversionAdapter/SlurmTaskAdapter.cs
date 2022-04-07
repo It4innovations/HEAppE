@@ -123,7 +123,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
                 if (value != null && value.Any())
                 {
                     var builder = new StringBuilder(" --dependency=afterok");
-                    value.ToList().ForEach(f => builder.Append($":set -- $_{f.ParentTaskSpecification.Id};echo $4;"));
+                    value.ToList().ForEach(f => builder.Append($":$_{f.ParentTaskSpecification.Id}_parsed"));
                     _taskBuilder.Append(builder);
                 }
             }

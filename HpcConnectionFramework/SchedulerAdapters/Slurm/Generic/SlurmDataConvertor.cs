@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
@@ -157,6 +158,31 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             }
 
             return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from HPC scheduler!");
+        }
+
+        /// <summary>
+        /// Convert job specification to job
+        /// </summary>
+        /// <param name="jobSpecification">Job specification</param>
+        /// <param name="schedulerAllocationCmd">Scheduler allocation command</param>
+        /// <returns></returns>
+        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
+        {
+            ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
+            jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
+            // Setting global parameters for all tasks
+            var globalJobParameters = (string)jobAdapter.AllocationCmd;
+            var tasks = new List<object>();
+            if (jobSpecification.Tasks is not null && jobSpecification.Tasks.Any())
+            {
+                foreach (var task in jobSpecification.Tasks)
+                {
+                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)}{globalJobParameters});echo $_{task.Id};_{task.Id}_parsed=$(set -- $_{task.Id};echo $4);");
+                }
+            }
+
+            jobAdapter.SetTasks(tasks);
+            return jobAdapter.AllocationCmd;
         }
         #endregion
     }
