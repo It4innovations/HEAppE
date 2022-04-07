@@ -88,7 +88,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 EndTime = obj.StartTime.HasValue && obj.TaskState >= TaskState.Finished ? obj.EndTime : null,
                 AllocatedTime = Math.Round(obj.RunTime.TotalSeconds, 3),
                 AllocatedCores = obj.UsedCores,
-                State = obj.TaskState,
+                State = obj.IsDeadLock ? TaskState.Failed : obj.TaskState,
                 TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo() { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
                                                           .ToList(),
                 ErrorMessage = default,

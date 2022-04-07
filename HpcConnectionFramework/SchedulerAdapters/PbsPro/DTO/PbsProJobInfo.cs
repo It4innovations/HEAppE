@@ -49,7 +49,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
                 {
                     IsJobArrayJob = true;
                     SchedulerJobIdWoJobArrayIndex = _schedulerJobId.Replace(match.Groups.GetValueOrDefault("IndexArray").Value, string.Empty);
-                    AggregateSchedulerResponseParameters = $"{SchedulerResponseParameters}\n";
+                    AggregateSchedulerResponseParameters = $"{SchedulerResponseParameters}";
                 }
             }
         }
@@ -244,11 +244,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
             }
             else
             {
+                UsedCores = jobInfo.UsedCores ?? jobInfo.UsedCores.Value;
                 RunTime += jobInfo.RunTime;
             }
 
+
             _allocatedNodes = jobInfo.AllocatedNodes.Union(_allocatedNodes);
-            AggregateSchedulerResponseParameters += $"{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{jobInfo.SchedulerResponseParameters}";
+            AggregateSchedulerResponseParameters += $"\n{HPCConnectionFrameworkConfiguration.JobArrayDbDelimiter}\n{jobInfo.SchedulerResponseParameters}";
         }
         #endregion
     }
