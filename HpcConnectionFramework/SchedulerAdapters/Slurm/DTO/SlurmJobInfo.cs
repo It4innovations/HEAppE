@@ -138,6 +138,26 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Job scheduler response raw data
         /// </summary>
         public string SchedulerResponseParameters { get; private set; }
+
+        /// <summary>
+        /// Determinates if job is deadlocked
+        /// </summary>
+        public bool IsDeadLock { get; private set; } = false;
+
+        /// <summary>
+        /// Job execution Reason
+        /// </summary>
+        [Scheduler("Reason")]
+        public string ReasonMessage
+        {
+            set
+            {
+                if (!string.IsNullOrEmpty(value) && value.Contains("DependencyNeverSatisfied"))
+                {
+                    IsDeadLock = true;
+                }
+            }
+        }
         #region Job Arrays Properties
         /// <summary>
         /// Is job with job arrays 
