@@ -13,6 +13,8 @@ using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using log4net;
 using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.ServiceTier.ClusterInformation
 {
@@ -44,7 +46,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
                     IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
                     ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
                     return nodeUsage.ConvertIntToExt();
@@ -62,7 +64,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
                     return clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
                 }
@@ -71,7 +73,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             catch (Exception exc)
             {
                 //TODO Should be rewrite!
-                if (exc.Message.Contains("No such file or directory"))
+                if (exc.Message.Contains("No such file or directory") || exc.Message.Contains("Is a directory"))
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
                 }
@@ -80,5 +82,6 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 return null;
             }
         }
+
     }
 }

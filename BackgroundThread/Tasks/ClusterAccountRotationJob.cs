@@ -12,7 +12,9 @@ namespace HEAppE.BackgroundThread.Tasks
     /// </summary>
     internal class ClusterAccountRotationJob : AbstractTask, IBackgroundTask
     {
-        public ClusterAccountRotationJob(TimeSpan interval) : base(interval) { }
+        public ClusterAccountRotationJob(TimeSpan interval) : base(interval) 
+        {
+        }
 
         protected override void RunTask()
         {
@@ -21,7 +23,7 @@ namespace HEAppE.BackgroundThread.Tasks
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
 
                 //Get all jobs in state - waiting for user 
-                IEnumerable<SubmittedJobInfo> allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.ListAllWaitingForServiceAccount();
+                IEnumerable<SubmittedJobInfo> allWaitingJobs = unitOfWork.SubmittedJobInfoRepository.GetAllWaitingForServiceAccount();
 
                 //Try to submit them again
                 foreach (SubmittedJobInfo job in allWaitingJobs)

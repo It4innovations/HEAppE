@@ -1,5 +1,5 @@
-﻿using HEAppE.ConnectionPool;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using System;
@@ -7,52 +7,33 @@ using System;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
-    /// Class: Ssh connector
+    /// Ssh connector
     /// </summary>
-    public class SshConnector : IPoolableAdapter
+    public class SshConnector : ConnectionPool.IPoolableAdapter
     {
+        #region Local Methods
         /// <summary>
-        /// Method: Create ssh connection object
+        /// Create ssh connection object
         /// </summary>
         /// <param name="masterNodeName">Master node name</param>
         /// <param name="credentials">Credentials</param>
+        /// <param name="port">Port</param>
         /// <returns></returns>
         public object CreateConnectionObject(string masterNodeName, string remoteTimeZone, ClusterAuthenticationCredentials credentials, int? port)
         {
-#warning TODO timezone
-            if (!string.IsNullOrEmpty(credentials.PrivateKeyFile))
+            return credentials.AuthenticationType switch
             {
-                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(credentials.Password))
-                {
-                    switch (credentials.Cluster.ConnectionProtocol)
-                    {
-                        case ClusterConnectionProtocol.MicrosoftHpcApi:
-                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port);
-
-                        case ClusterConnectionProtocol.Ssh:
-                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port);
-
-                        case ClusterConnectionProtocol.SshInteractive:
-                            return CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, credentials.Username, credentials.Password);
-
-                        default:
-                            return CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port);
-                    }
-                }
-                else
-                {
-                    //USE ssh-agent
-                    return CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username);
-                }
-            }
+                ClusterAuthenticationCredentialsAuthType.Password => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port),
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractive => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, credentials.Username, credentials.Password),
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                ClusterAuthenticationCredentialsAuthType.PrivateKey => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username),
+                _ => throw new NotImplementedException("Cluster authentication credentials authentication type is not allowed!")
+            };
         }
 
         /// <summary>
-        /// Method: Connect client to server
+        /// Connect client to server
         /// </summary>
         /// <param name="connectorClient"></param>
         /// <param name="masterNodeName">Master node name</param>
@@ -63,45 +44,50 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         }
 
         /// <summary>
-        /// Method: Disconnect client from server
+        /// Disconnect client from server
         /// </summary>
         /// <param name="scheduler"></param>
         public void Disconnect(object connectorClient)
         {
             new SshClientAdapter((SshClient)connectorClient).Disconnect();
         }
-
+        #endregion
+        #region Private Methods
         /// <summary>
-        /// Method: Create connection object using password authentication
+        /// Create connection object using password authentication
         /// </summary>
-        /// <param name="masterNodeName">Master node name</param>
+        /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>
         /// <param name="password">Password</param>
         /// <returns></returns>
-        private object CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string username, string password, int? port = null)
+        private static object CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string username, string password, int? port)
         {
-            Renci.SshNet.ConnectionInfo connectionInfo;
-            if (port.HasValue)
+            var connectionInfo = port switch
             {
-                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, port.Value, username, new PasswordAuthenticationMethod(username, password));
-            }
-            else
-            {
-                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
-            }
+                null => new ConnectionInfo(
+                    masterNodeName,
+                    username,
+                    new PasswordAuthenticationMethod(username, password)),
+                _ => new ConnectionInfo(
+                    masterNodeName,
+                    port.Value,
+                    username,
+                    new PasswordAuthenticationMethod(username, password))
+            };
+
             return new SshClient(connectionInfo);
         }
 
         /// <summary>
-        /// Method: Create connection object using password authentication with keyboard interactive
+        /// Create connection object using password authentication with keyboard interactive
         /// </summary>
-        /// <param name="masterNodeName">Master node name</param>
+        /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>
         /// <param name="password">Password</param>
         /// <returns></returns>
-        private object CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(string masterNodeName, string username, string password)
+        private static object CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(string masterNodeName, string username, string password)
         {
-            KeyboardInteractiveConnectionInfo connectionInfo = new KeyboardInteractiveConnectionInfo(masterNodeName, username);
+            var connectionInfo = new KeyboardInteractiveConnectionInfo(masterNodeName, username);
             connectionInfo.AuthenticationPrompt += delegate (object sender, AuthenticationPromptEventArgs e)
             {
                 foreach (AuthenticationPrompt prompt in e.Prompts)
@@ -111,44 +97,91 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             };
             return new SshClient(connectionInfo);
         }
+
         /// <summary>
-        /// Method: Create connection object using private key authentication
+        /// Create connection object using private key authentication
         /// </summary>
-        /// <param name="masterNodeName">Master node name</param>
+        /// <param name="masterNodeName">Master host name</param>
         /// <param name="username">Username</param>
         /// <param name="privateKeyFile">Private key file</param>
         /// <param name="privateKeyPassword">Private key password</param>
+        /// <param name="port">Port</param>
         /// <returns></returns>
-        private object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port = null)
+        private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port)
         {
             try
             {
                 PrivateKeyConnectionInfo connectionInfo = port switch
                 {
                     null => new PrivateKeyConnectionInfo(
-                    masterNodeName,
-                    username,
-                    new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                        masterNodeName,
+                        username,
+                        new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
                     _ => new PrivateKeyConnectionInfo(
-                    masterNodeName,
-                    port.Value,
-                    username,
-                    new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                        masterNodeName,
+                        port.Value,
+                        username,
+                        new PrivateKeyFile(privateKeyFile, privateKeyPassword))
                 };
 
                 var client = new SshClient(connectionInfo);
                 return client;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
-                throw new SshCommandException($"Password is not corresponding to private key used for the connection to \"{masterNodeName}\"!", e);
-            }     
+                throw new SshCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+            }
         }
 
-        private object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string username)
+        /// <summary>
+        /// Create connection object using private key and password authentication
+        /// </summary>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="password">Password</param>
+        /// <param name="privateKeyFile">Private key file</param>
+        /// <param name="privateKeyPassword">Private key password</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(string masterNodeName, string username, string password, string privateKeyFile, string privateKeyPassword, int? port)
         {
-            NoAuthenticationSshClient client = new NoAuthenticationSshClient(masterNodeName, username);
+            try
+            {
+                var connectionInfo = port switch
+                {
+                    null => new ConnectionInfo(
+                        masterNodeName,
+                        username,
+                        new PasswordAuthenticationMethod(username, password),
+                        new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword))),
+                    _ => new ConnectionInfo(
+                        masterNodeName,
+                        port.Value,
+                        username,
+                        new PasswordAuthenticationMethod(username, password),
+                        new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword)))
+                };
+
+                var client = new SshClient(connectionInfo);
+                return client;
+            }
+            catch (Exception e)
+            {
+                throw new SshCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+            }
+        }
+
+        /// <summary>
+        /// Create connection object using private key stored in memory (ssh-agent)
+        /// </summary>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string username)
+        {
+            var client = new NoAuthenticationSshClient(masterNodeName, username);
             return client;
         }
+        #endregion
     }
 }

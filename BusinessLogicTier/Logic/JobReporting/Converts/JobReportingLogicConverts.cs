@@ -78,6 +78,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
                 Name = task.Name,
                 JobId = job.Id,
                 JobName = job.Name,
+                Project = job.Project,
                 Priority = task.Priority,
                 State = task.State,
                 CpuHyperThreading = task.CpuHyperThreading ?? false,
@@ -118,39 +119,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
         {
             if (task.State >= TaskState.Running)
             {
-                double agregationCoreHours = 0;
-                var splittedSubTasks = task.AllParameters.Split("<JOB_ARRAY_ITERATION>\r\n");
-                var subTasks = string.IsNullOrEmpty(task.Specification.JobArrays)
-                                        ? splittedSubTasks
-                                        : splittedSubTasks.Skip(1);
+                double walltimeInSeconds = task.AllocatedTime ?? 0;
+                int ncpus = task.AllocatedCores ?? task.Specification.MaxCores ?? 0;
 
-                foreach (var subTask in subTasks)
-                {
-                    TimeSpan walltime = task.StartTime.HasValue && task.EndTime.HasValue
-                                       ? task.EndTime.Value - task.StartTime.Value
-                                       : TimeSpan.FromSeconds(0);
-
-                    int ncpus = task.Specification.MaxCores ?? 0;
-                    var taskAllParamsFromScheduler = subTask.Split(Environment.NewLine, StringSplitOptions.RemoveEmptyEntries)
-                                                              .Select(item => item.Split(": "))
-                                                              .ToDictionary(s => s[0], s => s[1]);
-
-                    //TODO resources_used.walltime get dynamically
-                    if (taskAllParamsFromScheduler.TryGetValue("resources_used.walltime", out string parsedWalltime))
-                    {
-                        walltime = TimeSpan.Parse(parsedWalltime);
-                    }
-
-                    //TODO resources_used.ncpus get dynamically
-                    if (taskAllParamsFromScheduler.TryGetValue("resources_used.ncpus", out string parsedNumOfCPUs) && int.TryParse(parsedNumOfCPUs, out int numOfCPUs))
-                    {
-                        ncpus = numOfCPUs;
-                    }
-
-                    //Corehours for task
-                    agregationCoreHours += Math.Round((walltime.TotalSeconds * ncpus) / 3600, 3);
-                }
-                return agregationCoreHours;
+                return Math.Round((walltimeInSeconds * ncpus) / 3600, 3);
             }
             else
             {

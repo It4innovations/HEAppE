@@ -1,14 +1,15 @@
-﻿using System;
-using RestSharp;
-using HEAppE.KeycloakOpenIdAuthentication.JsonTypes;
-using System.Net;
-using HEAppE.RestUtils;
+﻿using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using HEAppE.KeycloakOpenIdAuthentication.Exceptions;
+using HEAppE.KeycloakOpenIdAuthentication.JsonTypes;
+using HEAppE.RestUtils;
+using RestSharp;
 using RestSharp.Authenticators;
-using System.Text;
-using System.Net.Cache;
-using HEAppE.KeycloakOpenIdAuthentication.Configuration;
+using System;
 using System.Linq;
+using System.Net;
+using System.Net.Http.Headers;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace HEAppE.KeycloakOpenIdAuthentication
 {
@@ -19,10 +20,10 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// Get RestClient for the base keycloak url.
         /// </summary>
         /// <returns>Configured rest client.</returns>
-        private readonly IRestClient _basicRestClient;
+        private readonly RestClient _basicRestClient;
         #endregion
         #region Properties
-        public string AuthenticateUserWithPassword(string username, string password) => AuthenticateUserWithPasswordImpl(username, password, KeycloakConfiguration.ClientId).AccessToken;
+        public async Task<string> AuthenticateUserWithPassword(string username, string password) => (await AuthenticateUserWithPasswordImplAsync(username, password, KeycloakConfiguration.ClientId)).AccessToken;
         #endregion
         #region Constructors
         /// <summary>
@@ -30,13 +31,24 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// </summary>
         public KeycloakOpenId()
         {
+            if(string.IsNullOrEmpty(KeycloakConfiguration.BaseUrl))
+            {
+                throw new KeycloakOpenIdException($"Not specify URL address for authentication user by \"{KeycloakConfiguration.Protocol}\"");
+            }
+
             if (KeycloakConfiguration.Protocol == "openid-connect")
             {
-                _basicRestClient = new RestClient(KeycloakConfiguration.BaseUrl)
+                var options = new RestClientOptions(KeycloakConfiguration.BaseUrl)
                 {
                     Encoding = Encoding.UTF8,
-                    CachePolicy = new RequestCachePolicy(RequestCacheLevel.NoCacheNoStore)
+                    CachePolicy = new CacheControlHeaderValue()
+                    {
+                        NoCache = true,
+                        NoStore = true
+                    },
+                    Timeout = KeycloakConfiguration.ConnectionTimeout
                 };
+                _basicRestClient = new RestClient(options);
             }
             else
             {
@@ -55,16 +67,16 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// <param name="clientId">Client name.</param>
         /// <returns></returns>
         /// <exception cref="KeycloakOpenIdException">When fails autentication</exception>
-        private OpenIdUserAuthenticationResult AuthenticateUserWithPasswordImpl(string username, string password, string clientId)
+        private async Task<OpenIdUserAuthenticationResult> AuthenticateUserWithPasswordImplAsync(string username, string password, string clientId)
         {
-            IRestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token", Method.POST)
-                                       .AddHeader("content-type", "application/x-www-form-urlencoded")
-                                        .AddXWwwFormUrlEncodedBody(("client_id", clientId),
-                                                                   ("grant_type", "password"),
-                                                                   ("username", username),
-                                                                   ("password", password));
+            RestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token", Method.Post)
+                                           .AddHeader("content-type", "application/x-www-form-urlencoded")
+                                           .AddParameter("client_id", clientId, ParameterType.GetOrPost)
+                                           .AddParameter("grant_type", "password", ParameterType.GetOrPost)
+                                           .AddParameter("username", username, ParameterType.GetOrPost)
+                                           .AddParameter("password", password, ParameterType.GetOrPost);
 
-            var response = _basicRestClient.Execute(restRequest);
+            var response = await _basicRestClient.ExecuteAsync(restRequest);
             return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
         }
 
@@ -74,15 +86,15 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// <param name="offlineToken">OpenId offline-token</param>
         /// <returns>Introspected user information</returns>
         /// <exception cref="KeycloakOpenIdException">When fails to get user information from token</exception>
-        public KeycloakUserInfoResult GetUserInfo(string offlineToken)
+        public async Task<KeycloakUserInfoResult> GetUserInfoAsync(string offlineToken)
         {
             _basicRestClient.Authenticator = new JwtAuthenticator(offlineToken);
-            IRestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/userinfo", Method.POST)
-                                        .AddHeader("content-type", "application/x-www-form-urlencoded")
-                                         .AddXWwwFormUrlEncodedBody(("audience", KeycloakConfiguration.ClientId),
-                                                                    ("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket"));
+            RestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/userinfo", Method.Post)
+                                            .AddHeader("content-type", "application/x-www-form-urlencoded")
+                                            .AddParameter("audience", KeycloakConfiguration.ClientId, ParameterType.GetOrPost)
+                                            .AddParameter("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket", ParameterType.GetOrPost);
 
-            var response = _basicRestClient.Execute(restRequest);
+            var response = await _basicRestClient.ExecuteAsync(restRequest);
             return ParseHelper.ParseJsonOrThrow<KeycloakUserInfoResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
         }
 
@@ -92,19 +104,19 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// <param name="accessToken">OpenId access-token</param>
         /// <returns>Instrospected token information</returns>
         /// <exception cref="KeycloakOpenIdException">When fails to exchange token</exception>
-        public OpenIdUserAuthenticationResult ExchangeToken(string accessToken)
+        public async Task<OpenIdUserAuthenticationResult> ExchangeTokenAsync(string accessToken)
         {
-            IRestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token", Method.POST)
+            var restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token", Method.Post)
                                         .AddHeader("content-type", "application/x-www-form-urlencoded")
-                                        .AddXWwwFormUrlEncodedBody(("client_secret", KeycloakConfiguration.SecretId),
-                                                                    ("client_id", KeycloakConfiguration.ClientId),
-                                                                    ("scope", "offline_access"),
-                                                                    ("requested_token_type", "urn:ietf:params:oauth:token-type:refresh_token"),
-                                                                    ("subject_token_type", "urn:ietf:params:oauth:token-type:access_token"),
-                                                                    ("subject_token", accessToken),
-                                                                    ("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange"));
+                                        .AddParameter("client_secret", KeycloakConfiguration.SecretId, ParameterType.GetOrPost)
+                                        .AddParameter("client_id", KeycloakConfiguration.ClientId, ParameterType.GetOrPost)
+                                        .AddParameter("scope", "offline_access", ParameterType.GetOrPost)
+                                        .AddParameter("requested_token_type", "urn:ietf:params:oauth:token-type:refresh_token", ParameterType.GetOrPost)
+                                        .AddParameter("subject_token_type", "urn:ietf:params:oauth:token-type:access_token", ParameterType.GetOrPost)
+                                        .AddParameter("subject_token", accessToken, ParameterType.GetOrPost)
+                                        .AddParameter("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange", ParameterType.GetOrPost);
 
-            var response = _basicRestClient.Execute(restRequest);
+            var response = await _basicRestClient.ExecuteAsync(restRequest);
             return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
         }
 
@@ -114,14 +126,14 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// <param name="accessToken">OpenId access-token</param>
         /// <returns>Instrospected token info</returns>
         /// <exception cref="KeycloakOpenIdException">When fails to introspect token</exception>
-        public KeycloakTokenIntrospectionResult TokenIntrospection(string accessToken)
+        public async Task<KeycloakTokenIntrospectionResult> TokenIntrospectionAsync(string accessToken)
         {
             _basicRestClient.Authenticator = new HttpBasicAuthenticator(KeycloakConfiguration.ClientId, KeycloakConfiguration.SecretId);
-            IRestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token/introspect", Method.POST)
-                                        .AddHeader("content-type", "application/x-www-form-urlencoded")
-                                        .AddXWwwFormUrlEncodedBody(("token", accessToken));
+            RestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token/introspect", Method.Post)
+                                            .AddHeader("content-type", "application/x-www-form-urlencoded")
+                                            .AddParameter("token", accessToken, ParameterType.GetOrPost);
 
-            var response = _basicRestClient.Execute(restRequest);
+            var response = await _basicRestClient.ExecuteAsync(restRequest);
             return ParseHelper.ParseJsonOrThrow<KeycloakTokenIntrospectionResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
         }
 
@@ -131,15 +143,15 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// <param name="refreshToken">OpenId refresh-token</param>
         /// <returns>Instrospected token info</returns>
         /// <exception cref="KeycloakOpenIdException">When fails to refresh the token</exception>
-        public OpenIdUserAuthenticationResult RefreshAccessToken(string refreshToken)
+        public async Task<OpenIdUserAuthenticationResult> RefreshAccessTokenAsync(string refreshToken)
         {
             _basicRestClient.Authenticator = new HttpBasicAuthenticator(KeycloakConfiguration.ClientId, KeycloakConfiguration.SecretId);
-            IRestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token", Method.POST)
-                                        .AddHeader("content-type", "application/x-www-form-urlencoded")
-                                         .AddXWwwFormUrlEncodedBody(("refresh_token", refreshToken),
-                                                                    ("grant_type", "refresh_token"));
+            RestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/token", Method.Post)
+                                            .AddHeader("content-type", "application/x-www-form-urlencoded")
+                                            .AddParameter("refresh_token", refreshToken, ParameterType.GetOrPost)
+                                            .AddParameter("grant_type", "refresh_token", ParameterType.GetOrPost);
 
-            var response = _basicRestClient.Execute(restRequest);
+            var response = await _basicRestClient.ExecuteAsync(restRequest);
             return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
         }
 
@@ -150,9 +162,9 @@ namespace HEAppE.KeycloakOpenIdAuthentication
         /// <exception cref="KeycloakOpenIdException">When validation is not valid</exception>
         public static void ValidateUserToken(KeycloakTokenIntrospectionResult introspectedToken)
         {
-            if (! (introspectedToken.Active && KeycloakConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId) && introspectedToken.EmailVerified))
+            if (!(introspectedToken.Active && KeycloakConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId) && introspectedToken.EmailVerified))
             {
-                StringBuilder textBuilder = new ();
+                StringBuilder textBuilder = new();
                 if (!introspectedToken.Active)
                 {
                     textBuilder.AppendLine("Open-Id: User is not active!");
@@ -167,7 +179,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication
                 {
                     textBuilder.AppendLine("Open-Id: User is not in allowed clientIds!");
                 }
-                
+
                 throw new KeycloakOpenIdException(textBuilder.ToString());
             }
         }

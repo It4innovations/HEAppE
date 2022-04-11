@@ -22,8 +22,7 @@ namespace HEAppE.RestApi.InputValidator
                 AuthenticateUserOpenIdModel model => ValidateAuthenticateUserOpenIdModel(model),
                 AuthenticateUserPasswordModel model => ValidateAuthenticateUserPasswordModel(model),
                 AuthenticateUserDigitalSignatureModel model => ValidateAuthenticateUserDigitalSignatureModel(model),
-                GetCurrentUsageAndLimitationsForCurrentUserModel model =>
-                    ValidateCurrentUsageAndLimitationsForCurrentUserModel(model),
+                GetCurrentUsageAndLimitationsForCurrentUserModel model => ValidateCurrentUsageAndLimitationsForCurrentUserModel(model),
                 _ => string.Empty
             };
 

@@ -1,37 +1,32 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.BusinessLogicTier.Factory;
+﻿using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.DataTransfer;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.ServiceTier.UserAndLimitationManagement;
-using log4net;
-using System.Reflection;
-using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.ExtModels.DataTransfer.Converts;
-using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.ExtModels.DataTransfer.Models;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.DataTransfer
 {
     public class DataTransferService : IDataTransferService
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
-        public static List<string> publicList = new List<string>();
-
-        public DataTransferMethodExt GetDataTransferMethod(string ipAddress, int port, long submittedJobInfoId, string sessionCode)
+        public DataTransferMethodExt GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                    DataTransferMethod dataTransferMethod = dataTransferLogic.GetDataTransferMethod(ipAddress, port, jobInfo, loggedUser);
+                    DataTransferMethod dataTransferMethod = dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
                     return dataTransferMethod.ConvertIntToExt();
                 }
             }
@@ -48,10 +43,10 @@ namespace HEAppE.ServiceTier.DataTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(usedTransferMethod.SubmittedJobId, loggedUser);
+
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                    dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), jobInfo, loggedUser);
+                    dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
                 }
             }
             catch (Exception exc)
@@ -60,16 +55,15 @@ namespace HEAppE.ServiceTier.DataTransfer
             }
         }
 
-        public string HttpGetToJobNode(string httpRequest, string[] httpHeaders, long submittedJobInfoId, string ipAddress, string sessionCode)
+        public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                    return dataTransferLogic.HttpGetToJobNode(httpRequest, httpHeaders, jobInfo.Id, ipAddress);
+                    return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s=>s.ConvertExtToInt()), submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
                 }
             }
             catch (Exception exc)
@@ -79,16 +73,15 @@ namespace HEAppE.ServiceTier.DataTransfer
             }
         }
 
-        public string HttpPostToJobNode(string httpRequest, string[] httpHeaders, string httpPayload, long submittedJobInfoId, string ipAddress, string sessionCode)
+        public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-                    SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                    return dataTransferLogic.HttpPostToJobNode(httpRequest, httpHeaders, httpPayload, jobInfo.Id, ipAddress);
+                    return await dataTransferLogic.HttpPostToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()), httpPayload, submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
                 }
             }
             catch (Exception exc)
@@ -97,43 +90,5 @@ namespace HEAppE.ServiceTier.DataTransfer
                 return default;
             }
         }
-
-        //public int? WriteDataToJobNode(byte[] data, long submittedJobInfoId, string ipAddress, bool closeConnection, string sessionCode)
-        //{
-        //    try
-        //    {
-        //        using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-        //        {
-        //            AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-        //            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-        //            IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-        //            return dataTransferLogic.WriteDataToJobNode(data, jobInfo.Id, ipAddress, sessionCode, closeConnection);
-        //        }
-        //    }
-        //    catch (Exception exc)
-        //    {
-        //        ExceptionHandler.ThrowProperExternalException(exc);
-        //        return default;
-        //    }
-        //}
-
-        //public byte[] ReadDataFromJobNode(long submittedJobInfoId, string ipAddress, string sessionCode)
-        //{
-        //    try
-        //    {
-        //        using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-        //        {
-        //            AdaptorUser loggedUser = UserAndLimitationManagementService.GetUserForSessionCode(sessionCode, unitOfWork);
-        //            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-        //            IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-        //            return dataTransferLogic.ReadDataFromJobNode(jobInfo.Id, ipAddress, sessionCode);
-        //        }
-        //    }
-        //    catch (Exception exc)
-        //    {
-        //        ExceptionHandler.ThrowProperExternalException(exc);
-        //        return default;
-        //    }
-        //}
     }
 }

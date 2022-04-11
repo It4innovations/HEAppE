@@ -4,11 +4,10 @@ using System.Collections.Generic;
 using System.Linq;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.FileTransferFramework;
 using System.Text.RegularExpressions;
 using System;
-using HEAppE.HpcConnectionFramework;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 {
@@ -172,6 +171,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             if (task.ClusterNodeTypeId != task.CommandTemplate.ClusterNodeTypeId)
             {
                 _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
+            }
+
+            if(!task.CommandTemplate.IsEnabled)
+            {
+                _messageBuilder.AppendLine($"Task {task.Name} has specified deleted CommandTemplateId \"{task.CommandTemplate.Id}\"");
             }
 
             if (task.CommandTemplate.IsGeneric)

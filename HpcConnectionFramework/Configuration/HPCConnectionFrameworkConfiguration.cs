@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.Configuration
 {
@@ -15,7 +11,32 @@ namespace HEAppE.HpcConnectionFramework.Configuration
         /// <summary>
         /// Generic command key parameter
         /// </summary>
-        public static string GenericCommandKeyParameter { get; set; } = "#HEAPPE_PARAM";
+        public static string GenericCommandKeyParameter { get; set; }
+
+        /// <summary>
+        /// Database job array delimiter
+        /// </summary>
+        public static string JobArrayDbDelimiter { get; set; }
+
+        /// <summary>
+        /// Tunnel configuration
+        /// </summary>
+        public static TunnelConfiguration TunnelSettings { get; } = new TunnelConfiguration();
+
+        /// <summary>
+        /// Command scripts path configuration
+        /// </summary>
+        public static CommandScriptPathConfiguration CommandScriptsPathSettings { get; } = new CommandScriptPathConfiguration();
+
+        /// <summary>
+        /// Linux local command scripts path configuration
+        /// </summary>
+        public static LinuxLocalCommandScriptPathConfiguration LinuxLocalCommandScriptPathSettings { get; } = new LinuxLocalCommandScriptPathConfiguration();
+
+        /// <summary>
+        /// Clusters connection Pool configuration
+        /// </summary>
+        public static Dictionary<string, ClusterConnectionPoolConfiguration> ClustersConnectionPoolSettings { get; } = new Dictionary<string, ClusterConnectionPoolConfiguration>();
         #endregion
     }
 }

@@ -50,7 +50,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CreateJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.CreateJob(model.JobSpecification, model.SessionCode));
             }
             catch (Exception e)
@@ -78,7 +81,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"SubmitJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
             }
             catch (Exception e)
@@ -106,7 +112,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CancelJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception e)
@@ -134,7 +143,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DeleteJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 _service.DeleteJob(model.SubmittedJobInfoId, model.SessionCode);
                 return Ok("Job deleted.");
             }
@@ -150,7 +162,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("ListJobsForCurrentUser")]
-        [RequestSizeLimit(54)]
+        [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<SubmittedJobInfoExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -163,7 +175,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"ListJobsForCurrentUser\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.ListJobsForCurrentUser(model.SessionCode));
             }
             catch (Exception e)
@@ -191,7 +206,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"GetCurrentInfoForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetCurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception e)
@@ -219,7 +237,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataToTemp\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 _service.CopyJobDataToTemp(model.SubmittedJobInfoId, model.SessionCode, model.Path);
                 return Ok("Data were copied to Temp");
             }
@@ -248,7 +269,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataFromTemp\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
                 return Ok("Data were copied to Temp");
             }
@@ -277,8 +301,11 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"GetAllocatedNodesIPs\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                return Ok(_service.GetAllocatedNodesIPs(model.SubmittedJobInfoId, model.SessionCode));
+                }
+
+                return Ok(_service.GetAllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
             }
             catch (Exception e)
             {

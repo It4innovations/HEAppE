@@ -55,20 +55,15 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             double? groupTotalUsage = 0;
             var userAggregatedReports = new List<UserAggregatedUsage>();
 
-            var userResourceUsageReport = GetUserResourceUsageReport(userId, startTime, endTime).ConvertUsageReportToAggregatedUsage();
-            groupTotalUsage += userResourceUsageReport?.TotalUsage;
 
-            userAggregatedReports.Add(userResourceUsageReport);
+            AdaptorUserGroup group = unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
+            foreach (AdaptorUser user in group.Users)
+            {
+                var userResourceUsageReport = GetUserResourceUsageReport(user.Id, startTime, endTime).ConvertUsageReportToAggregatedUsage();
+                groupTotalUsage += userResourceUsageReport?.TotalUsage;
 
-            //TODO prepare for all users but must be solved HEAppEUserRoles
-            //AdaptorUserGroup group = unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
-            //foreach (AdaptorUser user in group.Users)
-            //{
-            //    var userResourceUsageReport = GetUserResourceUsageReport(user.Id, startTime, endTime).ConvertUsageReportToAggregatedUsage();
-            //    groupTotalUsage += userResourceUsageReport?.TotalUsage;
-
-            //    userAggregatedReports.Add(userResourceUsageReport);
-            //}
+                userAggregatedReports.Add(userResourceUsageReport);
+            }
 
             var userGroupReport = new UserGroupResourceUsageReport
             {
@@ -85,7 +80,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         {
             double? userTotalUsage = 0;
             var selectedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork)
-                                                             .ListJobsForUser(user).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime)
+                                                             .GetJobsForUser(user).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime)
                                                               .ToList();
 
             nodeTypeAggregatedUsage = new List<NodeTypeAggregatedUsage>();

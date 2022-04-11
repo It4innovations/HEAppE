@@ -10,7 +10,7 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         [DataMember(Name = "ServerHostname")]
         public string ServerHostname { get; set; }
 
-        [DataMember(Name = "SharedBasepath"), StringLength(50)]
+        [DataMember(Name = "SharedBasepath"), StringLength(200)]
         public string SharedBasepath { get; set; }
 
         [DataMember(Name = "Protocol")]

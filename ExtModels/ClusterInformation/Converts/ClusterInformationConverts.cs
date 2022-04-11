@@ -31,13 +31,13 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 NumberOfNodes = nodeType.NumberOfNodes,
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
-                CommandTemplates = nodeType.PossibleCommands.Select(s=> s.ConvertIntToExt())
+                CommandTemplates = nodeType.PossibleCommands.Where(c=>c.IsEnabled).Select(s=> s.ConvertIntToExt())
                                                              .ToArray()
             };
             return convert;
         }
 
-        private static CommandTemplateExt ConvertIntToExt(this CommandTemplate commandTemplate)
+        public static CommandTemplateExt ConvertIntToExt(this CommandTemplate commandTemplate)
         {
             CommandTemplateExt convert = new CommandTemplateExt()
             {

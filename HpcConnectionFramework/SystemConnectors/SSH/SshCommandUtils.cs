@@ -1,10 +1,9 @@
-﻿using log4net;
-using Renci.SshNet;
-using System;
+﻿using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+using log4net;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
-    /// Class: Ssh command utls
+    ///  Ssh command utls
     /// </summary>
     internal static class SshCommandUtils
     {
@@ -25,7 +24,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         #endregion
         #region Methods
         /// <summary>
-        /// Method: Run ssh command
+        /// Run ssh command
         /// </summary>
         /// <param name="client">Client</param>
         /// <param name="command">Command</param>
@@ -35,6 +34,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             var sshCommand = client.RunCommand(command);
             if (sshCommand.ExitStatus != 0)
             {
+                _log.Error($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
                 throw new SshCommandException($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
             }
 

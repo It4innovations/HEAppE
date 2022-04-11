@@ -7,22 +7,44 @@ namespace HEAppE.ExtModels.DataTransfer.Converts
     {
         public static DataTransferMethodExt ConvertIntToExt(this DataTransferMethod obj)
         {
-            DataTransferMethodExt convert = new DataTransferMethodExt()
+            var convert = new DataTransferMethodExt()
             {
-                SubmittedJobId = obj.SubmittedJobId,
-                IpAddress = obj.IpAddress,
-                Port = obj.Port
+                SubmittedTaskId = obj.SubmittedTaskId,
+                Port = obj.Port,
+                NodeIPAddress = obj.NodeIPAddress,
+                NodePort = obj.NodePort
             };
             return convert;
         }
 
         public static DataTransferMethod ConvertExtToInt(this DataTransferMethodExt obj)
         {
-            DataTransferMethod convert = new DataTransferMethod()
+            var convert = new DataTransferMethod()
             {
-                SubmittedJobId = obj.SubmittedJobId,
-                IpAddress = obj.IpAddress,
-                Port = obj.Port
+                SubmittedTaskId = obj.SubmittedTaskId,
+                Port = obj.Port,
+                NodeIPAddress = obj.NodeIPAddress,
+                NodePort = obj.NodePort
+            };
+            return convert;
+        }
+
+        public static HTTPHeaderExt ConvertIntToExt(this HTTPHeader obj)
+        {
+            var convert = new HTTPHeaderExt()
+            {
+                Name = obj.Name,
+                Value = obj.Value
+            };
+            return convert;
+        }
+
+        public static HTTPHeader ConvertExtToInt(this HTTPHeaderExt obj)
+        {
+            var convert = new HTTPHeader()
+            {
+                Name = obj.Name,
+                Value = obj.Value
             };
             return convert;
         }

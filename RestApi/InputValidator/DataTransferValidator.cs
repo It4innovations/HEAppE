@@ -1,11 +1,7 @@
 ﻿using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApiModels.DataTransfer;
 using HEAppE.Utils.Validation;
-using System;
-using System.Collections.Generic;
-using System.Drawing.Printing;
 using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -23,62 +19,11 @@ namespace HEAppE.RestApi.InputValidator
                 EndDataTransferModel model => ValidateEndDataTransferModel(model),
                 HttpGetToJobNodeModel model => ValidateHttpGetToJobNodeModel(model),
                 HttpPostToJobNodeModel model => ValidateHttpPostToJobNodeModel(model),
-                ReadDataFromJobNodeModel model => ValidateReadDataFromJobNodeModel(model),
-                WriteDataToJobNodeModel model => ValidateWriteDataToJobNodeModel(model),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
         }
-
-        private string ValidateWriteDataToJobNodeModel(WriteDataToJobNodeModel model)
-        {
-            if (!model.Data.Any())
-            {
-                _messageBuilder.AppendLine("Data cannot be empty");
-            }
-
-            ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
-
-            if (string.IsNullOrEmpty(model.IpAddress))
-            {
-                _messageBuilder.AppendLine("IpAddress must be set");
-            }
-            else if(!IsIpAddress(model.IpAddress))
-            {
-                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
-            }
-
-            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
-            if (!sessionCodeValidation.IsValid)
-            {
-                _messageBuilder.AppendLine(sessionCodeValidation.Message);
-            }
-
-            return _messageBuilder.ToString();
-        }
-
-        private string ValidateReadDataFromJobNodeModel(ReadDataFromJobNodeModel model)
-        {
-            ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
-
-            if (string.IsNullOrEmpty(model.IpAddress))
-            {
-                _messageBuilder.AppendLine("IpAddress must be set");
-            }
-            else if (!IsIpAddress(model.IpAddress))
-            {
-                _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
-            }
-
-            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
-            if (!sessionCodeValidation.IsValid)
-            {
-                _messageBuilder.AppendLine(sessionCodeValidation.Message);
-            }
-            return _messageBuilder.ToString();
-        }
-
         private string ValidateHttpPostToJobNodeModel(HttpPostToJobNodeModel model)
         {
             if (string.IsNullOrEmpty(model.HttpRequest))
@@ -86,7 +31,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("HttpRequest must be set");
             }
 
-            if(model.HttpHeaders.Any(string.IsNullOrEmpty))
+            if (model.HttpHeaders.Any(httpHeader => string.IsNullOrEmpty(httpHeader.Name) || string.IsNullOrEmpty(httpHeader.Value)))
             {
                 _messageBuilder.AppendLine("HttpHeader cannot be empty");
             }
@@ -96,13 +41,14 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("HttpPayload must be set");
             }
 
+            ValidatePort(model.NodePort);
             ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
 
-            if (string.IsNullOrEmpty(model.IpAddress))
+            if (string.IsNullOrEmpty(model.NodeIPAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (!IsIpAddress(model.IpAddress))
+            else if (!IsIpAddress(model.NodeIPAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -118,11 +64,11 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateHttpGetToJobNodeModel(HttpGetToJobNodeModel validationObj)
         {
-            if (string.IsNullOrEmpty(validationObj.IpAddress))
+            if (string.IsNullOrEmpty(validationObj.NodeIPAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (!IsIpAddress(validationObj.IpAddress))
+            else if (!IsIpAddress(validationObj.NodeIPAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
@@ -132,16 +78,19 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("HttpRequest must be set");
             }
 
-            if(validationObj.HttpHeaders.Length == 0)
+            if (!validationObj.HttpHeaders.Any())
             {
                 _messageBuilder.AppendLine("HttpHeader must be set");
             }
 
-            if (validationObj.HttpHeaders.Any(httpHeader => string.IsNullOrEmpty(httpHeader)))
+
+            if (validationObj.HttpHeaders.Any(httpHeader => string.IsNullOrEmpty(httpHeader.Name) || string.IsNullOrEmpty(httpHeader.Value)))
             {
                 _messageBuilder.AppendLine("HttpHeader must be set");
             }
 
+
+            ValidatePort(validationObj.NodePort);
             ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
 
             ValidationResult sessionCodeValidation = new SessionCodeValidator(validationObj.SessionCode).Validate();
@@ -178,7 +127,7 @@ namespace HEAppE.RestApi.InputValidator
             }
 
             ValidatePort(validationObj.Port);
-                
+
             ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
 
             ValidationResult sessionCodeValidation = new SessionCodeValidator(validationObj.SessionCode).Validate();
@@ -192,25 +141,30 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateDataTransferMethodExt(DataTransferMethodExt dataTransferMethodExt)
         {
-            if (string.IsNullOrEmpty(dataTransferMethodExt.IpAddress))
+            if (string.IsNullOrEmpty(dataTransferMethodExt.NodeIPAddress))
             {
                 _messageBuilder.AppendLine("IpAddress must be set");
             }
-            else if (!IsIpAddress(dataTransferMethodExt.IpAddress))
+            else if (!IsIpAddress(dataTransferMethodExt.NodeIPAddress))
             {
                 _messageBuilder.AppendLine("Ip address has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }
-            
-            ValidatePort(dataTransferMethodExt.Port);
 
-            ValidateId(dataTransferMethodExt.SubmittedJobId, nameof(dataTransferMethodExt.SubmittedJobId));
+            ValidatePort(dataTransferMethodExt.NodePort);
+
+            ValidateId(dataTransferMethodExt.SubmittedTaskId, nameof(dataTransferMethodExt.SubmittedTaskId));
 
             return _messageBuilder.ToString();
         }
 
 
-        private void ValidatePort(int port)
+        private void ValidatePort(int? port)
         {
+            if(port is null)
+            {
+                _messageBuilder.AppendLine("Port must have value");
+            }
+
             if (port < 0 || port > 65535)
             {
                 _messageBuilder.AppendLine("Port must be number between 0 and 65535");

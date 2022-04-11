@@ -64,12 +64,14 @@
         "Name": "{ClusterName}",
         "Description": "{ClusterDescription}",
         "MasterNodeName": "{ClusterLoginURL}",
+        "DomainName": "{DomainName}",
         "Port": null,
         "LocalBasepath": "{LocalBasePath}",
         "TimeZone": "CET",
         "SchedulerType": 2,
         "ConnectionProtocol": 2,
-        "ServiceAccountCredentialsId": 1
+        "ServiceAccountCredentialsId": 1,
+        "UpdateJobStateByServiceAccount": true
       }
     ],
     "ClusterAuthenticationCredentials": [
@@ -95,15 +97,16 @@
         "Id": 1,
         "Name": "{Name}",
         "Description": "{Description}",
-        "NumberOfNodes": {NumberOfNodes},
-        "CoresPerNode": {CoresPerNode},
+        "NumberOfNodes": "{NumberOfNodes}",
+        "CoresPerNode": "{CoresPerNode}",
         "Queue": "{Queue}",
         "RequestedNodeGroups": null,
-        "MaxWalltime": {MaxWalltime},
+        "MaxWalltime": "{MaxWalltime}",
         "ClusterId": 1,
         "FileTransferMethodId": 1,
         "JobTemplateId": 1,
-        "TaskTemplateId": 1
+        "TaskTemplateId": 1,
+        "ClusterAllocationName": null
       }
     ],
     "CommandTemplates": [
@@ -116,7 +119,8 @@
         "CommandParameters": "{CommandParameters}",
         "PreparationScript": null,
         "ClusterNodeTypeId": 1,
-        "IsGeneric": false
+        "IsGeneric": false,
+        "IsEnabled": true
       },
       {
         "Id": 2,
@@ -127,7 +131,8 @@
         "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
         "PreparationScript": null,
         "ClusterNodeTypeId": 2,
-        "IsGeneric": true
+        "IsGeneric": true,
+        "IsEnabled": true
       }
     ],
     "CommandTemplateParameters": [
