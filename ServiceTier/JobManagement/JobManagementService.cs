@@ -113,7 +113,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    IList<SubmittedJobInfo> jobInfos = jobLogic.ListJobsForUser(loggedUser);
+                    var jobInfos = jobLogic.GetJobsForUser(loggedUser);
                     return jobInfos.Select(s => s.ConvertIntToExt()).ToArray();
                 }
             }
@@ -177,7 +177,7 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public string[] GetAllocatedNodesIPs(long submittedJobInfoId, string sessionCode)
+        public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, string sessionCode)
         {
             try
             {
@@ -185,7 +185,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    List<string> nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedJobInfoId, loggedUser);
+                    var nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedTaskInfoId, loggedUser);
                     return nodesIPs.ToArray();
                 }
             }

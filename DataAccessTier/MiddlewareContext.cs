@@ -35,40 +35,38 @@ namespace HEAppE.DataAccessTier
                     {
                         try
                         {
-                            //Connection to Database works and Database not exist
-                            if (!Database.CanConnect())
+                            string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
+                            if (localRunEnv != "LocalWindows")
                             {
-                                _log.Info("Starting migration and seeding into the new database.");
-                                Database.Migrate();
-                                EnsureDatabaseSeeded();
-                                _isMigrated = true;
-                            }
-                            else
-                            {
-                                var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                                var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-
-                                if (lastAppliedMigration is null)
+                                //Connection to Database works and Database not exist
+                                if (!Database.CanConnect())
                                 {
                                     _log.Info("Starting migration and seeding into the new database.");
                                     Database.Migrate();
                                     EnsureDatabaseSeeded();
                                     _isMigrated = true;
                                 }
-                                else if (lastAppliedMigration == lastDefinedMigration)
-                                {
-                                    _log.Info("Application and database migrations are same. Starting seeding data into database.");
-                                    EnsureDatabaseSeeded();
-                                    _isMigrated = true;
-                                }
                                 else
                                 {
-                                    string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
-                                    if (localRunEnv != "LocalWindows")
+                                    var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
+                                    var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
+
+                                    if (lastAppliedMigration is null)
+                                    {
+                                        _log.Info("Starting migration into the new database.");
+                                        Database.Migrate();
+                                        lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
+                                    }
+
+                                    if (lastAppliedMigration != lastDefinedMigration)
                                     {
                                         _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
                                         throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
                                     }
+
+                                    _log.Info("Application and database migrations are same. Starting seeding data into database.");
+                                    EnsureDatabaseSeeded();
+                                    _isMigrated = true;
                                 }
                             }
                         }
@@ -180,14 +178,28 @@ namespace HEAppE.DataAccessTier
                 Description = c.Description,
                 Id = c.Id,
                 MasterNodeName = c.MasterNodeName,
+                DomainName = c.DomainName,
                 Port = c.Port,
                 Name = c.Name,
                 NodeTypes = c.NodeTypes,
                 SchedulerType = c.SchedulerType,
                 LocalBasepath = c.LocalBasepath,
-                TimeZone = c.TimeZone
+                TimeZone = c.TimeZone,
+                UpdateJobStateByServiceAccount = c.UpdateJobStateByServiceAccount
             }));
-            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials);
+
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc => new ClusterAuthenticationCredentials
+            {
+                Id = cc.Id,
+                Username = cc.Username,
+                Password = cc.Password,
+                PrivateKeyFile = cc.PrivateKeyFile,
+                PrivateKeyPassword = cc.PrivateKeyPassword,
+                ClusterId = cc.ClusterId,
+                Cluster = cc.Cluster,
+                AuthenticationType = GetCredentialsAuthenticationType(cc)
+            }));
+
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
             InsertOrUpdateSeedData(MiddlewareContextSettings.JobTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.TaskTemplates);
@@ -258,6 +270,19 @@ namespace HEAppE.DataAccessTier
             }
         }
 
+        public void UpdateEntityOrAddItem<T>(T entity, T item) where T : class
+        {
+            if (entity != null)
+            {
+                Entry(entity).State = EntityState.Detached;
+                Entry(item).State = EntityState.Modified;
+            }
+            else
+            {
+                Set<T>().Add(item);
+            }
+        }
+
         private void AddOrUpdateItem<T>(T item) where T : class
         {
             switch (item)
@@ -299,17 +324,36 @@ namespace HEAppE.DataAccessTier
             }
         }
 
-        private void UpdateEntityOrAddItem<T>(T entity, T item) where T : class
+        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential)
         {
-            if (entity != null)
+            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
             {
-                Entry(entity).State = EntityState.Detached;
-                Entry(item).State = EntityState.Modified;
+                return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
             }
-            else
+
+            if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
             {
-                Set<T>().Add(item);
+                return ClusterAuthenticationCredentialsAuthType.PrivateKey;
             }
+
+            if (!string.IsNullOrEmpty(credential.Password))
+            {
+                switch (credential.Cluster.ConnectionProtocol)
+                {
+                    case ClusterConnectionProtocol.MicrosoftHpcApi:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+
+                    case ClusterConnectionProtocol.Ssh:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+
+                    case ClusterConnectionProtocol.SshInteractive:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
+
+                    default:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+                }
+            }
+            return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
 
         /// <summary>

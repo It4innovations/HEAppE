@@ -5,9 +5,9 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
 {
     public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
     {
-        IEnumerable<SubmittedJobInfo> ListNotFinishedForSubmitterId(long submitterId);
-        IEnumerable<SubmittedJobInfo> ListAllForSubmitterId(long submitterId);
-        IEnumerable<SubmittedJobInfo> ListAllUnfinished();
-        IEnumerable<SubmittedJobInfo> ListAllWaitingForServiceAccount();
+        IEnumerable<SubmittedJobInfo> GetNotFinishedForSubmitterId(long submitterId);
+        IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId);
+        IEnumerable<SubmittedJobInfo> GetAllUnfinished();
+        IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount();
     }
 }

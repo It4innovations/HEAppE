@@ -55,13 +55,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             double? groupTotalUsage = 0;
             var userAggregatedReports = new List<UserAggregatedUsage>();
 
-            //get report of user who is asking for report
-           /* var userResourceUsageReport = GetUserResourceUsageReport(userId, startTime, endTime).ConvertUsageReportToAggregatedUsage();
-            groupTotalUsage += userResourceUsageReport?.TotalUsage;
 
-            userAggregatedReports.Add(userResourceUsageReport);*/
-
-            //go thru by all users in group
             AdaptorUserGroup group = unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
             foreach (AdaptorUser user in group.Users)
             {
@@ -86,7 +80,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         {
             double? userTotalUsage = 0;
             var selectedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork)
-                                                             .ListJobsForUser(user).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime)
+                                                             .GetJobsForUser(user).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime)
                                                               .ToList();
 
             nodeTypeAggregatedUsage = new List<NodeTypeAggregatedUsage>();

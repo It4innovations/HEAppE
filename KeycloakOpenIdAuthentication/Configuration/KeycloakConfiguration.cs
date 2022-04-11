@@ -35,6 +35,11 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
         public static string SecretId { get; set; }
 
         /// <summary>
+        /// Client connection timeout in miliseconds
+        /// </summary>
+        public static int ConnectionTimeout { get; set; } = 15000;
+
+        /// <summary>
         /// Allowed client Ids
         /// </summary>
         public static IEnumerable<string> AllowedClientIds { get; set; }

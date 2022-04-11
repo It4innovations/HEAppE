@@ -1,29 +1,27 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
-using System.Globalization;
-using System.Linq;
-using System.Reflection;
+﻿using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
+using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.HpcConnectionFramework;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.Utils.Validation;
 using log4net;
-using System.Text.RegularExpressions;
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 using System.Text;
 using System.Transactions;
-using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
-using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
-using HEAppE.Utils.Validation;
-using HEAppE.DomainObjects.JobManagement.Comparers;
-using HEAppE.BusinessLogicTier.Configuration;
-
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -31,6 +29,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
     {
         private readonly object _lockCreateJobObj = new();
         private readonly object _lockSubmitJobObj = new();
+
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected IUnitOfWork _unitOfWork;
         private readonly List<TaskSpecification> _tasksToDeleteFromSpec;
@@ -76,7 +75,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 if (isExtraLong)
                 {
-                    DecomposeExtraLongTask(specification, task);
+                    DecomposeExtraLongTask(task);
                 }
             }
 
@@ -153,14 +152,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         }
                     }
                 }
-
-                SubmittedJobInfo clusterJobInfo =
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                    .CreateScheduler(jobInfo.Specification.Cluster)
-                    .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
-                jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, clusterJobInfo);
                 jobInfo.SubmitTime = DateTime.UtcNow;
+                var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
+                                                      .CreateScheduler(jobInfo.Specification.Cluster)
+                                                      .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
 
+
+                jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
                 _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
                 _unitOfWork.Save();
                 return jobInfo;
@@ -173,36 +171,32 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         public virtual SubmittedJobInfo CancelJob(long submittedJobInfoId, AdaptorUser loggedUser)
         {
-            _logger.Info("User " + loggedUser.GetLogIdentification() + " is canceling the job with info Id " + submittedJobInfoId);
+            _logger.Info($"User {loggedUser.GetLogIdentification()} is canceling the job with info Id {submittedJobInfoId}");
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State >= JobState.Finished && jobInfo.State != JobState.WaitingForServiceAccount)
+            if (jobInfo.State is not JobState.Configuring and (< JobState.Finished or JobState.WaitingForServiceAccount))
             {
-                return jobInfo;
-            }
+                var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
+                                                  .ToList();
 
-            string[] scheduledJobIds = jobInfo.Tasks
-                .Where(t => t.Specification.DependsOn.Count == 0)
-                .Select(s => s.ScheduledJobId)
-                .ToArray();
+                var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
+                scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
-            IRexScheduler scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
-            if (jobInfo.State != JobState.Configuring)
-            {
-                foreach (var scheduledJobId in scheduledJobIds)
+                var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, jobInfo.Specification.Cluster.ServiceAccountCredentials)
+                                                                    .ToList();
+
+                foreach (var task in jobInfo.Tasks)
                 {
-                    scheduler.CancelJob(scheduledJobId, jobInfo.Specification.ClusterUser);
+                    foreach (var actualUnfinishedSchedulerTaskInfo in actualUnfinishedSchedulerTasksInfo)
+                    {
+                        CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
+                    }
                 }
-            }
-            var clusterTasksInfo = scheduler.GetActualTasksInfo(scheduledJobIds, jobInfo.Specification.Cluster);
 
-            for (int i = 0; i < clusterTasksInfo.Length; i++)
-            {
-                jobInfo.Tasks[i] = CombineSubmittedTaskInfoFromCluster(jobInfo.Tasks[i], clusterTasksInfo[i]);
+                UpdateJobStateByTasks(jobInfo);
+                _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+                _unitOfWork.Save();
             }
 
-            UpdateJobStateByTasks(jobInfo);
-            _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
-            _unitOfWork.Save();
             return jobInfo;
         }
 
@@ -210,12 +204,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is deleting the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Configuring || (jobInfo.State >= JobState.Finished && jobInfo.State != JobState.WaitingForServiceAccount))
+            if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
             {
-#warning Renci SSH.NET bug - resolving paths when deleting symlink, use ssh delete instead
-                //FileSystemFactory.GetInstance(jobInfo.NodeType.FileTransferMethod.Protocol)
-                //    .CreateFileSystemManager(jobInfo.NodeType.FileTransferMethod)
-                //    .DeleteSessionFromCluster(jobInfo);
                 SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).DeleteJobDirectory(jobInfo);
             }
             else
@@ -228,206 +218,130 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         public virtual SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             SubmittedJobInfo jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-            if (jobInfo == null)
+            if (jobInfo is null)
             {
-                _logger.Error("Requested job info with Id=" + submittedJobInfoId + " does not exist in the system.");
-                throw new RequestedObjectDoesNotExistException("Requested job info with Id=" + submittedJobInfoId + " does not exist in the system.");
+                var message = $"Requested job info with Id: \"{submittedJobInfoId}\" does not exist in the system.";
+                _logger.Error(message);
+                throw new RequestedObjectDoesNotExistException(message);
             }
             if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork).AuthorizeUserForJobInfo(loggedUser, jobInfo))
             {
-                _logger.Error("Logged user " + loggedUser.GetLogIdentification() + " is not authorized to work with job info with ID " + submittedJobInfoId +
-                          ". This job was submitted by user " + jobInfo.Submitter.GetLogIdentification() + " for group " + jobInfo.Specification.SubmitterGroup.Name);
-                throw new AdaptorUserNotAuthorizedForJobException("Logged user " + loggedUser.GetLogIdentification() + " is not authorized to work with job info with ID " +
-                                                                  submittedJobInfoId);
+                _logger.Error($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with job info with id: \"{submittedJobInfoId}\". This job was submitted by user: \"{jobInfo.Submitter.GetLogIdentification()}\" for group \"{jobInfo.Specification.SubmitterGroup.Name}\"");
+                throw new AdaptorUserNotAuthorizedForJobException($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with job info with id: \"{submittedJobInfoId}\"");
             }
             return jobInfo;
         }
 
-        public virtual IList<SubmittedJobInfo> ListJobsForUser(AdaptorUser loggedUser)
+
+        public virtual SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser)
         {
-            return _unitOfWork.SubmittedJobInfoRepository.ListAllForSubmitterId(loggedUser.Id)
-                                                         .ToList();
-        }
-
-        public virtual IList<SubmittedJobInfo> ListNotFinishedJobInfosForSubmitterId(long submitterId)
-        {
-            return _unitOfWork.SubmittedJobInfoRepository.ListNotFinishedForSubmitterId(submitterId)
-                                                         .ToList();
-        }
-
-        public virtual IList<SubmittedJobInfo> ListNotFinishedJobInfos()
-        {
-            return _unitOfWork.SubmittedJobInfoRepository.ListAllUnfinished()
-                                                         .ToList();
-        }
-
-        private List<string> GetIterationIds(string jobArrayName, string jobArrayConfig)
-        {
-            int[] numbers = Regex.Split(jobArrayConfig, @"\D+").Select(x => int.Parse(x)).ToArray();
-            List<string> iterations = new List<string>();
-
-            int step = numbers.Count() == 3
-                                ? numbers[2]
-                                : 1;
-
-            for (int i = numbers[0]; i <= numbers[1]; i += step)
+            SubmittedTaskInfo taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+            if (taskInfo == null)
             {
-                string jobArrayNameWithIndex = jobArrayName.Insert(jobArrayName.LastIndexOf(']'), i.ToString());
-                iterations.Add(jobArrayNameWithIndex);
+                var message = $"Requested task info with Id: \"{submittedTaskInfoId}\" does not exist in the system.";
+                _logger.Error(message);
+                throw new RequestedObjectDoesNotExistException(message);
             }
-            return iterations;
+            if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork).AuthorizeUserForTaskInfo(loggedUser, taskInfo))
+            {
+                _logger.Error($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with task info with id: \"{submittedTaskInfoId}\". This task was submitted by user: \"{taskInfo.Specification.JobSpecification.Submitter.GetLogIdentification()}\" for group \"{taskInfo.Specification.JobSpecification.SubmitterGroup.Name}\"");
+                throw new AdaptorUserNotAuthorizedForJobException($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with task info with id: \"{submittedTaskInfoId}\"");
+            }
+            return taskInfo;
         }
 
-        private void AddValuesToJobArrayInfo(SubmittedTaskInfo jobArray, List<SubmittedTaskInfo> jobArrayIndexes)
+
+        public virtual IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser)
         {
-            double? allocatedTime = 0;
-            var sbAllParametres = new StringBuilder();
-            sbAllParametres.Append(jobArray.AllParameters);
-            foreach (var jobArrayIndex in jobArrayIndexes)
-            {
-                foreach (var taskAllocationNode in jobArrayIndex.TaskAllocationNodes)
-                {
-                    if (!jobArray.TaskAllocationNodes.Exists(a => a.AllocationNodeId == taskAllocationNode.AllocationNodeId))
-                    {
-                        jobArray.TaskAllocationNodes.Add(taskAllocationNode);
-                    }
-                }
-                allocatedTime += jobArrayIndex.AllocatedTime;
-                jobArray.CpuHyperThreading = jobArrayIndex.CpuHyperThreading;
-                sbAllParametres.AppendLine("<JOB_ARRAY_ITERATION>");
-                sbAllParametres.Append(jobArrayIndex.AllParameters);
-            }
-            jobArray.AllocatedTime = allocatedTime;
-            jobArray.AllParameters = sbAllParametres.ToString();
+            return _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+        }
+
+        public virtual IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfosForSubmitterId(long submitterId)
+        {
+            return _unitOfWork.SubmittedJobInfoRepository.GetNotFinishedForSubmitterId(submitterId);
+        }
+
+        public virtual IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfos()
+        {
+            return _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished();
+        }
+
+
+        public IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds)
+        {
+            return _unitOfWork.SubmittedTaskInfoRepository.GetAllFinished().Where(w => taskIds.Contains(w.Id))
+                                                                            .ToList();
         }
 
         /// <summary>
-        /// Contacts cluster and retreives info about jobs with state higher than Configuring and lower than Finished.
-        /// Method updates jobs in db with received info.
+        /// Updates jobs in db with received info from HPC schedulers
         /// </summary>
-        /// <returns>Collection of updated job info (contains only jobs where status change occured since last update).</returns>
-        public IList<SubmittedJobInfo> UpdateCurrentStateOfUnfinishedJobs()
+        public void UpdateCurrentStateOfUnfinishedJobs()
         {
-            Dictionary<long, SubmittedJobInfo> needUpdateJobs = new Dictionary<long, SubmittedJobInfo>();
-
-            // Load jobs
-            List<SubmittedJobInfo> unfinishedJobInfoDb = (List<SubmittedJobInfo>)_unitOfWork.SubmittedJobInfoRepository.ListAllUnfinished();
-            var jobsGroup = (from job in unfinishedJobInfoDb
-                             group job by job.Specification.Cluster
-                             into jobGroup
-                             orderby jobGroup.Key
-                             select jobGroup).ToList();
+            var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished()
+                                                                   .GroupBy(g => g.Specification.Cluster)
+                                                                   .ToList();
 
             foreach (var jobGroup in jobsGroup)
             {
                 Cluster cluster = jobGroup.Key;
-                // Get updated status from cluster
-                //var jobIds = (from job in jobGroup
-                //              from task in job.Tasks
-                //              where job.State > JobState.Configuring && task.State > TaskState.Configuring
-                //              select task.ScheduledJobId).Distinct().ToArray();
-#warning retype to int from string
-                var unfinishedTasks = (from job in jobGroup
-                                       from task in job.Tasks
-                                       where job.State > JobState.Configuring && task.State > TaskState.Configuring
-                                       select (task)).Distinct().Select(s => s).ToArray();
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
 
-                string[] taskIds;
+                var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
 
+                var userJobsGroup = jobGroup.GroupBy(g => g.Specification.ClusterUser)
+                                                .ToList();
 
-                taskIds = (from task in unfinishedTasks
-                           select task.ScheduledJobId).Distinct().Select(s => s).ToArray();
-
-                List<SubmittedTaskInfo> unfinishedTaskInfoCluster =
-                    (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(taskIds, cluster)).ToList();
-
-                var taskArrays = (from task in unfinishedTasks
-                                  where !(task.Specification.JobArrays is null)
-                                  select (task.ScheduledJobId, task.Specification.JobArrays)).Distinct().Select(s => s).ToArray();
-
-
-                foreach (var task in taskArrays)
+                foreach (var userJobGroup in userJobsGroup)
                 {
-                    var iterationIndexes = GetIterationIds(task.ScheduledJobId, task.JobArrays).ToArray();
+                    var tasksExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w))
+                                                            .SelectMany(s => s.Tasks)
+                                                            .Where(w => !w.Specification.DependsOn.Any())
+                                                            .ToList();
 
-                    List<SubmittedTaskInfo> unfinishedTaskArrayInfoCluster =
-                       (SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetActualTasksInfo(iterationIndexes, cluster)).ToList();
-                    AddValuesToJobArrayInfo(unfinishedTaskInfoCluster.Find(x => x.ScheduledJobId == task.ScheduledJobId), unfinishedTaskArrayInfoCluster);
-                }
-
-                //TODO this
-                if (unfinishedJobInfoDb.Count == 0)
-                {
-                    return null;
-                }
-
-                // Combine the objects together
-                List<long> succSubmittedTaskIds = new List<long>();
-                foreach (var clusterTask in unfinishedTaskInfoCluster)
-                {
-                    if (clusterTask != null)
+                    if (tasksExceedWaitLimit.Any())
                     {
-                        // Search for tasks in db by scheduler id
-                        var taskDb = (from job in jobGroup
-                                      from task in job.Tasks
-                                      where task.ScheduledJobId == clusterTask.ScheduledJobId
-                                      select new { job, task }).Distinct().First();
-
-                        if (taskDb.task.State != clusterTask.State)
-                        {
-                            // Combine together with actual info from cluster
-                            SubmittedTaskInfo submittedTaskInfo = CombineSubmittedTaskInfoFromCluster(taskDb.task, clusterTask);
-                            // Update and save to DB
-                            _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTaskInfo);
-                            //add to the list of successfully retrieved cluster jobs
-                            succSubmittedTaskIds.Add(submittedTaskInfo.Id);
-
-                            // Append to output collection
-                            needUpdateJobs[taskDb.job.Id] = taskDb.job;
-                        }
-                    }
-                }
-                //set missing jobIds to Canceled
-                if (unfinishedTasks.Count() != unfinishedTaskInfoCluster.Count)
-                {
-                    var submittedTaskIds = (from job in jobGroup
-                                            from task in job.Tasks
-                                            where job.State > JobState.Configuring && task.State > TaskState.Configuring
-                                            select new { job, task }).Distinct().ToArray();
-
-                    foreach (var submittedTaskId in submittedTaskIds)
-                    {
-                        if (succSubmittedTaskIds.Count() > 0 && !succSubmittedTaskIds.Contains(submittedTaskId.task.Id))
-                        {
-                            //change state to Canceled
-                            SubmittedTaskInfo taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskId.task.Id);
-                            taskInfo.State = TaskState.Canceled;
-                            // Update and save to DB
-                            _unitOfWork.SubmittedTaskInfoRepository.Update(taskInfo);
-
-                            // Append to output collection
-                            needUpdateJobs[submittedTaskId.job.Id] = submittedTaskId.job;
-                        }
+                        scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     }
                 }
 
-                //Update JobInfo
-                foreach (var jobInfo in needUpdateJobs)
+                if (cluster.UpdateJobStateByServiceAccount.Value)
                 {
-                    UpdateJobStateByTasks(jobInfo.Value);
-                    _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo.Value);
+                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, cluster.ServiceAccountCredentials, jobGroup.SelectMany(s => s.Tasks)).ToList();
+                }
+                else
+                {
+                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, f.Key, f.SelectMany(s => s.Tasks))));
+                }
+
+                bool isNeedUpdateJobState = false;
+                foreach (var submittedJob in jobGroup)
+                {
+                    foreach (var submittedTask in submittedJob.Tasks)
+                    {
+                        var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w => w.ScheduledJobId == submittedTask.ScheduledJobId);
+                        if (actualUnfinishedSchedulerTaskInfo is null)
+                        {
+                            // Failed job which is not returned from schedulers
+                            submittedTask.State = TaskState.Failed;
+                            isNeedUpdateJobState = true;
+                        }
+                        else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
+                        {
+                            SubmittedTaskInfo submittedTaskInfo = CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
+                            isNeedUpdateJobState = true;
+                        }
+                    }
+
+                    if (isNeedUpdateJobState)
+                    {
+                        UpdateJobStateByTasks(submittedJob);
+                        _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
+                        isNeedUpdateJobState = false;
+                    }
                 }
             }
-            // Save unit of work
             _unitOfWork.Save();
-
-            List<SubmittedJobInfo> result = new List<SubmittedJobInfo>();
-            foreach (var item in needUpdateJobs)
-            {
-                result.Add(item.Value);
-            }
-
-            return result;
         }
 
         public void CopyJobDataToTemp(long submittedJobInfoId, AdaptorUser loggedUser, string hash, string path)
@@ -449,17 +363,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     .CopyJobDataFromTemp(jobInfo, hash);
         }
 
-        public List<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser)
+        public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)
         {
-            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State == JobState.Running)
+            var taskInfo = GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+            if (taskInfo.State == TaskState.Running)
             {
-                List<string> stringIPs = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).GetAllocatedNodes(jobInfo);
+                var cluster = taskInfo.Specification.JobSpecification.Cluster;
+                var stringIPs = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetAllocatedNodes(taskInfo);
                 return stringIPs;
             }
             else
             {
-                throw new InputValidationException("Allocated nodes IP addresses are provided only for running job.");
+                throw new InputValidationException("Allocated nodes IP addresses are provided only for running task.");
             }
         }
 
@@ -618,7 +533,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                                 .ToList();
             }
         }
-
         private string AddGenericCommandUserDefinedCommands(List<CommandTemplateParameterValue> templateParameters)
         {
             if (templateParameters.Count == 0)
@@ -651,8 +565,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         protected void CompleteTaskSpecification(TaskSpecification taskSpecification, IClusterInformationLogic clusterLogic)
         {
             taskSpecification.ClusterNodeType = clusterLogic.GetClusterNodeTypeById(taskSpecification.ClusterNodeTypeId);
-
             taskSpecification.CommandTemplate = _unitOfWork.CommandTemplateRepository.GetById(taskSpecification.CommandTemplateId);
+
             foreach (var cmdParameterValue in taskSpecification.CommandParameterValues ?? Enumerable.Empty<CommandTemplateParameterValue>())
             {
                 cmdParameterValue.TemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetByCommandTemplateIdAndCommandParamId(taskSpecification.CommandTemplateId, cmdParameterValue.CommandParameterIdentifier);
@@ -666,9 +580,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         /// <summary>
         /// Divide extra long task to smaller tasks
         /// </summary>
-        /// <param name="specification">Specification of the job</param>
         /// <param name="task">Task to divide</param>
-        protected void DecomposeExtraLongTask(JobSpecification specification, TaskSpecification task)
+        protected void DecomposeExtraLongTask(TaskSpecification task)
         {
             if (!(task.WalltimeLimit.HasValue))
             {
@@ -774,21 +687,15 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 Submitter = specification.Submitter,
                 Tasks = specification.Tasks
                     .OrderByDescending(x => x.Id)
-                    .Select(s => CreateSubmittedTaskInfo(s))
+                    .Select(s => new SubmittedTaskInfo()
+                    {
+                        Name = s.Name,
+                        Specification = s,
+                        State = TaskState.Configuring,
+                        Priority = s.Priority ?? TaskPriority.Average,
+                        NodeType = s.ClusterNodeType
+                    })
                     .ToList()
-            };
-            return result;
-        }
-
-        protected static SubmittedTaskInfo CreateSubmittedTaskInfo(TaskSpecification taskSpecification)
-        {
-            SubmittedTaskInfo result = new()
-            {
-                Name = taskSpecification.Name,
-                Specification = taskSpecification,
-                State = TaskState.Configuring,
-                Priority = taskSpecification.Priority ?? TaskPriority.Average,
-                NodeType = taskSpecification.ClusterNodeType
             };
             return result;
         }
@@ -796,59 +703,83 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         protected static void UpdateJobStateByTasks(SubmittedJobInfo dbJobInfo)
         {
             dbJobInfo.StartTime = dbJobInfo.Tasks.FirstOrDefault()?.StartTime;
-            dbJobInfo.EndTime = dbJobInfo.Tasks.LastOrDefault()?.EndTime;
-            dbJobInfo.TotalAllocatedTime = dbJobInfo.Tasks.Sum(s => s.AllocatedTime);
-            dbJobInfo.State = GetGlobalJobState(dbJobInfo.Tasks.Select(s => s.State));
+            dbJobInfo.EndTime = dbJobInfo.Tasks.Where(t => t.EndTime.HasValue).LastOrDefault()?.EndTime;
+            dbJobInfo.TotalAllocatedTime = dbJobInfo.Tasks.Sum(s => s.AllocatedTime ?? 0);
+
+            JobState continuousJobState = JobState.Finished;
+            TaskState minTaskState = TaskState.Canceled;
+            foreach (var task in dbJobInfo.Tasks)
+            {
+                minTaskState = task.State < minTaskState ? task.State : minTaskState;
+                if (task.State == TaskState.Failed)
+                {
+                    continuousJobState = JobState.Failed;
+                    break;
+                }
+
+                if (task.State == TaskState.Running)
+                {
+                    continuousJobState = JobState.Running;
+                    break;
+                }
+
+                if (task.State == TaskState.Canceled)
+                {
+                    continuousJobState = JobState.Canceled;
+                    break;
+                }
+            }
+            dbJobInfo.State = (JobState)minTaskState < continuousJobState ? (JobState)minTaskState : continuousJobState;
         }
 
-        private static JobState GetGlobalJobState(IEnumerable<TaskState> taskStates)
+        protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo, IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
         {
-            if (taskStates.All(t => t.Equals(TaskState.Finished)))
-            {
-                return JobState.Finished;
-            }
-            else if (taskStates.Contains(TaskState.Failed))
-            {
-                return JobState.Failed;
-            }
-            else if (taskStates.Contains(TaskState.Running))
-            {
-                return JobState.Running;
-            }
-            else if (taskStates.Contains(TaskState.Canceled))
-            {
-                return JobState.Canceled;
-            }
-            else
-            {
-                return (JobState)taskStates.Min();
-            }
-        }
+            dbJobInfo.Tasks.ForEach(s => CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Id.ToString())));
 
-        protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo, SubmittedJobInfo clusterJobInfo)
-        {
-            dbJobInfo.Tasks = (from dbTask in dbJobInfo.Tasks
-                               join clusterTask in clusterJobInfo.Tasks on dbTask.Specification.Id.ToString(CultureInfo.InvariantCulture) equals clusterTask.Name
-                               select CombineSubmittedTaskInfoFromCluster(dbTask, clusterTask)).ToList();
             UpdateJobStateByTasks(dbJobInfo);
             return dbJobInfo;
         }
 
+        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IRexScheduler scheduler, ClusterAuthenticationCredentials credential, IEnumerable<SubmittedTaskInfo> jobTasks)
+        {
+            var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
+                                           .ToList();
+
+            return scheduler.GetActualTasksInfo(unfinishedTasks, credential);
+        }
+
+        private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)
+        {
+            if (job.Specification.WaitingLimit.HasValue && job.Specification.WaitingLimit > 0
+                && (job.State < JobState.Running || job.State == JobState.WaitingForServiceAccount))
+            {
+                var waitingLimit = job.Specification.WaitingLimit.Value;
+                return DateTime.UtcNow.Subtract(job.SubmitTime.Value).TotalSeconds > waitingLimit;
+            }
+
+            return false;
+        }
+
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
-            dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
+            if (clusterTaskInfo is null)
+            {
+                dbTaskInfo.State = TaskState.Failed;
+                return dbTaskInfo;
+            }
+
             dbTaskInfo.TaskAllocationNodes = dbTaskInfo.TaskAllocationNodes?.Count > 0
                 ? dbTaskInfo.TaskAllocationNodes.Union(clusterTaskInfo.TaskAllocationNodes, new SubmittedTaskAllocationNodeInfoComparer()).ToList()
                 : dbTaskInfo.TaskAllocationNodes = clusterTaskInfo.TaskAllocationNodes;
 
-            dbTaskInfo.AllocatedTime = clusterTaskInfo.AllocatedTime;
-            dbTaskInfo.EndTime = clusterTaskInfo.EndTime;
-            dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
-            dbTaskInfo.StartTime = clusterTaskInfo.StartTime;
-            dbTaskInfo.State = clusterTaskInfo.State;
-            dbTaskInfo.Priority = clusterTaskInfo.Priority;
             dbTaskInfo.ScheduledJobId = clusterTaskInfo.ScheduledJobId;
-            dbTaskInfo.CpuHyperThreading = clusterTaskInfo.CpuHyperThreading;
+            dbTaskInfo.StartTime = clusterTaskInfo.StartTime;
+            dbTaskInfo.EndTime = clusterTaskInfo.EndTime;
+            dbTaskInfo.AllocatedTime = clusterTaskInfo.AllocatedTime;
+            dbTaskInfo.AllocatedCores = clusterTaskInfo.AllocatedCores;
+            dbTaskInfo.State = clusterTaskInfo.State;
+            dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
+            dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
             return dbTaskInfo;
         }
     }

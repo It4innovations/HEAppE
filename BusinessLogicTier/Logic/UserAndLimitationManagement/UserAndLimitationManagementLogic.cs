@@ -20,6 +20,7 @@ using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.KeycloakOpenIdAuthentication.Configuration;
+using System.Threading.Tasks;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
@@ -66,12 +67,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             return session.User;
         }
 
-        public string AuthenticateUser(AuthenticationCredentials credentials)
+        public async Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials)
         {
             AdaptorUser user;
             if (credentials is OpenIdCredentials)
             {
-                user = HandleOpenIdAuthentication(credentials as OpenIdCredentials);
+                user = await HandleOpenIdAuthenticationAsync(credentials as OpenIdCredentials);
                 log.Info($"KeyCloak user {user.Username} wants to authenticate to the system.");
             }
             else
@@ -104,7 +105,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 case PasswordCredentials:
                     return AuthenticateUserWithPassword(user, (PasswordCredentials)credentials);
                 case OpenIdCredentials:
-                    // NOTE(Moravec): We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
+                    // NOTE: We can just create session code for the user because GetOrRegisterNewOpenIdUser didn't fail and the OpenId token is valid.
                     return CreateSessionCode(user).UniqueCode;
             }
 
@@ -114,7 +115,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             throw new ArgumentException(unsupportedCredentialsError);
         }
 
-        public ApplicationCredentialsDTO AuthenticateUserToOpenStack(AuthenticationCredentials credentials)
+        public async Task<ApplicationCredentialsDTO> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials)
         {
             if (credentials is not OpenIdCredentials openIdCredentials)
             {
@@ -122,17 +123,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 log.Error(unsupportedCredentialsError);
                 throw new ArgumentException(unsupportedCredentialsError);
             }
-            var user = HandleOpenIdAuthentication(openIdCredentials);
+            var user = await HandleOpenIdAuthenticationAsync(openIdCredentials);
             log.Info($"Keycloak user {user.Username} wants to authenticate to the OpenStack.");
 
-            //var writeRole = unitOfWork.AdaptorUserRoleRepository.GetWriteRole();
-            // Require write role.
-            //if (!user.HasUserRole(writeRole))
-            //{
-            //    throw InsufficientRoleException.CreateMissingRoleException(writeRole, user.Roles);
-            //}
-
-            return CreateNewOpenStackSession(user);
+            return await CreateNewOpenStackSessionAsync(user);
 
         }
         private OpenStackInfoDTO GetOpenStackInstanceWithProjects()
@@ -190,7 +184,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <param name="userAccount">User with access to OpenStack part of the HEAppE.</param>
         /// <returns>OpenStack application credentials.</returns>
         /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
-        private ApplicationCredentialsDTO CreateNewOpenStackSession(AdaptorUser userAccount)
+        private async Task<ApplicationCredentialsDTO> CreateNewOpenStackSessionAsync(AdaptorUser userAccount)
         {
             if (_openStackInstance is null)
             {
@@ -214,8 +208,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 else
                 {
                     var openStack = new OpenStack(openStackProject.Domain.InstanceUrl);
-                    var authResponse = openStack.Authenticate(_openStackInstance.ServiceAcc, openStackProject);
-                    openStackCredentials = openStack.CreateApplicationCredentials(userAccount.Username, authResponse);
+                    var authResponse = await openStack.AuthenticateAsync(_openStackInstance.ServiceAcc, openStackProject);
+                    openStackCredentials = await openStack.CreateApplicationCredentialsAsync(userAccount.Username, authResponse);
                 }
             }
             catch (OpenStackAPIException ex)
@@ -234,24 +228,16 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// </summary>
         /// <param name="openIdCredentials">OpenId tokens.</param>
         /// <returns>New or existing user.</returns>
-        private AdaptorUser HandleOpenIdAuthentication(OpenIdCredentials openIdCredentials)
+        private async Task<AdaptorUser> HandleOpenIdAuthenticationAsync(OpenIdCredentials openIdCredentials)
         {
-            //TODO at REST API validation
-            if (string.IsNullOrWhiteSpace(openIdCredentials.OpenIdAccessToken))
-            {
-                string error = "Empty access_token in HandleOpenIdAuthentication.";
-                log.Error(error);
-                throw new OpenIdAuthenticationException(error);
-            }
-
             try
             {
-                KeycloakOpenId keycloak = new KeycloakOpenId();
-                var tokenIntrospectResult = keycloak.TokenIntrospection(openIdCredentials.OpenIdAccessToken);
+                var keycloak = new KeycloakOpenId();
+                var tokenIntrospectResult = await keycloak.TokenIntrospectionAsync(openIdCredentials.OpenIdAccessToken);
                 KeycloakOpenId.ValidateUserToken(tokenIntrospectResult);
 
-                string offline_token = keycloak.ExchangeToken(openIdCredentials.OpenIdAccessToken).AccessToken;
-                var userInfo = keycloak.GetUserInfo(offline_token);
+                string offline_token = (await keycloak.ExchangeTokenAsync(openIdCredentials.OpenIdAccessToken)).AccessToken;
+                var userInfo = await keycloak.GetUserInfoAsync(offline_token);
 
                 return GetOrRegisterNewOpenIdUser(userInfo.Convert());
             }
@@ -259,6 +245,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             {
                 log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
                 throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", keycloakException);
+            }
+            catch (OpenIdAuthenticationException OpenIdException)
+            {
+                log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", OpenIdException);
+                throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", OpenIdException);
             }
         }
 
@@ -283,7 +274,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (!openIdUser.ProjectRoles.TryGetValue(KeycloakConfiguration.Project, out IEnumerable<string> openIdRoles))
             {
-                throw new Exception("No roles for specific project is set");
+                throw new OpenIdAuthenticationException("No roles for specific project is set");
             }
 
             var availableRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(openIdRoles).ToList();
@@ -433,9 +424,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser)
         {
-            IList<SubmittedJobInfo> notFinishedJobs = LogicFactory.GetLogicFactory()
-                                                                  .CreateJobManagementLogic(unitOfWork)
-                                                                  .ListNotFinishedJobInfosForSubmitterId(loggedUser.Id);
+            var notFinishedJobs = LogicFactory.GetLogicFactory()
+                                                                      .CreateJobManagementLogic(unitOfWork)
+                                                                      .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
             IList<ClusterNodeType> nodeTypes = LogicFactory.GetLogicFactory()
                                                            .CreateClusterInformationLogic(unitOfWork)
                                                            .ListClusterNodeTypes();
@@ -462,6 +453,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo)
         {
             return jobInfo.Submitter.Id == loggedUser.Id;
+        }
+
+        public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo)
+        {
+            return taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
         }
 
         private bool IsSessionExpired(SessionCode session)

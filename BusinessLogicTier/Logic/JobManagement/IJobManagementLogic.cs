@@ -10,12 +10,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement {
 		SubmittedJobInfo CancelJob(long submittedJobInfoId, AdaptorUser loggedUser);
         void DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
         SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser);
-		IList<SubmittedJobInfo> ListJobsForUser(AdaptorUser loggedUser);
-		IList<SubmittedJobInfo> ListNotFinishedJobInfosForSubmitterId(long submitterId);
-		IList<SubmittedJobInfo> ListNotFinishedJobInfos();
-		IList<SubmittedJobInfo> UpdateCurrentStateOfUnfinishedJobs();
+		SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser);
+		IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser);
+		IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfosForSubmitterId(long submitterId);
+		IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfos();
+		IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds);
+		void UpdateCurrentStateOfUnfinishedJobs();
         void CopyJobDataToTemp(long submittedJobInfoId, AdaptorUser loggedUser, string hash, string path);
         void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
-        List<string> GetAllocatedNodesIPs(long submittedJobInfoId, AdaptorUser loggedUser);
+        IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser);
     }
 }

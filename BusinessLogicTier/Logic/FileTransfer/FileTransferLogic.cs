@@ -9,11 +9,11 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.FileTransferFramework;
-using HEAppE.HpcConnectionFramework;
-using HEAppE.MiddlewareUtils;
 using log4net;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using Renci.SshNet.Common;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.Utils;
 
 namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 {
@@ -96,7 +96,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 
         public IList<SynchronizedJobFiles> SynchronizeAllUnfinishedJobFiles()
         {
-            IList<SubmittedJobInfo> unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).ListNotFinishedJobInfos();
+           var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetNotFinishedJobInfos().ToList();
 
             IEnumerable<IGrouping<FileTransferMethod, SubmittedJobInfo>> fileTransferMethodGroups =
                 (from jobInfo in unfinishedJobs group jobInfo by jobInfo.Specification.FileTransferMethod into fileTransferMethodGroup select fileTransferMethodGroup);

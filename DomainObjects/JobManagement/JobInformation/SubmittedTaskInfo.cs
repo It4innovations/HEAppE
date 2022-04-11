@@ -17,7 +17,15 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation {
 
 		public TaskPriority Priority { get; set; }
 
+		/// <summary>
+		/// Runtime time at scheduler
+		/// </summary>
 		public double? AllocatedTime { get; set; }
+
+		/// <summary>
+		/// Runtime used cores at scheduler
+		/// </summary>
+		public int? AllocatedCores { get; set; }
 
 		public DateTime? StartTime { get; set; }
 

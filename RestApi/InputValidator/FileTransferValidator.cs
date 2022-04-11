@@ -22,8 +22,7 @@ namespace HEAppE.RestApi.InputValidator
                 TaskFileOffsetExt ext => ValidateTaskFileOffset(ext),
                 GetFileTransferMethodModel methodModel => ValidateGetFileTransferMethodModel(methodModel),
                 EndFileTransferModel transferModel => ValidateEndFileTransferModel(transferModel),
-                DownloadPartsOfJobFilesFromClusterModel clusterModel => ValidateDownloadPartsOfJobFilesFromClusterModel(
-                    clusterModel),
+                DownloadPartsOfJobFilesFromClusterModel clusterModel => ValidateDownloadPartsOfJobFilesFromClusterModel(clusterModel),
                 ListChangedFilesForJobModel jobModel => ValidateListChangedFilesForJobModel(jobModel),
                 DownloadFileFromClusterModel clusterModel => ValidateDownloadFileFromClusterModel(clusterModel),
                 _ => string.Empty
@@ -118,7 +117,9 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("ServerHostname cannot be empty");
             }
             else if (!IsIpAddress(fileTransferMethod.ServerHostname) &&
-                     !IsDomainName(fileTransferMethod.ServerHostname))
+                     !IsDomainName(fileTransferMethod.ServerHostname) &&
+                     !IsIpAddressWithPort(fileTransferMethod.ServerHostname) &&
+                     !IsDomainNamePort(fileTransferMethod.ServerHostname))
             {
                 _messageBuilder.AppendLine("ServerHostname has unknown format. If using ipv6, please try to specify 'full address' without shortening.");
             }

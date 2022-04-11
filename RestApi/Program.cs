@@ -1,5 +1,4 @@
 ﻿using HEAppE.BackgroundThread;
-using HEAppE.BusinessLogicTier.Configuration;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
@@ -15,14 +14,16 @@ namespace HEAppE.RestApi
 {
     public class Program
     {
-        static MiddlewareBackgroundTaskRunner timer;
+        private static MiddlewareBackgroundTaskRunner _timer;
 
         public static void Main(string[] args)
         {
-            timer = new MiddlewareBackgroundTaskRunner();
-            timer.Start();
+            IWebHost host = CreateWebHostBuilder(args).Build();
 
-            CreateWebHostBuilder(args).Build().Run();
+            _timer = new MiddlewareBackgroundTaskRunner();
+            _timer.Start();
+
+            host.Run();
         }
 
         public static IWebHostBuilder CreateWebHostBuilder(string[] args)
@@ -46,14 +47,12 @@ namespace HEAppE.RestApi
             {
                 // Run w/o docker
                 builder = WebHost.CreateDefaultBuilder()
-                    .UseUrls("http://*:5000;https://*:5001")
+                    .UseUrls("http://*:5000")
                     .ConfigureAppConfiguration((hostingContext, config) =>
                     {
                         config.AddJsonFile("C:/Heappe/projects/develop/app/confs/appsettings.json", false, true);
                         config.AddNotJson("C:/Heappe/projects/develop/app/confs/seed.njson");
                     })
-                    //.UseKestrel()
-                    //.UseIISIntegration()
                     .UseStartup<Startup>();
             }
             return builder;
@@ -154,8 +153,8 @@ namespace HEAppE.RestApi
                 throw new FormatException("Duplicate Key");
             }
 
-            _data[key] = data.Value != null 
-                            ? data.ToString(CultureInfo.InvariantCulture) 
+            _data[key] = data.Value != null
+                            ? data.ToString(CultureInfo.InvariantCulture)
                             : null;
         }
 

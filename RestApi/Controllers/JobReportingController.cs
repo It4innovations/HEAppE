@@ -8,6 +8,8 @@ using Microsoft.Extensions.Logging;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.Utils.Validation;
 using HEAppE.BusinessLogicTier.Logic;
+using System.Collections.Generic;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -30,31 +32,36 @@ namespace HEAppE.RestApi.Controllers
         }
         #endregion
         #region Methods
-        ///// <summary>
-        ///// Get user groups
-        ///// </summary>
-        ///// <param name="model"></param>
-        ///// <returns></returns>
-        ///// TODO must be solved HEAppE UserRoles
-        //[HttpPost("ListAdaptorUserGroups")]
-        //[RequestSizeLimit(56)]
-        //[ProducesResponseType(typeof(IEnumerable<AdaptorUserGroupExt>), StatusCodes.Status200OK)]
-        //[ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        //[ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        //[ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        //[ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        //public IActionResult ListAdaptorUserGroups(ListAdaptorUserGroupsModel model)
-        //{
-        //    try
-        //    {
-        //        _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"ListAdaptorUserGroups\" Parameters: \"{model}\"");
-        //        return Ok(_service.ListAdaptorUserGroups(model.SessionCode));
-        //    }
-        //    catch (Exception e)
-        //    {
-        //        return BadRequest(e.Message);
-        //    }
-        //}
+        /// <summary>
+        /// Get user groups
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("ListAdaptorUserGroups")]
+        [RequestSizeLimit(58)]
+        [ProducesResponseType(typeof(IEnumerable<AdaptorUserGroupExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult ListAdaptorUserGroups(ListAdaptorUserGroupsModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"ListAdaptorUserGroups\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new JobReportingValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.ListAdaptorUserGroups(model.SessionCode));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
 
         /// <summary>
         /// Get resource usage report for user
@@ -75,7 +82,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetUserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception e)
@@ -103,7 +113,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserGroupResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetUserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception e)
@@ -131,7 +144,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetResourceUsageReportForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetResourceUsageReportForJob(model.JobId, model.SessionCode));
             }
             catch (Exception e)

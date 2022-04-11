@@ -50,7 +50,7 @@ namespace HEAppE.ConnectionPool {
 			ConnectionInfo connection = null;
 			do {
 				lock (pool) {
-					if (pool.ContainsKey(credentials.Id) && pool[credentials.Id].Last != null) // Intentional "&&" here, second operand is not evaulated if first is false
+					if (pool.ContainsKey(credentials.Id) && pool[credentials.Id].Last != null)
 					{
 						// Free connection found
 						connection = pool[credentials.Id].Last.Value;
@@ -98,14 +98,15 @@ namespace HEAppE.ConnectionPool {
 
 		#region Local Methods
 		private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred) {
-			object connectionObject = adapter.CreateConnectionObject(_masterNodeName, _remoteTimeZone, cred, _port);
-			ConnectionInfo connection = new ConnectionInfo {
-				Connection = connectionObject,
-				LastUsed = DateTime.UtcNow,
-				AuthCredentials = cred
-			};
-			adapter.Connect(connection.Connection, _masterNodeName, cred);
-			return connection;
+            object connectionObject = adapter.CreateConnectionObject(_masterNodeName, _remoteTimeZone, cred, _port);
+            ConnectionInfo connection = new ConnectionInfo
+            {
+                Connection = connectionObject,
+                LastUsed = DateTime.UtcNow,
+                AuthCredentials = cred
+            };
+            adapter.Connect(connection.Connection, _masterNodeName, cred);
+            return connection;
 		}
 
 		private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred) {

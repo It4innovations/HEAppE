@@ -1,10 +1,9 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using System;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
     /// <summary>
-    /// Interface: System commands
+    /// ISystem commands
     /// </summary>
     public interface ICommands
     {
@@ -14,10 +13,15 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         string InterpreterCommand { get; }
 
         /// <summary>
+        /// Execution command script path
+        /// </summary>
+        string ExecutieCmdScriptPath { get; }
+
+        /// <summary>
         /// Copy job data to temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
         /// <param name="path">Path</param>
         void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path);
@@ -26,7 +30,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// Copy job data from temp folder
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
         void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash);
 
@@ -35,29 +39,28 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo);
 
         /// <summary>
         /// Remove direct file transfer acces for user
         /// </summary>
-        /// <param name="connectorClient">Conenctor</param>
+        /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
-        void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo);
+        void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey);
 
         /// <summary>
         /// Create job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo);
 
         /// <summary>
         /// Delete job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="jobInfo">Job info</param>
+        /// <param name="jobInfo">Job information</param>
         void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo);
     }
 }

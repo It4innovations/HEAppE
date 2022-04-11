@@ -14,6 +14,7 @@ using HEAppE.ExtModels.ClusterInformation.Models;
 using log4net;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.ServiceTier.ClusterInformation
 {
@@ -72,7 +73,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             catch (Exception exc)
             {
                 //TODO Should be rewrite!
-                if (exc.Message.Contains("No such file or directory"))
+                if (exc.Message.Contains("No such file or directory") || exc.Message.Contains("Is a directory"))
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
                 }
@@ -81,5 +82,6 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 return null;
             }
         }
+
     }
 }

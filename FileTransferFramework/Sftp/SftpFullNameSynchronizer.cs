@@ -1,7 +1,7 @@
 ﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
-using HEAppE.MiddlewareUtils;
+using HEAppE.Utils;
 using System.Collections.Generic;
 using System.IO;
 using ConnectionInfo = HEAppE.ConnectionPool.ConnectionInfo;

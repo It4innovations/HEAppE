@@ -15,10 +15,16 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
         }
         #endregion
         #region Methods
-        public IEnumerable<SubmittedTaskInfo> ListAllUnfinished()
+        public IEnumerable<SubmittedTaskInfo> GetAllUnFinished()
         {
             return GetAll().Where(w => w.State < TaskState.Finished && w.State > TaskState.Configuring)
-                         .ToList();
+                            .ToList();
+        } 
+
+        public IEnumerable<SubmittedTaskInfo> GetAllFinished()
+        {
+            return GetAll().Where(w => w.State >= TaskState.Finished)
+                            .ToList();
         }
         #endregion
     }

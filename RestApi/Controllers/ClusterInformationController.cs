@@ -76,7 +76,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"GetCommandTemplateParametersName\"");
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.UserScriptPath, model.SessionCode));
             }
             catch (Exception e)
@@ -104,7 +107,10 @@ namespace HEAppE.RestApi.Controllers
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
                 if (!validationResult.IsValid)
+                {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
                 return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
             }
             catch (Exception e)

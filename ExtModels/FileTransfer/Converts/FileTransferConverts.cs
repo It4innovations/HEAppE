@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
+﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using System;
@@ -13,7 +14,7 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
             {
                 ServerHostname = fileTransferMethod.ServerHostname,
                 SharedBasepath = fileTransferMethod.SharedBasePath,
-                Protocol = ConvertFileTransferProtocolToExt(fileTransferMethod.Protocol),
+                Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
                 Credentials = fileTransferMethod.Credentials.ConvertIntToExt()
             };
             return convert;
@@ -30,13 +31,18 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
             return convert;
         }
 
-        private static FileTransferProtocolExt ConvertFileTransferProtocolToExt(FileTransferProtocol? fileTransferProtocol)
+        private static FileTransferProtocolExt ConvertFileTransferProtocolIntToExt(FileTransferProtocol? fileTransferProtocol)
         {
-            FileTransferProtocolExt convert;
             if (!fileTransferProtocol.HasValue)
-                throw new Exception("The file transfer protocol has to be set.");
-#warning InputValidationExceptionExt
-            Enum.TryParse(fileTransferProtocol.ToString(), out convert);
+            {
+                throw new InputValidationException("The file transfer protocol has to be set.");
+            }
+
+            if (!Enum.TryParse(fileTransferProtocol.ToString(), out FileTransferProtocolExt convert))
+            {
+                throw new InputValidationException("The file transfer protocol type must have value from <1, 2, 4>.");
+            }
+
             return convert;
         }
 
@@ -54,8 +60,15 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
 
         private static FileTransferProtocol ConvertFileTransferProtocolExtToIn(FileTransferProtocolExt? protocol)
         {
-            FileTransferProtocol convert;
-            Enum.TryParse(protocol.ToString(), out convert);
+            if (!protocol.HasValue)
+            {
+                throw new InputValidationException("The file transfer protocol has to be set.");
+            }
+
+            if (!Enum.TryParse(protocol.ToString(), out FileTransferProtocol convert))
+            {
+                throw new InputValidationException("The file transfer protocol type must have value from <1, 2, 4>.");
+            }
             return convert;
         }
 
@@ -75,9 +88,14 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
         private static SynchronizableFilesExt? ConvertSynchronizableFilesToExt(SynchronizableFiles? fileType)
         {
             if (!fileType.HasValue)
-                return null;
-            SynchronizableFilesExt convert;
-            Enum.TryParse(fileType.ToString(), out convert);
+            {
+                throw new InputValidationException("The synchronizable file type has to be set.");
+            }
+
+            if (!Enum.TryParse(fileType.ToString(), out SynchronizableFilesExt convert))
+            {
+                throw new InputValidationException("The synchronizable file type must have value from range 0 to 3.");
+            }
             return convert;
         }
 
@@ -94,11 +112,15 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
 
         private static SynchronizableFiles ConvertSynchronizableFilesExtToIn(SynchronizableFilesExt? fileType)
         {
-            SynchronizableFiles convert;
             if (!fileType.HasValue)
-                throw new Exception("The synchronizable file type has to be set.");
-#warning InputValidationExceptionExt
-            Enum.TryParse(fileType.ToString(), out convert);
+            {
+                throw new InputValidationException("The synchronizable file type has to be set.");
+            }
+
+            if (!Enum.TryParse(fileType.ToString(), out SynchronizableFiles convert))
+            {
+                throw new InputValidationException("The synchronizable file type must have value from range 0 to 3.");
+            }
             return convert;
         }
     }

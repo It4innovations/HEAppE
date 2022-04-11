@@ -1,28 +1,27 @@
-﻿using HEAppE.DataAccessTier;
+﻿using AspNetCoreRateLimit;
+using HEAppE.BackgroundThread.Configuration;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.DataAccessTier;
+using HEAppE.FileTransferFramework;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.KeycloakOpenIdAuthentication.Configuration;
+using HEAppE.OpenStackAPI.Configuration;
+using HEAppE.RestApi.Configuration;
 using log4net;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using HEAppE.RestApi.Configuration;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
-using HEAppE.OpenStackAPI;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Hosting;
-using AspNetCoreRateLimit;
-using Microsoft.AspNetCore.Http;
-using HEAppE.FileTransferFramework;
-using HEAppE.KeycloakOpenIdAuthentication.Configuration;
-using HEAppE.OpenStackAPI.Configuration;
-using HEAppE.MiddlewareUtils.LocalDocker;
-using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.RestApi
 {
@@ -65,23 +64,26 @@ namespace HEAppE.RestApi
             //IP rate limitation
             services.AddMemoryCache();
 
-            services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));      
+            services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
             services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
             //Other configuration
-            var middlewareContextSettings = new MiddlewareContextSettings();
             var keycloackConfiguration = new KeycloakConfiguration();
-            Configuration.Bind("MiddlewareContextSettings", middlewareContextSettings);
+
+            Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
+            Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
+            Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
+            Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
             Configuration.Bind("KeycloakSettings", keycloackConfiguration);
             Configuration.Bind("OpenStackSettings", new OpenStackSettings());
-            Configuration.Bind("LocalDockerSettings", new LocalDockerSettings());
-            Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
+
 
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+            services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>(); 
+            services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>(); 
             services.AddSingleton(keycloackConfiguration); //Maybe Interface
 
             //CORS
@@ -193,16 +195,6 @@ namespace HEAppE.RestApi
             var option = new RewriteOptions();
             option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
             app.UseRewriter(option);
-
-            ConfigureLocalDockerHpc();
-        }
-
-        /// <summary>
-        /// Asynchronous run of docker configuration
-        /// </summary>
-        private void ConfigureLocalDockerHpc()
-        {
-            //todo this method (REMOVE THAT?) konvicka
         }
         #endregion
     }

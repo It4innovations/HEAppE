@@ -1,10 +1,6 @@
 ﻿using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.Utils.Validation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -32,14 +28,14 @@ namespace HEAppE.RestApi.InputValidator
         private string ValidateAsymmetricKeyCredentials(AsymmetricKeyCredentialsExt credentials)
         {
             if (string.IsNullOrEmpty(credentials.Username))
-            { 
-                _messageBuilder.AppendLine("Username cannot be empty."); 
+            {
+                _messageBuilder.AppendLine("Username cannot be empty.");
             }
             else
             {
                 if (ContainsIllegalCharacters(credentials.Username))
-                { 
-                    _messageBuilder.AppendLine("Username contains illegal characters."); 
+                {
+                    _messageBuilder.AppendLine("Username contains illegal characters.");
                 }
                 if (credentials.Username.Length > UsernameMaxLength)
                 {
@@ -104,22 +100,6 @@ namespace HEAppE.RestApi.InputValidator
             else if (ContainsIllegalCharacters(credentials.OpenIdAccessToken))
             {
                 _messageBuilder.AppendLine("OpenIdAccessToken contains illegal characters.");
-            }
-
-            if (string.IsNullOrEmpty(credentials.Username))
-            {
-                _messageBuilder.AppendLine("Username cannot be empty.");
-            }
-            else
-            {
-                if (ContainsIllegalCharacters(credentials.Username))
-                {
-                    _messageBuilder.AppendLine("Username contains illegal characters.");
-                }
-                if (credentials.Username.Length > UsernameMaxLength)
-                {
-                    _messageBuilder.AppendLine($"Username is too long, maximal length is {UsernameMaxLength}");
-                }
             }
 
             return _messageBuilder.ToString();
