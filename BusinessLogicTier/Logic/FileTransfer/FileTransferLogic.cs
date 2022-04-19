@@ -14,6 +14,7 @@ using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using Renci.SshNet.Common;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
+using HEAppE.CertificateGenerator;
 
 namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 {
@@ -31,9 +32,10 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
         {
             log.Info("Getting file transfer method for submitted job info ID " + submittedJobInfoId + " with user " + loggedUser.GetLogIdentification());
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            var certificateGenerator = new CertificateGenerator.CertificateGenerator();
-            certificateGenerator.GenerateKey(2048);
-            string publicKey = certificateGenerator.DhiPublicKey();
+
+            var certificateGenerator = new RSACertGenerator(4096);
+            string publicKey = certificateGenerator.ToPuTTYPublicKey();
+
             string jobDir = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification);
             var transferMethod = new FileTransferMethod
             {
@@ -43,7 +45,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
                 Credentials = new AsymmetricKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,
-                    PrivateKey = certificateGenerator.DhiPrivateKey(),
+                    PrivateKey = certificateGenerator.ToPrivateKey(),
                     PublicKey = publicKey
                 }
             };
