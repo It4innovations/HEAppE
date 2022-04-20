@@ -21,7 +21,7 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
         }
         #endregion
         #region Methods
-        public void ProcessResult(string remoteNodeTimeZone, SftpCommandResult result)
+        public void ProcessResult(SftpCommandResult result)
         {
             using (FileStream fs = File.OpenRead(_localFile))
             {

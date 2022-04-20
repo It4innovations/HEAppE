@@ -1,6 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
@@ -19,57 +18,40 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
         /// <returns></returns>
         internal static TaskState Map(this SlurmTaskState taskState)
         {
-            switch (taskState)
+            return taskState switch
             {
-                case SlurmTaskState.Requeued:
-                case SlurmTaskState.Pending:
-                case SlurmTaskState.RequeueHold:
-                case SlurmTaskState.RequeueFed:
-                case SlurmTaskState.ResvDelHold:
-                    {
-                        return TaskState.Queued;
-                    }
+                SlurmTaskState.Requeued
+                 or SlurmTaskState.Pending
+                 or SlurmTaskState.RequeueHold
+                 or SlurmTaskState.RequeueFed
+                 or SlurmTaskState.ResvDelHold => TaskState.Queued,
 
-                case SlurmTaskState.Configuring:
-                case SlurmTaskState.StageOut:
-                case SlurmTaskState.Signaling:
-                    {
-                        return TaskState.Configuring;
-                    }
+                SlurmTaskState.Configuring
+                 or SlurmTaskState.StageOut
+                 or SlurmTaskState.Signaling => TaskState.Configuring,
 
-                case SlurmTaskState.Completed:
-                case SlurmTaskState.SpecialExit:
-                    {
-                        return TaskState.Finished;
-                    }
+                SlurmTaskState.Completed
+                 or SlurmTaskState.SpecialExit => TaskState.Finished,
 
-                case SlurmTaskState.Stopped:
-                case SlurmTaskState.Canceled:
-                case SlurmTaskState.Suspended:
-                case SlurmTaskState.Resizing:
-                    {
-                        return TaskState.Canceled;
-                    }
+                SlurmTaskState.Stopped
+                 or SlurmTaskState.Canceled
+                 or SlurmTaskState.Suspended
+                 or SlurmTaskState.Resizing => TaskState.Canceled,
 
-                case SlurmTaskState.Running:
-                case SlurmTaskState.Completing:
-                    {
-                        return TaskState.Running;
-                    }
+                SlurmTaskState.Running
+                 or SlurmTaskState.Completing => TaskState.Running,
 
-                case SlurmTaskState.Failed:
-                case SlurmTaskState.BootFailed:
-                case SlurmTaskState.NodeFail:
-                case SlurmTaskState.Deadline:
-                case SlurmTaskState.Timeout:
-                case SlurmTaskState.OutOfMemory:
-                case SlurmTaskState.Preempted:
-                case SlurmTaskState.Revoked:
-                default:
-                    {
-                        return TaskState.Failed;
-                    }
-            }
+                SlurmTaskState.Failed
+                 or SlurmTaskState.BootFailed
+                 or SlurmTaskState.NodeFail
+                 or SlurmTaskState.Deadline
+                 or SlurmTaskState.Timeout
+                 or SlurmTaskState.OutOfMemory
+                 or SlurmTaskState.Preempted
+                 or SlurmTaskState.Revoked => TaskState.Failed,
+
+                _ => TaskState.Failed
+            };
         }
 
         /// <summary>
@@ -105,6 +87,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
                 }
             }
             return allocatedNodesForJob;
-        }      
+        }
     }
 }

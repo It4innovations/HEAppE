@@ -58,6 +58,16 @@
         "AdaptorUserGroupId": 1
       }
     ],
+    "ClusterProxyConnections": [
+      {
+        "Id": 1,
+        "Host": "",
+        "Port": 8000,
+        "Username": null,
+        "Password": null,
+        "Type": 1
+      }
+    ],
     "Clusters": [
       {
         "Id": 1,
@@ -71,7 +81,8 @@
         "SchedulerType": 1,
         "ConnectionProtocol": 2,
         "ServiceAccountCredentialsId": 1,
-        "UpdateJobStateByServiceAccount": true
+        "UpdateJobStateByServiceAccount": true,
+        "ProxyConnectionId": null
       }
     ],
     "ClusterAuthenticationCredentials": [
@@ -142,7 +153,7 @@
         "Query": "",
         "Description": "inputParam",
         "CommandTemplateId": 1,
-        "IsVisible":  true
+        "IsVisible": true
       },
       {
         "Id": 2,
@@ -173,22 +184,22 @@
       {
         "Id": 1,
         "Name": "{DefaultName}",
-        "MinCores": {MinCores},
-        "MaxCores": {MaxCores},
-        "Priority": {Priority},
+        "MinCores": { "MinCores" },
+        "MaxCores": { "MaxCores" },
+        "Priority": { "Priority" },
         "Project": "{Project}",
-        "WalltimeLimit": {WalltimeLimit}
+        "WalltimeLimit": { "WalltimeLimit" }
       }
     ],
     "TaskTemplates": [
       {
         "Id": 1,
         "Name": "{Name}",
-        "MinCores": {MinCores},
-        "MaxCores": {MaxCores},
-        "Priority": {Priority},
+        "MinCores": { "MinCores" },
+        "MaxCores": { "MaxCores" },
+        "Priority": { "Priority" },
         "Project": "{Project}",
-        "WalltimeLimit": {WalltimeLimit}
+        "WalltimeLimit": { "WalltimeLimit" }
       }
     ],
     "Languages": [

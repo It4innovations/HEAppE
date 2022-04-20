@@ -2,7 +2,7 @@
 
 namespace HEAppE.DataAccessTier.IRepository.ClusterInformation
 {
-    public interface IClusterNodeTypeRequestedGroupRepository : IRepository<ClusterNodeTypeRequestedGroup>
+    public interface IClusterProxyConnectionRepository : IRepository<ClusterProxyConnection>
     {
 
     }

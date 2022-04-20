@@ -11,32 +11,53 @@ namespace HEAppE.DataAccessTier
     public class MiddlewareContextSettings
     {
         public static string ConnectionString { get; set; }
+
         public static List<AdaptorUser> AdaptorUsers { get; set; }
+
         public static List<AdaptorUserRole> AdaptorUserRoles { get; set; }
+
         public static List<AdaptorUserGroup> AdaptorUserGroups { get; set; }
+
         public static List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; }
+
         public static List<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; }
 
+
         public static List<OpenStackInstance> OpenStackInstances { get; set; }
+
         public static List<OpenStackDomain> OpenStackDomains { get; set; }
+
         public static List<OpenStackProject> OpenStackProjects { get; set; }
+
         public static List<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
+
         public static List<OpenStackAuthenticationCredential> OpenStackAuthenticationCredentials { get; set; }
+
         public static List<OpenStackAuthenticationCredentialDomain> OpenStackAuthenticationCredentialDomains { get; set; }
+
         public static List<OpenStackAuthenticationCredentialProjectDomain> OpenStackAuthenticationCredentialProjectDomains { get; set; }
 
+
+        public static List<ClusterProxyConnection> ClusterProxyConnections { get; set; }
+
         public static List<Cluster> Clusters { get; set; }
+
         public static List<ClusterAuthenticationCredentials> ClusterAuthenticationCredentials { get; set; }
+
         public static List<ClusterNodeType> ClusterNodeTypes { get; set; }
 
         public static List<CommandTemplate> CommandTemplates { get; set; }
+
         public static List<CommandTemplateParameter> CommandTemplateParameters { get; set; }
 
         public static List<FileTransferMethod> FileTransferMethods { get; set; }
+
         public static List<JobTemplate> JobTemplates { get; set; }
+
         public static List<TaskTemplate> TaskTemplates { get; set; }
 
         public static List<Language> Languages { get; set; }
+
         public static List<PropertyChangeSpecification> PropertyChangeSpecifications { get; set; }
     }
 }

@@ -32,8 +32,8 @@ namespace HEAppE.FileTransferFramework
         public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
         public abstract byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath);
         public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo);
-        protected abstract void CopyAll(string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials);
-        protected abstract ICollection<FileInformation> ListChangedFilesForTask(string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials);
+        protected abstract void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials);
+        protected abstract ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials);
         protected abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo, ClusterAuthenticationCredentials credentials);
 
         #endregion
@@ -41,7 +41,7 @@ namespace HEAppE.FileTransferFramework
         public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory)
         {
             string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
-            CopyAll(localJobDirectory, jobClusterDirectoryPath, false, null, null, jobInfo.Specification.ClusterUser);
+            CopyAll(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null, jobInfo.Specification.ClusterUser);
         }
 
         public virtual ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobInfo)
@@ -99,7 +99,7 @@ namespace HEAppE.FileTransferFramework
                     taskInfo.Specification.StandardOutputFile,
                     taskInfo.Specification.StandardErrorFile
                 };
-                CopyAll(taskClusterDirectoryPath, taskInfo.Specification.LocalDirectory, true, jobSubmitTime, excludedFiles, jobInfo.Specification.ClusterUser);
+                CopyAll(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath, taskInfo.Specification.LocalDirectory, true, jobSubmitTime, excludedFiles, jobInfo.Specification.ClusterUser);
             }
         }
 
@@ -111,7 +111,7 @@ namespace HEAppE.FileTransferFramework
                 string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
                 string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectoryPath, taskInfo.Specification);
 
-                var changedFiles = ListChangedFilesForTask(taskClusterDirectoryPath, jobSubmitTime, jobInfo.Specification.ClusterUser);
+                var changedFiles = ListChangedFilesForTask(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath, jobSubmitTime, jobInfo.Specification.ClusterUser);
                 foreach (var changedFile in changedFiles)
                 {
                     var relativeFilePath = "/" + taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture) +

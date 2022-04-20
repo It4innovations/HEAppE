@@ -7,7 +7,7 @@ using System.IO;
 
 namespace HEAppE.FileTransferFramework.Sftp
 {
-    public class NoAuthenticationSftpClient : ExtendedSftpClient
+    public class NoAuthenticationSftpClient : SftpClient
     {
         #region Instances
         private readonly string _masterNodeName;
@@ -15,8 +15,8 @@ namespace HEAppE.FileTransferFramework.Sftp
         private readonly ILogger _logger;
         #endregion
         #region Constructors
-        public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string remoteNodeTimeZone, string userName)
-            : base(new ConnectionInfo(masterNodeName, userName, new PasswordAuthenticationMethod(userName, string.Empty)), remoteNodeTimeZone)
+        public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string userName)
+            : base(new ConnectionInfo(masterNodeName, userName, new PasswordAuthenticationMethod(userName, string.Empty)))
         {
             _masterNodeName = masterNodeName;
             _userName = userName;
@@ -29,13 +29,13 @@ namespace HEAppE.FileTransferFramework.Sftp
         public TResult RunCommand<TResult>(ICommand<TResult> command)
         {
             var result = RunCommand(command.Command);
-            return command.ProcessResult(_hostTimeZone, result);
+            return command.ProcessResult(result);
         }
 
         public void RunCommand(ICommand command)
         {
             var result = RunCommand(command.Command);
-            command.ProcessResult(_hostTimeZone, result);
+            command.ProcessResult(result);
         }
         #endregion
         #region Local Methods
@@ -93,11 +93,6 @@ namespace HEAppE.FileTransferFramework.Sftp
             if (string.IsNullOrWhiteSpace(_userName))
             {
                 throw new ArgumentException($"Argument 'userName' cannot be null or empty");
-            }
-
-            if (string.IsNullOrWhiteSpace(_hostTimeZone))
-            {
-                throw new ArgumentException($"Argument 'remoteNodeTimeZone' cannot be null or empty");
             }
         }
         #endregion

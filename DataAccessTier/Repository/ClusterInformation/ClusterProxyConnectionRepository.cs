@@ -3,10 +3,10 @@ using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.DataAccessTier.Repository.ClusterInformation
 {
-    internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepository
+    internal class ClusterProxyConnectionRepository : GenericRepository<ClusterProxyConnection>, IClusterProxyConnectionRepository
     {
         #region Constructors
-        internal ClusterRepository(MiddlewareContext context)
+        internal ClusterProxyConnectionRepository(MiddlewareContext context)
             : base(context)
         {
 
