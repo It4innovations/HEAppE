@@ -1,11 +1,13 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 
-namespace HEAppE.ConnectionPool {
-	public interface IPoolableAdapter {
-		object CreateConnectionObject(string masterNodeName, string remoteTimeZone, ClusterAuthenticationCredentials clusterCredentials, int? port = null);
+namespace HEAppE.ConnectionPool
+{
+    public interface IPoolableAdapter
+    {
+        object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials, ClusterProxyConnection proxy = null, int? port = null);
 
-		void Connect(object connection, string masterNodeName, ClusterAuthenticationCredentials clusterCredentials);
+        void Connect(object connection);
 
-		void Disconnect(object connection);
-	}
+        void Disconnect(object connection);
+    }
 }

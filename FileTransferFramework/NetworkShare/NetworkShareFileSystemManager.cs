@@ -32,13 +32,13 @@ namespace HEAppE.FileTransferFramework.NetworkShare
             Directory.Delete(jobClusterDirectoryPath, true);
         }
 
-        protected override void CopyAll(string source, string target, bool overwrite, DateTime? lastModificationLimit,
+        protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit,
             string[] excludedFiles, ClusterAuthenticationCredentials credentials)
         {
             FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles);
         }
 
-        protected override ICollection<FileInformation> ListChangedFilesForTask(string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials)
+        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials)
         {
             throw new NotImplementedException();
         }

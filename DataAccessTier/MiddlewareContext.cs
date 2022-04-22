@@ -171,6 +171,7 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
             InsertOrUpdateSeedData(GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserRoles), false);
 
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
             {
                 AuthenticationCredentials = c.AuthenticationCredentials,
@@ -185,7 +186,8 @@ namespace HEAppE.DataAccessTier
                 SchedulerType = c.SchedulerType,
                 LocalBasepath = c.LocalBasepath,
                 TimeZone = c.TimeZone,
-                UpdateJobStateByServiceAccount = c.UpdateJobStateByServiceAccount
+                UpdateJobStateByServiceAccount = c.UpdateJobStateByServiceAccount,
+                ProxyConnectionId = c.ProxyConnectionId
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc => new ClusterAuthenticationCredentials
@@ -195,9 +197,7 @@ namespace HEAppE.DataAccessTier
                 Password = cc.Password,
                 PrivateKeyFile = cc.PrivateKeyFile,
                 PrivateKeyPassword = cc.PrivateKeyPassword,
-                ClusterId = cc.ClusterId,
-                Cluster = cc.Cluster,
-                AuthenticationType = GetCredentialsAuthenticationType(cc)
+                ClusterId = cc.ClusterId
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
@@ -223,6 +223,9 @@ namespace HEAppE.DataAccessTier
             var entries = ChangeTracker.Entries();
             //Prevents duplicit entries in memory when items updated
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
+
+            //Update Authentication type
+            ClusterAuthenticationCredentials.ToList().ForEach(cc => cc.AuthenticationType = GetCredentialsAuthenticationType(cc));
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
@@ -326,33 +329,67 @@ namespace HEAppE.DataAccessTier
 
         private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential)
         {
-            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
+            if (credential.Cluster.ProxyConnection is null)
             {
-                return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
-            }
-
-            if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
-            {
-                return ClusterAuthenticationCredentialsAuthType.PrivateKey;
-            }
-
-            if (!string.IsNullOrEmpty(credential.Password))
-            {
-                switch (credential.Cluster.ConnectionProtocol)
+                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
                 {
-                    case ClusterConnectionProtocol.MicrosoftHpcApi:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
+                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
+                }
 
-                    case ClusterConnectionProtocol.Ssh:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
+                if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                }
 
-                    case ClusterConnectionProtocol.SshInteractive:
-                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
+                if (!string.IsNullOrEmpty(credential.Password))
+                {
+                    switch (credential.Cluster.ConnectionProtocol)
+                    {
+                        case ClusterConnectionProtocol.MicrosoftHpcApi:
+                            return ClusterAuthenticationCredentialsAuthType.Password;
 
-                    default:
-                        return ClusterAuthenticationCredentialsAuthType.Password;
+                        case ClusterConnectionProtocol.Ssh:
+                            return ClusterAuthenticationCredentialsAuthType.Password;
+
+                        case ClusterConnectionProtocol.SshInteractive:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
+
+                        default:
+                            return ClusterAuthenticationCredentialsAuthType.Password;
+                    }
                 }
             }
+            else
+            {
+                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
+                }
+
+                if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+                }
+
+                if (!string.IsNullOrEmpty(credential.Password))
+                {
+                    switch (credential.Cluster.ConnectionProtocol)
+                    {
+                        case ClusterConnectionProtocol.MicrosoftHpcApi:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+
+                        case ClusterConnectionProtocol.Ssh:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+
+                        case ClusterConnectionProtocol.SshInteractive:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
+
+                        default:
+                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+                    }
+                }
+            }
+
             return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
 
@@ -414,6 +451,7 @@ namespace HEAppE.DataAccessTier
         #region Entities
 
         #region ClusterInformation Entities
+        public virtual DbSet<ClusterProxyConnection> ClusterProxyConnections { get; set; }
         public virtual DbSet<Cluster> Clusters { get; set; }
         public virtual DbSet<ClusterAuthenticationCredentials> ClusterAuthenticationCredentials { get; set; }
         public virtual DbSet<ClusterNodeType> ClusterNodeTypes { get; set; }

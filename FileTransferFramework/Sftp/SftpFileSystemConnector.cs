@@ -1,13 +1,14 @@
-﻿using HEAppE.ConnectionPool;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.FileTransferFramework.Exceptions;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using System;
 
 namespace HEAppE.FileTransferFramework.Sftp
 {
-    public class SftpFileSystemConnector : IPoolableAdapter
+    public class SftpFileSystemConnector : ConnectionPool.IPoolableAdapter
     {
         #region Instances
         readonly ILogger _logger;
@@ -19,66 +20,132 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         #endregion
         #region Methods
-        public object CreateConnectionObject(string masterNodeName, string remoteTimeZone, ClusterAuthenticationCredentials credentials, int? port = null)
+        /// <summary>
+        /// Create SFTP connection object
+        /// </summary>
+        /// <param name="masterNodeName">Master node name</param>
+        /// <param name="credentials">Credentials</param>
+        /// <param name="proxy">Proxy</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials, ClusterProxyConnection proxy, int? port)
         {
-            if (!string.IsNullOrEmpty(credentials.PrivateKeyFile))
+            return credentials.AuthenticationType switch
             {
-                return CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port);
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(credentials.Password))
-                {
-                    return credentials.Cluster.ConnectionProtocol switch
-                    {
-                        ClusterConnectionProtocol.MicrosoftHpcApi => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password, port),
-                        ClusterConnectionProtocol.Ssh => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password, port),
-                        ClusterConnectionProtocol.SshInteractive => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password),
-                        _ => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, remoteTimeZone, credentials.Username, credentials.Password),
-                    };
-                }
-                else
-                {
-                    //Using Ssh-Agent
-                    return CreateConnectionObjectUsingNoAuthentication(masterNodeName, remoteTimeZone, credentials.Username);
-                }
-            }
+                ClusterAuthenticationCredentialsAuthType.Password
+                        => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port),
+
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractive
+                        => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, credentials.Username, credentials.Password),
+
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey
+                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+
+                ClusterAuthenticationCredentialsAuthType.PrivateKey
+                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+
+                ClusterAuthenticationCredentialsAuthType.PasswordViaProxy
+                        => CreateConnectionObjectUsingPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
+
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy
+                        => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractiveViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
+
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy
+                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
+                        => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                        => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username),
+
+                _ => throw new NotImplementedException("SFTP authentication credentials authentication type is not allowed!")
+            };
         }
 
-        public void Connect(object connection, string masterNodeName, ClusterAuthenticationCredentials credentials)
+        /// <summary>
+        /// Connect client to server
+        /// </summary>
+        /// <param name="connectorClient"></param>
+        public void Connect(object connectorClient)
         {
-            new SftpClientAdapter((ExtendedSftpClient)connection).Connect();
+            new SftpClientAdapter((SftpClient)connectorClient).Connect();
         }
 
-        public void Disconnect(object connection)
+        /// <summary>
+        /// Disconnect client from server
+        /// </summary>
+        /// <param name="connectorClient"></param>
+        public void Disconnect(object connectorClient)
         {
-            new SftpClientAdapter((ExtendedSftpClient)connection).Disconnect();
+            new SftpClientAdapter((SftpClient)connectorClient).Disconnect();
         }
         #endregion
         #region Local Methods
-        private NoAuthenticationSftpClient CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string remoteTimeZone, string username)
+        /// <summary>
+        /// Create connection object using password authentication
+        /// </summary>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="password">Password</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string username, string password, int? port)
         {
-            NoAuthenticationSftpClient client = new NoAuthenticationSftpClient(_logger, masterNodeName, remoteTimeZone, username);
-            return client;
+            var connectionInfo = port switch
+            {
+                null => new ConnectionInfo(
+                            masterNodeName,
+                            username,
+                            new PasswordAuthenticationMethod(username, password)),
+                _ => new ConnectionInfo(
+                            masterNodeName,
+                            port.Value,
+                            username,
+                            new PasswordAuthenticationMethod(username, password))
+            };
+
+            return new SftpClient(connectionInfo);
         }
 
-        private static SftpClient CreateConnectionObjectUsingPasswordAuthentication(string masterNodeName, string remoteTimeZone, string username, string password, int? port = null)
+        /// <summary>
+        /// Create connection object using password authentication via Proxy
+        /// </summary>
+        /// <param name="proxyHost">Proxy host</param>
+        /// <param name="proxyType">Proxy type</param>
+        /// <param name="proxyPort">Proxy port</param>
+        /// <param name="proxyUsername">Proxy username</param>
+        /// <param name="proxyPassword">Proxy password</param>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="password">Password</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPasswordAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string password, int? port)
         {
-            Renci.SshNet.ConnectionInfo connectionInfo;
-            if (port.HasValue)
-            {
-                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, port.Value, username, new PasswordAuthenticationMethod(username, password));
-            }
-            else
-            {
-                connectionInfo = new Renci.SshNet.ConnectionInfo(masterNodeName, username, new PasswordAuthenticationMethod(username, password));
-            }
-            return new ExtendedSftpClient(connectionInfo, remoteTimeZone);
+            var connectionInfo = new ConnectionInfo(
+                                                 masterNodeName,
+                                                 port ?? 22,
+                                                 username,
+                                                 proxyType.Map(),
+                                                 proxyHost,
+                                                 proxyPort,
+                                                 proxyUsername,
+                                                 proxyPassword,
+                                                 new PasswordAuthenticationMethod(username, password));
+            return new SftpClient(connectionInfo);
         }
 
-        private static SftpClient CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(string masterNodeName, string remoteTimeZone, string username, string password)
+        /// <summary>
+        /// Create connection object using password authentication with keyboard interactive
+        /// </summary>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="password">Password</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(string masterNodeName, string username, string password)
         {
-            KeyboardInteractiveConnectionInfo connectionInfo = new KeyboardInteractiveConnectionInfo(masterNodeName, username);
+            var connectionInfo = new KeyboardInteractiveConnectionInfo(masterNodeName, username);
             connectionInfo.AuthenticationPrompt += delegate (object sender, AuthenticationPromptEventArgs e)
             {
                 foreach (AuthenticationPrompt prompt in e.Prompts)
@@ -86,29 +153,220 @@ namespace HEAppE.FileTransferFramework.Sftp
                     prompt.Response = password;
                 }
             };
-            return new ExtendedSftpClient(connectionInfo, remoteTimeZone);
+            return new SftpClient(connectionInfo);
         }
 
-        private static SftpClient CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string remoteTimeZone, string username, string privateKeyFile, string privateKeyPassword, int? port)
+        /// <summary>
+        /// Create connection object using password authentication with keyboard interactive via Proxy
+        /// </summary>
+        /// <param name="proxyHost">Proxy host</param>
+        /// <param name="proxyType">Proxy type</param>
+        /// <param name="proxyPort">Proxy port</param>
+        /// <param name="proxyUsername">Proxy username</param>
+        /// <param name="proxyPassword">Proxy password</param>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="password">Password</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractiveViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string password, int? port)
         {
-            //PrivateKeyConnectionInfo connectionInfo = new PrivateKeyConnectionInfo(masterNodeName, username, new PrivateKeyFile(privateKeyFile, privateKeyPassword));
-            PrivateKeyConnectionInfo connectionInfo;
-            if (port.HasValue)
+            var connectionInfo = port switch
             {
-                connectionInfo = new PrivateKeyConnectionInfo(
-                masterNodeName,
-                port.Value,
-                username,
-                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
-            }
-            else
+                null => new KeyboardInteractiveConnectionInfo(
+                            masterNodeName,
+                            username,
+                            proxyType.Map(),
+                            proxyHost,
+                            proxyPort,
+                            proxyUsername ?? string.Empty,
+                            proxyPassword ?? string.Empty),
+                _ => new KeyboardInteractiveConnectionInfo(
+                            masterNodeName,
+                            port.Value,
+                            username,
+                            proxyType.Map(),
+                            proxyHost,
+                            proxyPort,
+                            proxyUsername ?? string.Empty,
+                            proxyPassword ?? string.Empty)
+            };
+
+            connectionInfo.AuthenticationPrompt += delegate (object sender, AuthenticationPromptEventArgs e)
             {
-                connectionInfo = new PrivateKeyConnectionInfo(
-                masterNodeName,
-                username,
-                new PrivateKeyFile(privateKeyFile, privateKeyPassword));
+                foreach (AuthenticationPrompt prompt in e.Prompts)
+                {
+                    prompt.Response = password;
+                }
+            };
+            return new SftpClient(connectionInfo);
+        }
+
+        /// <summary>
+        /// Create connection object using private key authentication
+        /// </summary>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="privateKeyFile">Private key file</param>
+        /// <param name="privateKeyPassword">Private key password</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port)
+        {
+            try
+            {
+                PrivateKeyConnectionInfo connectionInfo = port switch
+                {
+                    null => new PrivateKeyConnectionInfo(
+                                masterNodeName,
+                                username,
+                                new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                    _ => new PrivateKeyConnectionInfo(
+                                masterNodeName,
+                                port.Value,
+                                username,
+                                new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                };
+
+                var client = new SftpClient(connectionInfo);
+                return client;
             }
-            return new ExtendedSftpClient(connectionInfo, remoteTimeZone);
+            catch (Exception e)
+            {
+                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+            }
+        }
+
+        /// <summary>
+        /// Create connection object using private key authentication via Proxy
+        /// </summary>
+        /// <param name="proxyHost">Proxy host</param>
+        /// <param name="proxyType">Proxy type</param>
+        /// <param name="proxyPort">Proxy port</param>
+        /// <param name="proxyUsername">Proxy username</param>
+        /// <param name="proxyPassword">Proxy password</param>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="privateKeyFile">Private key file</param>
+        /// <param name="privateKeyPassword">Private key password</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port)
+        {
+            try
+            {
+                PrivateKeyConnectionInfo connectionInfo = port switch
+                {
+                    null => new PrivateKeyConnectionInfo(
+                                masterNodeName,
+                                username,
+                                proxyType.Map(),
+                                proxyHost,
+                                proxyPort,
+                                proxyUsername ?? string.Empty,
+                                proxyPassword ?? string.Empty,
+                                new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                    _ => new PrivateKeyConnectionInfo(
+                                masterNodeName,
+                                port.Value,
+                                username,
+                                proxyType.Map(),
+                                proxyHost,
+                                proxyPort,
+                                proxyUsername ?? string.Empty,
+                                proxyPassword ?? string.Empty,
+                                new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                };
+
+                var client = new SftpClient(connectionInfo);
+                return client;
+            }
+            catch (Exception e)
+            {
+                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+            }
+        }
+
+        /// <summary>
+        /// Create connection object using private key and password authentication
+        /// </summary>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="password">Password</param>
+        /// <param name="privateKeyFile">Private key file</param>
+        /// <param name="privateKeyPassword">Private key password</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(string masterNodeName, string username, string password, string privateKeyFile, string privateKeyPassword, int? port)
+        {
+            try
+            {
+                var connectionInfo = port switch
+                {
+                    null => new ConnectionInfo(
+                                masterNodeName,
+                                username,
+                                new PasswordAuthenticationMethod(username, password),
+                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword))),
+                    _ => new ConnectionInfo(
+                                masterNodeName,
+                                port.Value,
+                                username,
+                                new PasswordAuthenticationMethod(username, password),
+                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword)))
+                };
+
+                var client = new SftpClient(connectionInfo);
+                return client;
+            }
+            catch (Exception e)
+            {
+                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+            }
+        }
+
+        /// <summary>
+        /// Create connection object using private key and password authentication via Proxy
+        /// </summary>
+        /// <param name="proxyHost">Proxy host</param>
+        /// <param name="proxyType">Proxy type</param>
+        /// <param name="proxyPort">Proxy port</param>
+        /// <param name="proxyUsername">Proxy username</param>
+        /// <param name="proxyPassword">Proxy password</param>
+        /// <param name="masterNodeName">Master host name</param>
+        /// <param name="username">Username</param>
+        /// <param name="password">Password</param>
+        /// <param name="privateKeyFile">Private key file</param>
+        /// <param name="privateKeyPassword">Private key password</param>
+        /// <param name="port">Port</param>
+        /// <returns></returns>
+        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string password, string privateKeyFile, string privateKeyPassword, int? port)
+        {
+            try
+            {
+                var connectionInfo = new ConnectionInfo(
+                                                     masterNodeName,
+                                                     port ?? 22,
+                                                     username,
+                                                     proxyType.Map(),
+                                                     proxyHost,
+                                                     proxyPort,
+                                                     proxyUsername ?? string.Empty,
+                                                     proxyPassword ?? string.Empty,
+                                                     new PasswordAuthenticationMethod(username, password),
+                                                     new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword)));
+
+                var client = new SftpClient(connectionInfo);
+                return client;
+            }
+            catch (Exception e)
+            {
+                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+            }
+        }
+
+        private NoAuthenticationSftpClient CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string username)
+        {
+            return new NoAuthenticationSftpClient(_logger, masterNodeName, username);
         }
         #endregion
     }
