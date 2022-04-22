@@ -33,7 +33,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
             log.Info("Getting file transfer method for submitted job info ID " + submittedJobInfoId + " with user " + loggedUser.GetLogIdentification());
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
-            var certificateGenerator = new RSACertGenerator(4096);
+            var certificateGenerator = new SSHGenerator();
             string publicKey = certificateGenerator.ToPuTTYPublicKey();
 
             string jobDir = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification);

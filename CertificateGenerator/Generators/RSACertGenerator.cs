@@ -3,7 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace HEAppE.CertificateGenerator
+namespace HEAppE.CertificateGenerator.Generators
 {
     /// <summary>
     /// RSA Cipher
@@ -25,7 +25,7 @@ namespace HEAppE.CertificateGenerator
         /// <param name="size">Size</param>
         public RSACertGenerator(int size)
         {
-            if (size % 1024 != 0)
+            if (size % 512 != 0)
             {
                 throw new ArgumentException("Key Size of RSA cypher should be n * 1024!");
             }
@@ -40,7 +40,7 @@ namespace HEAppE.CertificateGenerator
         /// <param name="comment">Comment</param>
         public RSACertGenerator(int size, string comment)
         {
-            if (size % 1024 != 0)
+            if (size % 512 != 0)
             {
                 throw new ArgumentException("Key Size of RSA cypher should be n * 1024!");
             }

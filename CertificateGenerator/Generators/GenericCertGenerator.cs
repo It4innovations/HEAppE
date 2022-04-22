@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Security.Cryptography;
 
-namespace HEAppE.CertificateGenerator
+namespace HEAppE.CertificateGenerator.Generators
 {
     /// <summary>
     /// Generic SSH Cipher

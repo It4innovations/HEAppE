@@ -3,7 +3,7 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 
-namespace HEAppE.CertificateGenerator
+namespace HEAppE.CertificateGenerator.Generators
 {
     /// <summary>
     /// ECDsa Cipher
