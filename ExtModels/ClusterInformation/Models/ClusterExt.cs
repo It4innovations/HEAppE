@@ -21,7 +21,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
 
         public override string ToString()
         {
-            return $"ClusterInfoExt(id={Id}; name={Name}; description={Description}; nodeTypes={NodeTypes})";
+            return $"ClusterInfoExt(Id={Id}; Name={Name}; Description={Description}; NodeTypes={NodeTypes})";
         }
     }
 }
