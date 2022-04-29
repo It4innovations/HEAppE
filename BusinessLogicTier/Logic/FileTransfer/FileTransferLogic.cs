@@ -15,66 +15,117 @@ using Renci.SshNet.Common;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
 using HEAppE.CertificateGenerator;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 
-namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
+namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {
-    internal class FileTransferLogic : IFileTransferLogic
+    public class FileTransferLogic : IFileTransferLogic
     {
-        protected static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        protected readonly IUnitOfWork unitOfWork;
+        #region Instances
+        /// <summary>
+        /// Unit of work
+        /// </summary>
+        private readonly IUnitOfWork _unitOfWork;
 
-        internal FileTransferLogic(IUnitOfWork unitOfWork)
+        /// <summary>
+        /// _logger
+        /// </summary>
+        private readonly ILog _log;
+        #endregion
+        #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="unitOfWork">Unit of work</param>
+        public FileTransferLogic(IUnitOfWork unitOfWork)
         {
-            this.unitOfWork = unitOfWork;
+            _unitOfWork = unitOfWork;
+            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         }
-
+        #endregion
+        #region Methods
         public FileTransferMethod GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser)
         {
-            log.Info("Getting file transfer method for submitted job info ID " + submittedJobInfoId + " with user " + loggedUser.GetLogIdentification());
-            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            _log.Info($"Getting file transfer method for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
+            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            Cluster cluster = jobInfo.Specification.Cluster;
 
-            var certificateGenerator = new SSHGenerator();
-            string publicKey = certificateGenerator.ToPuTTYPublicKey();
+            // TODO try catch block
+            // TODO add this value to configuration
+            if (jobInfo.FileTransferTemporaryKeys.Count > 5)
+            {
+                //TODO change exception type
+                throw new Exception("It was reach the job limit of generated ssh keys for direct transfer!");
+            }
 
-            string jobDir = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification.FileTransferMethod.Cluster.LocalBasepath, jobInfo.Specification);
+            var certGenerator = new SSHGenerator();
+            string publicKey = certGenerator.ToPuTTYPublicKey();
+
+            while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
+            {
+                certGenerator = new SSHGenerator();
+                publicKey = certGenerator.ToPuTTYPublicKey();
+            }
+
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = jobDir,
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(cluster.LocalBasepath, jobInfo.Specification),
                 Credentials = new AsymmetricKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,
-                    PrivateKey = certificateGenerator.ToPrivateKey(),
+                    PrivateKey = certGenerator.ToPrivateKey(),
                     PublicKey = publicKey
                 }
             };
 
-            SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
+            jobInfo.FileTransferTemporaryKeys.Add(
+                new FileTransferTemporaryKey()
+                {
+                    AddedAt = DateTime.UtcNow,
+                    PublicKey = publicKey,
+                });
+
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
+
+            _unitOfWork.Save();
             return transferMethod;
         }
 
         public void EndFileTransfer(long submittedJobInfoId, FileTransferMethod transferMethod, AdaptorUser loggedUser)
         {
-            log.Info("Removing file transfer method for submitted job info ID " + submittedJobInfoId + " with user " + loggedUser.GetLogIdentification());
-            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            _log.Info($"Removing file transfer method for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
+            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            Cluster cluster = jobInfo.Specification.Cluster;
+
+            //TODO try catch
+
+
             AsymmetricKeyCredentials asymmetricKeyCredentials = transferMethod.Credentials as AsymmetricKeyCredentials;
-            if (asymmetricKeyCredentials != null)
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).
-                    RemoveDirectFileTransferAccessForUserToJob(asymmetricKeyCredentials.PublicKey, jobInfo);
-            else
+            if (asymmetricKeyCredentials is null)
             {
-                log.Error("Credentials of class " + transferMethod.Credentials.GetType().Name +
-                          " are not supported. Change the HaaSMiddleware.BusinessLogicTier.FileTransfer.FileTransferLogic.EndFileTransfer() method to add support for additional credential types.");
-                throw new ArgumentException("Credentials of class " + transferMethod.Credentials.GetType().Name +
-                                            " are not supported. Change the HaaSMiddleware.BusinessLogicTier.FileTransfer.FileTransferLogic.EndFileTransfer() method to add support for additional credential types.");
+                var errMessage = $"Credentials of class {transferMethod.Credentials.GetType().Name} are not supported!";
+                _log.Error(errMessage);
+                throw new ArgumentException(errMessage);
             }
+
+            var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == asymmetricKeyCredentials.PublicKey);
+            if (temporaryKey is null)
+            {
+                throw new Exception("");
+            }
+
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUserToJob(asymmetricKeyCredentials.PublicKey, jobInfo);
+            temporaryKey.IsDeleted = true;
+            _unitOfWork.Save();
         }
 
         public IList<JobFileContent> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffset[] taskFileOffsets, AdaptorUser loggedUser)
         {
-            log.Info("Getting part of job files from cluster for submitted job info ID " + submittedJobInfoId + " with user " + loggedUser.GetLogIdentification());
-            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            _log.Info("Getting part of job files from cluster for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
+            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
             IList<JobFileContent> result = new List<JobFileContent>();
@@ -98,7 +149,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 
         public IList<SynchronizedJobFiles> SynchronizeAllUnfinishedJobFiles()
         {
-           var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetNotFinishedJobInfos().ToList();
+            var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetNotFinishedJobInfos().ToList();
 
             IEnumerable<IGrouping<FileTransferMethod, SubmittedJobInfo>> fileTransferMethodGroups =
                 (from jobInfo in unfinishedJobs group jobInfo by jobInfo.Specification.FileTransferMethod into fileTransferMethodGroup select fileTransferMethodGroup);
@@ -138,7 +189,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 
         public ICollection<FileInformation> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser)
         {
-            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
             IRexFileSystemManager fileManager =
@@ -148,7 +199,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 
         public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
         {
-            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
             IRexFileSystemManager fileManager =
@@ -159,19 +210,19 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
             }
             catch (SftpPathNotFoundException exception)
             {
-                log.Warn($"{loggedUser.ToString()} is requesting not existing file '{relativeFilePath}'");
+                _log.Warn($"{loggedUser} is requesting not existing file '{relativeFilePath}'");
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException(exception.Message));
             }
-            
+
             return null;
         }
 
         public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)
         {
-            FileTransferMethod fileTransferMethod = unitOfWork.FileTransferMethodRepository.GetById(fileTransferMethodById);
+            FileTransferMethod fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(fileTransferMethodById);
             if (fileTransferMethod == null)
             {
-                log.Error("Requested FileTransferMethod with Id=" + fileTransferMethodById + " does not exist in the system.");
+                _log.Error("Requested FileTransferMethod with Id=" + fileTransferMethodById + " does not exist in the system.");
                 throw new RequestedObjectDoesNotExistException("Requested FileTransferMethod with Id=" + fileTransferMethodById + " does not exist in the system.");
             }
             return fileTransferMethod;
@@ -179,9 +230,9 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
 
         public virtual IEnumerable<FileTransferMethod> GetFileTransferMethodsByClusterId(long clusterId)
         {
-            return unitOfWork.FileTransferMethodRepository.GetByClusterId(clusterId)
-                                                    .ToList();
+            return _unitOfWork.FileTransferMethodRepository.GetByClusterId(clusterId)
+                                                            .ToList();
         }
-        
+        #endregion
     }
 }
