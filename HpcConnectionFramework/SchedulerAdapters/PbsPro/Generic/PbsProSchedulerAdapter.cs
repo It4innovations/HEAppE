@@ -244,19 +244,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <returns></returns>
         public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
         {
-            var genericCommandParameters = new List<string>();
-            string shellCommand = $"cat {userScriptPath}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
-            _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
-
-            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
-            {
-                if (match.Success && match.Groups.Count == 2)
-                {
-                    genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
-                }
-            }
-            return genericCommandParameters;
+            return _commands.GetParametersFromGenericUserScript(connectorClient, userScriptPath);
         }
 
         /// <summary>
