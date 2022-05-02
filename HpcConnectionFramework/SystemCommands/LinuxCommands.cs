@@ -4,7 +4,9 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.Utils;
 using log4net;
 using Renci.SshNet;
+using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
@@ -13,6 +15,12 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
     /// </summary>
     internal class LinuxCommands : ICommands
     {
+        #region Isntances
+        /// <summary>
+        /// Generic commnad key parameter
+        /// </summary>
+        protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
+        #endregion
         #region Properties
         /// <summary>
         /// Command
@@ -46,6 +54,29 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
         #endregion
         #region ICommands Members
+        /// <summary>
+        /// Get generic command templates parameters from script
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="userScriptPath">Generic script path</param>
+        /// <returns></returns>
+        public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+        {
+            var genericCommandParameters = new List<string>();
+            string shellCommand = $"cat {userScriptPath}";
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
+            _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
+
+            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                if (match.Success && match.Groups.Count == 2)
+                {
+                    genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
+                }
+            }
+            return genericCommandParameters;
+        }
+
         /// <summary>
         /// Copy job data to temp folder
         /// </summary>
