@@ -85,6 +85,7 @@ namespace HEAppE.RestApi
             services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>(); 
             services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>(); 
             services.AddSingleton(keycloackConfiguration); //Maybe Interface
+            services.AddMemoryCache();
 
             //CORS
             services.AddCors(options =>
