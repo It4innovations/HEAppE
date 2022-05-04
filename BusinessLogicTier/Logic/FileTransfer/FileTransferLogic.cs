@@ -17,6 +17,7 @@ using HEAppE.Utils;
 using HEAppE.CertificateGenerator;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
+using HEAppE.BusinessLogicTier.Logic;
 
 namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {
