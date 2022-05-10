@@ -33,7 +33,8 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 NumberOfNodes = nodeType.NumberOfNodes,
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
-                CommandTemplates = nodeType.PossibleCommands.Where(c => c.IsEnabled).Select(s => s.ConvertIntToExt())
+                FileTransferMethodId = nodeType.FileTransferMethodId,
+                CommandTemplates = nodeType.PossibleCommands.Where(c=>c.IsEnabled).Select(s=> s.ConvertIntToExt())
                                                              .ToArray()
             };
             return convert;
@@ -47,8 +48,9 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 Name = commandTemplate.Name,
                 Description = commandTemplate.Description,
                 Code = commandTemplate.Code,
-                TemplateParameters = commandTemplate.TemplateParameters.Where(w => string.IsNullOrEmpty(w.Query) && w.IsVisible)
-                                                                        .Select(s => s.ConvertIntToExt())
+                IsGeneric = commandTemplate.IsGeneric,
+                TemplateParameters = commandTemplate.TemplateParameters.Where(w=> string.IsNullOrEmpty(w.Query) && w.IsVisible)
+                                                                        .Select(s=>s.ConvertIntToExt())
                                                                         .ToArray()
             };
             return convert;

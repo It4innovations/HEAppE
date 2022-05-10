@@ -18,12 +18,15 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
         [DataMember(Name = "Code")]
         public string Code { get; set; }
 
+        [DataMember(Name = "IsGeneric")]
+        public bool IsGeneric { get; set; }
+
         [DataMember(Name = "TemplateParameters")]
         public CommandTemplateParameterExt[] TemplateParameters { get; set; }
 
         public override string ToString()
         {
-            return $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; code={Code}; templateParameters={TemplateParameters})";
+            return $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; code={Code}; isGeneric={IsGeneric}; templateParameters={TemplateParameters})";
         }
     }
 }
