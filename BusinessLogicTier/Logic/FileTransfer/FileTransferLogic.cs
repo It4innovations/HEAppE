@@ -38,6 +38,7 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
+                Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
                 SharedBasePath = jobDir,
                 Credentials = new AsymmetricKeyCredentials

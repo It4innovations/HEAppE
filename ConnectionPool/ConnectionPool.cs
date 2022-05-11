@@ -107,7 +107,7 @@ namespace HEAppE.ConnectionPool
         #region Local Methods
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred)
         {
-            object connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred);
+            object connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cred.Cluster.ProxyConnection, cred.Cluster.Port);
             var connection = new ConnectionInfo
             {
                 Connection = connectionObject,

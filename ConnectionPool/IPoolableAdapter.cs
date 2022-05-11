@@ -4,7 +4,7 @@ namespace HEAppE.ConnectionPool
 {
     public interface IPoolableAdapter
     {
-        object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials, ClusterProxyConnection proxy = null, int? port = null);
+        object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials, ClusterProxyConnection proxy, int? port);
 
         void Connect(object connection);
 
