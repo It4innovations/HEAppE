@@ -64,7 +64,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                     object result = _service.ListAvailableClusters();
-                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheMinuteInterval));
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(30));
                     return Ok(result);
                 }
             }
@@ -96,7 +96,27 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.UserScriptPath, model.SessionCode));
+                string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                    new List<string>()
+                        {   model.SessionCode,
+                            nameof(GetCommandTemplateParametersName),
+                            model.UserScriptPath.ToString(),
+                            model.CommandTemplateId.ToString()
+                        }
+                    );
+
+                if (_cacheProvider.TryGetValue(memoryCacheKey, out object value))
+                {
+                    _logger.LogInformation($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    return Ok(value);
+                }
+                else
+                {
+                    _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                    object result = _service.GetCommandTemplateParametersName(model.CommandTemplateId, model.UserScriptPath, model.SessionCode);
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(2));
+                    return Ok(result);
+                }
             }
             catch (Exception e)
             {
@@ -144,7 +164,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                     object result = _service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode);
-                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheMinuteInterval));
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(2));
                     return Ok(result);
                 }
             }

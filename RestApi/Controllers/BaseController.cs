@@ -18,9 +18,6 @@ namespace HEAppE.RestApi.Controllers
         protected readonly ILogger<T> _logger;
         protected IMemoryCache _cacheProvider;
         #endregion
-        #region Properties
-        protected long MemoryCacheMinuteInterval = ApplicationAPIConfiguration.MemoryCacheMinuteInterval;
-        #endregion
         #region Constructors
         /// <summary>
         /// Constructor
