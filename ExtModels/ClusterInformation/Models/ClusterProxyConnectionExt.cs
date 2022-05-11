@@ -2,6 +2,7 @@
 
 namespace HEAppE.ExtModels.ClusterInformation.Models
 {
+
     [DataContract(Name = "ClusterProxyConnectionExt")]
     public class ClusterProxyConnectionExt
     {
@@ -15,16 +16,16 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
         [DataMember(Name = "Type")]
         public ProxyTypeExt Type { get; set; }
 
-        [DataMember(Name = "Username")]
+        [DataMember(Name = "Username", IsRequired = false, EmitDefaultValue = false)]
         public string Username { get; set; }
 
-        [DataMember(Name = "Password")]
+        [DataMember(Name = "Password", IsRequired = false, EmitDefaultValue = false)]
         public string Password { get; set; }
         #endregion
         #region Override Methods
         public override string ToString()
         {
-            return $"ProxyExt: Host={Host}, Type={Type}, Username={Username}, Password={Password}, Port={Port}";
+            return $"ClusterProxyConnectionExt: Host={Host}, Type={Type}, Port={Port}, Username={Username}, Password={Password}";
         }
         #endregion
     }

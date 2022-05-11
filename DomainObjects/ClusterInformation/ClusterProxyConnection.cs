@@ -22,12 +22,11 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         [StringLength(50)]
         public string Password { get; set; }
-
         #endregion
         #region Override Methods
         public override string ToString()
         {
-            return $"ClusterProxyConnection: Id={Id}, Host={Host}, Username={Username}, Password={Password}, Port={Port}, Type={Type}";
+            return $"ClusterProxyConnection: Id={Id}, Host={Host}, Type={Type}, Port={Port}, Username={Username}, Password={Password}";
         }
         #endregion
     }
