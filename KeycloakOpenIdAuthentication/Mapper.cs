@@ -62,7 +62,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication
                 }
                 return projectRoleMapping;
             }
-            catch (Exception e)
+            catch (Exception)
             {
                 //TODO Log
                 return default;
