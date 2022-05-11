@@ -2,6 +2,7 @@
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
+using HEAppE.Utils;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -48,8 +49,11 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name,model.Description,model.Code,
-                                                         model.ExecutableFile, model.PreparationScript,model.SessionCode));
+                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
+
+                return Ok(_service.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.Description, model.Code,
+                                                         model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
             catch (Exception e)
             {
@@ -79,6 +83,9 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
+
+                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(ModifyCommandTemplate));
 
                 return Ok(_service.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.Description, model.Code,
                                                          model.ExecutableFile, model.PreparationScript, model.SessionCode));
@@ -111,6 +118,9 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
+
+                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(RemoveCommandTemplate));
 
                 return Ok(_service.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
             }

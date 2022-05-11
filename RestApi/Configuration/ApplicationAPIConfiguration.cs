@@ -20,11 +20,6 @@ namespace HEAppE.RestApi.Configuration
         /// Swagger documentation settings
         /// </summary>
         public static SwaggerConfiguration SwaggerDocSettings { get; } = new SwaggerConfiguration();
-
-        /// <summary>
-        /// Minute interval for checking for expired tokens at memory cache
-        /// </summary>
-        public static long MemoryCacheMinuteInterval { get; set; } = 1;
         #endregion
     }
 }

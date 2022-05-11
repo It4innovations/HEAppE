@@ -10,6 +10,9 @@ using HEAppE.Utils.Validation;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.BusinessLogicTier.Logic;
 using System.Threading.Tasks;
+using HEAppE.Utils;
+using Microsoft.Extensions.Caching.Memory;
+using HEAppE.OpenStackAPI.Configuration;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -89,7 +92,26 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials));
+                string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                   new List<string>()
+                       {    model.Credentials.Username,
+                            model.Credentials.OpenIdAccessToken,
+                            nameof(AuthenticateUserOpenIdAsync)
+                       }
+                   );
+
+                if (_cacheProvider.TryGetValue(memoryCacheKey, out object value))
+                {
+                    _logger.LogInformation($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    return Ok(value);
+                }
+                else
+                {
+                    _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                    object result = await _service.AuthenticateUserToOpenStackAsync(model.Credentials); ;
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
+                    return Ok(result);
+                }
             }
             catch (Exception e)
             {
