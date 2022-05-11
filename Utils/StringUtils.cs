@@ -34,5 +34,12 @@ namespace HEAppE.Utils {
 		public static string RemoveWhitespace(string source) {
 			return Regex.Replace(source, @"\s+", "");
 		}
+
+		public static string CreateIdentifierHash(List<string> strings)
+        {
+            StringBuilder builder = new StringBuilder();
+            strings.ForEach(s => builder.Append(s));
+            return builder.ToString();
+		}
     }
 }

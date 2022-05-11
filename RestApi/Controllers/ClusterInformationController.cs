@@ -9,6 +9,8 @@ using Microsoft.Extensions.Logging;
 using HEAppE.Utils.Validation;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.BusinessLogicTier.Logic;
+using Microsoft.Extensions.Caching.Memory;
+using HEAppE.Utils;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -27,10 +29,10 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="logger">Logger</param>
-        public ClusterInformationController(ILogger<ClusterInformationController> logger) : base(logger)
+        /// <param name="logger">Logger instance</param>
+        /// <param name="cacheProvider">Memory cache instance</param>
+        public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider) : base(logger, cacheProvider)
         {
-
         }
         #endregion
         #region Methods
@@ -50,7 +52,21 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
-                return Ok(_service.ListAvailableClusters());
+
+                string memoryCacheKey = nameof(ListAvailableClusters);
+
+                if (_cacheProvider.TryGetValue(memoryCacheKey, out object value))
+                {
+                    _logger.LogInformation($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    return Ok(value);
+                }
+                else
+                {
+                    _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                    object result = _service.ListAvailableClusters();
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheMinuteInterval));
+                    return Ok(result);
+                }
             }
             catch (Exception e)
             {
@@ -111,7 +127,26 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
+                string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                    new List<string>() 
+                        {   model.SessionCode, 
+                            nameof(CurrentClusterNodeUsage), 
+                            model.ClusterNodeId.ToString() 
+                        }
+                    );
+
+                if (_cacheProvider.TryGetValue(memoryCacheKey, out object value))
+                {
+                    _logger.LogInformation($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    return Ok(value);
+                }
+                else
+                {
+                    _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                    object result = _service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode);
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheMinuteInterval));
+                    return Ok(result);
+                }
             }
             catch (Exception e)
             {
