@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using HEAppE.RestApi.Configuration;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
@@ -18,7 +19,7 @@ namespace HEAppE.RestApi.Controllers
         protected IMemoryCache _cacheProvider;
         #endregion
         #region Properties
-        protected long MemoryCacheInterval = 1;
+        protected long MemoryCacheMinuteInterval = ApplicationAPIConfiguration.MemoryCacheMinuteInterval;
         #endregion
         #region Constructors
         /// <summary>

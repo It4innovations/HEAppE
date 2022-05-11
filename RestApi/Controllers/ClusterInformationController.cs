@@ -53,7 +53,6 @@ namespace HEAppE.RestApi.Controllers
             {
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
 
-                //ToDo: maybe wrap this logic in generic metod?
                 string memoryCacheKey = nameof(ListAvailableClusters);
 
                 if (_cacheProvider.TryGetValue(memoryCacheKey, out object value))
@@ -65,7 +64,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                     object result = _service.ListAvailableClusters();
-                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheInterval));
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheMinuteInterval));
                     return Ok(result);
                 }
             }
@@ -128,7 +127,6 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                //ToDo: maybe wrap this logic in generic metod?
                 string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>() 
                         {   model.SessionCode, 
@@ -146,7 +144,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                     object result = _service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode);
-                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheInterval));
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(MemoryCacheMinuteInterval));
                     return Ok(result);
                 }
             }
