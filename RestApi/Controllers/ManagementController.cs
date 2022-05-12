@@ -6,6 +6,7 @@ using HEAppE.Utils;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -21,7 +22,12 @@ namespace HEAppE.RestApi.Controllers
         private IManagementService _service = new ManagementService();
         #endregion
         #region Constructors
-        public ManagementController(ILogger<ManagementController> logger) : base(logger)
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="logger">Logger instance</param>
+        /// <param name="memoryCache">Memory cache provider</param>
+        public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
         }
         #endregion

@@ -115,8 +115,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             throw new ArgumentException(unsupportedCredentialsError);
         }
 
-        public async Task<ApplicationCredentialsDTO> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials)
+        public async Task<AdaptorUser> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials)
         {
+            log.Info($"User {credentials.Username} wants to authenticate to the OpenStack.");
             if (credentials is not OpenIdCredentials openIdCredentials)
             {
                 string unsupportedCredentialsError = $"Credentials of class {credentials.GetType().Name} are not supported.";
@@ -124,11 +125,16 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new ArgumentException(unsupportedCredentialsError);
             }
             var user = await HandleOpenIdAuthenticationAsync(openIdCredentials);
-            log.Info($"Keycloak user {user.Username} wants to authenticate to the OpenStack.");
-
-            return await CreateNewOpenStackSessionAsync(user);
-
+            return user;
         }
+
+        public async Task<ApplicationCredentialsDTO> AuthenticateKeycloakUserToOpenStackAsync(AdaptorUser adaptorUser)
+        {
+            log.Info($"Keycloak user {adaptorUser.Username} wants to authenticate to the OpenStack.");
+            return await CreateNewOpenStackSessionAsync(adaptorUser);
+        }
+
+
         private OpenStackInfoDTO GetOpenStackInstanceWithProjects()
         {
             OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();

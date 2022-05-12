@@ -6,6 +6,7 @@ using HEAppE.ServiceTier.FileTransfer;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -25,7 +26,8 @@ namespace HEAppE.RestApi.Controllers
         /// Constructor
         /// </summary>
         /// <param name="logger">Logger</param>
-        public FileTransferController(ILogger<FileTransferController> logger) : base(logger)
+        /// <param name="memoryCache">Memory cache provider</param>
+        public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
 
         }
