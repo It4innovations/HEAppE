@@ -15,12 +15,21 @@ using log4net;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.Utils;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.ServiceTier.ClusterInformation
 {
     public class ClusterInformationService : IClusterInformationService
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        private readonly IMemoryCache _cacheProvider;
+
+        public ClusterInformationService(IMemoryCache cacheProvider)
+        {
+            _cacheProvider = cacheProvider;
+        }
 
         public ClusterExt[] ListAvailableClusters()
         {
@@ -47,9 +56,27 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
-                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
-                    return nodeUsage.ConvertIntToExt();
+
+                    string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                    new List<string>()
+                        {    clusterNodeId.ToString(),
+                             nameof(GetCurrentClusterNodeUsage)
+                        }
+                    );
+
+                    if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterNodeUsageExt value))
+                    {
+                        log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                        return value;
+                    }
+                    else
+                    {
+                        log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                        IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                        ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
+                        _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(), TimeSpan.FromMinutes(2));
+                        return nodeUsage.ConvertIntToExt();
+                    }
                 }
             }
             catch (Exception exc)
@@ -65,11 +92,30 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
-                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    return clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
+                    
+                    string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                    new List<string>()
+                        {   commandTemplateId.ToString(),
+                            userScriptPath,
+                            nameof(GetCommandTemplateParametersName)
+                        }
+                    );
+
+                    if (_cacheProvider.TryGetValue(memoryCacheKey, out IEnumerable<string> value))
+                    {
+                        log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                        return value;
+                    }
+                    else
+                    {
+                        log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                        IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                        IEnumerable<string> result = clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
+                        _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(2));
+                        return result;
+                    }
                 }
             }
-
             catch (Exception exc)
             {
                 //TODO Should be rewrite!

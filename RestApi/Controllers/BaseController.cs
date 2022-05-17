@@ -23,15 +23,6 @@ namespace HEAppE.RestApi.Controllers
         /// Constructor
         /// </summary>
         /// <param name="logger">Logger instance</param>
-        public BaseController(ILogger<T> logger)
-        {
-            _logger = logger;
-        }
-
-        /// <summary>
-        /// Constructor
-        /// </summary>
-        /// <param name="logger">Logger instance</param>
         /// <param name="cacheProvider">Memory Cache provider instance</param>
         public BaseController(ILogger<T> logger, IMemoryCache cacheProvider)
         {

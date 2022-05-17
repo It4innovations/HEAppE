@@ -25,16 +25,17 @@ namespace HEAppE.RestApi.Controllers
     public class UserAndLimitationManagementController : BaseController<UserAndLimitationManagementController>
     {
         #region Instances
-        private IUserAndLimitationManagementService _service = new UserAndLimitationManagementService();
+        private IUserAndLimitationManagementService _service;
         #endregion
         #region Constructors
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="logger">Logger</param>
-        public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger) : base(logger)
+        /// <param name="memoryCache">Memory cache provider</param>
+        public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
-
+            _service = new UserAndLimitationManagementService(_cacheProvider);
         }
         #endregion
         #region Methods
@@ -92,26 +93,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                string memoryCacheKey = StringUtils.CreateIdentifierHash(
-                   new List<string>()
-                       {    model.Credentials.Username,
-                            model.Credentials.OpenIdAccessToken,
-                            nameof(AuthenticateUserOpenIdAsync)
-                       }
-                   );
-
-                if (_cacheProvider.TryGetValue(memoryCacheKey, out object value))
-                {
-                    _logger.LogInformation($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
-                    return Ok(value);
-                }
-                else
-                {
-                    _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                    object result = await _service.AuthenticateUserToOpenStackAsync(model.Credentials); ;
-                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
-                    return Ok(result);
-                }
+                return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials));
             }
             catch (Exception e)
             {
