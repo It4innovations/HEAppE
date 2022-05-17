@@ -129,6 +129,15 @@ namespace HEAppE.RestApi.Controllers
                 return BadRequest(e.Message);
             }
         }
+
+        public IActionResult GetHEAppEStatus()
+        {
+            //Configuration.SwaggerConfiguration.Version
+            //Configuration.SwaggerConfiguration.Title
+            //Configuration.SwaggerConfiguration.Description
+            //adding jobs 
+            return null;
+        }
         #endregion
     }
 }
