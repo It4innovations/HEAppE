@@ -64,7 +64,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
         /// Job priority
         /// </summary>
         [Scheduler("Priority")]
-        public int Priority { get; set; }
+        public long Priority { get; set; }
 
         /// <summary>
         /// Job requeue
