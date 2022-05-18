@@ -29,7 +29,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    IList<Cluster> clusters = clusterLogic.ListAvailableClusters();
+                    var clusters = clusterLogic.ListAvailableClusters();
                     return clusters.Select(s => s.ConvertIntToExt()).ToArray();
                 }
             }

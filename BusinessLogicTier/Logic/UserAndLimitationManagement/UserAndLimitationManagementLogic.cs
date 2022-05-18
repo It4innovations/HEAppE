@@ -427,10 +427,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             var notFinishedJobs = LogicFactory.GetLogicFactory()
                                                                       .CreateJobManagementLogic(unitOfWork)
                                                                       .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-            IList<ClusterNodeType> nodeTypes = LogicFactory.GetLogicFactory()
+            var nodeTypes = LogicFactory.GetLogicFactory()
                                                            .CreateClusterInformationLogic(unitOfWork)
                                                            .ListClusterNodeTypes();
-            IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count);
+            IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
             foreach (ClusterNodeType nodeType in nodeTypes)
             {
                 ResourceUsage usage = new ResourceUsage

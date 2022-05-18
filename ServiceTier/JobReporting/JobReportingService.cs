@@ -44,7 +44,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer);
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.ListAdaptorUserGroups().Select(s=>s.ConvertIntToExt());
+                    return jobReportingLogic.GetAdaptorUserGroups().Select(s=>s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
