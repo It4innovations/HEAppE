@@ -15,14 +15,24 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using HEAppE.Utils;
 using log4net;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement
 {
     public class UserAndLimitationManagementService : IUserAndLimitationManagementService
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        private readonly IMemoryCache _cacheProvider;
+
+        public UserAndLimitationManagementService(IMemoryCache memoryCache)
+        {
+            _cacheProvider = memoryCache;
+        }
 
         public async Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials)
         {
@@ -84,18 +94,38 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    var appCreds =  await userLogic.AuthenticateUserToOpenStackAsync(new OpenIdCredentials
+                    AdaptorUser user = await userLogic.AuthenticateUserToOpenStackAsync(new OpenIdCredentials
                     {
                         OpenIdAccessToken = openIdCredentials.OpenIdAccessToken
                     });
 
-                    return appCreds.ConvertIntToExt();
+                    string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                    new List<string>()
+                        {   user.Id.ToString(),
+                            nameof(AuthenticateUserToOpenStackAsync)
+                        }
+                    );
+
+                    if (_cacheProvider.TryGetValue(memoryCacheKey, out OpenStackApplicationCredentialsExt value))
+                    {
+                        log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                        return value;
+                    }
+                    else
+                    {
+                        log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                        var appCreds = await userLogic.AuthenticateKeycloakUserToOpenStackAsync(user);
+                        _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(), TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
+                        return appCreds.ConvertIntToExt();
+                    }
                 }
             }
-
-            string errorMessage = $"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.";
-            log.Error(errorMessage);
-            throw new ArgumentException(errorMessage);
+            else
+            {
+                string errorMessage = $"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.";
+                log.Error(errorMessage);
+                throw new ArgumentException(errorMessage);
+            }
         }
 
         public ResourceUsageExt[] GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode)
@@ -135,7 +165,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 
             return loggedUser;
         }
-         
+
 
         [Obsolete("You should probably call " + nameof(GetValidatedUserForSessionCode) + " which checks the user role.")]
         internal static AdaptorUser GetUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork)

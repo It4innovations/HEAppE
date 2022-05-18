@@ -9,6 +9,7 @@ using Microsoft.Extensions.Logging;
 using HEAppE.Utils.Validation;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.BusinessLogicTier.Logic;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -25,7 +26,8 @@ namespace HEAppE.RestApi.Controllers
         /// Constructor
         /// </summary>
         /// <param name="logger">Logger</param>
-        public JobManagementController(ILogger<JobManagementController> logger) : base(logger)
+        /// <param name="memoryCache">Memory cache provider</param>
+        public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
 
         }

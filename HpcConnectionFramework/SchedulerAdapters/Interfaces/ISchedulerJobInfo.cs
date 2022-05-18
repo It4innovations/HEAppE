@@ -24,7 +24,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
         /// Job priority
         /// Job priority
         /// </summary>
-        int Priority { get; set; }
+        long Priority { get; set; }
 
         /// <summary>
         /// Job requeue
