@@ -1,6 +1,5 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -8,6 +7,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using log4net;
@@ -93,6 +93,18 @@ namespace HEAppE.ServiceTier.Management
                 ExceptionHandler.ThrowProperExternalException(exc);
                 return null;
             }
+        }
+
+        public InstanceInformationExt GetInstanceInformations(string sessionCode)
+        {
+            //TODO Extend this object
+            return new InstanceInformationExt()
+            {
+                InstanceName = "Development",//ApplicationAPIConfiguration.InstanceName,
+                Version = "v3.0.0",//ApplicationAPIConfiguration.Version,
+                DeployedIPAddress = "127.0.0.1"//ApplicationAPIConfiguration.DeployedIPAddress
+            };
+            //adding jobs
         }
         #endregion
     }

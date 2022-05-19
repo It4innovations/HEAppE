@@ -8,6 +8,7 @@ using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
 using log4net;
+using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -61,9 +62,9 @@ namespace HEAppE.RestApi
         {
             services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest);
 
-            //IP rate limitation
             services.AddMemoryCache();
 
+            //IP rate limitation
             services.Configure<IpRateLimitOptions>(Configuration.GetSection("IpRateLimiting"));
             services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
@@ -73,6 +74,7 @@ namespace HEAppE.RestApi
             Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
             Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
             Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
+            MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
             Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
             Configuration.Bind("KeycloakSettings", keycloackConfiguration);
@@ -82,10 +84,9 @@ namespace HEAppE.RestApi
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-            services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>(); 
-            services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>(); 
+            services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+            services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
             services.AddSingleton(keycloackConfiguration); //Maybe Interface
-            services.AddMemoryCache();
 
             //CORS
             services.AddCors(options =>
@@ -140,6 +141,10 @@ namespace HEAppE.RestApi
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
             var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+            GlobalContext.Properties["instanceName"] = ApplicationAPIConfiguration.InstanceName;
+            GlobalContext.Properties["instanceVersion"] = ApplicationAPIConfiguration.Version; 
+            GlobalContext.Properties["ip"] = ApplicationAPIConfiguration.DeployedIPAddress;
+
             if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
             {
                 loggerFactory.AddLog4Net("log4netDocker.config");
@@ -148,6 +153,9 @@ namespace HEAppE.RestApi
             {
                 loggerFactory.AddLog4Net("log4net.config");
             }
+
+            AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));
+
 
             ServiceActivator.Configure(app.ApplicationServices);
             if (env.IsDevelopment())

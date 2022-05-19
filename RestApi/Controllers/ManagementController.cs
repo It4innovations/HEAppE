@@ -136,13 +136,35 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-        public IActionResult GetHEAppEStatus()
+        /// <summary>
+        /// Get HEAppE Infromation
+        /// </summary>
+        /// <param name="sessionCode">SessionCode</param>
+        /// <returns></returns>
+        [HttpGet("GetInstanceInformations")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult GetInstanceInformations(string sessionCode)
         {
-            //Configuration.SwaggerConfiguration.Version
-            //Configuration.SwaggerConfiguration.Title
-            //Configuration.SwaggerConfiguration.Description
-            //adding jobs 
-            return null;
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformations\"");
+                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetInstanceInformations(sessionCode));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
         #endregion
     }
