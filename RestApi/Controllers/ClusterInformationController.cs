@@ -53,20 +53,7 @@ namespace HEAppE.RestApi.Controllers
             {
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
 
-                string memoryCacheKey = nameof(ListAvailableClusters);
-
-                if (_cacheProvider.TryGetValue(memoryCacheKey, out object value))
-                {
-                    _logger.LogInformation($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
-                    return Ok(value);
-                }
-                else
-                {
-                    _logger.LogInformation($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                    object result = _service.ListAvailableClusters();
-                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(30));
-                    return Ok(result);
-                }
+                return Ok(_service.ListAvailableClusters());
             }
             catch (Exception e)
             {

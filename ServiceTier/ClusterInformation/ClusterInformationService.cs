@@ -37,9 +37,22 @@ namespace HEAppE.ServiceTier.ClusterInformation
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    var clusters = clusterLogic.ListAvailableClusters();
-                    return clusters.Select(s => s.ConvertIntToExt()).ToArray();
+                    string memoryCacheKey = nameof(ListAvailableClusters);
+
+                    if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] value))
+                    {
+                        log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                        return value;
+                    }
+                    else
+                    {
+                        log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                        IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                        IList<Cluster> clusters = clusterLogic.ListAvailableClusters();
+                        ClusterExt[] result = clusters.Select(s => s.ConvertIntToExt()).ToArray();
+                        _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(30));
+                        return result;
+                    }
                 }
             }
             catch (Exception exc)
