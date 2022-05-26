@@ -6,7 +6,7 @@ using System.Text;
 namespace HEAppE.ExtModels.JobReporting.Models
 {
     [DataContract(Name = "SubmittedTaskInfoExtendedUsageReportExt")]
-    public class SubmittedTaskInfoExtendedUsageReportExt: SubmittedTaskInfoUsageReportExt
+    public class SubmittedTaskInfoUsageReportExtendedExt: SubmittedTaskInfoUsageReportExt
     {
         [DataMember(Name = "JobId")]
         public long JobId { get; set; }

@@ -1,7 +1,10 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.ExtModels.Management.Models;
+using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
@@ -19,7 +22,8 @@ namespace HEAppE.RestApi.Controllers
     public class ManagementController : BaseController<ManagementController>
     {
         #region Instances
-        private IManagementService _service = new ManagementService();
+        private readonly IManagementService _managementService;
+        private readonly IUserAndLimitationManagementService _userAndManagementService;
         #endregion
         #region Constructors
         /// <summary>
@@ -29,6 +33,8 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="memoryCache">Memory cache provider</param>
         public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
+            _managementService = new ManagementService();
+            _userAndManagementService = new UserAndLimitationManagementService(memoryCache);
         }
         #endregion
         #region Methods
@@ -58,7 +64,7 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
 
-                return Ok(_service.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.Description, model.Code,
+                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.Description, model.Code,
                                                          model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
             catch (Exception e)
@@ -93,7 +99,7 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(ModifyCommandTemplate));
 
-                return Ok(_service.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.Description, model.Code,
+                return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.Description, model.Code,
                                                          model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
             catch (Exception e)
@@ -128,7 +134,7 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(RemoveCommandTemplate));
 
-                return Ok(_service.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
+                return Ok(_managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
             }
             catch (Exception e)
             {
@@ -143,7 +149,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("GetInstanceInformations")]
         [RequestSizeLimit(90)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -152,14 +158,27 @@ namespace HEAppE.RestApi.Controllers
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformations\"");
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformations\" Parameters: SessionCode: \"{sessionCode}\"");
                 ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetInstanceInformations(sessionCode));
+                var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
+                if(result)
+                {
+                    return Ok(new InstanceInformationExt()
+                    {
+                        InstanceName = ApplicationAPIConfiguration.InstanceName,
+                        Version = ApplicationAPIConfiguration.Version,
+                        DeployedIPAddress = ApplicationAPIConfiguration.DeployedIPAddress
+                    });
+                }
+                else
+                {
+                    return BadRequest(null);
+                }
             }
             catch (Exception e)
             {

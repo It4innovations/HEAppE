@@ -1,4 +1,5 @@
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
 using System.Collections.Generic;
 
@@ -23,6 +24,8 @@ namespace HEAppE.DomainObjects.JobReporting
         public DateTime? EndTime { get; set; }
 
         public double? TotalAllocatedTime { get; set; }
+
+        public AdaptorUser Submitter { get; set; }
 
         public IEnumerable<SubmittedTaskInfoUsageReport> TasksUsageReport { get; set; }
     }

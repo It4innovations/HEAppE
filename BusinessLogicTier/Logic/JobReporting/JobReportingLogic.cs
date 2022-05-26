@@ -53,7 +53,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
 
         public IEnumerable<SubmittedJobInfoUsageReport> GetResourceUsageReport()
         {
-            return null;
+            return _unitOfWork.SubmittedJobInfoRepository.GetAll().Select(s => s.ConvertToUsageReport());
         }
 
         public SubmittedJobInfoUsageReport GetResourceUsageReportForJob(long jobId)
@@ -81,7 +81,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         {
             double? groupTotalUsage = 0;
             var userAggregatedReports = new List<UserAggregatedUsage>();
-
 
             AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
             foreach (AdaptorUser user in group.Users)
@@ -120,7 +119,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             {
                 double? nodeTotalUsage = 0;
 
-                var tasksInfoUsageReport = new List<SubmittedTaskInfoExtendedUsageReport>();
+                var tasksInfoUsageReport = new List<SubmittedTaskInfoUsageReportExtended>();
                 foreach (var job in selectedJobs)
                 {
                     var selectedTasksInfoUsageReport = job.Tasks.Where(w => w.NodeType == nodeType)
