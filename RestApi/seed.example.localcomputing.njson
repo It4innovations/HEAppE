@@ -88,16 +88,16 @@
     "ClusterAuthenticationCredentials": [
       {
         "Id": 1,
-        "Username": "{UserName}",
-        "Password": null,
+        "Username": "heappeclient",
+        "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
         "PrivateKeyPassword": "{PrivateKeyPassword}",
         "ClusterId": 1
       },
       {
         "Id": 2,
-        "Username": "{UserName}",
-        "Password": null,
+        "Username": "heappeclient",
+        "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
         "PrivateKeyPassword": "{PrivateKeyPassword}",
         "ClusterId": 1
