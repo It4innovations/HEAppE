@@ -1,9 +1,11 @@
 ﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Collections.Generic;
 
 namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement
 {
     public interface IAdaptorUserGroupRepository : IRepository<AdaptorUserGroup>
     {
+        IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroups();
         AdaptorUserGroup GetDefaultSubmitterGroup();
 
         /// <summary>

@@ -38,7 +38,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         #region IJobReporting Methods
         public IEnumerable<AdaptorUserGroup> GetAdaptorUserGroups()
         {
-            return _unitOfWork.AdaptorUserGroupRepository.GetAll();
+            return _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroups();
         }
 
         public IEnumerable<JobStateAggregationReport> GetAggregatedJobsByStateReport()
