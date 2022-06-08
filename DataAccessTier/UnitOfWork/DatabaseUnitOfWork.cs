@@ -39,6 +39,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IOpenStackProjectRepository _openStackProjectRepository;
         private IEnvironmentVariableRepository _environmentVariableRepository;
         private IFileTransferMethodRepository _fileTransferMethodRepository;
+        private IFileTransferTemporaryKeyRepository _fileTransferTemporaryKeyRepository;
         private IFileSpecificationRepository _fileSpecificationRepository;
         private ICommandTemplateRepository _commandTemplateRepository;
         private ICommandTemplateParameterRepository _commandTemplateParameterRepository;
@@ -176,6 +177,14 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _fileTransferMethodRepository = _fileTransferMethodRepository ?? new FileTransferMethodRepository(_context);
+            }
+        }
+
+        public IFileTransferTemporaryKeyRepository FileTransferTemporaryKeyRepository
+        {
+            get
+            {
+                return _fileTransferTemporaryKeyRepository = _fileTransferTemporaryKeyRepository ?? new FileTransferTemporaryKeyRepository(_context);
             }
         }
 
