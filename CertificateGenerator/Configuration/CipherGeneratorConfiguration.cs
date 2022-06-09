@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HEAppE.DomainObjects.FileTransfer;
+using System;
 
 namespace HEAppE.CertificateGenerator.Configuration
 {
@@ -16,7 +17,7 @@ namespace HEAppE.CertificateGenerator.Configuration
         /// <summary>
         /// SSH cipher type
         /// </summary>
-        private static CipherType _type;
+        private static FileTransferCipherType _type;
         #endregion
         #region Properties
         /// <summary>
@@ -38,7 +39,7 @@ namespace HEAppE.CertificateGenerator.Configuration
         /// <summary>
         /// SSH cipher type
         /// </summary>
-        public static CipherType Type
+        public static FileTransferCipherType Type
         {
             get
             {
@@ -59,11 +60,11 @@ namespace HEAppE.CertificateGenerator.Configuration
         {
             _type = (_typeName, Size) switch
             {
-                ("RSA", 3072) => CipherType.RSA3072,
-                ("RSA", 4096) => CipherType.RSA4096,
-                ("ECDSA", 256) => CipherType.nistP256,
-                ("ECDSA", 521) => CipherType.nistP521,
-                _ => CipherType.Unknown
+                ("RSA", 3072) => FileTransferCipherType.RSA3072,
+                ("RSA", 4096) => FileTransferCipherType.RSA4096,
+                ("ECDSA", 256) => FileTransferCipherType.nistP256,
+                ("ECDSA", 521) => FileTransferCipherType.nistP521,
+                _ => FileTransferCipherType.Unknown
             };
         }
         #endregion

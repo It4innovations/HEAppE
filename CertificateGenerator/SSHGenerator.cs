@@ -1,5 +1,6 @@
 ﻿using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.CertificateGenerator.Generators;
+using HEAppE.DomainObjects.FileTransfer;
 using log4net;
 using System;
 using System.Reflection;
@@ -22,6 +23,12 @@ namespace HEAppE.CertificateGenerator
         /// </summary>
         private readonly ILog _log;
         #endregion
+        #region Properties
+        /// <summary>
+        /// File transfer cipher type
+        /// </summary>
+        public FileTransferCipherType CipherType {get; init;}
+        #endregion
         #region Constructors
         /// <summary>
         /// Construcotr
@@ -29,18 +36,21 @@ namespace HEAppE.CertificateGenerator
         /// <exception cref="NotImplementedException"></exception>
         public SSHGenerator()
         {
-            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);                     
-            if(CipherGeneratorConfiguration.Type == CipherType.Unknown)
+            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+            CipherType = CipherGeneratorConfiguration.Type;
+            if (CipherGeneratorConfiguration.Type == FileTransferCipherType.Unknown)
             {
                 _log.Warn("Wrong fill \"TypeName\" or \"Size\" in \"appsetting.json\" config file. HEAppE uses default algorithm for generating temporary keys RSA (4096)!");
+                CipherType = FileTransferCipherType.RSA4096;
             }
 
             _key = CipherGeneratorConfiguration.Type switch
             {
-                CipherType.RSA3072 => new RSACertGenerator(3072),
-                CipherType.RSA4096 => new RSACertGenerator(4096),
-                CipherType.nistP256 => new ECDsaCertGenerator("nistP256"),
-                CipherType.nistP521 => new ECDsaCertGenerator("nistP521"),
+                FileTransferCipherType.RSA3072 => new RSACertGenerator(3072),
+                FileTransferCipherType.RSA4096 => new RSACertGenerator(4096),
+                FileTransferCipherType.nistP256 => new ECDsaCertGenerator("nistP256"),
+                FileTransferCipherType.nistP521 => new ECDsaCertGenerator("nistP521"),
                 _ => new RSACertGenerator(4096)
             };
         }

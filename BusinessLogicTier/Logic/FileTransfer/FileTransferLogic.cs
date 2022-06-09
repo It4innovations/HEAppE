@@ -72,6 +72,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 _unitOfWork.Save();
             }
         }
+
         public FileTransferMethod GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             _log.Info($"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
@@ -98,6 +99,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
                 SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(cluster.LocalBasepath, jobInfo.Specification),
+                FileTransferCipherType = certGenerator.CipherType,
                 Credentials = new FileTransferKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,

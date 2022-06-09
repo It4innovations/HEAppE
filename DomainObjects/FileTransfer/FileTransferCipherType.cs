@@ -1,9 +1,9 @@
-﻿namespace HEAppE.CertificateGenerator
+﻿namespace HEAppE.DomainObjects.FileTransfer
 {
     /// <summary>
     /// Cipher type
     /// </summary>
-    public enum CipherType
+    public enum FileTransferCipherType
     {
         Unknown = 1,
         RSA3072 = 2,

@@ -48,7 +48,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
-                    fileTransferLogic.EndFileTransfer(submittedJobInfoId, FileTransferConverts.ConvertFileTransferMethodExtToIn(usedTransferMethod), loggedUser);
+                    fileTransferLogic.EndFileTransfer(submittedJobInfoId, FileTransferConverts.ConvertFileTransferMethodExtToInt(usedTransferMethod), loggedUser);
                 }
             }
             catch (Exception exc)
@@ -67,7 +67,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                     IList<JobFileContent> downloadedFileParts = fileTransferLogic.DownloadPartsOfJobFilesFromCluster(
                         submittedJobInfoId,
-                        (from taskFileOffset in (new List<TaskFileOffsetExt>(taskFileOffsets).ToList()) select FileTransferConverts.ConvertTaskFileOffsetExtToIn(taskFileOffset)).ToArray(), 
+                        (from taskFileOffset in (new List<TaskFileOffsetExt>(taskFileOffsets).ToList()) select FileTransferConverts.ConvertTaskFileOffsetExtToInt(taskFileOffset)).ToArray(), 
                         loggedUser);
                     return (from fileContent in downloadedFileParts select FileTransferConverts.ConvertJobFileContentToExt(fileContent)).ToArray();
                 }
