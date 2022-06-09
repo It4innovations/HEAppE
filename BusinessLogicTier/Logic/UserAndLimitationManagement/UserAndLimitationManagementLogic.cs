@@ -430,7 +430,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         private string AuthenticateUserWithPassword(AdaptorUser user, PasswordCredentials credentials)
         {
             byte[] inputBytes = Encoding.UTF8.GetBytes(credentials.Password);
-            byte[] saltBytes = Encoding.UTF8.GetBytes(user.CreatedAt.ToString());
+            byte[] saltBytes = Encoding.UTF8.GetBytes(user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"));
             byte[] cipherBytes = inputBytes.Concat(saltBytes).ToArray();
 
             byte[] hashBytes = SHA512.Create().ComputeHash(cipherBytes);
