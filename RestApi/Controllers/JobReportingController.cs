@@ -37,7 +37,7 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get user groups
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("ListAdaptorUserGroups")]
         [RequestSizeLimit(58)]

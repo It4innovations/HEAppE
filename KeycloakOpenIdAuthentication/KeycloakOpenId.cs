@@ -46,7 +46,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication
                         NoCache = true,
                         NoStore = true
                     },
-                    Timeout = KeycloakConfiguration.ConnectionTimeout
+                    MaxTimeout = KeycloakConfiguration.ConnectionTimeout
                 };
                 _basicRestClient = new RestClient(options);
             }
