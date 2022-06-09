@@ -55,8 +55,8 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// Remove direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public key</param>
-        void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey);
+        /// <param name="publicKeys">Public keys</param>
+        void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys);
 
         /// <summary>
         /// Create job directory

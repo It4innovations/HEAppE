@@ -10,13 +10,20 @@ namespace HEAppE.CertificateGenerator.Generators
     /// </summary>
     public class RSACertGenerator : GenericCertGenerator
     {
+        #region Instances
+        /// <summary>
+        /// Size
+        /// </summary>
+        private readonly int _size;
+        #endregion
         #region Constructors
         /// <summary>
         /// Constructor
         /// </summary>
         public RSACertGenerator()
         {
-            _key = RSA.Create(4096);
+            _size = 4096;
+            _key = RSA.Create(_size);
         }
 
         /// <summary>
@@ -30,7 +37,8 @@ namespace HEAppE.CertificateGenerator.Generators
                 throw new ArgumentException("Key Size of RSA cypher should be n * 1024!");
             }
 
-            _key = RSA.Create(size);
+            _size = size;
+            _key = RSA.Create(_size);
         }
 
         /// <summary>
@@ -45,11 +53,20 @@ namespace HEAppE.CertificateGenerator.Generators
                 throw new ArgumentException("Key Size of RSA cypher should be n * 1024!");
             }
 
-            _key = RSA.Create(size);
+            _size = size;
+            _key = RSA.Create(_size);
             _publicComment = comment;
         }
         #endregion
         #region Public Methods
+        /// <summary>
+        /// Re-Generate key
+        /// </summary>
+        public override void Regenerate()
+        {
+            _key = RSA.Create(_size);
+        }
+
         /// <summary>
         /// Returns the SSH private key
         /// </summary>

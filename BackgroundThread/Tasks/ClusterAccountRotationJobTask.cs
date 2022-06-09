@@ -10,9 +10,9 @@ namespace HEAppE.BackgroundThread.Tasks
     /// <summary>
     /// Job for managin cluster account rotation
     /// </summary>
-    internal class ClusterAccountRotationJob : AbstractTask, IBackgroundTask
+    internal class ClusterAccountRotationJobTask : AbstractTask, IBackgroundTask
     {
-        public ClusterAccountRotationJob(TimeSpan interval) : base(interval) 
+        public ClusterAccountRotationJobTask(TimeSpan interval) : base(interval) 
         {
         }
 

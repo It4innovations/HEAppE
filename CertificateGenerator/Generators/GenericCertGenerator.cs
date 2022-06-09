@@ -31,6 +31,11 @@ namespace HEAppE.CertificateGenerator.Generators
         #endregion
         #region Abstract Methods
         /// <summary>
+        /// Re-Generate key
+        /// </summary>
+        public abstract void Regenerate();
+
+        /// <summary>
         /// Returns the SSH private key
         /// </summary>
         /// <returns></returns>

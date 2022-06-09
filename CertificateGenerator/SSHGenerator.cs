@@ -1,6 +1,8 @@
 ﻿using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.CertificateGenerator.Generators;
+using log4net;
 using System;
+using System.Reflection;
 
 namespace HEAppE.CertificateGenerator
 {
@@ -14,6 +16,11 @@ namespace HEAppE.CertificateGenerator
         /// Cipher key
         /// </summary>
         private readonly GenericCertGenerator _key;
+
+        /// <summary>
+        /// _logger
+        /// </summary>
+        private readonly ILog _log;
         #endregion
         #region Constructors
         /// <summary>
@@ -22,9 +29,14 @@ namespace HEAppE.CertificateGenerator
         /// <exception cref="NotImplementedException"></exception>
         public SSHGenerator()
         {
+            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);                     
+            if(CipherGeneratorConfiguration.Type == CipherType.Unknown)
+            {
+                _log.Warn("Wrong fill \"TypeName\" or \"Size\" in \"appsetting.json\" config file. HEAppE uses default algorithm for generating temporary keys RSA (4096)!");
+            }
+
             _key = CipherGeneratorConfiguration.Type switch
             {
-                CipherType.RSA2048 => new RSACertGenerator(2048),
                 CipherType.RSA3072 => new RSACertGenerator(3072),
                 CipherType.RSA4096 => new RSACertGenerator(4096),
                 CipherType.nistP256 => new ECDsaCertGenerator("nistP256"),
@@ -34,6 +46,14 @@ namespace HEAppE.CertificateGenerator
         }
         #endregion
         #region Methods
+        /// <summary>
+        /// Re-Generate key
+        /// </summary>
+        public void Regenerate()
+        {
+            _key.Regenerate();
+        }
+
         /// <summary>
         /// Returns the SSH private key
         /// </summary>

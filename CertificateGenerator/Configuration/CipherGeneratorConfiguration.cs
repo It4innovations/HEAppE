@@ -55,17 +55,15 @@ namespace HEAppE.CertificateGenerator.Configuration
         /// <summary>
         /// Set SSH cipher type
         /// </summary>
-        /// <exception cref="NotImplementedException"></exception>
         private static void SetCipherType()
         {
             _type = (_typeName, Size) switch
             {
-                ("RSA", 2048) => CipherType.RSA2048,
                 ("RSA", 3072) => CipherType.RSA3072,
                 ("RSA", 4096) => CipherType.RSA4096,
                 ("ECDSA", 256) => CipherType.nistP256,
                 ("ECDSA", 521) => CipherType.nistP521,
-                _ => throw new NotImplementedException("Selected SSH cipher is not inplemented!")
+                _ => CipherType.Unknown
             };
         }
         #endregion

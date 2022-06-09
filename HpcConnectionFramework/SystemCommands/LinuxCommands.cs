@@ -125,11 +125,17 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// Remove direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public key</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
+        /// <param name="publicKeys">Public keys</param>
+        public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
         {
-            publicKey = StringUtils.RemoveWhitespace(publicKey);
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.RemoveFiletransferKeyCmdPath} {publicKey}");
+            var cmdBuilder = new StringBuilder();
+            foreach (var publicKey in publicKeys)
+            {
+                StringUtils.RemoveWhitespace(publicKey);
+                cmdBuilder.Append($"{_commandScripts.RemoveFiletransferKeyCmdPath} {publicKey};");
+            }
+
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
             _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result}\"");
         }
 

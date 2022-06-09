@@ -13,9 +13,10 @@ namespace HEAppE.BackgroundThread
         #region Constructors
         public MiddlewareBackgroundTaskRunner()
         {
-            _tasks.Add(new GetAllJobsInfo(TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck)));
-            _tasks.Add(new CloseConnectionToFinishedJobs(TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck)));
-            _tasks.Add(new ClusterAccountRotationJob(TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck)));
+            _tasks.Add(new UpdateUnfinishedJobsTask(TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck)));
+            _tasks.Add(new CloseConnectionToFinishedJobsTask(TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck)));
+            _tasks.Add(new ClusterAccountRotationJobTask(TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck)));
+            _tasks.Add(new RemoveTemporaryFileTransferKeyTask(TimeSpan.FromSeconds(BackGroundThreadConfiguration.FileTransferKeyRemovalCheck)));
         }
         #endregion
         #region Methods

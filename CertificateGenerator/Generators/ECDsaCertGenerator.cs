@@ -83,6 +83,14 @@ namespace HEAppE.CertificateGenerator.Generators
         #endregion
         #region Public Methods
         /// <summary>
+        /// Re-Generate key
+        /// </summary>
+        public override void Regenerate()
+        {
+            _key = ECDsa.Create(_curve);
+        }
+
+        /// <summary>
         /// Returns the SSH private key
         /// </summary>
         /// <returns></returns>

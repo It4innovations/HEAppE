@@ -21,7 +21,7 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         public ClusterProxyConnectionExt ProxyConnection { get; set; }
 
         [DataMember(Name = "Credentials")]
-        public AsymmetricKeyCredentialsExt Credentials { get; set; }
+        public FileTransferKeyCredentialsExt Credentials { get; set; }
 
         public override string ToString()
         {

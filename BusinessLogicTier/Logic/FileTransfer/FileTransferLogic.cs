@@ -18,6 +18,8 @@ using HEAppE.CertificateGenerator;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.BusinessLogicTier.Logic.FileTransfer.Exceptions;
+using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {
@@ -46,18 +48,39 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
         }
         #endregion
         #region Methods
+        public void RemoveJobsTemporaryFileTransferKeys()
+        {
+            var activeTemporaryKeys = _unitOfWork.FileTransferTemporaryKeyRepository.GetAllActiveTemporaryKey()
+                    .Where(w => w.AddedAt.AddHours(BusinessLogicConfiguration.ValidityOfTemporaryTransferKeysInHours) <= DateTime.UtcNow)
+                     .ToList();
+
+            var activeTemporaryKeysGroup = activeTemporaryKeys.GroupBy(g => g.SubmittedJob.Specification.Cluster)
+                                                                                                        .ToList();
+
+            foreach (var activeTemporaryKeyGroup in activeTemporaryKeysGroup)
+            {
+                Cluster cluster = activeTemporaryKeyGroup.Key;
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
+
+                var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g => g.SubmittedJob.Specification.ClusterUser).ToList();
+
+
+
+                clusterUserActiveTempKey.ForEach(f => scheduler.RemoveDirectFileTransferAccessForUser(f.Select(S => S.PublicKey), f.Key));
+
+                activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
+                _unitOfWork.Save();
+            }
+        }
         public FileTransferMethod GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser)
         {
-            _log.Info($"Getting file transfer method for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
+            _log.Info($"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             Cluster cluster = jobInfo.Specification.Cluster;
 
-            // TODO try catch block
-            // TODO add this value to configuration
-            if (jobInfo.FileTransferTemporaryKeys.Count > 5)
+            if (jobInfo.FileTransferTemporaryKeys.Count(c => !c.IsDeleted) > BusinessLogicConfiguration.GeneratedFileTransferKeyLimitPerJob)
             {
-                //TODO change exception type
-                throw new Exception("It was reach the job limit of generated ssh keys for direct transfer!");
+                throw new FileTransferTemporaryKeyException("It was reached the limit of generated ssh keys for job used by direct transfer!");
             }
 
             var certGenerator = new SSHGenerator();
@@ -65,7 +88,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 
             while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
             {
-                certGenerator = new SSHGenerator();
+                certGenerator.Regenerate();
                 publicKey = certGenerator.ToPuTTYPublicKey();
             }
 
@@ -75,7 +98,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
                 SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(cluster.LocalBasepath, jobInfo.Specification),
-                Credentials = new AsymmetricKeyCredentials
+                Credentials = new FileTransferKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,
                     PrivateKey = certGenerator.ToPrivateKey(),
@@ -98,28 +121,23 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 
         public void EndFileTransfer(long submittedJobInfoId, FileTransferMethod transferMethod, AdaptorUser loggedUser)
         {
-            _log.Info($"Removing file transfer method for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
+            _log.Info($"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             Cluster cluster = jobInfo.Specification.Cluster;
 
-            //TODO try catch
-
-
-            AsymmetricKeyCredentials asymmetricKeyCredentials = transferMethod.Credentials as AsymmetricKeyCredentials;
-            if (asymmetricKeyCredentials is null)
+            if (transferMethod.Credentials is not FileTransferKeyCredentials credentials)
             {
-                var errMessage = $"Credentials of class {transferMethod.Credentials.GetType().Name} are not supported!";
-                _log.Error(errMessage);
-                throw new ArgumentException(errMessage);
+                throw new FileTransferTemporaryKeyException($"Credentials of class {transferMethod.Credentials.GetType().Name} are not supported!");
             }
 
-            var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == asymmetricKeyCredentials.PublicKey);
+            var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == credentials.PublicKey);
             if (temporaryKey is null)
             {
-                throw new Exception("");
+                throw new FileTransferTemporaryKeyException("The direct transfer could not be finished due to a public key mismatch!");
             }
 
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUserToJob(asymmetricKeyCredentials.PublicKey, jobInfo);
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUser(new string[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser);
+
             temporaryKey.IsDeleted = true;
             _unitOfWork.Save();
         }

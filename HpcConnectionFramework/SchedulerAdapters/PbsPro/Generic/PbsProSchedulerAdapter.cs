@@ -172,7 +172,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             catch (SshCommandException ce)
             {
 
-                if(!Regex.Match(ce.Message, "qdel: Job has finished", RegexOptions.Compiled).Success)
+                if (!Regex.Match(ce.Message, "qdel: Job has finished", RegexOptions.Compiled).Success)
                 {
                     throw ce;
                 }
@@ -262,10 +262,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// Remove direct file transfer access for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public key</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
+        /// <param name="publicKeys">Public keys</param>
+        public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey);
+            _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys);
         }
 
         /// <summary>

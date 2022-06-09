@@ -36,7 +36,7 @@ namespace HEAppE.ServiceTier.FileTransfer
             catch (Exception exc)
             {
                 ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                return default;
             }
         }
         
