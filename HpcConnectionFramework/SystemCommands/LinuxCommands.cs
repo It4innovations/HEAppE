@@ -4,6 +4,7 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.Utils;
 using log4net;
 using Renci.SshNet;
+using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -116,7 +117,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="jobInfo">Job information</param>
         public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
         {
-            publicKey = StringUtils.RemoveWhitespace(publicKey);
+            publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.AddFiletransferKeyCmdPath} {publicKey} {jobInfo.Specification.Id}");
             _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result}\"");
         }

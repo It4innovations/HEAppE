@@ -79,7 +79,7 @@ namespace HEAppE.CertificateGenerator
         /// <returns></returns>
         public string ToPublicKey()
         {
-            return ToPublicKey();
+            return _key.ToPublicKey();
         }
 
         /// <summary>
@@ -88,7 +88,7 @@ namespace HEAppE.CertificateGenerator
         /// <returns></returns>
         public string ToPuTTYPublicKey()
         {
-            return ToPuTTYPublicKey();
+            return _key.ToPuTTYPublicKey();
         }
         #endregion
     }

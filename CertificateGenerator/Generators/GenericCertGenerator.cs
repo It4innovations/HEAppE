@@ -17,7 +17,7 @@ namespace HEAppE.CertificateGenerator.Generators
         /// <summary>
         /// Public comment
         /// </summary>
-        protected string _publicComment = $"key-temp-added-{DateTime.UtcNow.ToString("YYYY-MM-dd_HH-mm-ss")}";
+        protected string _publicComment = $"key-temp-added-{DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss")}";
         #endregion
         #region IDisposable Members
         /// <summary>

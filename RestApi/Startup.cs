@@ -1,6 +1,7 @@
 ﻿using AspNetCoreRateLimit;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
@@ -73,6 +74,7 @@ namespace HEAppE.RestApi
 
             Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
             Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
+            Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
             Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
             MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
             Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
