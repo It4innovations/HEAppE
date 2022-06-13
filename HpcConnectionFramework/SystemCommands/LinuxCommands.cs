@@ -132,8 +132,8 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             var cmdBuilder = new StringBuilder();
             foreach (var publicKey in publicKeys)
             {
-                StringUtils.RemoveWhitespace(publicKey);
-                cmdBuilder.Append($"{_commandScripts.RemoveFiletransferKeyCmdPath} {publicKey};");
+                string base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
+                cmdBuilder.Append($"{_commandScripts.RemoveFiletransferKeyCmdPath} {base64PublicKey};");
             }
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
