@@ -491,7 +491,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         private bool IsSessionExpired(SessionCode session)
         {
-            return session.LastAccessTime.AddSeconds(_sessionExpirationSeconds) > DateTime.UtcNow;
+            return session.LastAccessTime.AddSeconds(_sessionExpirationSeconds) < DateTime.UtcNow;
         }
 
         /// <summary>
