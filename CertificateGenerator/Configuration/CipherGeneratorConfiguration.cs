@@ -25,6 +25,10 @@ namespace HEAppE.CertificateGenerator.Configuration
         /// </summary>
         public static string TypeName
         {
+            get
+            {
+                return _typeName;
+            }
             set
             {
                 _typeName = value.ToUpper();
@@ -34,7 +38,7 @@ namespace HEAppE.CertificateGenerator.Configuration
         /// <summary>
         /// SSH cipher size
         /// </summary>
-        public static int Size { private get;  set; }
+        public static int Size { get;  set; }
 
         /// <summary>
         /// SSH cipher type
