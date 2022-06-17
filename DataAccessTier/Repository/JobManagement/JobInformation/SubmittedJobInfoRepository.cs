@@ -51,6 +51,7 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
                          .Include(i => i.Tasks)
                             .ThenInclude(i => i.Specification)
                             .ThenInclude(i => i.ClusterNodeType)
+                            .ThenInclude(i=> i.Cluster)
                          .ToList();
         }
         #endregion
