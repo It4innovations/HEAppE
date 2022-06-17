@@ -9,5 +9,6 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
         IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId);
         IEnumerable<SubmittedJobInfo> GetAllUnfinished();
         IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount();
+        IEnumerable<SubmittedJobInfo> GetAllWithSubmittedTaskAndAdaptorUser();
     }
 }

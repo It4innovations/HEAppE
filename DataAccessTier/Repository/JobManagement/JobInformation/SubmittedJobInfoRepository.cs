@@ -2,6 +2,7 @@
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
 {
@@ -38,6 +39,11 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
             return GetAll().Where(w => w.State == JobState.WaitingForServiceAccount)
                             .OrderBy(w => w.Id)
                             .ToList();
+        }
+
+        public IEnumerable<SubmittedJobInfo> GetAllWithSubmittedTaskAndAdaptorUser()
+        {
+            return _dbSet.Include(i => i.Tasks).Include(i=>i.Submitter).ToList();
         }
         #endregion
     }

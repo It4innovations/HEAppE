@@ -53,7 +53,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
 
         public IEnumerable<SubmittedJobInfoUsageReport> GetResourceUsageReport()
         {
-            return _unitOfWork.SubmittedJobInfoRepository.GetAll().Select(s => s.ConvertToUsageReport());
+            return _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAndAdaptorUser().Select(s => s.ConvertToUsageReport());
         }
 
         public SubmittedJobInfoUsageReport GetResourceUsageReportForJob(long jobId)
