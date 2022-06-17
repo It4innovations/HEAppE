@@ -119,7 +119,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.AddFiletransferKeyCmdPath} {publicKey} {jobInfo.Specification.Id}");
-            _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result}\"");
+            _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>
@@ -137,7 +137,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             }
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
-            _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result}\"");
+            _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>
