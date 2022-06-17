@@ -48,7 +48,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                                                                   {
                                                                       State = s.Key,
                                                                       Count = s.Count()
-                                                                  });
+                                                                  }).ToList();
         }
 
         public IEnumerable<SubmittedJobInfoUsageReport> GetResourceUsageReport()

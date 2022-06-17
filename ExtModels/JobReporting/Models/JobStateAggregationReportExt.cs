@@ -6,15 +6,18 @@ namespace HEAppE.ExtModels.JobReporting.Models
     [DataContract(Name = "JobStateAggregationReportExt")]
     public class JobStateAggregationReportExt
     {
-        [DataMember(Name = "State")]
-        public JobStateExt State { get; set; }
+        [DataMember(Name = "JobStateId")]
+        public JobStateExt JobStateId { get; set; }
+
+        [DataMember(Name = "JobStateName")]
+        public string JobStateName { get; set; }
 
         [DataMember(Name = "Count")]
         public long Count { get; set; }
 
         public override string ToString()
         {
-            return $"JobStateAggregationReportExt: State={State}, Count={Count}";
+            return $"JobStateAggregationReportExt: State={JobStateId}, StateName={JobStateName}, Count={Count}";
         }
     }
 }

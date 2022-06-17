@@ -28,6 +28,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
                 SubmitTime = job.SubmitTime,
                 StartTime = job.StartTime,
                 EndTime = job.EndTime,
+                Submitter = job.Submitter,
                 TotalAllocatedTime = job.TotalAllocatedTime ?? 0,
                 TasksUsageReport = job.Tasks.Select(s => s.ConvertToUsageReport())
             };

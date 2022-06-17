@@ -43,10 +43,11 @@ namespace HEAppE.ExtModels.JobReporting.Converts
 
         public static JobStateAggregationReportExt ConvertIntToExt(this JobStateAggregationReport aggregateJob)
         {
-            
+            var state = aggregateJob.State.ConvertIntToExt();
             var jobstateAggregationExt = new JobStateAggregationReportExt
             {
-                State = aggregateJob.State.ConvertIntToExt(),
+                JobStateId = state,
+                JobStateName = state.ToString(),
                 Count = aggregateJob.Count
             };
 
