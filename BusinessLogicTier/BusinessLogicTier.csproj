@@ -9,6 +9,7 @@
   <ItemGroup>
     <PackageReference Include="log4net" Version="2.0.14" />
     <PackageReference Include="RestSharp" Version="108.0.1" />
+    <PackageReference Include="SshNet.Security.Cryptography" Version="1.3.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +20,12 @@
     <ProjectReference Include="..\HpcConnectionFramework\HpcConnectionFramework.csproj" />
     <ProjectReference Include="..\KeycloakOpenIdAuthentication\KeycloakOpenIdAuthentication.csproj" />
     <ProjectReference Include="..\OpenStackAPI\OpenStackAPI.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Renci.SshNet">
+      <HintPath>..\dll\Renci.SshNet.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>
