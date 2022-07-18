@@ -7,10 +7,15 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="RestSharp" Version="108.0.1" />
-    <PackageReference Include="Renci.SshNet" Version="1.0.0" />
+    <PackageReference Include="SshNet.Security.Cryptography" Version="1.3.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ExtModels\ExtModels.csproj" />
     <ProjectReference Include="..\RestApiModels\RestApiModels.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Reference Include="Renci.SshNet">
+      <HintPath>..\dll\Renci.SshNet.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
