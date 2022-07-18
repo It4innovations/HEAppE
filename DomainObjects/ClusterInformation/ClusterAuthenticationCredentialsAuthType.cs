@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HEAppE.DomainObjects.ClusterInformation
+﻿namespace HEAppE.DomainObjects.ClusterInformation
 {
     public enum ClusterAuthenticationCredentialsAuthType
     {
@@ -12,6 +6,10 @@ namespace HEAppE.DomainObjects.ClusterInformation
         PasswordInteractive = 2,
         PasswordAndPrivateKey = 3,
         PrivateKey = 4,
-        PrivateKeyInSshAgent = 5
+        PasswordViaProxy = 5,
+        PasswordInteractiveViaProxy = 6,
+        PasswordAndPrivateKeyViaProxy = 7,
+        PrivateKeyViaProxy = 8,
+        PrivateKeyInSshAgent = 9
     }
 }

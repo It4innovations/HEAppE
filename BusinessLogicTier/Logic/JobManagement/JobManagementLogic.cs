@@ -250,7 +250,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return taskInfo;
         }
 
-
         public virtual IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser)
         {
             return _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);

@@ -18,7 +18,7 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
         }
         #endregion
         #region Methods
-        public void ProcessResult(string remoteNodeTimeZone, SftpCommandResult result)
+        public void ProcessResult(SftpCommandResult result)
         {
             throw new Exception("ProcessResult method is not defined!");
         }

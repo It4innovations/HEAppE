@@ -15,14 +15,33 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using HEAppE.Utils;
 using log4net;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement
 {
     public class UserAndLimitationManagementService : IUserAndLimitationManagementService
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        #region Instances
+        /// <summary>
+        /// Logger
+        /// </summary>
+        private readonly ILog _log;
+
+        /// <summary>
+        /// Cache provider
+        /// </summary>
+        private readonly IMemoryCache _cacheProvider;
+        #endregion
+
+        public UserAndLimitationManagementService(IMemoryCache memoryCache)
+        {
+            _cacheProvider = memoryCache;
+            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        }
 
         public async Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials)
         {
@@ -56,7 +75,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 }
                 else
                 {
-                    log.Error("Credentials of class " + credentials.GetType().Name +
+                    _log.Error("Credentials of class " + credentials.GetType().Name +
                               " are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.");
                     throw new ArgumentException("Credentials of class " + credentials.GetType().Name +
                                                 " are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.");
@@ -84,37 +103,72 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    var appCreds =  await userLogic.AuthenticateUserToOpenStackAsync(new OpenIdCredentials
+                    AdaptorUser user = await userLogic.AuthenticateUserToOpenStackAsync(new OpenIdCredentials
                     {
                         OpenIdAccessToken = openIdCredentials.OpenIdAccessToken
                     });
 
-                    return appCreds.ConvertIntToExt();
+                    string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                    new List<string>()
+                        {   user.Id.ToString(),
+                            nameof(AuthenticateUserToOpenStackAsync)
+                        }
+                    );
+
+                    if (_cacheProvider.TryGetValue(memoryCacheKey, out OpenStackApplicationCredentialsExt value))
+                    {
+                        _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                        return value;
+                    }
+                    else
+                    {
+                        _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                        var appCreds = await userLogic.AuthenticateKeycloakUserToOpenStackAsync(user);
+                        _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(), TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
+                        return appCreds.ConvertIntToExt();
+                    }
                 }
             }
-
-            string errorMessage = $"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.";
-            log.Error(errorMessage);
-            throw new ArgumentException(errorMessage);
+            else
+            {
+                string errorMessage = $"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.";
+                _log.Error(errorMessage);
+                throw new ArgumentException(errorMessage);
+            }
         }
 
-        public ResourceUsageExt[] GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode)
+        public IEnumerable<ResourceUsageExt> GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
-                    IUserAndLimitationManagementLogic userLogic =
-                        LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    IList<ResourceUsage> usages = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser);
-                    return (from usage in usages select usage.ConvertIntToExt()).ToArray();
+                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                    return userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser).Select(s=>s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
             {
                 ExceptionHandler.ThrowProperExternalException(exc);
                 return null;
+            }
+        }
+
+        public bool ValidateUserPermissions(string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
+                    return loggedUser is not null;
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return false;
             }
         }
 
@@ -133,16 +187,6 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 
             CheckUserRole(loggedUser, requiredUserRole);
 
-            return loggedUser;
-        }
-         
-
-        [Obsolete("You should probably call " + nameof(GetValidatedUserForSessionCode) + " which checks the user role.")]
-        internal static AdaptorUser GetUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork)
-        {
-            IUserAndLimitationManagementLogic authenticationLogic =
-                LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-            AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
             return loggedUser;
         }
 

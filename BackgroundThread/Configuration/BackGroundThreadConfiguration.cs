@@ -19,5 +19,10 @@
         /// Cluster account rotation job check in seconds
         /// </summary>
         public static int ClusterAccountRotationJobCheck { get; set; } = 30;
+
+        /// <summary>
+        /// Remove unused temporary file transfer key in seconds
+        /// </summary>
+        public static int FileTransferKeyRemovalCheck { get; set; } = 10800;
     }
 }

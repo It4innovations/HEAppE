@@ -3,8 +3,8 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using System.Linq;
 using HEAppE.OpenStackAPI.DTO;
+using System.Linq;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
 {
@@ -12,7 +12,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
     {
         public static AdaptorUserExt ConvertIntToExt(this AdaptorUser user)
         {
-            AdaptorUserExt convert = new AdaptorUserExt()
+            var convert = new AdaptorUserExt()
             {
                 Id = user.Id,
                 Username = user.Username
@@ -22,7 +22,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
 
         public static AdaptorUserGroupExt ConvertIntToExt(this AdaptorUserGroup userGroup)
         {
-            AdaptorUserGroupExt convert = new AdaptorUserGroupExt()
+            var convert = new AdaptorUserGroupExt()
             {
                 Id = userGroup.Id,
                 Name = userGroup.Name,
@@ -36,7 +36,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
 
         public static ResourceUsageExt ConvertIntToExt(this ResourceUsage usage)
         {
-            ResourceUsageExt convert = new ResourceUsageExt()
+            var convert = new ResourceUsageExt()
             {
                 NodeType = usage.NodeType.ConvertIntToExt(),
                 CoresUsed = usage.CoresUsed,
@@ -62,11 +62,11 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
 
         }
 
-        public static AsymmetricKeyCredentialsExt ConvertIntToExt(this AuthenticationCredentials credentials)
+        public static FileTransferKeyCredentialsExt ConvertIntToExt(this AuthenticationCredentials credentials)
         {
-            if (credentials is AsymmetricKeyCredentials asymmetricKeyCredentials)
+            if (credentials is FileTransferKeyCredentials asymmetricKeyCredentials)
             {
-                AsymmetricKeyCredentialsExt convert = new AsymmetricKeyCredentialsExt()
+                var convert = new FileTransferKeyCredentialsExt()
                 {
                     Username = credentials.Username,
                     PrivateKey = asymmetricKeyCredentials.PrivateKey,
@@ -76,14 +76,14 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             }
             else
             {
-                return new AsymmetricKeyCredentialsExt();
+                return new FileTransfer.Models.FileTransferKeyCredentialsExt();
             }
         }
 
-        public static AsymmetricKeyCredentials ConvertExtToInt(this AuthenticationCredentialsExt credentials)
+        public static FileTransferKeyCredentials ConvertExtToInt(this AuthenticationCredentialsExt credentials)
         {
-            AsymmetricKeyCredentialsExt asymmetricKeyCredentials = credentials as AsymmetricKeyCredentialsExt;
-            AsymmetricKeyCredentials convert = new AsymmetricKeyCredentials
+            FileTransferKeyCredentialsExt asymmetricKeyCredentials = credentials as FileTransferKeyCredentialsExt;
+            var convert = new FileTransferKeyCredentials
             {
                 Username = credentials.Username,
                 PrivateKey = asymmetricKeyCredentials.PrivateKey,

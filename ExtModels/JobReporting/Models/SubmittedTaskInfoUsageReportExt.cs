@@ -1,8 +1,6 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
 using System;
-using System.Collections.Generic;
 using System.Runtime.Serialization;
-using System.Text;
 
 namespace HEAppE.ExtModels.JobReporting.Models
 {
@@ -15,14 +13,8 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember(Name = "Name")]
         public string Name { get; set; }
 
-        [DataMember(Name = "Priority")]
-        public TaskPriorityExt? Priority { get; set; }
-
         [DataMember(Name = "State")]
         public TaskStateExt? State { get; set; }
-
-        [DataMember(Name = "CpuHyperThreading")]
-        public bool CpuHyperThreading { get; set; }
 
         [DataMember(Name = "ScheduledJobId")]
         public string ScheduledJobId { get; set; }
@@ -44,7 +36,7 @@ namespace HEAppE.ExtModels.JobReporting.Models
 
         public override string ToString()
         {
-            return $"SubmittedTaskInfoUsageReportExt(id={Id}; name={Name}; priority={Priority}; state={State}; cpuHyperThreading={CpuHyperThreading}; schedulerJobId={ScheduledJobId}; commandTemplateId={CommandTemplateId}; allocatedTime={AllocatedTime}; corehoursUsage={CorehoursUsage}; startTime={StartTime}; endTime={EndTime})";
+            return $"SubmittedTaskInfoUsageReportExt(id={Id}; name={Name}; state={State}; schedulerJobId={ScheduledJobId}; commandTemplateId={CommandTemplateId}; allocatedTime={AllocatedTime}; corehoursUsage={CorehoursUsage}; startTime={StartTime}; endTime={EndTime})";
         }
     }
 }

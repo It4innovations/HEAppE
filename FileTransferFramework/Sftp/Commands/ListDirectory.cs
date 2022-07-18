@@ -11,6 +11,7 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
     internal class ListDirectory : ICommand<IEnumerable<SftpFile>>
     {
         #region Instances
+        private readonly string _hostTimeZone;
         private readonly string _remotePath;
         private readonly string _remoteWorkingDirectory;
         #endregion
@@ -18,14 +19,15 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
         public string Command { get { return "ls -l " + _remotePath; } }
         #endregion
         #region Constructors
-        public ListDirectory(string remotePath, string remoteWorkingDirectory) //input
+        public ListDirectory(string hostTimeZone, string remotePath, string remoteWorkingDirectory) //input
         {
+            _hostTimeZone = hostTimeZone;
             _remotePath = remotePath;
             _remoteWorkingDirectory = remoteWorkingDirectory;
         }
         #endregion
         #region Methods
-        public IEnumerable<SftpFile> ProcessResult(string timeZone, SftpCommandResult result)
+        public IEnumerable<SftpFile> ProcessResult(SftpCommandResult result)
         {
             var text = Regex.Replace(result.Output, @"\s{2,}", " ");
             var lines = Regex.Split(text, "\r\n|\r|\n").ToList();
@@ -66,7 +68,7 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
                     IsDirectory = type == 'd',
                     Name = name,
                     FullName = fullName,
-                    LastWriteTime = converted.Convert(timeZone)
+                    LastWriteTime = converted.Convert(_hostTimeZone)
                 });
             }
             return files;

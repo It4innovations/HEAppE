@@ -23,11 +23,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <summary>
         /// Convertor singletons
         /// </summary>
-        private readonly ISchedulerDataConvertor _linuxConvertorSingleton;
+        private ISchedulerDataConvertor _convertorSingleton;
         /// <summary>
         /// Scheduler adapter singletons
         /// </summary>
-        private readonly ISchedulerAdapter _linuxSchedulerAdapterInstance;
+        private ISchedulerAdapter _linuxSchedulerAdapterInstance;
         #endregion
         #region SchedulerFactory Members
         /// <summary>
@@ -49,7 +49,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <returns></returns>
         protected override ISchedulerAdapter CreateSchedulerAdapter()
         {
-            return _linuxSchedulerAdapterInstance ?? new LinuxLocalSchedulerAdapter(CreateDataConvertor()); ;
+            return _linuxSchedulerAdapterInstance ??= new LinuxLocalSchedulerAdapter(CreateDataConvertor());
         }
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <returns></returns>
         protected override ISchedulerDataConvertor CreateDataConvertor()
         {
-            return _linuxConvertorSingleton ?? new LinuxLocalDataConvertor();
+            return _convertorSingleton ??= new LinuxLocalDataConvertor();
         }
         /// <summary>
         /// Create scheduler connector

@@ -38,7 +38,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
         /// <summary>
         /// Job priority
         /// </summary>
-        public int Priority { get; set; }
+        public long Priority { get; set; }
 
 
         /// <summary>

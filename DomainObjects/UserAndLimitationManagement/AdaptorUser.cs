@@ -15,7 +15,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [StringLength(50)]
         public string Username { get; set; }
 
-        [StringLength(50)]
+        [StringLength(128)]
         public string Password { get; set; }
 
         [Column(TypeName = "text")]

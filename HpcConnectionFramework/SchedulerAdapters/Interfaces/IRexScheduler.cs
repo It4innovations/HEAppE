@@ -25,7 +25,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 
-        void RemoveDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
+        void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials);
 
         void CreateJobDirectory(SubmittedJobInfo jobInfo);
 

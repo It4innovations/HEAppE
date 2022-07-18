@@ -180,14 +180,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <summary>
         /// Remove direct file transfer access for user
         /// </summary>
-        /// <param name="publicKey">Public key</param>
-        /// <param name="jobInfo">Job info</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo)
+        /// <param name="publicKeys">Public keys</param>
+        /// <param name="credentials">Credentials</param>
+        public void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials)
         {
-            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                _adapter.RemoveDirectFileTransferAccessForUserToJob(schedulerConnection.Connection, publicKey);
+                _adapter.RemoveDirectFileTransferAccessForUser(schedulerConnection.Connection, publicKeys);
             }
             finally
             {

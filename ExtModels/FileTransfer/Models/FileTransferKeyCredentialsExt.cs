@@ -4,8 +4,8 @@ using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.FileTransfer.Models
 {
-    [DataContract(Name = "AsymmetricKeyCredentialsExt")]
-    public class AsymmetricKeyCredentialsExt : AuthenticationCredentialsExt
+    [DataContract(Name = "FileTransferKeyCredentialsExt")]
+    public class FileTransferKeyCredentialsExt : AuthenticationCredentialsExt
     {
         [DataMember(Name = "PrivateKey")]
         public string PrivateKey { get; set; }

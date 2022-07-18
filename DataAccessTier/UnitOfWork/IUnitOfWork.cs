@@ -18,15 +18,17 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         #region Repositories
         IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository { get; }
         IClusterRepository ClusterRepository { get; }
+        IClusterProxyConnectionRepository ClusterProxyConnectionRepository { get; }
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }
         IClusterNodeTypeRequestedGroupRepository ClusterNodeTypeRequestedGroupRepository { get; }
         IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository { get; }
-        IOpenStackDomainRepository OpenStackDomainRepository { get;  }
+        IOpenStackDomainRepository OpenStackDomainRepository { get; }
         IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
         IOpenStackProjectDomainRepository OpenStackProjectDomainRepository { get; }
         IOpenStackProjectRepository OpenStackProjectRepository { get; }
         IEnvironmentVariableRepository EnvironmentVariableRepository { get; }
         IFileTransferMethodRepository FileTransferMethodRepository { get; }
+        IFileTransferTemporaryKeyRepository FileTransferTemporaryKeyRepository { get; }
         IFileSpecificationRepository FileSpecificationRepository { get; }
         ISubmittedJobInfoRepository SubmittedJobInfoRepository { get; }
         ISubmittedTaskInfoRepository SubmittedTaskInfoRepository { get; }

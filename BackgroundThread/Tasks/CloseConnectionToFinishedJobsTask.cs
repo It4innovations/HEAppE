@@ -8,9 +8,9 @@ namespace HEAppE.BackgroundThread.Tasks
     /// <summary>
     /// Close all open sockets to finished/failed/canceled jobs
     /// </summary>
-    internal class CloseConnectionToFinishedJobs : AbstractTask, IBackgroundTask
+    internal class CloseConnectionToFinishedJobsTask : AbstractTask, IBackgroundTask
     {
-        public CloseConnectionToFinishedJobs(TimeSpan interval) : base(interval)
+        public CloseConnectionToFinishedJobsTask(TimeSpan interval) : base(interval)
         {
 
         }

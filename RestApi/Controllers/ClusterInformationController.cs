@@ -1,14 +1,15 @@
-﻿using System.Collections.Generic;
-using Microsoft.AspNetCore.Mvc;
-using HEAppE.ServiceTier.ClusterInformation;
-using HEAppE.RestApiModels.ClusterInformation;
-using System;
-using Microsoft.AspNetCore.Http;
+﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.ExtModels.ClusterInformation.Models;
-using Microsoft.Extensions.Logging;
-using HEAppE.Utils.Validation;
 using HEAppE.RestApi.InputValidator;
-using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.RestApiModels.ClusterInformation;
+using HEAppE.ServiceTier.ClusterInformation;
+using HEAppE.Utils.Validation;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -21,16 +22,17 @@ namespace HEAppE.RestApi.Controllers
     public class ClusterInformationController : BaseController<ClusterInformationController>
     {
         #region Instances
-        private IClusterInformationService _service = new ClusterInformationService();
+        private IClusterInformationService _service;
         #endregion
         #region Constructors
         /// <summary>
         /// Constructor
         /// </summary>
-        /// <param name="logger">Logger</param>
-        public ClusterInformationController(ILogger<ClusterInformationController> logger) : base(logger)
+        /// <param name="logger">Logger instance</param>
+        /// <param name="cacheProvider">Memory cache instance</param>
+        public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider) : base(logger, cacheProvider)
         {
-
+            _service = new ClusterInformationService(cacheProvider);
         }
         #endregion
         #region Methods
@@ -50,6 +52,7 @@ namespace HEAppE.RestApi.Controllers
             try
             {
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
+
                 return Ok(_service.ListAvailableClusters());
             }
             catch (Exception e)

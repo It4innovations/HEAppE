@@ -35,6 +35,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <exception cref="FormatException"></exception>
         public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
+            int nodesUsed = 0;
             string response = (string)responseMessage;
 
             string parsedNodeUsedLine = string.IsNullOrEmpty(nodeType.ClusterAllocationName)
@@ -42,9 +43,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                                     : response.Replace($"CLUSTER: {nodeType.ClusterAllocationName}\n", string.Empty);
 
             parsedNodeUsedLine = Regex.Replace(parsedNodeUsedLine, @"[ ]|[\n]{2}", string.Empty);
-            if (!int.TryParse(parsedNodeUsedLine, out int nodesUsed))
+            if(!string.IsNullOrEmpty(parsedNodeUsedLine))
             {
-                throw new FormatException("Unable to parse cluster node usage from HPC scheduler!");
+                if (!int.TryParse(parsedNodeUsedLine, out nodesUsed))
+                {
+                    throw new FormatException("Unable to parse cluster node usage from HPC scheduler!");
+                }
             }
 
             return new ClusterNodeUsage

@@ -35,7 +35,6 @@ namespace RestSharpWebClient.Controllers
         public IActionResult OpenIdAuthenticate(OpenIdConnectModel model)
         {
             throw new NotImplementedException();
-            return Index(model);
         }
 
 
@@ -43,7 +42,6 @@ namespace RestSharpWebClient.Controllers
         public IActionResult OpenIdTokenIntrospection(OpenIdConnectModel model)
         {
             throw new NotImplementedException();
-            return Index(model);
         }
 
         [HttpPost]

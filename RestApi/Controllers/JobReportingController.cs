@@ -10,6 +10,7 @@ using HEAppE.Utils.Validation;
 using HEAppE.BusinessLogicTier.Logic;
 using System.Collections.Generic;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -26,7 +27,8 @@ namespace HEAppE.RestApi.Controllers
         /// Constructor
         /// </summary>
         /// <param name="logger">Logger</param>
-        public JobReportingController(ILogger<JobReportingController> logger) : base(logger)
+        /// <param name="memoryCache">Memory cache provider</param>
+        public JobReportingController(ILogger<JobReportingController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
 
         }
@@ -35,27 +37,27 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get user groups
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
-        [HttpPost("ListAdaptorUserGroups")]
+        [HttpGet("ListAdaptorUserGroups")]
         [RequestSizeLimit(58)]
         [ProducesResponseType(typeof(IEnumerable<AdaptorUserGroupExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult ListAdaptorUserGroups(ListAdaptorUserGroupsModel model)
+        public IActionResult ListAdaptorUserGroups(string sessionCode)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"ListAdaptorUserGroups\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new JobReportingValidator(model).Validate();
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"ListAdaptorUserGroups\" Parameters: SessionCode: \"{sessionCode}\"");
+                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.ListAdaptorUserGroups(model.SessionCode));
+                return Ok(_service.ListAdaptorUserGroups(sessionCode));
             }
             catch (Exception e)
             {
@@ -149,6 +151,68 @@ namespace HEAppE.RestApi.Controllers
                 }
 
                 return Ok(_service.GetResourceUsageReportForJob(model.JobId, model.SessionCode));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get job state aggregation report
+        /// </summary>
+        /// <param name="sessionCode">Session code</param>
+        /// <returns></returns>
+        [HttpGet("GetJobsStateAgregationReport")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(IEnumerable<JobStateAggregationReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult GetJobAgregationReport(string sessionCode)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetJobsStateAgregationReport\" Parameters: SessionCode: \"{sessionCode}\"");
+                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetJobsStateAgregationReport(sessionCode));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get job detailed report
+        /// </summary>
+        /// <param name="sessionCode">Session code</param>
+        /// <returns></returns>
+        [HttpGet("GetJobsDetailedReport")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(IEnumerable<SubmittedJobInfoReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        public IActionResult GetJobsDetailedReport(string sessionCode)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetJobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");
+                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetJobsDetailedReport(sessionCode));
             }
             catch (Exception e)
             {

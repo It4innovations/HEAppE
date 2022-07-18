@@ -48,7 +48,9 @@ services:
       - sshagent_internal_network
       - db_internal_network
       - external_network
-      
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
 volumes:
   app_volume:
   app_sftp_temp_volume:

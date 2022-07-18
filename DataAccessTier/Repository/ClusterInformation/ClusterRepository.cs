@@ -1,7 +1,5 @@
 ﻿using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DomainObjects.ClusterInformation;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace HEAppE.DataAccessTier.Repository.ClusterInformation
 {

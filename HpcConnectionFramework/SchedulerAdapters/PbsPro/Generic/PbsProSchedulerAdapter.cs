@@ -172,7 +172,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             catch (SshCommandException ce)
             {
 
-                if(!Regex.Match(ce.Message, "qdel: Job has finished", RegexOptions.Compiled).Success)
+                if (!Regex.Match(ce.Message, "qdel: Job has finished", RegexOptions.Compiled).Success)
                 {
                     throw ce;
                 }
@@ -244,19 +244,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <returns></returns>
         public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
         {
-            var genericCommandParameters = new List<string>();
-            string shellCommand = $"cat {userScriptPath}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
-            _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
-
-            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
-            {
-                if (match.Success && match.Groups.Count == 2)
-                {
-                    genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
-                }
-            }
-            return genericCommandParameters;
+            return _commands.GetParametersFromGenericUserScript(connectorClient, userScriptPath);
         }
 
         /// <summary>
@@ -274,10 +262,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// Remove direct file transfer access for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public key</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
+        /// <param name="publicKeys">Public keys</param>
+        public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey);
+            _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys);
         }
 
         /// <summary>

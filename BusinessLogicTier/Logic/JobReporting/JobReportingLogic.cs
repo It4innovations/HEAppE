@@ -1,45 +1,72 @@
-﻿using System.Reflection;
-using log4net;
-using System.Collections.Generic;
-using System.Linq;
+﻿using HEAppE.BusinessLogicTier.Logic.JobReporting.Converts;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
+using log4net;
 using System;
-using HEAppE.BusinessLogicTier.Logic.JobReporting.Converts;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting
 {
     internal class JobReportingLogic : IJobReportingLogic
     {
-        protected static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        protected readonly IUnitOfWork unitOfWork;
+        #region Instance
+        /// <summary>
+        /// Unit of work
+        /// </summary>
+        protected readonly IUnitOfWork _unitOfWork;
 
+        /// <summary>
+        /// Log instance
+        /// </summary>
+        protected readonly ILog _log;
+        #endregion
+        #region Constructors
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="unitOfWork">Unit of work</param>
         internal JobReportingLogic(IUnitOfWork unitOfWork)
         {
-            this.unitOfWork = unitOfWork;
+            _unitOfWork = unitOfWork;
+            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        }
+        #endregion
+        #region IJobReporting Methods
+        public IEnumerable<AdaptorUserGroup> GetAdaptorUserGroups()
+        {
+            return _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroups();
         }
 
-        public IList<AdaptorUserGroup> ListAdaptorUserGroups()
+        public IEnumerable<JobStateAggregationReport> GetAggregatedJobsByStateReport()
         {
-            return unitOfWork.AdaptorUserGroupRepository.GetAll();
+            return _unitOfWork.SubmittedJobInfoRepository.GetAll().GroupBy(g => g.State)
+                                                                  .Select(s => new JobStateAggregationReport
+                                                                  {
+                                                                      State = s.Key,
+                                                                      Count = s.Count()
+                                                                  }).ToList();
+        }
+
+        public IEnumerable<SubmittedJobInfoUsageReport> GetResourceUsageReport()
+        {
+            return _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAndAdaptorUser().Select(s => s.ConvertToUsageReport());
         }
 
         public SubmittedJobInfoUsageReport GetResourceUsageReportForJob(long jobId)
         {
-            return unitOfWork.SubmittedJobInfoRepository.GetById(jobId)?.ConvertToUsageReport()?? new SubmittedJobInfoUsageReport();
+            return _unitOfWork.SubmittedJobInfoRepository.GetById(jobId)?.ConvertToUsageReport() ?? new SubmittedJobInfoUsageReport();
         }
 
-
-        public virtual UserResourceUsageReport GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime)
+        public UserResourceUsageReport GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime)
         {
-            AdaptorUser user = unitOfWork.AdaptorUserRepository.GetById(userId);
+            AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId);
             var userTotalUsage = GetResourceUsageForUser(user, startTime, endTime, out ICollection<NodeTypeAggregatedUsage> userNodeTypeAggregatedUsage);
 
-            UserResourceUsageReport userReport = new UserResourceUsageReport
+            var userReport = new UserResourceUsageReport
             {
                 User = user,
                 NodeTypeReport = userNodeTypeAggregatedUsage,
@@ -50,13 +77,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             return userReport;
         }
 
-        public virtual UserGroupResourceUsageReport GetUserGroupResourceUsageReport(long userId, long groupId, DateTime startTime, DateTime endTime)
+        public UserGroupResourceUsageReport GetUserGroupResourceUsageReport(long userId, long groupId, DateTime startTime, DateTime endTime)
         {
             double? groupTotalUsage = 0;
             var userAggregatedReports = new List<UserAggregatedUsage>();
 
-
-            AdaptorUserGroup group = unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
+            AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
             foreach (AdaptorUser user in group.Users)
             {
                 var userResourceUsageReport = GetUserResourceUsageReport(user.Id, startTime, endTime).ConvertUsageReportToAggregatedUsage();
@@ -74,31 +100,31 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             };
             return userGroupReport;
         }
-
+        #endregion
         #region Private Methods
         private double? GetResourceUsageForUser(AdaptorUser user, DateTime startTime, DateTime endTime, out ICollection<NodeTypeAggregatedUsage> nodeTypeAggregatedUsage)
         {
             double? userTotalUsage = 0;
-            var selectedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork)
-                                                             .GetJobsForUser(user).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime)
-                                                              .ToList();
-
             nodeTypeAggregatedUsage = new List<NodeTypeAggregatedUsage>();
+
+            var selectedJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(user.Id).Where(w => w.SubmitTime >= startTime && w.SubmitTime <= endTime);
+
             if (selectedJobs is null)
             {
                 return default;
             }
 
-            var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork).ListClusterNodeTypes();
+            var nodeTypes = _unitOfWork.ClusterNodeTypeRepository.GetAll();
             foreach (ClusterNodeType nodeType in nodeTypes)
             {
                 double? nodeTotalUsage = 0;
 
-                //Job with tasks reports
-                var tasksInfoUsageReport = new List<SubmittedTaskInfoExtendedUsageReport>();
+                var tasksInfoUsageReport = new List<SubmittedTaskInfoUsageReportExtended>();
                 foreach (var job in selectedJobs)
                 {
-                    var selectedTasksInfoUsageReport = job.Tasks.Where(w => w.NodeType == nodeType).Select(s => s.ConvertToExtendedUsageReport(job)).ToList();
+                    var selectedTasksInfoUsageReport = job.Tasks.Where(w => w.NodeType == nodeType)
+                                                                                                  .Select(s => s.ConvertToExtendedUsageReport(job))
+                                                                                                  .ToList();
 
                     tasksInfoUsageReport.AddRange(selectedTasksInfoUsageReport);
                     nodeTotalUsage += selectedTasksInfoUsageReport.Sum(s => s.Usage);
@@ -106,13 +132,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                 userTotalUsage += nodeTotalUsage;
 
                 //NodeType report
-                nodeTypeAggregatedUsage.Add(
-                    new NodeTypeAggregatedUsage
-                    {
-                        NodeType = nodeType,
-                        SubmittedTasks = tasksInfoUsageReport,
-                        TotalUsage = nodeTotalUsage
-                    }
+                nodeTypeAggregatedUsage.Add(new NodeTypeAggregatedUsage
+                {
+                    NodeType = nodeType,
+                    SubmittedTasks = tasksInfoUsageReport,
+                    TotalUsage = nodeTotalUsage
+                }
                 );
             }
             return userTotalUsage;

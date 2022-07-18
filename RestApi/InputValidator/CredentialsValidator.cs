@@ -18,14 +18,14 @@ namespace HEAppE.RestApi.InputValidator
                 PasswordCredentialsExt ext => ValidateUserPasswordCredentials(ext),
                 OpenIdCredentialsExt ext => ValidateOpenIdCredentials(ext),
                 DigitalSignatureCredentialsExt ext => ValidateDigitalSignatureCredentials(ext),
-                AsymmetricKeyCredentialsExt ext => ValidateAsymmetricKeyCredentials(ext),
+                FileTransferKeyCredentialsExt ext => ValidateAsymmetricKeyCredentials(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
         }
 
-        private string ValidateAsymmetricKeyCredentials(AsymmetricKeyCredentialsExt credentials)
+        private string ValidateAsymmetricKeyCredentials(FileTransferKeyCredentialsExt credentials)
         {
             if (string.IsNullOrEmpty(credentials.Username))
             {

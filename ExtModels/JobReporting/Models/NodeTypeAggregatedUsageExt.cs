@@ -1,5 +1,6 @@
 ﻿using HEAppE.ExtModels.ClusterInformation.Models;
 using System;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.JobReporting.Models
@@ -11,7 +12,7 @@ namespace HEAppE.ExtModels.JobReporting.Models
         public ClusterNodeTypeExt ClusterNodeType { get; set; }
 
         [DataMember(Name = "SubmittedTasks")]
-        public SubmittedTaskInfoExtendedUsageReportExt[] SubmittedTasks { get; set; }
+        public IEnumerable<SubmittedTaskInfoUsageReportExtendedExt> SubmittedTasks { get; set; }
 
         [DataMember(Name = "TotalCorehoursUsage")]
         public double? TotalCorehoursUsage { get; set; }

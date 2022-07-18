@@ -44,7 +44,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer);
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.ListAdaptorUserGroups().Select(s=>s.ConvertIntToExt());
+                    return jobReportingLogic.GetAdaptorUserGroups().Select(s=>s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
@@ -109,7 +109,43 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.GetResourceUsageReportForJob(jobId).ConvertIntToExt();
+                    return jobReportingLogic.GetResourceUsageReportForJob(jobId).ConvertUsageIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public IEnumerable<JobStateAggregationReportExt> GetJobsStateAgregationReport(string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
+                    var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+                    return reportingLogic.GetAggregatedJobsByStateReport().Select(s => s.ConvertIntToExt());
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public IEnumerable<SubmittedJobInfoReportExt> GetJobsDetailedReport(string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
+                    var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+                    return reportingLogic.GetResourceUsageReport().Select(s => s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)

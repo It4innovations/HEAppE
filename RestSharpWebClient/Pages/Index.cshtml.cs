@@ -86,11 +86,11 @@ namespace RestSharpWebClient.Pages
                 sb.AppendLine(submittedJob.ToString());
 
                 //FileUpload
-                UploadInputFilesAsync((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
+                await UploadInputFilesAsync((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
                 sb.AppendLine(String.Format("All files uploaded"));
 
                 //SubmitJob
-                SubmitJobAsync((long)submittedJob.Id, sessionCode);
+                await SubmitJobAsync((long)submittedJob.Id, sessionCode);
                 sb.AppendLine(String.Format("Job submitted"));
 
                 //MonitorJob         
@@ -136,7 +136,7 @@ namespace RestSharpWebClient.Pages
                 //sb.AppendLine(String.Format("All files uploaded"));
 
                 //SubmitJob
-                SubmitJobAsync((long)submittedJob.Id, sessionCode);
+                await SubmitJobAsync((long)submittedJob.Id, sessionCode);
                 sb.AppendLine(String.Format("Job submitted"));
 
                 AsbSubmittedJob = (long)submittedJob.Id;
@@ -321,7 +321,7 @@ namespace RestSharpWebClient.Pages
                 throw new Exception(response.Content.ToString());
 
             //CancelJob
-            CancelJobAsync(AsbSubmittedJob, sessionCode);
+            await CancelJobAsync(AsbSubmittedJob, sessionCode);
 
             ResponseContent = "ASB job was canceled";
             return Page();
@@ -375,11 +375,11 @@ namespace RestSharpWebClient.Pages
                 sb.AppendLine(submittedJob.ToString());
 
                 //FileUpload
-                UploadInputFilesAsync((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
+                await UploadInputFilesAsync((long)submittedJob.Id, submittedJob.Tasks?.Select(s => s.Id).ToList(), sessionCode);
                 sb.AppendLine(String.Format("All files uploaded"));
 
                 //SubmitJob
-                SubmitJobAsync((long)submittedJob.Id, sessionCode);
+                await SubmitJobAsync((long)submittedJob.Id, sessionCode);
                 sb.AppendLine(String.Format("Job submitted"));
 
                 //TODO DELETE LATER - only for getCurrentInfoForJob
@@ -820,7 +820,7 @@ namespace RestSharpWebClient.Pages
                     case JobStateExt.Finished:
                         //Download output files
                         sb.AppendLine(String.Format("Downloading output files..."));
-                        DownloadOutputFilesAsync((long)submittedJob.Id, sessionCode);
+                        await DownloadOutputFilesAsync((long)submittedJob.Id, sessionCode);
                         sb.AppendLine(String.Format("Output files downloaded."));
                         //DeleteJob
                         sb.AppendLine(String.Format("Cleaning job {0} ...", submittedJob.Id));

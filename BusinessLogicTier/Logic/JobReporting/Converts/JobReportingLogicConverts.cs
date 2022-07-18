@@ -1,9 +1,7 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
 using System;
-using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
 {
@@ -30,14 +28,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
                 SubmitTime = job.SubmitTime,
                 StartTime = job.StartTime,
                 EndTime = job.EndTime,
-                TotalAllocatedTime = job.TotalAllocatedTime ?? 0
+                Submitter = job.Submitter,
+                TotalAllocatedTime = job.TotalAllocatedTime ?? 0,
+                TasksUsageReport = job.Tasks.Select(s => s.ConvertToUsageReport())
             };
-
-            jobInfoUsageReport.TasksUsageReport = job.Tasks.Select(s => s.ConvertToUsageReport());
             jobInfoUsageReport.TotalUsage = jobInfoUsageReport.TasksUsageReport.Sum(s => s.Usage);
             return jobInfoUsageReport;
         }
-
 
         /// <summary>
         /// Convert submitted task to object for usage reporting
@@ -49,16 +46,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
             var taskInfoUsageReport = new SubmittedTaskInfoUsageReport
             {
                 Id = task.Id,
-                Name = task.Name,
-                Priority = task.Priority,
-                State = task.State,
-                CpuHyperThreading = task.CpuHyperThreading ?? false,
                 ScheduledJobId = task.ScheduledJobId,
-                CommandTemplateId = task.Specification.CommandTemplate.Id,
-                AllocatedTime = task.AllocatedTime,
+                Name = task.Name,
+                State = task.State,
+                Specification = task.Specification,
                 StartTime = task.StartTime,
-                Usage = CalculateUsedResourcesForTask(task),
-                EndTime = task.EndTime
+                EndTime = task.EndTime,
+                AllocatedTime = task.AllocatedTime,
+                Usage = CalculateUsedResourcesForTask(task)
             };
 
             return taskInfoUsageReport;
@@ -70,24 +65,22 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
         /// <param name="task">Task</param>
         /// <param name="job">Job</param>
         /// <returns></returns>
-        internal static SubmittedTaskInfoExtendedUsageReport ConvertToExtendedUsageReport(this SubmittedTaskInfo task, SubmittedJobInfo job)
+        internal static SubmittedTaskInfoUsageReportExtended ConvertToExtendedUsageReport(this SubmittedTaskInfo task, SubmittedJobInfo job)
         {
-            var taskInfoExtendedUsageReport = new SubmittedTaskInfoExtendedUsageReport
+            var taskInfoExtendedUsageReport = new SubmittedTaskInfoUsageReportExtended
             {
                 Id = task.Id,
+                ScheduledJobId = task.ScheduledJobId,
                 Name = task.Name,
                 JobId = job.Id,
                 JobName = job.Name,
                 Project = job.Project,
-                Priority = task.Priority,
                 State = task.State,
-                CpuHyperThreading = task.CpuHyperThreading ?? false,
-                ScheduledJobId = task.ScheduledJobId,
-                CommandTemplateId = task.Specification.CommandTemplate.Id,
-                AllocatedTime = task.AllocatedTime,
+                Specification = task.Specification,
                 StartTime = task.StartTime,
-                Usage = CalculateUsedResourcesForTask(task),
-                EndTime = task.EndTime
+                EndTime = task.EndTime,
+                AllocatedTime = task.AllocatedTime,
+                Usage = CalculateUsedResourcesForTask(task)
             };
 
             return taskInfoExtendedUsageReport;

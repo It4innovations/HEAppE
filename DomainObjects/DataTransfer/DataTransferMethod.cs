@@ -1,8 +1,5 @@
-using System.ComponentModel.DataAnnotations.Schema;
-
 namespace HEAppE.DomainObjects.DataTransfer
 {
-    [NotMapped]
     public class DataTransferMethod
     {
         public long SubmittedTaskId { get; set; }

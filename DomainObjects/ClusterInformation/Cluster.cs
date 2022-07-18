@@ -8,6 +8,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
     [Table("Cluster")]
     public class Cluster : IdentifiableDbEntity
     {
+        #region Properties
         [Required]
         [StringLength(50)]
         public string Name { get; set; }
@@ -51,9 +52,15 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         public virtual List<FileTransferMethod> FileTransferMethods { get; set; } = new List<FileTransferMethod>();
 
+        [ForeignKey("ClusterProxyConnection")]
+        public long? ProxyConnectionId { get; set; }
+        public virtual ClusterProxyConnection ProxyConnection { get; set; }
+        #endregion
+        #region Override Methods
         public override string ToString()
         {
             return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, LocalBasepath={LocalBasepath}, SchedulerType={SchedulerType}, TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
         }
+        #endregion
     }
 }

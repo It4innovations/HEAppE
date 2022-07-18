@@ -10,6 +10,9 @@ using HEAppE.Utils.Validation;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.BusinessLogicTier.Logic;
 using System.Threading.Tasks;
+using HEAppE.Utils;
+using Microsoft.Extensions.Caching.Memory;
+using HEAppE.OpenStackAPI.Configuration;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -22,16 +25,17 @@ namespace HEAppE.RestApi.Controllers
     public class UserAndLimitationManagementController : BaseController<UserAndLimitationManagementController>
     {
         #region Instances
-        private IUserAndLimitationManagementService _service = new UserAndLimitationManagementService();
+        private IUserAndLimitationManagementService _service;
         #endregion
         #region Constructors
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="logger">Logger</param>
-        public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger) : base(logger)
+        /// <param name="memoryCache">Memory cache provider</param>
+        public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
-
+            _service = new UserAndLimitationManagementService(_cacheProvider);
         }
         #endregion
         #region Methods

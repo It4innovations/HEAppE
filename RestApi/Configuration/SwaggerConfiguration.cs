@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace HEAppE.RestApi.Configuration
+﻿namespace HEAppE.RestApi.Configuration
 {
     /// <summary>
     /// Swagger setting from config
@@ -30,7 +25,7 @@ namespace HEAppE.RestApi.Configuration
         /// <summary>
         /// API Version
         /// </summary>
-        public static string Version { get; set; }
+        public static string Version => ApplicationAPIConfiguration.Version;
 
         /// <summary>
         /// API Title
