@@ -23,6 +23,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 
         string Name { set; }
 
+        string Project { set; }
+
         IEnumerable<TaskDependency> DependsOn { set; }
 
         bool IsExclusive { set; }

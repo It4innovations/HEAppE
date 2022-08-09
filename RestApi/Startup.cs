@@ -143,9 +143,9 @@ namespace HEAppE.RestApi
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
             var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
-            GlobalContext.Properties["instanceName"] = ApplicationAPIConfiguration.InstanceName;
-            GlobalContext.Properties["instanceVersion"] = ApplicationAPIConfiguration.Version; 
-            GlobalContext.Properties["ip"] = ApplicationAPIConfiguration.DeployedIPAddress;
+            GlobalContext.Properties["instanceName"] = DeploymentInformationsConfiguration.Name;
+            GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version; 
+            GlobalContext.Properties["ip"] = DeploymentInformationsConfiguration.DeployedIPAddress;
 
             if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
             {
