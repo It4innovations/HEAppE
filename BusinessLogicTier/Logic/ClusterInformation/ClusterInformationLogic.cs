@@ -152,7 +152,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
         public IEnumerable<ClusterNodeType> ListClusterNodeTypes()
         {
-            return _unitOfWork.ClusterNodeTypeRepository.GetAll();
+            return _unitOfWork.ClusterNodeTypeRepository.GetAllWithPossibleCommands();
         }
 
         public bool IsUserAvailableToRun(ClusterAuthenticationCredentials user)

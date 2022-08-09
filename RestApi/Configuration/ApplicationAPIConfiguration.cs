@@ -17,19 +17,9 @@ namespace HEAppE.RestApi.Configuration
         public static string[] AllowedHosts { get; set; }
 
         /// <summary>
-        /// Instance name
+        /// Deployment settings
         /// </summary>
-        public static string InstanceName { get; set; }
-
-        /// <summary>
-        /// Instance version
-        /// </summary>
-        public static string Version { get; set; }
-
-        /// <summary>
-        /// Instance IP
-        /// </summary>
-        public static string DeployedIPAddress { get; set; }
+        public static DeploymentInformationsConfiguration DeploymentSettings { get; } = new DeploymentInformationsConfiguration();
 
         /// <summary>
         /// Swagger documentation settings

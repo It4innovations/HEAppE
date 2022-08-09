@@ -82,7 +82,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             double? groupTotalUsage = 0;
             var userAggregatedReports = new List<UserAggregatedUsage>();
 
-            AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetById(groupId);
+            AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId);
+            if (group is null)
+            {
+                throw new ApplicationException($"Specified Group Id: \"{groupId}\" is not specified in system!");
+            }
+
             foreach (AdaptorUser user in group.Users)
             {
                 var userResourceUsageReport = GetUserResourceUsageReport(user.Id, startTime, endTime).ConvertUsageReportToAggregatedUsage();

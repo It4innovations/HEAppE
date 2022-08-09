@@ -1,4 +1,5 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
@@ -13,6 +14,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -170,9 +172,15 @@ namespace HEAppE.RestApi.Controllers
                 {
                     return Ok(new InstanceInformationExt()
                     {
-                        InstanceName = ApplicationAPIConfiguration.InstanceName,
-                        Version = ApplicationAPIConfiguration.Version,
-                        DeployedIPAddress = ApplicationAPIConfiguration.DeployedIPAddress
+                        Name = DeploymentInformationsConfiguration.Name,
+                        Description = DeploymentInformationsConfiguration.Description,
+                        Version = DeploymentInformationsConfiguration.Version,
+                        DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
+                        Port = DeploymentInformationsConfiguration.Port,
+                        URL = DeploymentInformationsConfiguration.Host,
+                        URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
+                        DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
+                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList()
                     });
                 }
                 else

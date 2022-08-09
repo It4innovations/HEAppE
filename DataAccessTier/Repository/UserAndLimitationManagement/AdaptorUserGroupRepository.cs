@@ -19,9 +19,19 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         }
         #endregion
         #region Methods
+        public AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id)
+        {
+            return _dbSet.Where(w=> w.Id == id)
+                          .Include(i => i.AdaptorUserUserGroups)
+                          .ThenInclude(i=>i.AdaptorUser)
+                          .FirstOrDefault();
+        }
+
         public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroups()
         {
-            return _dbSet.Include(i => i.AdaptorUserUserGroups).ToList();
+            return _dbSet.Include(i => i.AdaptorUserUserGroups)
+                          .ThenInclude(i => i.AdaptorUser)
+                          .ToList();
         }
 
         public AdaptorUserGroup GetDefaultSubmitterGroup()
