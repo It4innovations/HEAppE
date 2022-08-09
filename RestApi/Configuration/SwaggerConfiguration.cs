@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace HEAppE.RestApi.Configuration
+﻿namespace HEAppE.RestApi.Configuration
 {
     /// <summary>
     /// Swagger setting from config
@@ -11,16 +6,6 @@ namespace HEAppE.RestApi.Configuration
     public sealed class SwaggerConfiguration
     {
         #region Instances
-        /// <summary>
-        /// Host adress with schema
-        /// </summary>
-        private static string _host;
-
-        /// <summary>
-        /// Host postfix addres
-        /// </summary>
-        private static string _hostPostfix;
-
         /// <summary>
         /// Swagger prefix
         /// </summary>
@@ -30,7 +15,7 @@ namespace HEAppE.RestApi.Configuration
         /// <summary>
         /// API Version
         /// </summary>
-        public static string Version { get; set; }
+        public static string Version => DeploymentInformationsConfiguration.Version;
 
         /// <summary>
         /// API Title
@@ -45,19 +30,13 @@ namespace HEAppE.RestApi.Configuration
         /// <summary>
         /// Host adress with schema
         /// </summary>
-        public static string Host
-        {
-            get => _host;
-            set => _host = Utils.RemoveCharacterFromBeginAndEnd(value, '/');
-        }
+        public static string Host => DeploymentInformationsConfiguration.Host;
+
         /// <summary>
         /// Host postfix addres
         /// </summary>
-        public static string HostPostfix
-        {
-            get => _hostPostfix;
-            set => _hostPostfix = Utils.RemoveCharacterFromBeginAndEnd(value, '/');
-        }
+        public static string HostPostfix => DeploymentInformationsConfiguration.HostPostfix;
+
         /// <summary>
         /// Swagger prefix
         /// </summary>

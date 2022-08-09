@@ -1,4 +1,6 @@
-﻿namespace HEAppE.DomainObjects.DataTransfer
+﻿using System.ComponentModel.DataAnnotations.Schema;
+
+namespace HEAppE.DomainObjects.DataTransfer
 {
     /// <summary>
     /// HTTP header

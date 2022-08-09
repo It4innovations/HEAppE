@@ -8,9 +8,9 @@ namespace HEAppE.BackgroundThread.Tasks
     ///   Get all unfinished jobs from db and load their status from cluster
     ///   and updates their status in DB
     /// </summary>
-    internal class GetAllJobsInfo : AbstractTask, IBackgroundTask
+    internal class UpdateUnfinishedJobsTask : AbstractTask, IBackgroundTask
     {
-        public GetAllJobsInfo(TimeSpan interval) : base(interval)
+        public UpdateUnfinishedJobsTask(TimeSpan interval) : base(interval)
         {
         }
 

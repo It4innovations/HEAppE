@@ -1,3 +1,4 @@
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
 using System.Collections.Generic;
@@ -33,5 +34,7 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation
         public virtual JobSpecification Specification { get; set; }
 
         public virtual List<SubmittedTaskInfo> Tasks { get; set; } = new List<SubmittedTaskInfo>();
+
+        public virtual List<FileTransferTemporaryKey> FileTransferTemporaryKeys { get; set; } = new List<FileTransferTemporaryKey>();
     }
 }

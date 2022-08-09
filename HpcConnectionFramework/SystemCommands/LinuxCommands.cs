@@ -4,7 +4,10 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.Utils;
 using log4net;
 using Renci.SshNet;
+using System;
+using System.Collections.Generic;
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
@@ -13,6 +16,12 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
     /// </summary>
     internal class LinuxCommands : ICommands
     {
+        #region Isntances
+        /// <summary>
+        /// Generic commnad key parameter
+        /// </summary>
+        protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
+        #endregion
         #region Properties
         /// <summary>
         /// Command
@@ -46,6 +55,29 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
         #endregion
         #region ICommands Members
+        /// <summary>
+        /// Get generic command templates parameters from script
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="userScriptPath">Generic script path</param>
+        /// <returns></returns>
+        public IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
+        {
+            var genericCommandParameters = new List<string>();
+            string shellCommand = $"cat {userScriptPath}";
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
+            _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
+
+            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            {
+                if (match.Success && match.Groups.Count == 2)
+                {
+                    genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
+                }
+            }
+            return genericCommandParameters;
+        }
+
         /// <summary>
         /// Copy job data to temp folder
         /// </summary>
@@ -85,21 +117,27 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="jobInfo">Job information</param>
         public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
         {
-            publicKey = StringUtils.RemoveWhitespace(publicKey);
+            publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.AddFiletransferKeyCmdPath} {publicKey} {jobInfo.Specification.Id}");
-            _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result}\"");
+            _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>
         /// Remove direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public key</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
+        /// <param name="publicKeys">Public keys</param>
+        public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
         {
-            publicKey = StringUtils.RemoveWhitespace(publicKey);
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.RemoveFiletransferKeyCmdPath} {publicKey}");
-            _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result}\"");
+            var cmdBuilder = new StringBuilder();
+            foreach (var publicKey in publicKeys)
+            {
+                string base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
+                cmdBuilder.Append($"{_commandScripts.RemoveFiletransferKeyCmdPath} {base64PublicKey};");
+            }
+
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
+            _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>

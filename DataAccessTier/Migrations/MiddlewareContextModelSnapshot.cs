@@ -16,7 +16,7 @@ namespace HEAppE.DataAccessTier.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasAnnotation("Relational:MaxIdentifierLength", 128)
-                .HasAnnotation("ProductVersion", "5.0.14")
+                .HasAnnotation("ProductVersion", "5.0.17")
                 .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
@@ -56,6 +56,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int?>("Port")
                         .HasColumnType("int");
 
+                    b.Property<long?>("ProxyConnectionId")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("SchedulerType")
                         .HasColumnType("int");
 
@@ -71,6 +74,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bit");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProxyConnectionId");
 
                     b.HasIndex("ServiceAccountCredentialsId");
 
@@ -194,6 +199,37 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("ClusterNodeTypeRequestedGroup");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterProxyConnection", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("Host")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("Password")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<int>("Port")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Username")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClusterProxyConnection");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.FileTransfer.FileSpecification", b =>
                 {
                     b.Property<long>("Id")
@@ -240,6 +276,34 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("ClusterId");
 
                     b.ToTable("FileTransferMethod");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.FileTransfer.FileTransferTemporaryKey", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<DateTime>("AddedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("PublicKey")
+                        .IsRequired()
+                        .HasMaxLength(1500)
+                        .HasColumnType("nvarchar(1500)");
+
+                    b.Property<long>("SubmittedJobId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SubmittedJobId");
+
+                    b.ToTable("FileTransferTemporaryKey");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
@@ -1168,8 +1232,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Password")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
 
                     b.Property<string>("PublicKey")
                         .HasColumnType("text");
@@ -1358,9 +1422,15 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
+                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterProxyConnection", "ProxyConnection")
+                        .WithMany()
+                        .HasForeignKey("ProxyConnectionId");
+
                     b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ServiceAccountCredentials")
                         .WithMany()
                         .HasForeignKey("ServiceAccountCredentialsId");
+
+                    b.Navigation("ProxyConnection");
 
                     b.Navigation("ServiceAccountCredentials");
                 });
@@ -1417,6 +1487,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.Navigation("Cluster");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.FileTransfer.FileTransferTemporaryKey", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedJobInfo", "SubmittedJob")
+                        .WithMany("FileTransferTemporaryKeys")
+                        .HasForeignKey("SubmittedJobId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("SubmittedJob");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
@@ -1843,6 +1924,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedJobInfo", b =>
                 {
+                    b.Navigation("FileTransferTemporaryKeys");
+
                     b.Navigation("Tasks");
                 });
 

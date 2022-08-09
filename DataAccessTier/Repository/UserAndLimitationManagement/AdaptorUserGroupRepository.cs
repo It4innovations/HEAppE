@@ -1,6 +1,8 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 {
@@ -17,6 +19,21 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         }
         #endregion
         #region Methods
+        public AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id)
+        {
+            return _dbSet.Where(w=> w.Id == id)
+                          .Include(i => i.AdaptorUserUserGroups)
+                          .ThenInclude(i=>i.AdaptorUser)
+                          .FirstOrDefault();
+        }
+
+        public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroups()
+        {
+            return _dbSet.Include(i => i.AdaptorUserUserGroups)
+                          .ThenInclude(i => i.AdaptorUser)
+                          .ToList();
+        }
+
         public AdaptorUserGroup GetDefaultSubmitterGroup()
         {
             return GetAll().FirstOrDefault(w => w.Name == _defaultGroupName);

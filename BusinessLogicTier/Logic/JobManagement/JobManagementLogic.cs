@@ -250,7 +250,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return taskInfo;
         }
 
-
         public virtual IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser)
         {
             return _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
@@ -574,7 +573,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
             //Combination parameters from template
             taskSpecification.Priority ??= taskSpecification.ClusterNodeType.TaskTemplate.Priority;
-            taskSpecification.Project ??= taskSpecification.ClusterNodeType.TaskTemplate.Project;
+
+
+            if(taskSpecification.Project != taskSpecification.JobSpecification.SubmitterGroup.AccountingString)
+            {
+                taskSpecification.Project = taskSpecification.JobSpecification.SubmitterGroup.AccountingString;
+            }           
         }
 
         /// <summary>

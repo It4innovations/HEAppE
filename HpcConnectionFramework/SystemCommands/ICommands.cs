@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
@@ -16,6 +17,14 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// Execution command script path
         /// </summary>
         string ExecutieCmdScriptPath { get; }
+
+        /// <summary>
+        /// Get generic command templates parameters from script
+        /// </summary>
+        /// <param name="connectorClient">Connector</param>
+        /// <param name="userScriptPath">Generic script path</param>
+        /// <returns></returns>
+        IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath);
 
         /// <summary>
         /// Copy job data to temp folder
@@ -46,8 +55,8 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// Remove direct file transfer acces for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public key</param>
-        void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey);
+        /// <param name="publicKeys">Public keys</param>
+        void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys);
 
         /// <summary>
         /// Create job directory

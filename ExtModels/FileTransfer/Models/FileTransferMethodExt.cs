@@ -1,4 +1,4 @@
-﻿using System;
+﻿using HEAppE.ExtModels.ClusterInformation.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
@@ -16,12 +16,18 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         [DataMember(Name = "Protocol")]
         public FileTransferProtocolExt? Protocol { get; set; }
 
+        [DataMember(Name = "ProxyConnection", IsRequired = false, EmitDefaultValue = false)]
+        public ClusterProxyConnectionExt ProxyConnection { get; set; }
+
+        [DataMember(Name = "FileTransferCipherType")]
+        public FileTransferCipherTypeExt? FileTransferCipherType { get; set; }
+
         [DataMember(Name = "Credentials")]
-        public AsymmetricKeyCredentialsExt Credentials { get; set; }
+        public FileTransferKeyCredentialsExt Credentials { get; set; }
 
         public override string ToString()
         {
-            return $"FileTransferMethodExt(serverHostname={ServerHostname}; sharedBasepath={SharedBasepath}; protocol={Protocol}; credentials={Credentials})";
+            return $"FileTransferMethodExt: ServerHostname={ServerHostname}, SharedBasepath={SharedBasepath}, Protocol={Protocol}, FileTransferCipherType={FileTransferCipherType}, Credentials={Credentials}, ProxyConnection={ProxyConnection}";
         }
     }
 }

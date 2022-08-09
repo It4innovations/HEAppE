@@ -1,6 +1,5 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -8,6 +7,8 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.JobReporting.Converts;
+using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using log4net;

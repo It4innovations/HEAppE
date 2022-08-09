@@ -30,6 +30,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         }
         #endregion
         #region ISchedulerTaskAdapter Members
+
         /// <summary>
         /// Task allocation command
         /// </summary>
@@ -109,6 +110,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         }
 
         /// <summary>
+        /// Project (Accounting string)
+        /// </summary>
+        public string Project
+        {
+            set
+            {
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
+            }
+        }
+
+        /// <summary>
         /// Task depend on
         /// </summary>
         public IEnumerable<TaskDependency> DependsOn
@@ -131,7 +143,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         {
             set
             {
-                _taskBuilder.Append(" -l place=free:excl");
+                _taskBuilder.Append(value ? " -l place=free:excl" : string.Empty);
             }
         }
 

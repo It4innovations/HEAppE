@@ -15,7 +15,7 @@
         }
         #endregion
         #region Methods
-        public bool ProcessResult(string remoteNodeTimeZone, SftpCommandResult result)
+        public bool ProcessResult(SftpCommandResult result)
         {
             return result.ExitStatus == 0;
         }

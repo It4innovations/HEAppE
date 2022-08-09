@@ -1,27 +1,18 @@
-﻿using System.Collections.Generic;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Collections.Generic;
 
 namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 {
     public interface IClusterInformationLogic
     {
-
-        IList<Cluster> ListAvailableClusters();
-
+        IEnumerable<Cluster> ListAvailableClusters();
         ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser);
-
         IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, AdaptorUser loggedUser);
-
         ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId);
-
         ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId);
-
         Cluster GetClusterById(long clusterId);
-
-        IList<ClusterNodeType> ListClusterNodeTypes();
-
+        IEnumerable<ClusterNodeType> ListClusterNodeTypes();
         bool IsUserAvailableToRun(ClusterAuthenticationCredentials user);
     }
 }

@@ -59,22 +59,22 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
         }
 
-        internal IEnumerable<SftpFile> ListDirectory(string remotePath)
+        internal IEnumerable<SftpFile> ListDirectory(string hostTimeZone, string remotePath)
         {
             var items = new List<SftpFile>();
             switch (_sftpClient)
             {
                 case NoAuthenticationSftpClient noAuthenticationSftpClient:
                     string remoteWorkingDirectory = noAuthenticationSftpClient.RunCommand(new WorkingDirectory());
-                    var result = noAuthenticationSftpClient.RunCommand(new ListDirectory(remotePath, remoteWorkingDirectory));
+                    var result = noAuthenticationSftpClient.RunCommand(new ListDirectory(hostTimeZone, remotePath, remoteWorkingDirectory));
                     items.AddRange(result);
                     break;
 
-                case ExtendedSftpClient extendedSftpClient:
+                case SftpClient sftpClient:
                     {
                         try
                         {
-                            var resultItems = extendedSftpClient.ListDirectory(remotePath);
+                            var resultItems = sftpClient.ListDirectory(remotePath);
                             foreach (var item in resultItems)
                             {
                                 items.Add(new SftpFile
@@ -82,7 +82,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                                     FullName = item.FullName,
                                     IsDirectory = item.IsDirectory,
                                     IsSymbolicLink = item.IsSymbolicLink,
-                                    LastWriteTime = item.LastWriteTime.Convert(extendedSftpClient.GetTimeZone()),
+                                    LastWriteTime = item.LastWriteTime.Convert(hostTimeZone),
                                     Name = item.Name
                                 });
                             }
@@ -90,18 +90,16 @@ namespace HEAppE.FileTransferFramework.Sftp
                         catch (Renci.SshNet.Common.SshException exception)
                         {
                             //if directory is empty 'No such file' exception is raised, handle that case
-                            switch(exception.Message)
+                            switch (exception.Message)
                             {
                                 case "No such file":
                                     break;
                                 default:
                                     throw;
                             }
-
                         }
-
-                    }break;
-
+                    }
+                    break;
                 default:
                     {
                         var resultItems = _sftpClient.ListDirectory(remotePath);
@@ -116,7 +114,8 @@ namespace HEAppE.FileTransferFramework.Sftp
                                 Name = item.Name
                             });
                         }
-                    }break;
+                    }
+                    break;
             }
             return items;
         }
@@ -159,7 +158,7 @@ namespace HEAppE.FileTransferFramework.Sftp
 
         internal void DownloadFile(string fullName, FileStream targetStream)
         {
-            if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
+            if (_sftpClient is NoAuthenticationSftpClient)
             {
                 throw new Exception("NoAuthenticationSftpClient has not implemented download file method!");
             }
@@ -171,7 +170,7 @@ namespace HEAppE.FileTransferFramework.Sftp
 
         internal void CreateDirectory(string targetPath)
         {
-            if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
+            if (_sftpClient is NoAuthenticationSftpClient)
             {
                 throw new Exception("NoAuthenticationSftpClient has not implemented created directory method!");
             }
@@ -183,7 +182,7 @@ namespace HEAppE.FileTransferFramework.Sftp
 
         internal void UploadFile(FileStream sourceStream, string targetFilePath, bool v)
         {
-            if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
+            if (_sftpClient is NoAuthenticationSftpClient)
             {
                 throw new Exception("NoAuthenticationSftpClient has not implemented upload file method!");
             }
@@ -197,7 +196,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         {
             if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             {
-                MemoryStream ms = new MemoryStream();
+                var ms = new MemoryStream();
                 noAuthenticationSftpClient.RunCommand(new DownloadFile(path, ms));
                 return ms;
             }

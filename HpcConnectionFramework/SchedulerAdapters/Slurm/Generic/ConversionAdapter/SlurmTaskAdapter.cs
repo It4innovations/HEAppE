@@ -114,6 +114,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         }
 
         /// <summary>
+        /// Project (Accounting string)
+        /// </summary>
+        public string Project
+        {
+            set
+            {
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" -A {value}" : string.Empty);
+            }
+        }
+
+        /// <summary>
         /// Task depend on
         /// </summary>
         public IEnumerable<TaskDependency> DependsOn

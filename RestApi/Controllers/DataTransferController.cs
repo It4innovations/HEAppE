@@ -6,6 +6,7 @@ using HEAppE.ServiceTier.DataTransfer;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
@@ -27,7 +28,12 @@ namespace HEAppE.RestApi.Controllers
         private readonly IDataTransferService _service = new DataTransferService();
         #endregion
         #region Constructors
-        public DataTransferController(ILogger<DataTransferController> logger) : base(logger)
+        /// <summary>
+        /// Constructor
+        /// </summary>
+        /// <param name="logger">Logger instance</param>
+        /// <param name="memoryCache">Memory cache provider</param>
+        public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache) : base(logger, memoryCache)
         {
 
         }

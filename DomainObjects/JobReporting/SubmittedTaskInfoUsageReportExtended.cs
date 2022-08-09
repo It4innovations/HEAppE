@@ -4,7 +4,7 @@ using System.Text;
 
 namespace HEAppE.DomainObjects.JobReporting
 {
-    public class SubmittedTaskInfoExtendedUsageReport : SubmittedTaskInfoUsageReport
+    public class SubmittedTaskInfoUsageReportExtended : SubmittedTaskInfoUsageReport
     {
         public long JobId { get; set; }
 

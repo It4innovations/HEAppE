@@ -42,11 +42,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// SSH tunnel
         /// </summary>
         protected static SshTunnelUtils _sshTunnelUtil;
-
-        /// <summary>
-        /// Generic commnad key parameter
-        /// </summary>
-        protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
         #endregion
         #region Constructors
         /// <summary>
@@ -217,18 +212,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <returns></returns>
         public virtual IEnumerable<string> GetParametersFromGenericUserScript(object connectorClient, string userScriptPath)
         {
-            var genericCommandParameters = new List<string>();
-            string shellCommand = $"cat {userScriptPath}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
-
-            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
-            {
-                if (match.Success && match.Groups.Count == 2)
-                {
-                    genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
-                }
-            }
-            return genericCommandParameters;
+            return _commands.GetParametersFromGenericUserScript(connectorClient, userScriptPath);
         }
 
         /// <summary>
@@ -246,10 +230,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// Remove direct file transfer access for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="publicKey">Public key</param>
-        public void RemoveDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey)
+        /// <param name="publicKeys">Public keys</param>
+        public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
         {
-            _commands.RemoveDirectFileTransferAccessForUserToJob(connectorClient, publicKey);
+            _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys);
         }
 
         /// <summary>

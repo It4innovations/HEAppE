@@ -9,7 +9,7 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
         public string Command => "pwd";
         #endregion
         #region Methods
-        public string ProcessResult(string remoteNodeTimeZone, SftpCommandResult result)
+        public string ProcessResult(SftpCommandResult result)
         {
             var text = Regex.Replace(result.Output, @"\s{2,}", " ");
             var lines = Regex.Split(text, "\r\n|\r|\n").ToList();

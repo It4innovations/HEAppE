@@ -6,7 +6,7 @@ using System.Text;
 namespace HEAppE.ExtModels.JobReporting.Models
 {
     [DataContract(Name = "SubmittedTaskInfoExtendedUsageReportExt")]
-    public class SubmittedTaskInfoExtendedUsageReportExt: SubmittedTaskInfoUsageReportExt
+    public class SubmittedTaskInfoUsageReportExtendedExt: SubmittedTaskInfoUsageReportExt
     {
         [DataMember(Name = "JobId")]
         public long JobId { get; set; }
@@ -18,7 +18,7 @@ namespace HEAppE.ExtModels.JobReporting.Models
         public string Project { get; set; }
         public override string ToString()
         {
-            return $"SubmittedTaskInfoUsageExtendedReportExt(id={Id}; name={Name}; jobId={JobId}; jobName={JobName}; project={Project} priority={Priority}; state={State}; cpuHyperThreading={CpuHyperThreading}; schedulerJobId={ScheduledJobId}; commandTemplateId={CommandTemplateId}; allocatedTime={AllocatedTime}; corehoursUsage={CorehoursUsage}; startTime={StartTime}; endTime={EndTime})";
+            return $"SubmittedTaskInfoUsageExtendedReportExt(id={Id}; name={Name}; jobId={JobId}; jobName={JobName}; project={Project} state={State}; schedulerJobId={ScheduledJobId}; commandTemplateId={CommandTemplateId}; allocatedTime={AllocatedTime}; corehoursUsage={CorehoursUsage}; startTime={StartTime}; endTime={EndTime})";
         }
     }
 }

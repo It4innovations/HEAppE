@@ -55,7 +55,7 @@ namespace HEAppE.OpenStackAPI
                     NoCache = true,
                     NoStore = true
                 },
-                Timeout = OpenStackSettings.ConnectionTimeout
+                MaxTimeout = OpenStackSettings.ConnectionTimeout
             };
             _basicRestClient = new RestClient(options);
         }

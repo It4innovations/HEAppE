@@ -4,13 +4,13 @@
     {
         string Command { get; }
 
-        T ProcessResult(string remoteNodeTimeZone, SftpCommandResult result);
+        T ProcessResult(SftpCommandResult result);
     }
 
     public interface ICommand
     {
         string Command { get; }
 
-        void ProcessResult(string remoteNodeTimeZone, SftpCommandResult result);
+        void ProcessResult(SftpCommandResult result);
     }
 }

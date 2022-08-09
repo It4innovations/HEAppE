@@ -2,7 +2,7 @@
 
 namespace HEAppE.DomainObjects.JobReporting
 {
-    public class AggregatedUsage
+    public abstract class AggregatedUsage
     {
         public double? TotalUsage { get; set; }
     }

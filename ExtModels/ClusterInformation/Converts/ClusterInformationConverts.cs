@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using System;
@@ -8,14 +9,15 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 {
     public static class ClusterInformationConverts
     {
+        #region Public Methods
         public static ClusterExt ConvertIntToExt(this Cluster cluster)
         {
-            ClusterExt convert = new ClusterExt()
+            var convert = new ClusterExt()
             {
                 Id = cluster.Id,
                 Name = cluster.Name,
                 Description = cluster.Description,
-                NodeTypes = cluster.NodeTypes.Select(s=>s.ConvertIntToExt())
+                NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt())
                                               .ToArray()
             };
             return convert;
@@ -23,7 +25,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 
         public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
         {
-            ClusterNodeTypeExt convert = new ClusterNodeTypeExt()
+            var convert = new ClusterNodeTypeExt()
             {
                 Id = nodeType.Id,
                 Name = nodeType.Name,
@@ -31,6 +33,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 NumberOfNodes = nodeType.NumberOfNodes,
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
+                FileTransferMethodId = nodeType.FileTransferMethodId,
                 CommandTemplates = nodeType.PossibleCommands.Where(c=>c.IsEnabled).Select(s=> s.ConvertIntToExt())
                                                              .ToArray()
             };
@@ -39,12 +42,13 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 
         public static CommandTemplateExt ConvertIntToExt(this CommandTemplate commandTemplate)
         {
-            CommandTemplateExt convert = new CommandTemplateExt()
+            var convert = new CommandTemplateExt()
             {
                 Id = commandTemplate.Id,
                 Name = commandTemplate.Name,
                 Description = commandTemplate.Description,
                 Code = commandTemplate.Code,
+                IsGeneric = commandTemplate.IsGeneric,
                 TemplateParameters = commandTemplate.TemplateParameters.Where(w=> string.IsNullOrEmpty(w.Query) && w.IsVisible)
                                                                         .Select(s=>s.ConvertIntToExt())
                                                                         .ToArray()
@@ -54,7 +58,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 
         private static CommandTemplateParameterExt ConvertIntToExt(this CommandTemplateParameter templateParameter)
         {
-            CommandTemplateParameterExt convert = new CommandTemplateParameterExt
+            var convert = new CommandTemplateParameterExt
             {
                 Identifier = templateParameter.Identifier,
                 Description = templateParameter.Description
@@ -64,7 +68,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 
         public static ClusterNodeUsageExt ConvertIntToExt(this ClusterNodeUsage nodeUsage)
         {
-            ClusterNodeUsageExt convert = new ClusterNodeUsageExt
+            var convert = new ClusterNodeUsageExt
             {
                 Id = nodeUsage.NodeType.Id,
                 Name = nodeUsage.NodeType.Name,
@@ -79,5 +83,36 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 
             return convert;
         }
+
+        public static ClusterProxyConnectionExt ConvertIntToExt(this ClusterProxyConnection proxyConnection)
+        {
+            var convert = new ClusterProxyConnectionExt
+            {
+                Host = proxyConnection.Host,
+                Port = proxyConnection.Port,
+                Type = ConvertProxyTypeIntToExt(proxyConnection.Type),
+                Username = proxyConnection.Username,
+                Password = proxyConnection.Password
+            };
+
+            return convert;
+        }
+        #endregion
+        #region Private Methods
+        private static ProxyTypeExt ConvertProxyTypeIntToExt(ProxyType? proxyType)
+        {
+            if (!proxyType.HasValue)
+            {
+                throw new InputValidationException("The Proxy type must be set.");
+            }
+
+            if (!Enum.TryParse(proxyType.ToString(), out ProxyTypeExt convert))
+            {
+                throw new InputValidationException("The Proxy type must have value from <1, 2, 3, 4>.");
+            }
+
+            return convert;
+        }
+        #endregion
     }
 }

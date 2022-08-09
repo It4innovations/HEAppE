@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using System.Linq;
 
 namespace HEAppE.RestApi
 {
     /// <summary>
     /// Utils
     /// </summary>
-    internal static  class Utils
+    internal static class Utils
     {
         #region Methods
         /// <summary>

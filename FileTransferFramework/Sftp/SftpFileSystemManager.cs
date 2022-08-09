@@ -6,6 +6,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
+using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -29,14 +30,16 @@ namespace HEAppE.FileTransferFramework.Sftp
         public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
         {
             string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
-            ConnectionInfo connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
+            var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
             try
             {
-                var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
-                using MemoryStream stream = new MemoryStream();
-                string file = jobClusterDirectoryPath + relativeFilePath;
-                client.DownloadFile(file, stream);
-                return stream.ToArray();
+                var client = new SftpClientAdapter((SftpClient)connection.Connection);
+                using (var stream = new MemoryStream())
+                {
+                    string file = jobClusterDirectoryPath + relativeFilePath;
+                    client.DownloadFile(file, stream);
+                    return stream.ToArray();
+                }
             }
             finally
             {
@@ -45,10 +48,10 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath)
         {
-            ConnectionInfo connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser);
+            var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser);
             try
             {
-                var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
+                var client = new SftpClientAdapter((SftpClient)connection.Connection);
                 using var stream = new MemoryStream();
                 var path = absoluteFilePath.Replace("~/", string.Empty).Replace("/~/", string.Empty);
                 client.DownloadFile(path, stream);
@@ -62,24 +65,24 @@ namespace HEAppE.FileTransferFramework.Sftp
         public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
         {
             string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
-            ConnectionInfo connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
+            var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
             try
             {
                 string remotePath = jobClusterDirectoryPath;
-                var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
-                DeleteRemoteDirectory(remotePath, client);
+                var client = new SftpClientAdapter((SftpClient)connection.Connection);
+                DeleteRemoteDirectory(jobInfo.Specification.Cluster.TimeZone, remotePath, client);
             }
             finally
             {
                 _connectionPool.ReturnConnection(connection);
             }
         }
-        protected override void CopyAll(string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials)
+        protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials)
         {
-            ConnectionInfo connection = _connectionPool.GetConnectionForUser(credentials);
+            var connection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
+                var client = new SftpClientAdapter((SftpClient)connection.Connection);
                 if (Uri.IsWellFormedUriString(target, UriKind.Absolute))
                 {
                     CopyAllToSftp(source, target, overwrite, lastModificationLimit, client, excludedFiles);
@@ -88,7 +91,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                 {
                     if (Uri.IsWellFormedUriString(source, UriKind.Absolute))
                     {
-                        CopyAllFromSftp(source, target, overwrite, lastModificationLimit, client, excludedFiles);
+                        CopyAllFromSftp(hostTimeZone, source, target, overwrite, lastModificationLimit, client, excludedFiles);
                     }
                     else
                     {
@@ -101,13 +104,13 @@ namespace HEAppE.FileTransferFramework.Sftp
                 _connectionPool.ReturnConnection(connection);
             }
         }
-        protected override ICollection<FileInformation> ListChangedFilesForTask(string taskClusterDirectoryPath, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials)
+        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials)
         {
-            ConnectionInfo connection = _connectionPool.GetConnectionForUser(credentials);
+            var connection = _connectionPool.GetConnectionForUser(credentials);
             try
             {
-                var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
-                return ListChangedFilesInDirectory(taskClusterDirectoryPath, taskClusterDirectoryPath, lastModificationLimit, credentials, client);
+                var client = new SftpClientAdapter((SftpClient)connection.Connection);
+                return ListChangedFilesInDirectory(hostTimeZone, taskClusterDirectoryPath, taskClusterDirectoryPath, lastModificationLimit, credentials, client);
             }
             finally
             {
@@ -122,12 +125,12 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         #endregion
         #region Local Methods
-        private void DeleteRemoteDirectory(string remotePath, SftpClientAdapter client)
+        private void DeleteRemoteDirectory(string hostTimeZone, string remotePath, SftpClientAdapter client)
         {
             _logger.LogDebug($"Starting delete remote directory {remotePath}");
             if (client.Exists(remotePath))
             {
-                foreach (SftpFile file in client.ListDirectory(remotePath))
+                foreach (SftpFile file in client.ListDirectory(hostTimeZone, remotePath))
                 {
                     if (file.Name == "." || file.Name == "..")
                     {
@@ -144,7 +147,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                         if (file.IsDirectory)
                         {
                             _logger.LogDebug($"Deleting subdirectory {file.Name}");
-                            DeleteRemoteDirectory(file.FullName, client);
+                            DeleteRemoteDirectory(hostTimeZone, file.FullName, client);
                         }
                         else
                         {
@@ -159,7 +162,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
         }
 
-        private void CopyAllFromSftp(string source, string target, bool overwrite, DateTime? lastModificationLimit, SftpClientAdapter client, string[] excludedFiles)
+        private void CopyAllFromSftp(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit, SftpClientAdapter client, string[] excludedFiles)
         {
             string sourcePath = source;
             if (!Directory.Exists(target))
@@ -167,7 +170,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                 Directory.CreateDirectory(target);
             }
 
-            foreach (SftpFile file in client.ListDirectory(sourcePath))
+            foreach (SftpFile file in client.ListDirectory(hostTimeZone, sourcePath))
             {
                 if (file.Name == "." || file.Name == "..")
                 {
@@ -176,7 +179,7 @@ namespace HEAppE.FileTransferFramework.Sftp
 
                 if (file.IsDirectory)
                 {
-                    CopyAllFromSftp(FileSystemUtils.ConcatenatePaths(source, file.Name), Path.Combine(target, file.Name), overwrite,
+                    CopyAllFromSftp(hostTimeZone, FileSystemUtils.ConcatenatePaths(source, file.Name), Path.Combine(target, file.Name), overwrite,
                         lastModificationLimit, client, FileSystemUtils.GetExcludedFilesForSubdirectory(excludedFiles, file.Name));
                 }
                 else
@@ -226,10 +229,10 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
         }
 
-        private ICollection<FileInformation> ListChangedFilesInDirectory(string rootDirectory, string currentDirectory, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials, SftpClientAdapter client)
+        private ICollection<FileInformation> ListChangedFilesInDirectory(string hostTimeZone, string rootDirectory, string currentDirectory, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials, SftpClientAdapter client)
         {
             List<FileInformation> results = new List<FileInformation>();
-            foreach (SftpFile file in client.ListDirectory(currentDirectory))
+            foreach (SftpFile file in client.ListDirectory(hostTimeZone, currentDirectory))
             {
                 if (file.Name == "." || file.Name == "..")
                 {
@@ -238,7 +241,7 @@ namespace HEAppE.FileTransferFramework.Sftp
 
                 if (file.IsDirectory)
                 {
-                    results.AddRange(ListChangedFilesInDirectory(rootDirectory, FileSystemUtils.ConcatenatePaths(currentDirectory, file.Name), lastModificationLimit, credentials, client));
+                    results.AddRange(ListChangedFilesInDirectory(hostTimeZone, rootDirectory, FileSystemUtils.ConcatenatePaths(currentDirectory, file.Name), lastModificationLimit, credentials, client));
                 }
                 else if (((!lastModificationLimit.HasValue) || (lastModificationLimit.Value <= file.LastWriteTime)))
                 {

@@ -2,6 +2,7 @@
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.Utils;
+using Renci.SshNet;
 using System.Collections.Generic;
 using System.IO;
 using ConnectionInfo = HEAppE.ConnectionPool.ConnectionInfo;
@@ -32,7 +33,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             ConnectionInfo connection = ConnectionPool.GetConnectionForUser(_credentials);
             try
             {
-                var client = new SftpClientAdapter((ExtendedSftpClient)connection.Connection);
+                var client = new SftpClientAdapter((SftpClient)connection.Connection);
                 string sourcePath = FileSystemUtils.ConcatenatePaths(SyncFileInfo.SourceDirectory, SyncFileInfo.RelativePath);
 
                 if (client.Exists(sourcePath))

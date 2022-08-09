@@ -1,4 +1,5 @@
-﻿using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
+﻿using HEAppE.BusinesslogicTier.logic.FileTransfer;
+using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;

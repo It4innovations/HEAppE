@@ -11,5 +11,7 @@ namespace HEAppE.ServiceTier.JobReporting
         UserResourceUsageReportExt GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode);
         UserGroupResourceUsageReportExt GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode);
         SubmittedJobInfoUsageReportExt GetResourceUsageReportForJob(long jobId, string sessionCode);
+        IEnumerable<JobStateAggregationReportExt> GetJobsStateAgregationReport(string sessionCode);
+        IEnumerable<SubmittedJobInfoReportExt> GetJobsDetailedReport(string sessionCode);
     }
 }

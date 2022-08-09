@@ -27,6 +27,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IAdaptorUserGroupRepository _adaptorUserGroupRepository;
         private IAdaptorUserRoleRepository _adaptorUserRoleRepository;
         private IAdaptorUserRepository _adaptorUserRepository;
+        private IClusterProxyConnectionRepository _clusterProxyConnectionRepository;
         private IClusterRepository _clusterRepository;
         private IClusterAuthenticationCredentialsRepository _clusterAuthenticationCredentialsRepository;
         private IClusterNodeTypeRepository _clusterNodeTypeRepository;
@@ -38,6 +39,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IOpenStackProjectRepository _openStackProjectRepository;
         private IEnvironmentVariableRepository _environmentVariableRepository;
         private IFileTransferMethodRepository _fileTransferMethodRepository;
+        private IFileTransferTemporaryKeyRepository _fileTransferTemporaryKeyRepository;
         private IFileSpecificationRepository _fileSpecificationRepository;
         private ICommandTemplateRepository _commandTemplateRepository;
         private ICommandTemplateParameterRepository _commandTemplateParameterRepository;
@@ -74,6 +76,15 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         }
         #endregion
         #region Repositories
+        public IClusterProxyConnectionRepository ClusterProxyConnectionRepository
+        {
+            get
+            {
+                return _clusterProxyConnectionRepository = _clusterProxyConnectionRepository ?? new ClusterProxyConnectionRepository(_context);
+
+            }
+        }
+
         public IClusterRepository ClusterRepository
         {
             get
@@ -166,6 +177,14 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _fileTransferMethodRepository = _fileTransferMethodRepository ?? new FileTransferMethodRepository(_context);
+            }
+        }
+
+        public IFileTransferTemporaryKeyRepository FileTransferTemporaryKeyRepository
+        {
+            get
+            {
+                return _fileTransferTemporaryKeyRepository = _fileTransferTemporaryKeyRepository ?? new FileTransferTemporaryKeyRepository(_context);
             }
         }
 

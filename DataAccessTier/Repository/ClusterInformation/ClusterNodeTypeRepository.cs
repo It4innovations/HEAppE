@@ -1,5 +1,8 @@
 ﻿using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DomainObjects.ClusterInformation;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.ClusterInformation
 {
@@ -10,6 +13,15 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
             : base(context)
         {
 
+        }
+        #endregion
+
+        #region Public methods
+        public IEnumerable<ClusterNodeType> GetAllWithPossibleCommands()
+        {
+            return _dbSet.Include(i=>i.PossibleCommands)
+                            .ThenInclude(i=>i.TemplateParameters)
+                            .ToList();
         }
         #endregion
     }

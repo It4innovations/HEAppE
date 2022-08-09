@@ -21,49 +21,67 @@ using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
     internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogic
     {
-        private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        #region Instances
+        /// <summary>
+        /// Unit of work
+        /// </summary>
+        private readonly IUnitOfWork _unitOfWork;
+
+        /// <summary>
+        /// Logger
+        /// </summary>
+        private readonly ILog _log;
+
+        /// <summary>
+        /// Lock for creating user
+        /// </summary>
         private readonly object _lockCreateUserObj = new();
+
+        /// <summary>
+        /// OpenStack instance
+        /// </summary>
         private static OpenStackInfoDTO _openStackInstance = null;
-        private readonly IUnitOfWork unitOfWork;
 
-
-        private const int cSaltBytes = 12;
-        private const int cHashBytes = 20;
-
-        //TO DO add to settings
-        private static readonly int SessionExpirationSeconds = 900;
-
+        /// <summary>
+        /// Session code expiration in seconds
+        /// </summary>
+        private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
+        #endregion
+        #region Constructors
         internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork)
         {
-            this.unitOfWork = unitOfWork;
+            _unitOfWork = unitOfWork;
+            _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         }
+        #endregion
 
         public AdaptorUser GetUserForSessionCode(string sessionCode)
         {
-            SessionCode session = unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
+            SessionCode session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
             if (session == null)
             {
-                log.Error("Session code " + sessionCode + " is not present in the database.");
+                _log.Error("Session code " + sessionCode + " is not present in the database.");
                 throw new SessionCodeNotValidException("Session code " + sessionCode +
                                                        " is not valid. Please go through the authentication process.");
             }
 
             if (IsSessionExpired(session))
             {
-                log.Warn("Session code " + sessionCode + " already expired at " +
-                         session.LastAccessTime.AddSeconds(SessionExpirationSeconds) + ".");
+                _log.Warn("Session code " + sessionCode + " already expired at " +
+                         session.LastAccessTime.AddSeconds(_sessionExpirationSeconds) + ".");
                 throw new SessionCodeNotValidException("Session code " + sessionCode +
                                                        " already expired. Please repeat the authentication process.");
             }
 
             session.LastAccessTime = DateTime.UtcNow;
-            unitOfWork.SessionCodeRepository.Update(session);
-            unitOfWork.Save();
+            _unitOfWork.SessionCodeRepository.Update(session);
+            _unitOfWork.Save();
             return session.User;
         }
 
@@ -73,28 +91,27 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             if (credentials is OpenIdCredentials)
             {
                 user = await HandleOpenIdAuthenticationAsync(credentials as OpenIdCredentials);
-                log.Info($"KeyCloak user {user.Username} wants to authenticate to the system.");
+                _log.Info($"KeyCloak user {user.Username} wants to authenticate to the system.");
             }
             else
             {
                 // Get standard HEAppE user
-                user = unitOfWork.AdaptorUserRepository.GetByName(credentials.Username);
-                log.Info($"User {credentials.Username} wants to authenticate to the system.");
+                user = _unitOfWork.AdaptorUserRepository.GetByName(credentials.Username);
+                _log.Info($"User {credentials.Username} wants to authenticate to the system.");
             }
 
 
             if (user == null)
             {
-                string wrongCredentialsError =
-                    $"Authentication of user {credentials.Username} was not successful due to wrong credentials.";
-                log.Error(wrongCredentialsError);
+                string wrongCredentialsError =  $"Authentication of user {credentials.Username} was not successful due to wrong credentials.";
+                _log.Error(wrongCredentialsError);
                 throw new InvalidAuthenticationCredentialsException(wrongCredentialsError);
             }
 
             if (user.Deleted)
             {
                 string deletedUserError = $"User {user.Username} that requested authentication was already deleted from the system.";
-                log.Error(deletedUserError);
+                _log.Error(deletedUserError);
                 throw new AuthenticatedUserAlreadyDeletedException(deletedUserError);
             }
 
@@ -111,27 +128,32 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             string unsupportedCredentialsError = $"Credentials of class {credentials.GetType().Name} are not supported. Change the UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser()" +
                                                  $" method to add support for additional credential types.";
-            log.Error(unsupportedCredentialsError);
+            _log.Error(unsupportedCredentialsError);
             throw new ArgumentException(unsupportedCredentialsError);
         }
 
-        public async Task<ApplicationCredentialsDTO> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials)
+        public async Task<AdaptorUser> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials)
         {
+            _log.Info($"User {credentials.Username} wants to authenticate to the OpenStack.");
             if (credentials is not OpenIdCredentials openIdCredentials)
             {
                 string unsupportedCredentialsError = $"Credentials of class {credentials.GetType().Name} are not supported.";
-                log.Error(unsupportedCredentialsError);
+                _log.Error(unsupportedCredentialsError);
                 throw new ArgumentException(unsupportedCredentialsError);
             }
             var user = await HandleOpenIdAuthenticationAsync(openIdCredentials);
-            log.Info($"Keycloak user {user.Username} wants to authenticate to the OpenStack.");
-
-            return await CreateNewOpenStackSessionAsync(user);
-
+            return user;
         }
+
+        public async Task<ApplicationCredentialsDTO> AuthenticateKeycloakUserToOpenStackAsync(AdaptorUser adaptorUser)
+        {
+            _log.Info($"Keycloak user {adaptorUser.Username} wants to authenticate to the OpenStack.");
+            return await CreateNewOpenStackSessionAsync(adaptorUser);
+        }
+
         private OpenStackInfoDTO GetOpenStackInstanceWithProjects()
         {
-            OpenStackAuthenticationCredential osInstanceCredentials = unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
+            OpenStackAuthenticationCredential osInstanceCredentials = _unitOfWork.OpenStackAuthenticationCredentialsRepository.GetDefaultAccount();
             var projectDictionary = new Dictionary<OpenStackProjectDTO, List<OpenStackProjectDomainDTO>>();
 
             foreach (var DbProjectDomain in osInstanceCredentials.OpenStackAuthenticationCredentialProjectDomains)
@@ -214,12 +236,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
             catch (OpenStackAPIException ex)
             {
-                log.Error($"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}");
+                _log.Error($"Failed to retrieve OpenStack token for authorized Keycloak user: {userAccount.Username}. Reason: {ex.Message}");
                 throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
             }
 
             StoreOpenStackSession(userAccount, openStackCredentials);
-            log.Info($"Created new OpenStack 'session' (application credentials) for user {userAccount.Username}.");
+            _log.Info($"Created new OpenStack 'session' (application credentials) for user {userAccount.Username}.");
             return openStackCredentials;
         }
 
@@ -243,12 +265,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
             catch (KeycloakOpenIdException keycloakException)
             {
-                log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
+                _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
                 throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", keycloakException);
             }
             catch (OpenIdAuthenticationException OpenIdException)
             {
-                log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", OpenIdException);
+                _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", OpenIdException);
                 throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", OpenIdException);
             }
         }
@@ -269,7 +291,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     throw new OpenIdAuthenticationException("Failed to assign user to the group. Check the log for details.");
                 }
 
-                log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
+                _log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
             }
 
             if (!openIdUser.ProjectRoles.TryGetValue(KeycloakConfiguration.Project, out IEnumerable<string> openIdRoles))
@@ -277,8 +299,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new OpenIdAuthenticationException("No roles for specific project is set");
             }
 
-            var availableRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(openIdRoles).ToList();
-            var userRoles = unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
+            var availableRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(openIdRoles).ToList();
+            var userRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
 
             if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
             {
@@ -290,12 +312,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
                 try
                 {
-                    unitOfWork.Save();
-                    log.Info($"Open-Id: User '{user.Username}' has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
+                    _unitOfWork.Save();
+                    _log.Info($"Open-Id: User '{user.Username}' has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
                 }
                 catch (Exception e)
                 {
-                    log.Error("Failed to set user roles.", e);
+                    _log.Error("Failed to set user roles.", e);
                 }
             }
         }
@@ -309,7 +331,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             lock (_lockCreateUserObj)
             {
-                AdaptorUser userAccount = unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+                AdaptorUser userAccount = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
                 if (userAccount is null)
                 {
                     // Create new Keycloak user account.
@@ -322,9 +344,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         ModifiedAt = null
                     };
 
-                    unitOfWork.AdaptorUserRepository.Insert(userAccount);
-                    unitOfWork.Save();
-                    log.Info($"Open-Id: Created new HEAppE account for Keycloak OpenId user: '{userAccount}'");
+                    _unitOfWork.AdaptorUserRepository.Insert(userAccount);
+                    _unitOfWork.Save();
+                    _log.Info($"Open-Id: Created new HEAppE account for Keycloak OpenId user: '{userAccount}'");
                 }
 
                 SynchonizeKeycloakUserGroupAndRoles(userAccount, openIdUser);
@@ -340,7 +362,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>True if group is found.</returns>
         private bool TryGetUserGroupByName(string groupName, out AdaptorUserGroup userGroup)
         {
-            userGroup = unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(groupName);
+            userGroup = _unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(groupName);
             return userGroup is not null;
         }
 
@@ -360,12 +382,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             try
             {
-                unitOfWork.Save();
+                _unitOfWork.Save();
                 return true;
             }
             catch (Exception e)
             {
-                log.Error("Failed to add user to group.", e);
+                _log.Error("Failed to add user to group.", e);
                 return false;
             }
         }
@@ -392,31 +414,38 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     return CreateSessionCode(user).UniqueCode;
                 }
 
-                log.Error("Authentication of user " + user.Username + " was not successful due to wrong credentials.");
+                _log.Error("Authentication of user " + user.Username + " was not successful due to wrong credentials.");
                 throw new InvalidAuthenticationCredentialsException("Authentication of user " + user.Username +
                                                                     " was not successful due to wrong credentials.");
             }
         }
 
+        /// <summary>
+        /// Used for generation https://www.convertstring.com/en/Hash/SHA512
+        /// </summary>
+        /// <param name="user"></param>
+        /// <param name="credentials"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidAuthenticationCredentialsException"></exception>
         private string AuthenticateUserWithPassword(AdaptorUser user, PasswordCredentials credentials)
         {
-            //get the bytes
-            byte[] hashBytes = Convert.FromBase64String(user.Password);
-            //extract salt
-            byte[] salt = new byte[cSaltBytes];
-            Array.Copy(hashBytes, 0, salt, 0, cSaltBytes);
-            //create password hash
-            var pbkdf2 = new Rfc2898DeriveBytes(credentials.Password, salt);
-            byte[] hash = pbkdf2.GetBytes(cHashBytes);
-            //verify password
-            for (int i = 0; i < cHashBytes; i++)
+            byte[] inputBytes = Encoding.UTF8.GetBytes(credentials.Password);
+            byte[] saltBytes = Encoding.UTF8.GetBytes(user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss"));
+            byte[] cipherBytes = inputBytes.Concat(saltBytes).ToArray();
+
+            byte[] hashBytes = SHA512.Create().ComputeHash(cipherBytes);
+            var sb = new StringBuilder();
+            for (int i = 0; i < hashBytes.Length; i++)
             {
-                if (hashBytes[i + cSaltBytes] != hash[i])
-                {
-                    log.Error("Authentication of user " + user.Username + " was not successful due to wrong credentials.");
-                    throw new InvalidAuthenticationCredentialsException("Authentication of user " + user.Username +
-                                                                        " was not successful due to wrong credentials.");
-                }
+                sb.Append(hashBytes[i].ToString("X2"));
+            }
+            string hash = sb.ToString();
+
+            if (hash != user.Password)
+            {
+                string message = $"Authentication of user \"{user.Username}\" was not successful due to wrong credentials.";
+                _log.Error(message);
+                throw new InvalidAuthenticationCredentialsException(message);
             }
 
             return CreateSessionCode(user).UniqueCode;
@@ -425,12 +454,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser)
         {
             var notFinishedJobs = LogicFactory.GetLogicFactory()
-                                                                      .CreateJobManagementLogic(unitOfWork)
+                                                                      .CreateJobManagementLogic(_unitOfWork)
                                                                       .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-            IList<ClusterNodeType> nodeTypes = LogicFactory.GetLogicFactory()
-                                                           .CreateClusterInformationLogic(unitOfWork)
+            var nodeTypes = LogicFactory.GetLogicFactory()
+                                                           .CreateClusterInformationLogic(_unitOfWork)
                                                            .ListClusterNodeTypes();
-            IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count);
+            IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
             foreach (ClusterNodeType nodeType in nodeTypes)
             {
                 ResourceUsage usage = new ResourceUsage
@@ -447,7 +476,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         public AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser)
         {
-            return loggedUser.Groups.FirstOrDefault() ?? unitOfWork.AdaptorUserGroupRepository.GetDefaultSubmitterGroup();
+            return loggedUser.Groups.FirstOrDefault() ?? _unitOfWork.AdaptorUserGroupRepository.GetDefaultSubmitterGroup();
         }
 
         public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo)
@@ -462,7 +491,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         private bool IsSessionExpired(SessionCode session)
         {
-            return session.LastAccessTime < DateTime.UtcNow.AddSeconds(-SessionExpirationSeconds);
+            return session.LastAccessTime < DateTime.UtcNow.AddSeconds(-_sessionExpirationSeconds);
         }
 
         /// <summary>
@@ -481,21 +510,21 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 ApplicationCredentialsId = applicationCredentials.ApplicationCredentialsId,
                 ApplicationCredentialsSecret = applicationCredentials.ApplicationCredentialsSecret
             };
-            unitOfWork.OpenStackSessionRepository.Insert(session);
-            unitOfWork.Save();
+            _unitOfWork.OpenStackSessionRepository.Insert(session);
+            _unitOfWork.Save();
         }
 
         private SessionCode CreateSessionCode(AdaptorUser user)
         {
-            SessionCode code = unitOfWork.SessionCodeRepository.GetByUser(user);
+            SessionCode code = _unitOfWork.SessionCodeRepository.GetByUser(user);
 
             if (!(code == null || IsSessionExpired(code)))
             {
                 // User already has session, return it
                 // Update auth time to current time and update db
                 code.LastAccessTime = DateTime.UtcNow;
-                unitOfWork.SessionCodeRepository.Update(code);
-                unitOfWork.Save();
+                _unitOfWork.SessionCodeRepository.Update(code);
+                _unitOfWork.Save();
                 return code;
             }
 
@@ -511,7 +540,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             do
             {
                 guid = Guid.NewGuid();
-            } while (unitOfWork.SessionCodeRepository.GetByUniqueCode(guid.ToString()) != null);
+            } while (_unitOfWork.SessionCodeRepository.GetByUniqueCode(guid.ToString()) != null);
 
             // Put it into db
             SessionCode sessionCode = new SessionCode
@@ -521,8 +550,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 UniqueCode = guid.ToString(),
                 User = user
             };
-            unitOfWork.SessionCodeRepository.Insert(sessionCode);
-            unitOfWork.Save();
+            _unitOfWork.SessionCodeRepository.Insert(sessionCode);
+            _unitOfWork.Save();
             return sessionCode;
         }
     }
