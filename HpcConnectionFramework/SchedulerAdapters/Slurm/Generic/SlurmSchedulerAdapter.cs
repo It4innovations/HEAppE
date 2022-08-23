@@ -72,7 +72,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
 
             string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
-            string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecutieCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+            string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecuteCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
             {
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);

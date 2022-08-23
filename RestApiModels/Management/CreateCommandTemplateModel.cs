@@ -24,5 +24,9 @@ namespace HEAppE.RestApiModels.Management
 
 		[DataMember(Name = "PreparationScript", IsRequired = false), StringLength(1000)]
 		public string PreparationScript { get; set; }
+		public override string ToString()
+		{
+			return $"CreateCommandTemplateModel({base.ToString()}; GenericCommandTemplateId: {GenericCommandTemplateId}; Name: {Name}; Description: {Description}; Code: {Code}; ExecutableFile: {ExecutableFile}; PreparationScript: {PreparationScript})";
+		}
 	}
 }

@@ -12,5 +12,9 @@ namespace HEAppE.RestApiModels.JobReporting
     [DataContract(Name = "ListAdaptorUserGroupsModel")]
     public class ListAdaptorUserGroupsModel : SessionCodeModel
     {
+        public override string ToString()
+        {
+            return $"ListAdaptorUserGroupsModel({base.ToString()})";
+        }
     }
 }

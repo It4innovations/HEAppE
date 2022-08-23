@@ -15,5 +15,9 @@ namespace HEAppE.RestApiModels.JobManagement
     {
         [DataMember(Name = "JobSpecification")]
         public JobSpecificationExt JobSpecification { get; set; }
+        public override string ToString()
+        {
+            return $"CreateJobModel({base.ToString()}; JobSpecification: {JobSpecification})";
+        }
     }
 }

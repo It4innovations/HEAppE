@@ -13,5 +13,9 @@ namespace HEAppE.RestApiModels.Management
     {
         [DataMember(Name = "CommandTemplateId", IsRequired = true)]
         public long CommandTemplateId { get; set; }
+        public override string ToString()
+        {
+            return $"RemoveCommandTemplateModel({base.ToString()}; CommandTemplateId: {CommandTemplateId})";
+        }
     }
 }

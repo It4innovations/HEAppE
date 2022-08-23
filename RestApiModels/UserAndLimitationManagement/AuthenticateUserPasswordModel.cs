@@ -13,5 +13,9 @@ namespace HEAppE.RestApiModels.UserAndLimitationManagement
     {
         [DataMember(Name = "Credentials")]
         public PasswordCredentialsExt Credentials { get; set; }
+        public override string ToString()
+        {
+            return $"AuthenticateUserPasswordModel({base.ToString()}; Credentials: {Credentials})";
+        }
     }
 }

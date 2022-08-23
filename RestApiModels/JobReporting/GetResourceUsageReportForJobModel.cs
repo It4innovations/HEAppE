@@ -14,5 +14,9 @@ namespace HEAppE.RestApiModels.JobReporting
     {
         [DataMember(Name = "JobId")]
         public long JobId { get; set; }
+        public override string ToString()
+        {
+            return $"GetResourceUsageReportForJobModel({base.ToString()}; JobId: {JobId})";
+        }
     }
 }

@@ -16,7 +16,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <summary>
         /// Execution command script path
         /// </summary>
-        string ExecutieCmdScriptPath { get; }
+        string ExecuteCmdScriptPath { get; }
 
         /// <summary>
         /// Get generic command templates parameters from script

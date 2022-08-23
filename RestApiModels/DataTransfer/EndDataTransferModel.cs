@@ -9,5 +9,9 @@ namespace HEAppE.RestApiModels.DataTransfer
     {
         [DataMember(Name = "UsedTransferMethod")]
         public DataTransferMethodExt UsedTransferMethod { get; set; }
+        public override string ToString()
+        {
+            return $"EndDataTransferModel({base.ToString()}; UsedTransferMethod: {UsedTransferMethod})";
+        }
     }
 }

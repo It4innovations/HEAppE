@@ -20,5 +20,9 @@ namespace HEAppE.RestApiModels.JobReporting
 
         [DataMember(Name = "EndTime")]
         public DateTime EndTime { get; set; }
+        public override string ToString()
+        {
+            return $"GetUserGroupResourceUsageReportModel({base.ToString()}; GroupId: {GroupId}; StartTime: {StartTime}; EndTime: {EndTime})";
+        }
     }
 }

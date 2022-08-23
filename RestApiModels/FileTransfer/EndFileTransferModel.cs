@@ -13,9 +13,11 @@ namespace HEAppE.RestApiModels.FileTransfer
     [DataContract(Name = "EndFileTransferModel")]
     public class EndFileTransferModel : SubmittedJobInfoModel
     {
-
         [DataMember(Name = "UsedTransferMethod")]
         public FileTransferMethodExt UsedTransferMethod { get; set; }
-
+        public override string ToString()
+        {
+            return $"EndFileTransferModel({base.ToString()}; UsedTransferMethod: {UsedTransferMethod})";
+        }
     }
 }
