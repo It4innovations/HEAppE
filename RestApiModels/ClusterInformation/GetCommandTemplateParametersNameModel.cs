@@ -12,5 +12,9 @@ namespace HEAppE.RestApiModels.ClusterInformation
 
         [DataMember(Name = "UserScriptPath", IsRequired = false), StringLength(250)]
         public string UserScriptPath { get; set; }
+        public override string ToString()
+        {
+            return $"GetCommandTemplateParametersNameModel({base.ToString()}; CommandTemplateId: {CommandTemplateId}; UserScriptPath: {UserScriptPath})";
+        }
     }
 }

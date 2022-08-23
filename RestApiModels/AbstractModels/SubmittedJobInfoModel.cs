@@ -6,5 +6,9 @@ namespace HEAppE.RestApiModels.AbstractModels
     {
         [DataMember(Name = "SubmittedJobInfoId")]
         public long SubmittedJobInfoId { get; set; }
+        public override string ToString()
+        {
+            return $"SubmittedJobInfoModel({base.ToString()}; SubmittedJobInfoId: {SubmittedJobInfoId})";
+        }
     }
 }

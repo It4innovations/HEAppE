@@ -24,7 +24,12 @@
         /// <summary>
         /// Path to execute command from Base64
         /// </summary>
-        public string ExecutieCmdPath { get; set; }
+        public string ExecuteCmdPath { get; set; }
+
+        /// <summary>
+        /// Path to execute background command from Base64
+        /// </summary>
+        public string ExecuteBackgroundCmdPath { get; set; }
 
         /// <summary>
         /// Path to copy data from temp script

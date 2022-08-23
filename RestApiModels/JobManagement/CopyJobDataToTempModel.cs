@@ -14,5 +14,9 @@ namespace HEAppE.RestApiModels.JobManagement
     {
         [DataMember(Name = "Path"), StringLength(50)]
         public string Path { get; set; }
+        public override string ToString()
+        {
+            return $"CopyJobDataToTempModel({base.ToString()}; Path: {Path})";
+        }
     }
 }

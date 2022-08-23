@@ -1,5 +1,6 @@
 ﻿using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApiModels.AbstractModels;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
@@ -20,5 +21,9 @@ namespace HEAppE.RestApiModels.DataTransfer
 
         [DataMember(Name = "NodePort"), Required]
         public int NodePort { get; set; }
+        public override string ToString()
+        {
+            return $"HttpGetToJobNodeModel({base.ToString()}; HttpRequest: {HttpRequest}; HttpHeaders: {String.Join("; ", HttpHeaders)}; NodeIPAddress: {NodeIPAddress}; NodePort: {NodePort})";
+        }
     }
 }

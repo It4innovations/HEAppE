@@ -13,5 +13,9 @@ namespace HEAppE.RestApiModels.UserAndLimitationManagement
     {
         [DataMember(Name = "Credentials")]
         public OpenIdCredentialsExt Credentials { get; set; }
+        public override string ToString()
+        {
+            return $"AuthenticateUserOpenIdModel({base.ToString()}; Credentials: {Credentials})";
+        }
     }
 }
