@@ -17,6 +17,10 @@ namespace HEAppE.RestApiModels.DataTransfer
 
         [DataMember(Name = "Port")]
         public int Port { get; set; }
+        public override string ToString()
+        {
+            return $"GetDataTransferMethodModel({base.ToString()}; IpAddress: {IpAddress}; Port: {Port})";
+        }
 
     }
 }

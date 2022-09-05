@@ -43,7 +43,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <summary>
         /// Execute commnad script path
         /// </summary>
-        public string ExecutieCmdScriptPath => _commandScripts.ExecutieCmdPath;
+        public string ExecuteCmdScriptPath => _commandScripts.ExecuteCmdPath;
         #endregion
         #region Constructors
         /// <summary>

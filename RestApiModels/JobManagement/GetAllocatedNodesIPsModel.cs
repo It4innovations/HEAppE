@@ -8,5 +8,9 @@ namespace HEAppE.RestApiModels.JobManagement
     {
         [DataMember(Name = "SubmittedTaskInfoId")]
         public long SubmittedTaskInfoId { get; set; }
+        public override string ToString()
+        {
+            return $"GetAllocatedNodesIPsModel({base.ToString()}; SubmittedTaskInfoId: {SubmittedTaskInfoId})";
+        }
     }
 }

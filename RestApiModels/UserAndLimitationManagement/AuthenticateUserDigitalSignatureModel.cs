@@ -13,5 +13,9 @@ namespace HEAppE.RestApiModels.UserAndLimitationManagement
     {
         [DataMember(Name = "Credentials")]
         public DigitalSignatureCredentialsExt Credentials { get; set; }
+        public override string ToString()
+        {
+            return $"AuthenticateUserDigitalSignatureModel({base.ToString()}; Credentials: {Credentials})";
+        }
     }
 }

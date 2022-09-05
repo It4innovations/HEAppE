@@ -14,5 +14,9 @@ namespace HEAppE.RestApiModels.JobManagement
     {
         [DataMember(Name = "TempSessionCode"), StringLength(50)]
         public string TempSessionCode { get; set; }
+        public override string ToString()
+        {
+            return $"CopyJobDataFromTempModel({base.ToString()}; TempSessionCode: {TempSessionCode})";
+        }
     }
 }

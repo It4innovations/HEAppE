@@ -7,5 +7,9 @@ namespace HEAppE.RestApiModels.AbstractModels
     {
         [DataMember(Name = "SessionCode"), StringLength(50)]
         public string SessionCode { get; set; }
+        public override string ToString()
+        {
+            return $"SessionCodeModel(SessionCode: {SessionCode})";
+        }
     }
 }
