@@ -58,8 +58,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <param name="notifyOnFailure">Notification on failured job</param>
         public void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure)
         {
-            if (!string.IsNullOrEmpty(mailAddress) && (notifyOnStart ?? false)
-                        || (notifyOnCompletion ?? false) || (notifyOnFailure ?? false))
+            if (!string.IsNullOrEmpty(mailAddress) && ((notifyOnStart ?? false)
+                               || (notifyOnCompletion ?? false) || (notifyOnFailure ?? false)))
             {
                 string mailParameters = string.Empty;
                 if (notifyOnFailure ?? false)
