@@ -58,8 +58,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         /// <param name="notifyOnFailure">Notification on failured job</param>
         public void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure)
         {
-            if (!string.IsNullOrEmpty(mailAddress) && (notifyOnStart ?? false)
-                    || (notifyOnCompletion ?? false) || (notifyOnFailure ?? false))
+            if (!string.IsNullOrEmpty(mailAddress) && ((notifyOnStart ?? false)
+                               || (notifyOnCompletion ?? false) || (notifyOnFailure ?? false)))
             {
                 var onFailureValue = (notifyOnFailure ?? false ? "a" : string.Empty);
                 var onStartValue = (notifyOnStart ?? false ? "b" : string.Empty);

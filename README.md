@@ -22,7 +22,7 @@ Major changes in the latest release includes
 - various functional and security updates
 
 ## Documentation
-Please see the official HEAppE documentation at https://heappe.eu/docs.
+Please see the official HEAppE documentation at https://heappe.it4i.cz/docs.
 
 # References
 
