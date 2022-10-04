@@ -2,7 +2,7 @@
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement
 {
-    public interface ITaskTemplateRepository : IRepository<TaskTemplate>
+    public interface IProjectRepository : IRepository<Project>
     {
 
     }

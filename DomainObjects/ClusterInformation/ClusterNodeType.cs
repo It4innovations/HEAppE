@@ -40,14 +40,6 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 
 		public virtual List<CommandTemplate> PossibleCommands { get; set; } = new List<CommandTemplate>();
 
-        [ForeignKey("JobTemplate")]
-        public long? JobTemplateId { get; set; }
-        public virtual JobTemplate JobTemplate { get; set; }
-
-        [ForeignKey("TaskTemplate")]
-        public long? TaskTemplateId { get; set; }
-        public virtual TaskTemplate TaskTemplate { get; set; }
-
         public override string ToString() {
 			return String.Format("ClusterNodeType: Id={0}, Name={1}, Queue={2}, RequestedNodeGroups={3}, Cluster={4}", Id, Name, Queue, RequestedNodeGroups, Cluster);
 		}

@@ -10,8 +10,8 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "Name"), StringLength(50)]
         public string Name { get; set; }
 
-        [DataMember(Name = "Project"), StringLength(50)]
-        public string Project { get; set; }
+        [DataMember(Name = "ProjectId")]
+        public int ProjectId { get; set; }
 
         [DataMember(Name = "WaitingLimit")]
         public int? WaitingLimit { get; set; }
@@ -51,7 +51,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
 
         public override string ToString()
         {
-            return $"JobSpecificationExt(name={Name}; project={Project}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
+            return $"JobSpecificationExt(name={Name}; project={ProjectId}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
         }
     }
 }

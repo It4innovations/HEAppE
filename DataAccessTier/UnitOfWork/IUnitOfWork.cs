@@ -37,8 +37,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         ICommandTemplateParameterRepository CommandTemplateParameterRepository { get; }
         ICommandTemplateParameterValueRepository CommandTemplateParameterValueRepository { get; }
         IJobSpecificationRepository JobSpecificationRepository { get; }
-        IJobTemplateRepository JobTemplateRepository { get; }
-        ITaskTemplateRepository TaskTemplateRepository { get; }
         ITaskSpecificationRepository TaskSpecificationRepository { get; }
         ITaskParalizationSpecificationRepository TaskParalizationSpecificationRepository { get; }
         ITaskSpecificationRequiredNodeRepository TaskSpecificationRequiredNodeRepository { get; }
@@ -47,7 +45,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IMessageTemplateRepository MessageTemplateRepository { get; }
         IMessageTemplateParameterRepository MessageTemplateParameterRepository { get; }
         INotificationRepository NotificationRepository { get; }
-        IPropertyChangeSpecificationRepository PropertyChangeSpecificationRepository { get; }
         IAdaptorUserRepository AdaptorUserRepository { get; }
         IAdaptorUserGroupRepository AdaptorUserGroupRepository { get; }
         IAdaptorUserRoleRepository AdaptorUserRoleRepository { get; }

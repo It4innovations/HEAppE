@@ -16,9 +16,6 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation
 
         public JobState State { get; set; }
 
-        [StringLength(50)]
-        public string Project { get; set; }
-
         public DateTime CreationTime { get; set; }
 
         public DateTime? SubmitTime { get; set; }
@@ -28,6 +25,8 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation
         public DateTime? EndTime { get; set; }
 
         public double? TotalAllocatedTime { get; set; }
+
+        public virtual Project Project { get; set; }
 
         public virtual AdaptorUser Submitter { get; set; }
 

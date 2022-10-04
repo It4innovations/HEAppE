@@ -18,7 +18,7 @@ namespace HEAppE.ExtModels.JobReporting.Models
         public JobStateExt? State { get; set; }
 
         [DataMember(Name = "Project")]
-        public string Project { get; set; }
+        public ProjectExt Project { get; set; }
 
         [DataMember(Name = "CreationTime")]
         public DateTime? CreationTime { get; set; }

@@ -401,91 +401,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return true;
         }
 
-        protected static object CombinePropertyValues(PropertyChangeSpecification propertyChange, object templateValue, object clientValue)
-        {
-            switch (propertyChange.ChangeMethod)
-            {
-                case PropertyChangeMethod.Append:
-                    if (templateValue == null || (templateValue is ICollection collection && collection.Count == 0))
-                    {
-                        return clientValue;
-                    }
-                    else if (clientValue == null || (clientValue is ICollection collection2 && collection2.Count == 0))
-                    {
-                        return templateValue;
-                    }
-                    else if (clientValue is bool boolean)
-                    {
-                        return ((bool)templateValue) || boolean;
-                    }
-                    else if (clientValue is string text)
-                    {
-                        return ((string)templateValue) + text;
-                    }
-                    else if (clientValue is int integer)
-                    {
-                        return ((int)templateValue) + integer;
-                    }
-                    else if (clientValue is float single)
-                    {
-                        return ((float)templateValue) + single;
-                    }
-                    else if (clientValue is double number)
-                    {
-                        return ((double)templateValue) + number;
-                    }
-                    else if (clientValue is ICollection arrayClientValue)
-                    {
-                        ArrayList arrayTemplateValue = new();
-                        foreach (var item in (IEnumerable)templateValue)
-                        {
-                            arrayTemplateValue.Add((item as ICloneable).Clone());
-                        }
-                        int arraySize = arrayTemplateValue.Count + arrayClientValue.Count;
-                        Array returnArray = Array.CreateInstance(arrayClientValue.GetType().GetGenericArguments().Single(), arraySize);
-                        arrayTemplateValue.CopyTo(returnArray, 0);
-                        arrayClientValue.CopyTo(returnArray, arrayTemplateValue.Count);
-                        return returnArray;
-                    }
-                    var msg = $"Property with name \"{propertyChange.PropertyName}\" with values \"{templateValue}\"," +
-                              $"\"{clientValue}\" could not be appended because its type cannot be appended.";
-
-                    _logger.Error(msg);
-                    throw new UnableToAppendToJobTemplatePropertyException(msg);
-
-                case PropertyChangeMethod.Rewrite:
-                    return clientValue;
-
-                default:
-                    _logger.Error($"Method \"{propertyChange.ChangeMethod}\" for changing the properties values is not supported.");
-                    throw new ArgumentException($"Method \"{propertyChange.ChangeMethod}\" for changing the properties values is not supported.");
-            }
-        }
-
-        protected static void CombineSpecificationWithJobTemplate(JobSpecification specification, JobTemplate jobTemplate)
-        {
-            if (jobTemplate != null && jobTemplate.PropertyChangeSpecification != null)
-            {
-                foreach (PropertyChangeSpecification propertyChange in jobTemplate.PropertyChangeSpecification)
-                {
-                    PropertyInfo property = specification.GetType().GetProperty(propertyChange.PropertyName);
-                    object clientPropertyValue = property.GetValue(specification, null);
-                    if (clientPropertyValue != null)
-                    {
-                        if (clientPropertyValue is ICollection collection)
-                        {
-                            if (collection.Count == 0)
-                            {
-                                continue;
-                            }
-                        }
-                        object newPropertyValue = CombinePropertyValues(propertyChange, property.GetValue(jobTemplate, null), clientPropertyValue);
-                        property.SetValue(specification, newPropertyValue, null);
-                    }
-                }
-            }
-        }
-
         protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser, IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
         {
             Cluster cluster = clusterLogic.GetClusterById(specification.ClusterId);
@@ -572,12 +487,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
 
             //Combination parameters from template
-            taskSpecification.Priority ??= taskSpecification.ClusterNodeType.TaskTemplate.Priority;
+            taskSpecification.Priority ??= default(TaskPriority);
 
 
-            if(taskSpecification.Project != taskSpecification.JobSpecification.SubmitterGroup.AccountingString)
+            if(taskSpecification.Project.AccountingString != taskSpecification.JobSpecification.SubmitterGroup.AccountingString)
             {
-                taskSpecification.Project = taskSpecification.JobSpecification.SubmitterGroup.AccountingString;
+                taskSpecification.Project.AccountingString = taskSpecification.JobSpecification.SubmitterGroup.AccountingString;
             }           
         }
 

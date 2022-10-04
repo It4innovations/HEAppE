@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HEAppE.DomainObjects.JobManagement;
+using System;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,6 +11,6 @@ namespace HEAppE.DomainObjects.JobReporting
 
         public string JobName { get; set; }
 
-        public string Project { get; set; }
+        public Project Project { get; set; }
     }
 }

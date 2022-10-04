@@ -1,14 +1,13 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.JobManagement;
 using HEAppE.Utils.Validation;
+using System;
 using System.Linq;
 
 namespace HEAppE.RestApi.InputValidator
 {
     public class JobManagementValidator : AbstractValidator
     {
-        private int ProjectNameLength { get => 50; }
-
         public JobManagementValidator(object validationObj) : base(validationObj)
         {
         }
@@ -163,32 +162,18 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     _messageBuilder.AppendLine("Name contains illegal characters.");
                 }
-                if (job.Name.Length > ProjectNameLength)
-                {
-                    _messageBuilder.AppendLine($"Name is too long, maximal length is {ProjectNameLength}");
-                }
             }
 
-            if (string.IsNullOrEmpty(job.Project))
+            if (job.ProjectId <= 0)
             {
-                _messageBuilder.AppendLine("Project cannot be empty.");
-            }
-            else
-            {
-                if (ContainsIllegalCharacters(job.Project))
-                {
-                    _messageBuilder.AppendLine("Project contains illegal characters.");
-                }
-                if (job.Project.Length > ProjectNameLength)
-                {
-                    _messageBuilder.AppendLine($"Project is too long, maximal length is {ProjectNameLength}");
-                }
+                _messageBuilder.AppendLine("ProjectId must be greater than 0.");
             }
 
             if (job.WaitingLimit.HasValue && job.WaitingLimit.Value < 0)
             {
                 _messageBuilder.AppendLine("WaitingLimit must be unsigned number");
             }
+
             if (job.WalltimeLimit.HasValue && job.WalltimeLimit.Value < 0)
             {
                 _messageBuilder.AppendLine("WalltimeLimit must be unsigned number");
@@ -252,11 +237,6 @@ namespace HEAppE.RestApi.InputValidator
             if (string.IsNullOrEmpty(task.Name))
             {
                 _messageBuilder.AppendLine("Task name cannot be empty.");
-            }
-
-            if (task.Name.Length > ProjectNameLength)
-            {
-                _messageBuilder.AppendLine($"Task name \"{task.Name}\" cannot be longer than {ProjectNameLength} characters.");
             }
 
             if (ContainsIllegalCharacters(task.Name))

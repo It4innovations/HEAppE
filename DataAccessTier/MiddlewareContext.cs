@@ -201,12 +201,11 @@ namespace HEAppE.DataAccessTier
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.JobTemplates);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.TaskTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.PropertyChangeSpecifications);
+
+            InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
@@ -482,10 +481,8 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<CommandTemplateParameterValue> CommandTemplateParameterValues { get; set; }
         public virtual DbSet<EnvironmentVariable> EnvironmentVariables { get; set; }
         public virtual DbSet<JobSpecification> JobSpecifications { get; set; }
-        public virtual DbSet<JobTemplate> JobTemplates { get; set; }
-        public virtual DbSet<TaskTemplate> TaskTemplates { get; set; }
-        public virtual DbSet<PropertyChangeSpecification> PropertyChangeSpecifications { get; set; }
         public virtual DbSet<TaskSpecification> TaskSpecifications { get; set; }
+        public virtual DbSet<Project> Projects { get; set; }
         #endregion
 
         #region Notifications Entities

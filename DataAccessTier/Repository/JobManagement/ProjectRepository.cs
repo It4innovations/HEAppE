@@ -1,12 +1,17 @@
 ﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement
 {
-    internal class JobTemplateRepository : GenericRepository<JobTemplate>, IJobTemplateRepository
+    internal class ProjectRepository : GenericRepository<Project>, IProjectRepository
     {
         #region Constructors
-        internal JobTemplateRepository(MiddlewareContext context)
+        internal ProjectRepository(MiddlewareContext context)
             : base(context)
         {
 

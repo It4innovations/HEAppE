@@ -1,3 +1,4 @@
+using HEAppE.DomainObjects.JobManagement;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -20,6 +21,10 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         public string AccountingString { get; set; }
 
         public virtual List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; } = new List<AdaptorUserUserGroup>();
+
+        [ForeignKey("Project")]
+        public long? ProjectId { get; set; }
+        public virtual Project Project { get; set; }
 
         [NotMapped]
         public List<AdaptorUser> Users => AdaptorUserUserGroups?.Select(g => g.AdaptorUser).ToList();

@@ -41,6 +41,10 @@ namespace HEAppE.DomainObjects.JobManagement {
         public long? ClusterNodeTypeId { get; set; }
         public virtual ClusterNodeType ClusterNodeType { get; set; }
 
+		[ForeignKey("Project")]
+		public long? ProjectId { get; set;}
+		public virtual Project Project { get; set; }
+
         public override string ToString() {
 			return String.Format("CommandTemplate: Id={0}, Name={1}, ExecutableFile={2}", Id, Name, ExecutableFile);
 		}

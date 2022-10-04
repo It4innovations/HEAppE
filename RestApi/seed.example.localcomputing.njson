@@ -115,8 +115,6 @@
         "MaxWalltime": "{MaxWalltime}",
         "ClusterId": 1,
         "FileTransferMethodId": 3,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1,
         "ClusterAllocationName": null
       }
     ],
@@ -180,77 +178,11 @@
         "ClusterId": 1
       }
     ],
-    "JobTemplates": [
-      {
-        "Id": 1,
-        "Name": "{DefaultName}",
-        "MinCores": { "MinCores" },
-        "MaxCores": { "MaxCores" },
-        "Priority": { "Priority" },
-        "Project": "{Project}",
-        "WalltimeLimit": { "WalltimeLimit" }
-      }
-    ],
-    "TaskTemplates": [
-      {
-        "Id": 1,
-        "Name": "{Name}",
-        "MinCores": { "MinCores" },
-        "MaxCores": { "MaxCores" },
-        "Priority": { "Priority" },
-        "Project": "{Project}",
-        "WalltimeLimit": { "WalltimeLimit" }
-      }
-    ],
     "Languages": [
       {
         "Id": 1,
         "IsoCode": "en-GB",
         "Name": "English"
-      }
-    ],
-    "PropertyChangeSpecifications": [
-      {
-        "Id": 1,
-        "PropertyName": "EnvironmentVariables",
-        "ChangeMethod": 1,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 2,
-        "PropertyName": "Name",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 3,
-        "PropertyName": "MinCores",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 4,
-        "PropertyName": "MaxCores",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 5,
-        "PropertyName": "Project",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 6,
-        "PropertyName": "WalltimeLimit",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
       }
     ],
     "OpenStackInstances": [

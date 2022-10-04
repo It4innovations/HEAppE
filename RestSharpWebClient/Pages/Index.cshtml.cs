@@ -659,7 +659,7 @@ namespace RestSharpWebClient.Pages
 
             JobSpecificationExt testJob = new JobSpecificationExt();
             testJob.Name = "ASBTestJob";
-            testJob.Project = "ExpTests";
+            testJob.ProjectId = 1;
             testJob.WaitingLimit = 0;
             //testJob.NotificationEmail = "some.name@mail.cz";
             //testJob.PhoneNumber = "999111000";

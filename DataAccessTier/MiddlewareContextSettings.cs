@@ -51,13 +51,7 @@ namespace HEAppE.DataAccessTier
         public static List<CommandTemplateParameter> CommandTemplateParameters { get; set; }
 
         public static List<FileTransferMethod> FileTransferMethods { get; set; }
-
-        public static List<JobTemplate> JobTemplates { get; set; }
-
-        public static List<TaskTemplate> TaskTemplates { get; set; }
-
+        public static List<Project> Projects { get; set; }
         public static List<Language> Languages { get; set; }
-
-        public static List<PropertyChangeSpecification> PropertyChangeSpecifications { get; set; }
     }
 }

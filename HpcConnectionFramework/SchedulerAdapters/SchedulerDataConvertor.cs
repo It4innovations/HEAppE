@@ -91,7 +91,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
             // Do not change!!! Task name on the cluster is set as ID of the used task specification to enable pairing of cluster task info with DB task info.
             taskAdapter.Name = taskSpecification.Id.ToString(CultureInfo.InvariantCulture);
-            taskAdapter.Project = taskSpecification.Project;
+            taskAdapter.Project = taskSpecification.Project.AccountingString;
 
             if (Convert.ToInt32(taskSpecification.WalltimeLimit) > 0)
             {

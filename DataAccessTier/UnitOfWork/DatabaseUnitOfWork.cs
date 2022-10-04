@@ -45,14 +45,12 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private ICommandTemplateParameterRepository _commandTemplateParameterRepository;
         private ICommandTemplateParameterValueRepository _commandTemplateParameterValueRepository;
         private IJobSpecificationRepository _jobSpecificationRepository;
-        private IJobTemplateRepository _jobTemplateRepository;
-        private ITaskTemplateRepository _taskTemplateRepository;
+        private IProjectRepository _projectRepository;
         private ILanguageRepository _languageRepository;
         private IMessageLocalizationRepository _messagLocalizationRepository;
         private IMessageTemplateRepository _messageTemplateRepository;
         private IMessageTemplateParameterRepository _messageTemplateParameterRepository;
         private INotificationRepository _notificationRepository;
-        private IPropertyChangeSpecificationRepository _propertyChangeSpecificationRepository;
         private IResourceLimitationRepository _resourceLimitationRepository;
         private ISessionCodeRepository _sessionCodeRepository;
         private ISubmittedJobInfoRepository _submittedJobInfoRepository;
@@ -252,19 +250,11 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
-        public IJobTemplateRepository JobTemplateRepository
+        public IProjectRepository ProjectRepository
         {
             get
             {
-                return _jobTemplateRepository = _jobTemplateRepository ?? new JobTemplateRepository(_context);
-            }
-        }
-
-        public ITaskTemplateRepository TaskTemplateRepository
-        {
-            get
-            {
-                return _taskTemplateRepository = _taskTemplateRepository ?? new TaskTemplateRepository(_context);
+                return _projectRepository = _projectRepository ?? new ProjectRepository(_context);
             }
         }
 
@@ -328,14 +318,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _notificationRepository = _notificationRepository ?? new NotificationRepository(_context);
-            }
-        }
-
-        public IPropertyChangeSpecificationRepository PropertyChangeSpecificationRepository
-        {
-            get
-            {
-                return _propertyChangeSpecificationRepository = _propertyChangeSpecificationRepository ?? new PropertyChangeSpecificationRepository(_context);
             }
         }
 

@@ -1,3 +1,4 @@
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
@@ -13,7 +14,7 @@ namespace HEAppE.DomainObjects.JobReporting
 
         public JobState State { get; set; }
 
-        public string Project { get; set; }
+        public Project Project { get; set; }
 
         public DateTime CreationTime { get; set; }
 

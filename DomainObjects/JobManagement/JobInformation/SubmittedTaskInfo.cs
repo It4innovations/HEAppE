@@ -43,6 +43,10 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation {
 		[Column(TypeName = "text")]
 		public string AllParameters { get; set; }
 
+		[ForeignKey("Project")]
+		public long? ProjectId { get; set; }
+		public virtual Project Project { get; set; }
+
 		public virtual TaskSpecification Specification { get; set; }
 	}
 }

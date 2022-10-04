@@ -20,7 +20,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             var result = new JobSpecification
             {
                 Name = jobSpecification.Name,
-                Project = jobSpecification.Project,
+                ProjectId = jobSpecification.ProjectId,
                 WaitingLimit = jobSpecification.WaitingLimit ?? 0,
                 WalltimeLimit = jobSpecification.WalltimeLimit,
                 NotificationEmail = jobSpecification.NotificationEmail,
@@ -67,6 +67,17 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             //Agregation walltimelimit for tasks
             result.WalltimeLimit = result.Tasks.Sum(s => s.WalltimeLimit);
             return result;
+        }
+
+        private static Project ConvertExtToInt(this ProjectExt projectExt)
+        {
+            var convert = new Project
+            {
+                AccountingString = projectExt.AccountingString,
+                StartDate = projectExt.StartDate,
+                EndDate = projectExt.EndDate
+            };
+            return convert;
         }
 
         private static TaskSpecification ConvertExtToInt(this TaskSpecificationExt taskSpecificationExt, JobSpecification jobSpecification)
@@ -169,7 +180,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 Id = jobInfo.Id,
                 Name = jobInfo.Name,
                 State = jobInfo.State.ConvertIntToExt(),
-                Project = jobInfo.Project,
+                Project = jobInfo.Project.ConvertIntToExt(),
                 CreationTime = jobInfo.CreationTime,
                 SubmitTime = jobInfo.SubmitTime,
                 StartTime = jobInfo.StartTime,
@@ -197,6 +208,17 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 CpuHyperThreading = task.CpuHyperThreading,
                 ErrorMessage = task.ErrorMessage,
                 NodeType = task.NodeType?.ConvertIntToExt()
+            };
+            return convert;
+        }
+
+        private static ProjectExt ConvertIntToExt(this Project project)
+        {
+            ProjectExt convert = new()
+            {
+                AccountingString = project.AccountingString,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
             };
             return convert;
         }
