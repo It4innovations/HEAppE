@@ -62,9 +62,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int>("SchedulerType")
                         .HasColumnType("int");
 
-                    b.Property<long?>("ServiceAccountCredentialsId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("TimeZone")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -76,8 +73,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProxyConnectionId");
-
-                    b.HasIndex("ServiceAccountCredentialsId");
 
                     b.ToTable("Cluster");
                 });
@@ -91,9 +86,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int>("AuthenticationType")
                         .HasColumnType("int");
-
-                    b.Property<long?>("ClusterId")
-                        .HasColumnType("bigint");
 
                     b.Property<string>("Password")
                         .HasMaxLength(50)
@@ -113,8 +105,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ClusterId");
 
                     b.ToTable("ClusterAuthenticationCredentials");
                 });
@@ -294,6 +284,42 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("SubmittedJobId");
 
                     b.ToTable("FileTransferTemporaryKey");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
+                {
+                    b.Property<long>("ClusterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ClusterId", "ProjectId");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("ClusterProject");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentials", b =>
+                {
+                    b.Property<long>("ClusterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ClusterAuthenticationCredentialsId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsServiceAccount")
+                        .HasColumnType("bit");
+
+                    b.HasKey("ClusterId", "ProjectId", "ClusterAuthenticationCredentialsId");
+
+                    b.HasIndex("ClusterAuthenticationCredentialsId");
+
+                    b.ToTable("ClusterProjectCredentials");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
@@ -623,7 +649,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<long?>("ProjectId")
+                    b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
                     b.Property<long?>("SubmitterGroupId")
@@ -1360,22 +1386,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany()
                         .HasForeignKey("ProxyConnectionId");
 
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ServiceAccountCredentials")
-                        .WithMany()
-                        .HasForeignKey("ServiceAccountCredentialsId");
-
                     b.Navigation("ProxyConnection");
-
-                    b.Navigation("ServiceAccountCredentials");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.Cluster", "Cluster")
-                        .WithMany("AuthenticationCredentials")
-                        .HasForeignKey("ClusterId");
-
-                    b.Navigation("Cluster");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", b =>
@@ -1420,6 +1431,44 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.Navigation("SubmittedJob");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.Cluster", "Cluster")
+                        .WithMany("ClusterProjects")
+                        .HasForeignKey("ClusterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("ClusterProjects")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cluster");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentials", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ClusterAuthenticationCredentials")
+                        .WithMany("ClusterProjectCredentials")
+                        .HasForeignKey("ClusterAuthenticationCredentialsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterProject", "ClusterProject")
+                        .WithMany("ClusterProjectCredentials")
+                        .HasForeignKey("ClusterId", "ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClusterAuthenticationCredentials");
+
+                    b.Navigation("ClusterProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
@@ -1545,7 +1594,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
                         .WithMany()
-                        .HasForeignKey("ProjectId");
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "SubmitterGroup")
                         .WithMany()
@@ -1841,11 +1892,16 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
-                    b.Navigation("AuthenticationCredentials");
+                    b.Navigation("ClusterProjects");
 
                     b.Navigation("FileTransferMethods");
 
                     b.Navigation("NodeTypes");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", b =>
+                {
+                    b.Navigation("ClusterProjectCredentials");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", b =>
@@ -1853,6 +1909,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("PossibleCommands");
 
                     b.Navigation("RequestedNodeGroups");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
+                {
+                    b.Navigation("ClusterProjectCredentials");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
@@ -1877,6 +1938,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("EnvironmentVariables");
 
                     b.Navigation("Tasks");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Project", b =>
+                {
+                    b.Navigation("ClusterProjects");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskSpecification", b =>

@@ -17,15 +17,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void CancelJob(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message, ClusterAuthenticationCredentials credentials);
 
-        ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType);
+        ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType, ClusterAuthenticationCredentials credentials);
 
         IEnumerable<string> GetAllocatedNodes(SubmittedTaskInfo taskInfo);
 
-        IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, string userScriptPath);
+        IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, ClusterAuthenticationCredentials serviceCredentials, string userScriptPath);
 
         void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 
-        void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials);
+        void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, long clusterId, long projectId);
 
         void CreateJobDirectory(SubmittedJobInfo jobInfo);
 

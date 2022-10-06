@@ -33,12 +33,12 @@ namespace HEAppE.FileTransferFramework.NetworkShare
         }
 
         protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit,
-            string[] excludedFiles, ClusterAuthenticationCredentials credentials)
+            string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster)
         {
             FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles);
         }
 
-        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials)
+        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster)
         {
             throw new NotImplementedException();
         }

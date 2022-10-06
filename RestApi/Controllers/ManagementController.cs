@@ -66,7 +66,7 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
 
-                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.Description, model.Code,
+                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
                                                          model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
             catch (Exception e)
@@ -101,7 +101,7 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(ModifyCommandTemplate));
 
-                return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.Description, model.Code,
+                return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
                                                          model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
             catch (Exception e)
@@ -168,7 +168,7 @@ namespace HEAppE.RestApi.Controllers
                 }
 
                 var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
-                if(result)
+                if (result)
                 {
                     return Ok(new InstanceInformationExt()
                     {

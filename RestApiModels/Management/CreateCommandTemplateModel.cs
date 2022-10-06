@@ -13,6 +13,9 @@ namespace HEAppE.RestApiModels.Management
 		[DataMember(Name= "Name", IsRequired = true), StringLength(30)]
 		public string Name { get; set; }
 
+		[DataMember(Name = "ProjectId", IsRequired = true)]
+		public long ProjectId { get; set; }
+
 		[DataMember(Name = "Description", IsRequired = true), StringLength(200)]
 		public string Description { get; set; }
 

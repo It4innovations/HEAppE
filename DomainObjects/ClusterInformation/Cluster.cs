@@ -1,7 +1,9 @@
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace HEAppE.DomainObjects.ClusterInformation
 {
@@ -34,19 +36,11 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [StringLength(30)]
         public string TimeZone { get; set; } = "UTC";
 
-        [ForeignKey("ServiceAccountCredentials")]
-        public long? ServiceAccountCredentialsId { get; set; }
-
         public bool? UpdateJobStateByServiceAccount { get; set; } = true;
 
         public SchedulerType SchedulerType { get; set; }
 
         public virtual ClusterConnectionProtocol ConnectionProtocol { get; set; }
-
-        [InverseProperty("Cluster")]
-        public virtual List<ClusterAuthenticationCredentials> AuthenticationCredentials { get; set; } = new List<ClusterAuthenticationCredentials>();
-
-        public virtual ClusterAuthenticationCredentials ServiceAccountCredentials { get; set; }
 
         public virtual List<ClusterNodeType> NodeTypes { get; set; } = new List<ClusterNodeType>();
 
@@ -55,6 +49,29 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [ForeignKey("ClusterProxyConnection")]
         public long? ProxyConnectionId { get; set; }
         public virtual ClusterProxyConnection ProxyConnection { get; set; }
+        public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
+        #endregion
+        #region Public Methods
+        public List<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForProject(long projectId)
+        {
+            var clusterProject = ClusterProjects.Find(cp => cp.ClusterId == this.Id && cp.ProjectId == projectId);
+            var clusterProjectCredentials = clusterProject.ClusterProjectCredentials.FindAll(cpc => cpc.ClusterId == this.Id && cpc.ProjectId == projectId && !cpc.IsServiceAccount);
+            var credentials = clusterProjectCredentials.Select(c => c.ClusterAuthenticationCredentials);
+            return credentials.ToList();
+        }
+
+        public ClusterAuthenticationCredentials GetServiceAccountCredentials(long projectId)
+        {
+            var clusterProject = ClusterProjects.Find(cp => cp.ClusterId == this.Id && cp.ProjectId == projectId);
+            var clusterProjectCredentials = clusterProject.ClusterProjectCredentials.FindAll(cpc => cpc.ClusterId == this.Id && cpc.ProjectId == projectId && cpc.IsServiceAccount);
+            var credentials = clusterProjectCredentials.Select(c => c.ClusterAuthenticationCredentials);
+            return credentials.FirstOrDefault();
+        }
+
+        public List<Project> GetProjects()
+        {
+            return ClusterProjects.Select(p => p.Project).ToList();
+        }
         #endregion
         #region Override Methods
         public override string ToString()

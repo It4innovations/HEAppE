@@ -5,6 +5,6 @@ namespace HEAppE.FileTransferFramework {
 	public interface IFileSynchronizer {
 		FullFileSpecification SyncFileInfo { get; set; }
 		long Offset { get; set; }
-		ICollection<JobFileContent> SynchronizeFiles();
+		ICollection<JobFileContent> SynchronizeFiles(long clusterId, long projectId);
 	}
 }

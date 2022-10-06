@@ -84,7 +84,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             }
         }
 
-        public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, string sessionCode)
+        public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, string sessionCode)
         {
             try
             {
@@ -95,6 +95,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>()
                         {   commandTemplateId.ToString(),
+                            projectId.ToString(),
                             userScriptPath,
                             nameof(GetCommandTemplateParametersName)
                         }
@@ -109,7 +110,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                     {
                         _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                         IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                        IEnumerable<string> result = clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
+                        IEnumerable<string> result = clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
                         _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(_cacheLimitForGetCommandTemplateParametersName));
                         return result;
                     }
@@ -128,7 +129,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             }
         }
 
-        public ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, string sessionCode)
+        public ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode)
         {
             try
             {
@@ -152,7 +153,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                     {
                         _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                         IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                        ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
+                        ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, projectId, loggedUser);
                         _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(), TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));
                         return nodeUsage.ConvertIntToExt();
                     }

@@ -28,9 +28,9 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         #endregion
         #region Methods
-        public ICollection<JobFileContent> SynchronizeFiles()
+        public ICollection<JobFileContent> SynchronizeFiles(long clusterId, long projectId)
         {
-            ConnectionInfo connection = ConnectionPool.GetConnectionForUser(_credentials);
+            ConnectionInfo connection = ConnectionPool.GetConnectionForUser(_credentials, _credentials.GetClusterForProject(clusterId, projectId));
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);

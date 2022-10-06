@@ -1,4 +1,6 @@
-﻿using System;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -17,6 +19,7 @@ namespace HEAppE.DomainObjects.JobManagement
 
         [Required]
         public DateTime EndDate { get; set; }
+        public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
 
         #region Public methods
         public override string ToString()

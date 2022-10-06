@@ -12,7 +12,7 @@ namespace HEAppE.DomainObjects.JobManagement {
 		public string Name { get; set; }
 
 		[ForeignKey("Project")]
-		public long? ProjectId { get; set; }
+		public long ProjectId { get; set; }
 		public virtual Project Project { get; set; }
 
 		public int? WalltimeLimit { get; set; }

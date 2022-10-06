@@ -29,7 +29,7 @@ namespace HEAppE.ServiceTier.Management
         }
         #endregion
         #region IManagementService Methods
-        public CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, string description, string code, string executableFile, string preparationScript, string sessionCode)
+        public CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript, string sessionCode)
         {
             try
             {
@@ -37,7 +37,7 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    CommandTemplate commandTemplate = managementLogic.CreateCommandTemplate(genericCommandTemplateId, name, description, code, executableFile, preparationScript);
+                    CommandTemplate commandTemplate = managementLogic.CreateCommandTemplate(genericCommandTemplateId, name, projectId, description, code, executableFile, preparationScript);
                     return commandTemplate.ConvertIntToExt();
                 }
             }
@@ -72,7 +72,7 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public CommandTemplateExt ModifyCommandTemplate(long commandTemplateId, string name, string description, string code, string executableFile, string preparationScript, string sessionCode)
+        public CommandTemplateExt ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript, string sessionCode)
         {
             try
             {
@@ -80,7 +80,7 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    CommandTemplate commandTemplate = managementLogic.ModifyCommandTemplate(commandTemplateId, name, description, code, executableFile, preparationScript);
+                    CommandTemplate commandTemplate = managementLogic.ModifyCommandTemplate(commandTemplateId, name, projectId, description, code, executableFile, preparationScript);
                     return commandTemplate.ConvertIntToExt();
                 }
             }

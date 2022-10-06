@@ -30,7 +30,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
         {
             string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
-            var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
+            var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -48,7 +48,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath)
         {
-            var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser);
+            var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser, jobSpecification.Cluster);
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -65,7 +65,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
         {
             string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
-            var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser);
+            var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
                 string remotePath = jobClusterDirectoryPath;
@@ -77,9 +77,9 @@ namespace HEAppE.FileTransferFramework.Sftp
                 _connectionPool.ReturnConnection(connection);
             }
         }
-        protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials)
+        protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster)
         {
-            var connection = _connectionPool.GetConnectionForUser(credentials);
+            var connection = _connectionPool.GetConnectionForUser(credentials, cluster);
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -104,9 +104,9 @@ namespace HEAppE.FileTransferFramework.Sftp
                 _connectionPool.ReturnConnection(connection);
             }
         }
-        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials)
+        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials, Cluster cluster)
         {
-            var connection = _connectionPool.GetConnectionForUser(credentials);
+            var connection = _connectionPool.GetConnectionForUser(credentials, cluster);
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);

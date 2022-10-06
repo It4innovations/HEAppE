@@ -19,7 +19,7 @@ namespace HEAppE.FileTransferFramework.NetworkShare
         }
         #endregion
         #region Local Methods
-        public ICollection<JobFileContent> SynchronizeFiles()
+        public ICollection<JobFileContent> SynchronizeFiles(long clusterId, long projectId)
         {
             if (File.Exists(Path.Combine(SyncFileInfo.SourceDirectory, SyncFileInfo.RelativePath)))
             {

@@ -1,6 +1,9 @@
+using HEAppE.DomainObjects.JobManagement;
 using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace HEAppE.DomainObjects.ClusterInformation
 {
@@ -24,9 +27,16 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [Required]
         public ClusterAuthenticationCredentialsAuthType AuthenticationType { get; set; }
 
-        [ForeignKey("Cluster")]
-        public long? ClusterId { get; set; }
-        public virtual Cluster Cluster { get; set; }
+        public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
+        #endregion
+
+        #region Public Methods
+        public Cluster GetClusterForProject(long clusterId, long projectId)
+        {
+            var cluster = ClusterProjectCredentials.Find(x => x.ClusterId == clusterId
+                                                                && x.ProjectId == projectId)?.ClusterProject.Cluster;
+            return cluster;
+        }
         #endregion
         #region Override Methods
         public override string ToString()

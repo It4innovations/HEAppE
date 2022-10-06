@@ -8,6 +8,14 @@ namespace HEAppE.DataAccessTier.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropForeignKey(
+                name: "FK_Cluster_ClusterAuthenticationCredentials_ServiceAccountCredentialsId",
+                table: "Cluster");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_ClusterAuthenticationCredentials_Cluster_ClusterId",
+                table: "ClusterAuthenticationCredentials");
+
+            migrationBuilder.DropForeignKey(
                 name: "FK_ClusterNodeType_JobTemplate_JobTemplateId",
                 table: "ClusterNodeType");
 
@@ -48,6 +56,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IX_ClusterNodeType_TaskTemplateId",
                 table: "ClusterNodeType");
 
+            migrationBuilder.DropIndex(
+                name: "IX_ClusterAuthenticationCredentials_ClusterId",
+                table: "ClusterAuthenticationCredentials");
+
+            migrationBuilder.DropIndex(
+                name: "IX_Cluster_ServiceAccountCredentialsId",
+                table: "Cluster");
+
             migrationBuilder.DropColumn(
                 name: "Project",
                 table: "TaskSpecification");
@@ -76,6 +92,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "TaskTemplateId",
                 table: "ClusterNodeType");
 
+            migrationBuilder.DropColumn(
+                name: "ClusterId",
+                table: "ClusterAuthenticationCredentials");
+
+            migrationBuilder.DropColumn(
+                name: "ServiceAccountCredentialsId",
+                table: "Cluster");
+
             migrationBuilder.AddColumn<long>(
                 name: "ProjectId",
                 table: "TaskSpecification",
@@ -98,7 +122,8 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "ProjectId",
                 table: "JobSpecification",
                 type: "bigint",
-                nullable: true);
+                nullable: false,
+                defaultValue: 0L);
 
             migrationBuilder.AddColumn<long>(
                 name: "ProjectId",
@@ -125,6 +150,56 @@ namespace HEAppE.DataAccessTier.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_Project", x => x.Id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ClusterProject",
+                columns: table => new
+                {
+                    ClusterId = table.Column<long>(type: "bigint", nullable: false),
+                    ProjectId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClusterProject", x => new { x.ClusterId, x.ProjectId });
+                    table.ForeignKey(
+                        name: "FK_ClusterProject_Cluster_ClusterId",
+                        column: x => x.ClusterId,
+                        principalTable: "Cluster",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ClusterProject_Project_ProjectId",
+                        column: x => x.ProjectId,
+                        principalTable: "Project",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ClusterProjectCredentials",
+                columns: table => new
+                {
+                    ClusterId = table.Column<long>(type: "bigint", nullable: false),
+                    ProjectId = table.Column<long>(type: "bigint", nullable: false),
+                    ClusterAuthenticationCredentialsId = table.Column<long>(type: "bigint", nullable: false),
+                    IsServiceAccount = table.Column<bool>(type: "bit", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ClusterProjectCredentials", x => new { x.ClusterId, x.ProjectId, x.ClusterAuthenticationCredentialsId });
+                    table.ForeignKey(
+                        name: "FK_ClusterProjectCredentials_ClusterAuthenticationCredentials_ClusterAuthenticationCredentialsId",
+                        column: x => x.ClusterAuthenticationCredentialsId,
+                        principalTable: "ClusterAuthenticationCredentials",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ClusterProjectCredentials_ClusterProject_ClusterId_ProjectId",
+                        columns: x => new { x.ClusterId, x.ProjectId },
+                        principalTable: "ClusterProject",
+                        principalColumns: new[] { "ClusterId", "ProjectId" },
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateIndex(
@@ -157,6 +232,16 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "AdaptorUserGroup",
                 column: "ProjectId");
 
+            migrationBuilder.CreateIndex(
+                name: "IX_ClusterProject_ProjectId",
+                table: "ClusterProject",
+                column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClusterProjectCredentials_ClusterAuthenticationCredentialsId",
+                table: "ClusterProjectCredentials",
+                column: "ClusterAuthenticationCredentialsId");
+
             migrationBuilder.AddForeignKey(
                 name: "FK_AdaptorUserGroup_Project_ProjectId",
                 table: "AdaptorUserGroup",
@@ -179,7 +264,7 @@ namespace HEAppE.DataAccessTier.Migrations
                 column: "ProjectId",
                 principalTable: "Project",
                 principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+                onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_SubmittedJobInfo_Project_ProjectId",
@@ -231,6 +316,12 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_TaskSpecification_Project_ProjectId",
                 table: "TaskSpecification");
+
+            migrationBuilder.DropTable(
+                name: "ClusterProjectCredentials");
+
+            migrationBuilder.DropTable(
+                name: "ClusterProject");
 
             migrationBuilder.DropTable(
                 name: "Project");
@@ -328,6 +419,18 @@ namespace HEAppE.DataAccessTier.Migrations
                 type: "bigint",
                 nullable: true);
 
+            migrationBuilder.AddColumn<long>(
+                name: "ClusterId",
+                table: "ClusterAuthenticationCredentials",
+                type: "bigint",
+                nullable: true);
+
+            migrationBuilder.AddColumn<long>(
+                name: "ServiceAccountCredentialsId",
+                table: "Cluster",
+                type: "bigint",
+                nullable: true);
+
             migrationBuilder.CreateTable(
                 name: "JobTemplate",
                 columns: table => new
@@ -410,6 +513,16 @@ namespace HEAppE.DataAccessTier.Migrations
                 column: "TaskTemplateId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_ClusterAuthenticationCredentials_ClusterId",
+                table: "ClusterAuthenticationCredentials",
+                column: "ClusterId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Cluster_ServiceAccountCredentialsId",
+                table: "Cluster",
+                column: "ServiceAccountCredentialsId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_PropertyChangeSpecification_JobTemplateId",
                 table: "PropertyChangeSpecification",
                 column: "JobTemplateId");
@@ -418,6 +531,22 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IX_PropertyChangeSpecification_TaskTemplateId",
                 table: "PropertyChangeSpecification",
                 column: "TaskTemplateId");
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_Cluster_ClusterAuthenticationCredentials_ServiceAccountCredentialsId",
+                table: "Cluster",
+                column: "ServiceAccountCredentialsId",
+                principalTable: "ClusterAuthenticationCredentials",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_ClusterAuthenticationCredentials_Cluster_ClusterId",
+                table: "ClusterAuthenticationCredentials",
+                column: "ClusterId",
+                principalTable: "Cluster",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Restrict);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_ClusterNodeType_JobTemplate_JobTemplateId",

@@ -16,7 +16,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork = unitOfWork;
         }
 
-        public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, string description, string code, string executableFile, string preparationScript)
+        public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
             if (commandTemplate is null)
@@ -48,9 +48,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
+            var serviceAccount = cluster.GetServiceAccountCredentials(projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster)
-                                                             .GetParametersFromGenericUserScript(cluster, executableFile)
+                                                             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
 
             List<CommandTemplateParameter> templateParameters = new();
@@ -85,7 +86,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return newCommandTemplate;
         }
 
-        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, string description, string code, string executableFile, string preparationScript)
+        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate is null)
@@ -109,9 +110,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
+            var serviceAccount = cluster.GetServiceAccountCredentials(projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster)
-                                                             .GetParametersFromGenericUserScript(cluster, executableFile)
+                                                             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
 
             var templateParameters = new List<CommandTemplateParameter>();

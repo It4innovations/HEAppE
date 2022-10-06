@@ -181,7 +181,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
                 scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
-                var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, jobInfo.Specification.Cluster.ServiceAccountCredentials)
+                var cluster = jobInfo.Specification.Cluster;
+                var serviceAccount = jobInfo.Specification.Cluster.GetServiceAccountCredentials(jobInfo.Specification.ProjectId);
+                var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, serviceAccount)
                                                                     .ToList();
 
                 foreach (var task in jobInfo.Tasks)
@@ -306,11 +308,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 if (cluster.UpdateJobStateByServiceAccount.Value)
                 {
-                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, cluster.ServiceAccountCredentials, jobGroup.SelectMany(s => s.Tasks)).ToList();
+                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, jobGroup.SelectMany(s => s.Tasks)).ToList();
                 }
                 else
                 {
-                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, f.Key, f.SelectMany(s => s.Tasks))));
+                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, f.SelectMany(s => s.Tasks))));
                 }
 
                 bool isNeedUpdateJobState = false;
@@ -410,7 +412,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                                                                 .GetFileTransferMethodsByClusterId(cluster.Id)
                                                                                     .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-            specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id);
+            specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId);
             specification.Submitter = loggedUser;
             specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser);
 
@@ -659,12 +661,16 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return dbJobInfo;
         }
 
-        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IRexScheduler scheduler, ClusterAuthenticationCredentials credential, IEnumerable<SubmittedTaskInfo> jobTasks)
+        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks)
         {
             var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
                                            .ToList();
 
-            return scheduler.GetActualTasksInfo(unfinishedTasks, credential);
+            var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
+            var cluster = jobSpecification.Cluster;
+            var serviceAccount = cluster.GetServiceAccountCredentials(jobSpecification.ProjectId);
+            
+            return scheduler.GetActualTasksInfo(unfinishedTasks, serviceAccount);
         }
 
         private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)

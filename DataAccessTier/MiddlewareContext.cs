@@ -155,6 +155,30 @@ namespace HEAppE.DataAccessTier
                 .WithMany(ts => ts.DependsOn)
                 .HasForeignKey(td => new { td.TaskSpecificationId })
                 .OnDelete(DeleteBehavior.Restrict);
+
+            //M:N relations for ClusterProject
+            modelBuilder.Entity<ClusterProject>()
+                .HasKey(cp => new { cp.ClusterId, cp.ProjectId });
+            modelBuilder.Entity<ClusterProject>()
+                .HasOne(cp => cp.Cluster)
+                .WithMany(c => c.ClusterProjects)
+                .HasForeignKey(cp => new { cp.ClusterId });
+            modelBuilder.Entity<ClusterProject>()
+                .HasOne(cp => cp.Project)
+                .WithMany(p => p.ClusterProjects)
+                .HasForeignKey(cp => new { cp.ProjectId });
+
+            //M:N relations for ClusterProjectCredentials
+            modelBuilder.Entity<ClusterProjectCredentials>()
+                .HasKey(cpc => new { cpc.ClusterId, cpc.ProjectId, cpc.ClusterAuthenticationCredentialsId });
+            modelBuilder.Entity<ClusterProjectCredentials>()
+                .HasOne(cpc => cpc.ClusterProject)
+                .WithMany(c => c.ClusterProjectCredentials)
+                .HasForeignKey(cpc => new { cpc.ClusterId, cpc.ProjectId });
+            modelBuilder.Entity<ClusterProjectCredentials>()
+                .HasOne(cp => cp.ClusterAuthenticationCredentials)
+                .WithMany(p => p.ClusterProjectCredentials)
+                .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
         }
         #endregion
         #region Seeding methods
@@ -174,7 +198,6 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
             {
-                AuthenticationCredentials = c.AuthenticationCredentials,
                 ConnectionProtocol = c.ConnectionProtocol,
                 Description = c.Description,
                 Id = c.Id,
@@ -196,16 +219,18 @@ namespace HEAppE.DataAccessTier
                 Username = cc.Username,
                 Password = cc.Password,
                 PrivateKeyFile = cc.PrivateKeyFile,
-                PrivateKeyPassword = cc.PrivateKeyPassword,
-                ClusterId = cc.ClusterId
+                PrivateKeyPassword = cc.PrivateKeyPassword
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects, false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
+
+            InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
@@ -216,7 +241,8 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjectDomains, false);
 
             //Update Cluster foreign keys which could not be added before
-            MiddlewareContextSettings.Clusters?.ForEach(c => Clusters.Find(c.Id).ServiceAccountCredentialsId = c.ServiceAccountCredentialsId);
+            //TODO: check if needed
+            //MiddlewareContextSettings.Clusters?.ForEach(c => Clusters.Find(c.Id).ServiceAccountCredentialsId = c.ServiceAccountCredentialsId);
             SaveChanges();
 
             var entries = ChangeTracker.Entries();
@@ -224,7 +250,8 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
-            ClusterAuthenticationCredentials.ToList().ForEach(cc => cc.AuthenticationType = GetCredentialsAuthenticationType(cc));
+            //TODO: check if needed
+            //ClusterAuthenticationCredentials.ToList().ForEach(cc => cc.AuthenticationType = GetCredentialsAuthenticationType(cc));
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
@@ -326,9 +353,9 @@ namespace HEAppE.DataAccessTier
             }
         }
 
-        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential)
+        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(long clusterId, long projectId, ClusterAuthenticationCredentials credential)
         {
-            if (credential.Cluster.ProxyConnection is null)
+            if (credential.GetClusterForProject(clusterId, projectId).ProxyConnection is null)
             {
                 if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
                 {
@@ -342,7 +369,7 @@ namespace HEAppE.DataAccessTier
 
                 if (!string.IsNullOrEmpty(credential.Password))
                 {
-                    switch (credential.Cluster.ConnectionProtocol)
+                    switch (credential.GetClusterForProject(clusterId, projectId).ConnectionProtocol)
                     {
                         case ClusterConnectionProtocol.MicrosoftHpcApi:
                             return ClusterAuthenticationCredentialsAuthType.Password;
@@ -372,7 +399,7 @@ namespace HEAppE.DataAccessTier
 
                 if (!string.IsNullOrEmpty(credential.Password))
                 {
-                    switch (credential.Cluster.ConnectionProtocol)
+                    switch (credential.GetClusterForProject(clusterId, projectId).ConnectionProtocol)
                     {
                         case ClusterConnectionProtocol.MicrosoftHpcApi:
                             return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;

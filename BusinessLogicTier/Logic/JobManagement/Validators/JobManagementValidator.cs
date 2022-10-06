@@ -245,7 +245,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 _messageBuilder.AppendLine($"User script path parameter, for generic command template, does not have a value.");
             }
 
-            var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster, clusterPathToUserScript);
+            var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster, clusterPathToUserScript, task.JobSpecification.ProjectId);
 
             foreach (string parameter in scriptDefinedParametres)
             {
@@ -257,11 +257,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             }
         }
 
-        private IEnumerable<string> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath)
+        private IEnumerable<string> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath, long projectId)
         {
             try
             {
-                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, userScriptPath).ToList();
+                var serviceAccount = cluster.GetServiceAccountCredentials(projectId);
+                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
             }
             catch (Exception)
             {
