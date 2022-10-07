@@ -33,7 +33,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
         /// <param name="path">Path</param>
-        void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path);
+        void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path);
 
         /// <summary>
         /// Copy job data from temp folder
@@ -41,7 +41,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
-        void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash);
+        void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash);
 
         /// <summary>
         /// Allow direct file transfer acces for user
@@ -63,13 +63,13 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo);
+        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
 
         /// <summary>
         /// Delete job directory
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo);
+        void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
     }
 }

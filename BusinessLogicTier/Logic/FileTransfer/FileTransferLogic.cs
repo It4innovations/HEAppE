@@ -20,6 +20,7 @@ using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer.Exceptions;
 using HEAppE.BusinessLogicTier.Configuration;
+using System.IO;
 
 namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {
@@ -62,13 +63,13 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 Cluster cluster = activeTemporaryKeyGroup.Key;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
 
-                var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g => 
-                    new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.ProjectId, g.SubmittedJob.Specification.ClusterId })
+                var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
+                    new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
                     .ToList();
 
 
 
-                clusterUserActiveTempKey.ForEach(f => scheduler.RemoveDirectFileTransferAccessForUser(f.Select(S => S.PublicKey), f.Key.ClusterUser, f.Key.ClusterId, f.Key.ProjectId));
+                clusterUserActiveTempKey.ForEach(f => scheduler.RemoveDirectFileTransferAccessForUser(f.Select(S => S.PublicKey), f.Key.ClusterUser, f.Key.Cluster));
 
 
                 activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
@@ -95,13 +96,17 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 certGenerator.Regenerate();
                 publicKey = certGenerator.ToPuTTYPublicKey();
             }
-
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(cluster.LocalBasepath, jobInfo.Specification),
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(clusterProject.LocalBasepath, jobInfo.Specification),
                 FileTransferCipherType = certGenerator.CipherType,
                 Credentials = new FileTransferKeyCredentials
                 {
@@ -142,7 +147,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             }
 
             SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUser(
-                new string[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser, jobInfo.Specification.Cluster.Id, jobInfo.Project.Id);
+                new string[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser, jobInfo.Specification.Cluster);
 
             temporaryKey.IsDeleted = true;
             _unitOfWork.Save();
@@ -160,7 +165,12 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 IList<TaskFileOffset> currentTaskFileOffsets = (from taskFileOffset in taskFileOffsets where taskFileOffset.SubmittedTaskInfoId == taskInfo.Id select taskFileOffset).ToList();
                 foreach (TaskFileOffset currentOffset in currentTaskFileOffsets)
                 {
-                    ICollection<JobFileContent> contents = fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType, currentOffset.Offset);
+                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+                    if (clusterProject == null)
+                    {
+                        ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+                    }
+                    ICollection<JobFileContent> contents = fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType, currentOffset.Offset, clusterProject.LocalBasepath);
                     if (contents != null)
                     {
                         foreach (JobFileContent content in contents)
@@ -187,17 +197,22 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                     FileSystemFactory.GetInstance(fileTransferMethodGroup.Key.Protocol).CreateFileSystemManager(fileTransferMethodGroup.Key);
                 foreach (var jobInfo in fileTransferMethodGroup)
                 {
+                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+                    if (clusterProject == null)
+                    {
+                        ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+                    }
                     DateTime synchronizationTime = DateTime.UtcNow;
-                    ICollection<JobFileContent> files = fileManager.CopyLogFilesFromCluster(jobInfo);
-                    foreach (JobFileContent file in fileManager.CopyProgressFilesFromCluster(jobInfo))
+                    ICollection<JobFileContent> files = fileManager.CopyLogFilesFromCluster(jobInfo, clusterProject.LocalBasepath);
+                    foreach (JobFileContent file in fileManager.CopyProgressFilesFromCluster(jobInfo, clusterProject.LocalBasepath))
                     {
                         files.Add(file);
                     }
-                    foreach (JobFileContent file in fileManager.CopyStdOutputFilesFromCluster(jobInfo))
+                    foreach (JobFileContent file in fileManager.CopyStdOutputFilesFromCluster(jobInfo, clusterProject.LocalBasepath))
                     {
                         files.Add(file);
                     }
-                    foreach (JobFileContent file in fileManager.CopyStdErrorFilesFromCluster(jobInfo))
+                    foreach (JobFileContent file in fileManager.CopyStdErrorFilesFromCluster(jobInfo, clusterProject.LocalBasepath))
                     {
                         files.Add(file);
                     }
@@ -220,7 +235,12 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
-            return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
+            return fileManager.ListChangedFilesForJob(jobInfo, clusterProject.LocalBasepath, jobInfo.SubmitTime.Value);
         }
 
         public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
@@ -228,11 +248,17 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
+
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
             try
             {
-                return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                return fileManager.DownloadFileFromCluster(jobInfo, clusterProject.LocalBasepath, relativeFilePath);
             }
             catch (SftpPathNotFoundException exception)
             {

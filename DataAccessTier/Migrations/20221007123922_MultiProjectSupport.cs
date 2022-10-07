@@ -97,6 +97,10 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "ClusterAuthenticationCredentials");
 
             migrationBuilder.DropColumn(
+                name: "LocalBasepath",
+                table: "Cluster");
+
+            migrationBuilder.DropColumn(
                 name: "ServiceAccountCredentialsId",
                 table: "Cluster");
 
@@ -143,9 +147,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
-                    AccountingString = table.Column<string>(type: "nvarchar(15)", maxLength: 15, nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
+                    AccountingString = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false)
+                    EndDate = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -156,12 +165,18 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "ClusterProject",
                 columns: table => new
                 {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
                     ClusterId = table.Column<long>(type: "bigint", nullable: false),
-                    ProjectId = table.Column<long>(type: "bigint", nullable: false)
+                    ProjectId = table.Column<long>(type: "bigint", nullable: false),
+                    LocalBasepath = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ClusterProject", x => new { x.ClusterId, x.ProjectId });
+                    table.PrimaryKey("PK_ClusterProject", x => x.Id);
                     table.ForeignKey(
                         name: "FK_ClusterProject_Cluster_ClusterId",
                         column: x => x.ClusterId,
@@ -180,14 +195,16 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "ClusterProjectCredentials",
                 columns: table => new
                 {
-                    ClusterId = table.Column<long>(type: "bigint", nullable: false),
-                    ProjectId = table.Column<long>(type: "bigint", nullable: false),
+                    ClusterProjectId = table.Column<long>(type: "bigint", nullable: false),
                     ClusterAuthenticationCredentialsId = table.Column<long>(type: "bigint", nullable: false),
-                    IsServiceAccount = table.Column<bool>(type: "bit", nullable: false)
+                    IsServiceAccount = table.Column<bool>(type: "bit", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_ClusterProjectCredentials", x => new { x.ClusterId, x.ProjectId, x.ClusterAuthenticationCredentialsId });
+                    table.PrimaryKey("PK_ClusterProjectCredentials", x => new { x.ClusterProjectId, x.ClusterAuthenticationCredentialsId });
                     table.ForeignKey(
                         name: "FK_ClusterProjectCredentials_ClusterAuthenticationCredentials_ClusterAuthenticationCredentialsId",
                         column: x => x.ClusterAuthenticationCredentialsId,
@@ -195,10 +212,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                     table.ForeignKey(
-                        name: "FK_ClusterProjectCredentials_ClusterProject_ClusterId_ProjectId",
-                        columns: x => new { x.ClusterId, x.ProjectId },
+                        name: "FK_ClusterProjectCredentials_ClusterProject_ClusterProjectId",
+                        column: x => x.ClusterProjectId,
                         principalTable: "ClusterProject",
-                        principalColumns: new[] { "ClusterId", "ProjectId" },
+                        principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
 
@@ -231,6 +248,12 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IX_AdaptorUserGroup_ProjectId",
                 table: "AdaptorUserGroup",
                 column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ClusterProject_ClusterId_ProjectId",
+                table: "ClusterProject",
+                columns: new[] { "ClusterId", "ProjectId" },
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_ClusterProject_ProjectId",
@@ -424,6 +447,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "ClusterAuthenticationCredentials",
                 type: "bigint",
                 nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "LocalBasepath",
+                table: "Cluster",
+                type: "nvarchar(100)",
+                maxLength: 100,
+                nullable: false,
+                defaultValue: "");
 
             migrationBuilder.AddColumn<long>(
                 name: "ServiceAccountCredentialsId",

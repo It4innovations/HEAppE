@@ -29,51 +29,51 @@ namespace HEAppE.FileTransferFramework
         }
         #endregion
         #region Abstract Methods
-        public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
+        public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string localBasepath, string relativeFilePath);
         public abstract byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath);
-        public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo);
+        public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string localBasepath);
         protected abstract void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster);
         protected abstract ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster);
         protected abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo, ClusterAuthenticationCredentials credentials);
 
         #endregion
         #region IRexFileSystemManager Members
-        public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory)
+        public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localBasepath, string localJobDirectory)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobInfo.Specification);
             CopyAll(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null, jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
         }
 
-        public virtual ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobInfo)
+        public virtual ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobInfo, string localBasepath)
         {
-            return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardOutputFile);
+            return PerformSynchronizationForType(jobInfo, localBasepath, SynchronizableFiles.StandardOutputFile);
         }
 
-        public virtual ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobInfo)
+        public virtual ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobInfo, string localBasepath)
         {
-            return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardErrorFile);
+            return PerformSynchronizationForType(jobInfo, localBasepath, SynchronizableFiles.StandardErrorFile);
         }
 
-        public virtual ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobInfo)
+        public virtual ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobInfo, string localBasepath)
         {
-            return PerformSynchronizationForType(jobInfo, SynchronizableFiles.ProgressFile);
+            return PerformSynchronizationForType(jobInfo, localBasepath, SynchronizableFiles.ProgressFile);
         }
 
-        public virtual ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobInfo)
+        public virtual ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobInfo, string localBasepath)
         {
-            return PerformSynchronizationForType(jobInfo, SynchronizableFiles.LogFile);
+            return PerformSynchronizationForType(jobInfo, localBasepath, SynchronizableFiles.LogFile);
         }
 
-        public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo, SynchronizableFiles fileType, long offset)
+        public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo, SynchronizableFiles fileType, long offset, string localBasepath)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, taskInfo.Specification.JobSpecification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, taskInfo.Specification.JobSpecification);
             string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectoryPath, taskInfo.Specification);
             FullFileSpecification fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
             IFileSynchronizer synchronizer = CreateFileSynchronizer(fileInfo, taskInfo.Specification.JobSpecification.ClusterUser);
             synchronizer.Offset = offset;
             synchronizer.SyncFileInfo.DestinationDirectory = null;
             var jobSpecification = taskInfo.Specification.JobSpecification;
-            ICollection<JobFileContent> result = synchronizer.SynchronizeFiles(jobSpecification.ClusterId, jobSpecification.ProjectId);
+            ICollection<JobFileContent> result = synchronizer.SynchronizeFiles(jobSpecification.Cluster);
 
             if (result != null)
             {
@@ -86,11 +86,11 @@ namespace HEAppE.FileTransferFramework
             return result;
         }
 
-        public virtual void CopyCreatedFilesFromCluster(SubmittedJobInfo jobInfo, DateTime jobSubmitTime)
+        public virtual void CopyCreatedFilesFromCluster(SubmittedJobInfo jobInfo, string localBasepath, DateTime jobSubmitTime)
         {
             foreach (SubmittedTaskInfo taskInfo in jobInfo.Tasks)
             {
-                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
+                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobInfo.Specification);
 
                 string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectoryPath, taskInfo.Specification);
 
@@ -106,12 +106,12 @@ namespace HEAppE.FileTransferFramework
             }
         }
 
-        public virtual ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime)
+        public virtual ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, string localBasepath, DateTime jobSubmitTime)
         {
             List<FileInformation> result = new List<FileInformation>();
             foreach (SubmittedTaskInfo taskInfo in jobInfo.Tasks)
             {
-                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
+                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobInfo.Specification);
                 string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectoryPath, taskInfo.Specification);
 
                 var changedFiles = ListChangedFilesForTask(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath, jobSubmitTime, jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
@@ -130,7 +130,7 @@ namespace HEAppE.FileTransferFramework
         }
         #endregion
         #region Local Methods
-        protected virtual ICollection<JobFileContent> PerformSynchronizationForType(SubmittedJobInfo jobInfo, SynchronizableFiles fileType)
+        protected virtual ICollection<JobFileContent> PerformSynchronizationForType(SubmittedJobInfo jobInfo, string localBasepath, SynchronizableFiles fileType)
         {
             List<JobFileContent> result = new List<JobFileContent>();
             if (!_fileSynchronizers.ContainsKey(fileType))
@@ -140,7 +140,7 @@ namespace HEAppE.FileTransferFramework
 
             foreach (SubmittedTaskInfo taskInfo in jobInfo.Tasks)
             {
-                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
+                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobInfo.Specification);
                 string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectoryPath, taskInfo.Specification);
                 FullFileSpecification fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
                 string sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
@@ -150,7 +150,7 @@ namespace HEAppE.FileTransferFramework
                     _fileSynchronizers[fileType][sourceFilePath] = CreateFileSynchronizer(fileInfo, jobInfo.Specification.ClusterUser);
                 }
                 var jobSpecification = jobInfo.Specification;
-                ICollection<JobFileContent> subresult = _fileSynchronizers[fileType][sourceFilePath].SynchronizeFiles(jobSpecification.ClusterId, jobSpecification.ProjectId);
+                ICollection<JobFileContent> subresult = _fileSynchronizers[fileType][sourceFilePath].SynchronizeFiles(jobSpecification.Cluster);
                 if (subresult != null)
                 {
                     foreach (JobFileContent content in subresult)
@@ -164,13 +164,13 @@ namespace HEAppE.FileTransferFramework
             return result;
         }
 
-        protected virtual void CreateSynchronizersForType(JobSpecification jobSpecification, SynchronizableFiles fileType)
+        protected virtual void CreateSynchronizersForType(JobSpecification jobSpecification, string localBasepath, SynchronizableFiles fileType)
         {
             _fileSynchronizers[fileType] = new Dictionary<string, IFileSynchronizer>(jobSpecification.Tasks.Count);
 
             foreach (TaskSpecification task in jobSpecification.Tasks)
             {
-                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobSpecification);
+                string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobSpecification);
                 string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectoryPath, task);
                 FullFileSpecification fileInfo = CreateSynchronizableFileInfoForType(task, taskClusterDirectoryPath, fileType);
                 string sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);

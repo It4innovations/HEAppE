@@ -48,7 +48,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
-            var serviceAccount = cluster.GetServiceAccountCredentials(projectId);
+            var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster)
                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
@@ -110,7 +110,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
-            var serviceAccount = cluster.GetServiceAccountCredentials(projectId);
+            var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster)
                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)

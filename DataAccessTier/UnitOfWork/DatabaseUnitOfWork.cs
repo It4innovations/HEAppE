@@ -29,6 +29,8 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IAdaptorUserRepository _adaptorUserRepository;
         private IClusterProxyConnectionRepository _clusterProxyConnectionRepository;
         private IClusterRepository _clusterRepository;
+        private IProjectRepository _projectRepository;
+        private IClusterProjectRepository _clusterProjectRepository;
         private IClusterAuthenticationCredentialsRepository _clusterAuthenticationCredentialsRepository;
         private IClusterNodeTypeRepository _clusterNodeTypeRepository;
         private IClusterNodeTypeRequestedGroupRepository _clusterNodeTypeRequestedRepository;
@@ -45,7 +47,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private ICommandTemplateParameterRepository _commandTemplateParameterRepository;
         private ICommandTemplateParameterValueRepository _commandTemplateParameterValueRepository;
         private IJobSpecificationRepository _jobSpecificationRepository;
-        private IProjectRepository _projectRepository;
         private ILanguageRepository _languageRepository;
         private IMessageLocalizationRepository _messagLocalizationRepository;
         private IMessageTemplateRepository _messageTemplateRepository;
@@ -88,6 +89,24 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _clusterRepository = _clusterRepository ?? new ClusterRepository(_context);
+
+            }
+        }
+
+        public IProjectRepository ProjectRepository
+        {
+            get
+            {
+                return _projectRepository = _projectRepository ?? new ProjectRepository(_context);
+
+            }
+        }
+
+        public IClusterProjectRepository ClusterProjectRepository
+        {
+            get
+            {
+                return _clusterProjectRepository = _clusterProjectRepository ?? new ClusterProjectRepository(_context);
 
             }
         }
@@ -161,7 +180,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
 
             }
         }
- 
+
         public IEnvironmentVariableRepository EnvironmentVariableRepository
         {
             get
@@ -247,14 +266,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _jobSpecificationRepository = _jobSpecificationRepository ?? new JobSpecificationRepository(_context);
-            }
-        }
-
-        public IProjectRepository ProjectRepository
-        {
-            get
-            {
-                return _projectRepository = _projectRepository ?? new ProjectRepository(_context);
             }
         }
 

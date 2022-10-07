@@ -18,6 +18,8 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         #region Repositories
         IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository { get; }
         IClusterRepository ClusterRepository { get; }
+        IProjectRepository ProjectRepository { get; }
+        IClusterProjectRepository ClusterProjectRepository { get; }
         IClusterProxyConnectionRepository ClusterProxyConnectionRepository { get; }
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }
         IClusterNodeTypeRequestedGroupRepository ClusterNodeTypeRequestedGroupRepository { get; }

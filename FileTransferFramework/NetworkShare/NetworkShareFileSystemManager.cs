@@ -20,14 +20,14 @@ namespace HEAppE.FileTransferFramework.NetworkShare
         }
         #endregion
         #region AbstractFileSystemManager Members
-        public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
+        public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string localBasepath, string relativeFilePath)
         {
             throw new NotImplementedException();
         }
 
-        public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
+        public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string localBasepath)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobInfo.Specification);
             UnsetReadOnlyForAllFiles(jobClusterDirectoryPath);
             Directory.Delete(jobClusterDirectoryPath, true);
         }

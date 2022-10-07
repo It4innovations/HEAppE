@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20221006122909_MultiProjectSupport")]
+    [Migration("20221007123922_MultiProjectSupport")]
     partial class MultiProjectSupport
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -39,11 +39,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("DomainName")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("LocalBasepath")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("MasterNodeName")
                         .IsRequired()
@@ -290,34 +285,62 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
                 {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
                     b.Property<long>("ClusterId")
                         .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LocalBasepath")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("ClusterId", "ProjectId");
+                    b.HasKey("Id");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("ClusterId", "ProjectId")
+                        .IsUnique();
 
                     b.ToTable("ClusterProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentials", b =>
                 {
-                    b.Property<long>("ClusterId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long>("ProjectId")
+                    b.Property<long>("ClusterProjectId")
                         .HasColumnType("bigint");
 
                     b.Property<long>("ClusterAuthenticationCredentialsId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsServiceAccount")
                         .HasColumnType("bit");
 
-                    b.HasKey("ClusterId", "ProjectId", "ClusterAuthenticationCredentialsId");
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ClusterProjectId", "ClusterAuthenticationCredentialsId");
 
                     b.HasIndex("ClusterAuthenticationCredentialsId");
 
@@ -692,11 +715,29 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<string>("AccountingString")
                         .IsRequired()
-                        .HasMaxLength(15)
-                        .HasColumnType("nvarchar(15)");
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<DateTime>("EndDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
@@ -1464,7 +1505,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterProject", "ClusterProject")
                         .WithMany("ClusterProjectCredentials")
-                        .HasForeignKey("ClusterId", "ProjectId")
+                        .HasForeignKey("ClusterProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

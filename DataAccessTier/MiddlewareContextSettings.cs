@@ -51,9 +51,13 @@ namespace HEAppE.DataAccessTier
         public static List<CommandTemplateParameter> CommandTemplateParameters { get; set; }
 
         public static List<FileTransferMethod> FileTransferMethods { get; set; }
+
         public static List<Project> Projects { get; set; }
+
         public static List<ClusterProject> ClusterProjects { get; set; }
+
         public static List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; }
+
         public static List<Language> Languages { get; set; }
     }
 }

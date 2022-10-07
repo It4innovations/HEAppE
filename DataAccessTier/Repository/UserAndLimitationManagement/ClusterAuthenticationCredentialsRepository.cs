@@ -17,5 +17,23 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 
         }
         #endregion
+
+        #region Methods
+        public List<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForClusterAndProject(long clusterId, long projectId)
+        {
+            var clusterProject = _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
+            var clusterProjectCredentials = clusterProject.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount);
+            var credentials = clusterProjectCredentials.Select(c => c.ClusterAuthenticationCredentials);
+            return credentials.ToList();
+        }
+
+        public ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId)
+        {
+            var clusterProject = _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
+            var clusterProjectCredentials = clusterProject.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount);
+            var credentials = clusterProjectCredentials.Select(c => c.ClusterAuthenticationCredentials);
+            return credentials.FirstOrDefault();
+        }
+        #endregion
     }
 }

@@ -51,12 +51,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
-        public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster);
             try
             {
-                var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
+                var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials, clusterProject);
                 return tasks;
             }
             finally
@@ -183,9 +183,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// </summary>
         /// <param name="publicKeys">Public keys</param>
         /// <param name="credentials">Credentials</param>
-        public void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, long clusterId, long projectId)
+        public void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, Cluster cluster)
         {
-            var cluster = credentials.GetClusterForProject(clusterId, projectId);
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
             try
             {
@@ -201,12 +200,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// Create job directory
         /// </summary>
         /// <param name="jobInfo">Job info</param>
-        public void CreateJobDirectory(SubmittedJobInfo jobInfo)
+        public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
-                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo);
+                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
             }
             finally
             {
@@ -218,12 +217,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// Delete job directory
         /// </summary>
         /// <param name="jobInfo">Job info</param>
-        public void DeleteJobDirectory(SubmittedJobInfo jobInfo)
+        public void DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
-                _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo);
+                _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
             }
             finally
             {
@@ -237,12 +236,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
         /// <param name="path">Path</param>
-        public void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string hash, string path)
+        public void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
-                _adapter.CopyJobDataToTemp(schedulerConnection.Connection, jobInfo, hash, path);
+                _adapter.CopyJobDataToTemp(schedulerConnection.Connection, jobInfo, localBasePath, hash, path);
             }
             finally
             {
@@ -255,12 +254,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// </summary>
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string hash)
+        public void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
-                _adapter.CopyJobDataFromTemp(schedulerConnection.Connection, jobInfo, hash);
+                _adapter.CopyJobDataFromTemp(schedulerConnection.Connection, jobInfo, localBasePath, hash);
             }
             finally
             {

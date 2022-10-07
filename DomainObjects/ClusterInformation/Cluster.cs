@@ -29,10 +29,6 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public int? Port { get; set; }
 
         [Required]
-        [StringLength(100)]
-        public string LocalBasepath { get; set; }
-
-        [Required]
         [StringLength(30)]
         public string TimeZone { get; set; } = "UTC";
 
@@ -51,32 +47,10 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public virtual ClusterProxyConnection ProxyConnection { get; set; }
         public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
         #endregion
-        #region Public Methods
-        public List<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForProject(long projectId)
-        {
-            var clusterProject = ClusterProjects.Find(cp => cp.ClusterId == this.Id && cp.ProjectId == projectId);
-            var clusterProjectCredentials = clusterProject.ClusterProjectCredentials.FindAll(cpc => cpc.ClusterId == this.Id && cpc.ProjectId == projectId && !cpc.IsServiceAccount);
-            var credentials = clusterProjectCredentials.Select(c => c.ClusterAuthenticationCredentials);
-            return credentials.ToList();
-        }
-
-        public ClusterAuthenticationCredentials GetServiceAccountCredentials(long projectId)
-        {
-            var clusterProject = ClusterProjects.Find(cp => cp.ClusterId == this.Id && cp.ProjectId == projectId);
-            var clusterProjectCredentials = clusterProject.ClusterProjectCredentials.FindAll(cpc => cpc.ClusterId == this.Id && cpc.ProjectId == projectId && cpc.IsServiceAccount);
-            var credentials = clusterProjectCredentials.Select(c => c.ClusterAuthenticationCredentials);
-            return credentials.FirstOrDefault();
-        }
-
-        public List<Project> GetProjects()
-        {
-            return ClusterProjects.Select(p => p.Project).ToList();
-        }
-        #endregion
         #region Override Methods
         public override string ToString()
         {
-            return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, LocalBasepath={LocalBasepath}, SchedulerType={SchedulerType}, TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
+            return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, SchedulerType={SchedulerType}, TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
         }
         #endregion
     }

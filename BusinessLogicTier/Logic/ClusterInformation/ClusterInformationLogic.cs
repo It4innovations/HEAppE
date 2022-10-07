@@ -50,16 +50,10 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             {
                 throw new InvalidRequestException("The specified cluster node has no reference to cluster.");
             }
-            var serviceCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll()
-                                            .Where(c => c.ClusterProjectCredentials.Contains(
-                                                new ClusterProjectCredentials()
-                                                {
-                                                    ClusterId = nodeType.ClusterId.Value,
-                                                    ProjectId = projectId,
-                                                    IsServiceAccount = true
-                                                })).FirstOrDefault();
+            var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(nodeType.ClusterId.Value, projectId);
+
             return SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster)
-                                    .GetCurrentClusterNodeUsage(nodeType, serviceCredentials);
+                                    .GetCurrentClusterNodeUsage(nodeType, serviceAccount);
 
         }
 
@@ -86,12 +80,10 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 }
 
                 Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
-                var serviceAccountCredentials = commandTemplate.Project.ClusterProjects.Find(cp=>
-                        cp.ClusterId == cluster.Id 
+                var serviceAccountCredentials = commandTemplate.Project.ClusterProjects.Find(cp =>
+                        cp.ClusterId == cluster.Id
                         && cp.ProjectId == projectId)?
-                            .ClusterProjectCredentials.Find(cpc=>
-                            cpc.ClusterId == cluster.Id &&
-                            cpc.ProjectId == projectId &&
+                            .ClusterProjectCredentials.Find(cpc =>
                             cpc.IsServiceAccount)?
                             .ClusterAuthenticationCredentials;
 
@@ -116,21 +108,15 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             }
 
             //return all non service acccount for specific cluster and project
-            var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll()
-                                            .Where(c=>c.ClusterProjectCredentials.Contains(
-                                                new ClusterProjectCredentials()
-                                                {
-                                                    ClusterId = clusterId,
-                                                    ProjectId = projectId,
-                                                    IsServiceAccount = false
-                                                })).ToList();
+            var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId);
+            var serviceCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId);
 
 
             var lastUsedId = ClusterUserCache.GetLastUserId(cluster);
             if (lastUsedId is null)
             {   // No user has been used from this cluster
                 // return first usable account
-                ClusterUserCache.SetLastUserId(cluster, credentials[0].Id, projectId);
+                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, credentials[0].Id);
                 _log.DebugFormat("Using initial cluster account: {0}", credentials[0].Username);
                 return credentials[0];
             }
@@ -145,7 +131,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                     creds = credentials[0];
                 }
 
-                ClusterUserCache.SetLastUserId(cluster, creds.Id, projectId);
+                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, credentials[0].Id);
                 _log.DebugFormat("Using cluster account: {0}", creds.Username);
                 return creds;
             }

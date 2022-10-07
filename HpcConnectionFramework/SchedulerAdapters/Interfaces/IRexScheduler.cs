@@ -11,7 +11,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
     /// </summary>
     public interface IRexScheduler
     {
-        IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
+        IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject);
 
         IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, ClusterAuthenticationCredentials credentials);
 
@@ -25,15 +25,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 
-        void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, long clusterId, long projectId);
+        void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, Cluster cluster);
 
-        void CreateJobDirectory(SubmittedJobInfo jobInfo);
+        void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath);
 
-        void DeleteJobDirectory(SubmittedJobInfo jobInfo);
+        void DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath);
 
-        void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string hash, string path);
+        void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash, string path);
 
-        void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string hash);
+        void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash);
 
         void CreateTunnel(SubmittedTaskInfo taskInfo, string nodeHost, int nodePort);
 

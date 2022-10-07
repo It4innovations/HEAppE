@@ -78,12 +78,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
-        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject)
         {
             var shellCommandSb = new StringBuilder();
             SshCommandWrapper command = null;
 
-            string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
+            string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, clusterProject, null);
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
             string sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
@@ -92,11 +92,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             shellCommandSb.Clear();
 
             //compose command with parameters of job and task IDs
-            shellCommandSb.Append($"{_linuxLocalCommandScripts.RunLocalCmdPath} {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/");
+            shellCommandSb.Append($"{_linuxLocalCommandScripts.RunLocalCmdPath} {clusterProject.LocalBasepath}/{jobSpecification.Id}/");
             jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
             //log local HPC Run script to log file
-            shellCommandSb.Append($" >> {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/job_log.txt");
+            shellCommandSb.Append($" >> {clusterProject.LocalBasepath}/{jobSpecification.Id}/job_log.txt");
             shellCommand = shellCommandSb.ToString();
 
             sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
@@ -223,9 +223,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
         }
 
         /// <summary>
@@ -233,9 +233,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            _commands.DeleteJobDirectory(connectorClient, jobInfo);
+            _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
         }
 
         /// <summary>
@@ -244,9 +244,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
+        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
         {
-            _commands.CopyJobDataToTemp(connectorClient, jobInfo, hash, path);
+            _commands.CopyJobDataToTemp(connectorClient, jobInfo, localBasePath, hash, path);
         }
 
         /// <summary>
@@ -255,9 +255,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
+        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
         {
-            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
+            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
         }
         #region SSH tunnel methods
         /// <summary>

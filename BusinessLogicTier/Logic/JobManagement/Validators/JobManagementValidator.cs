@@ -261,7 +261,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         {
             try
             {
-                var serviceAccount = cluster.GetServiceAccountCredentials(projectId);
+                var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
                 return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
             }
             catch (Exception)

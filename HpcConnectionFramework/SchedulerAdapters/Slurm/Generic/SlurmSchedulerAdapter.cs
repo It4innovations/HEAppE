@@ -65,12 +65,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject)
         {
             var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
             SshCommandWrapper command = null;
 
-            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
+            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, clusterProject, "sbatch");
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
             string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecuteCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try
@@ -241,9 +241,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
         }
 
         /// <summary>
@@ -251,9 +251,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            _commands.DeleteJobDirectory(connectorClient, jobInfo);
+            _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
         }
 
         /// <summary>
@@ -262,9 +262,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
+        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
         {
-            _commands.CopyJobDataToTemp(connectorClient, jobInfo, hash, path);
+            _commands.CopyJobDataToTemp(connectorClient, jobInfo, localBasePath, hash, path);
         }
 
         /// <summary>
@@ -273,9 +273,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
+        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
         {
-            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, hash);
+            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
         }
         #region SSH tunnel methods
         /// <summary>

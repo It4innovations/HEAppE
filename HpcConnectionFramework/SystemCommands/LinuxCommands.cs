@@ -84,10 +84,10 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash)
+        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
         {
-            string inputDirectory = $"{jobInfo.Specification.Cluster.LocalBasepath}Temp/{hash}/.";
-            string outputDirectory = $"{jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}";
+            string inputDirectory = $"{localBasePath}Temp/{hash}/.";
+            string outputDirectory = $"{localBasePath}/{jobInfo.Specification.Id}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.CopyDataFromTempCmdPath} {inputDirectory} {outputDirectory}");
             _log.Info($"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
         }
@@ -98,12 +98,12 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path)
+        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
         {
             //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
-            string inputDirectory = $"{jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{path}";
+            string inputDirectory = $"{localBasePath}/{jobInfo.Specification.Id}/{path}";
             inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;
-            string outputDirectory = $"{jobInfo.Specification.Cluster.LocalBasepath}Temp/{hash}";
+            string outputDirectory = $"{localBasePath}Temp/{hash}";
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.CopyDataToTempCmdPath} {inputDirectory} {outputDirectory}");
             _log.Info($"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
@@ -145,14 +145,14 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            var cmdBuilder = new StringBuilder($"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id};");
+            var cmdBuilder = new StringBuilder($"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id};");
             foreach (var task in jobInfo.Tasks)
             {
                 var path = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
-                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory};"
-                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}/{task.Specification.Id};";
+                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory};"
+                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id};";
 
                 cmdBuilder.Append(path);
             }
@@ -165,9 +165,9 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo)
+        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            string shellCommand = $"rm -Rf {jobInfo.Specification.Cluster.LocalBasepath}/{jobInfo.Specification.Id}";
+            string shellCommand = $"rm -Rf {localBasePath}/{jobInfo.Specification.Id}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
             _log.Info($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
         }

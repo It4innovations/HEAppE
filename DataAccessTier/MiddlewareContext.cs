@@ -156,9 +156,9 @@ namespace HEAppE.DataAccessTier
                 .HasForeignKey(td => new { td.TaskSpecificationId })
                 .OnDelete(DeleteBehavior.Restrict);
 
-            //M:N relations for ClusterProject
+            //M:N relations for ClusterProject and unique constraint
             modelBuilder.Entity<ClusterProject>()
-                .HasKey(cp => new { cp.ClusterId, cp.ProjectId });
+            .HasIndex(cp => new { cp.ClusterId, cp.ProjectId }).IsUnique();
             modelBuilder.Entity<ClusterProject>()
                 .HasOne(cp => cp.Cluster)
                 .WithMany(c => c.ClusterProjects)
@@ -170,11 +170,11 @@ namespace HEAppE.DataAccessTier
 
             //M:N relations for ClusterProjectCredentials
             modelBuilder.Entity<ClusterProjectCredentials>()
-                .HasKey(cpc => new { cpc.ClusterId, cpc.ProjectId, cpc.ClusterAuthenticationCredentialsId });
+                .HasKey(cpc => new { cpc.ClusterProjectId, cpc.ClusterAuthenticationCredentialsId });
             modelBuilder.Entity<ClusterProjectCredentials>()
                 .HasOne(cpc => cpc.ClusterProject)
                 .WithMany(c => c.ClusterProjectCredentials)
-                .HasForeignKey(cpc => new { cpc.ClusterId, cpc.ProjectId });
+                .HasForeignKey(cpc => new { cpc.ClusterProjectId });
             modelBuilder.Entity<ClusterProjectCredentials>()
                 .HasOne(cp => cp.ClusterAuthenticationCredentials)
                 .WithMany(p => p.ClusterProjectCredentials)
@@ -207,7 +207,6 @@ namespace HEAppE.DataAccessTier
                 Name = c.Name,
                 NodeTypes = c.NodeTypes,
                 SchedulerType = c.SchedulerType,
-                LocalBasepath = c.LocalBasepath,
                 TimeZone = c.TimeZone,
                 UpdateJobStateByServiceAccount = c.UpdateJobStateByServiceAccount,
                 ProxyConnectionId = c.ProxyConnectionId
@@ -240,9 +239,6 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjectDomains, false);
 
-            //Update Cluster foreign keys which could not be added before
-            //TODO: check if needed
-            //MiddlewareContextSettings.Clusters?.ForEach(c => Clusters.Find(c.Id).ServiceAccountCredentialsId = c.ServiceAccountCredentialsId);
             SaveChanges();
 
             var entries = ChangeTracker.Entries();
@@ -250,8 +246,9 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
-            //TODO: check if needed
-            //ClusterAuthenticationCredentials.ToList().ForEach(cc => cc.AuthenticationType = GetCredentialsAuthenticationType(cc));
+            ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
+                                    .ForEach(cpc => 
+                                    cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
@@ -353,9 +350,9 @@ namespace HEAppE.DataAccessTier
             }
         }
 
-        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(long clusterId, long projectId, ClusterAuthenticationCredentials credential)
+        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential, Cluster cluster)
         {
-            if (credential.GetClusterForProject(clusterId, projectId).ProxyConnection is null)
+            if (cluster.ProxyConnection is null)
             {
                 if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
                 {
@@ -369,7 +366,7 @@ namespace HEAppE.DataAccessTier
 
                 if (!string.IsNullOrEmpty(credential.Password))
                 {
-                    switch (credential.GetClusterForProject(clusterId, projectId).ConnectionProtocol)
+                    switch (cluster.ConnectionProtocol)
                     {
                         case ClusterConnectionProtocol.MicrosoftHpcApi:
                             return ClusterAuthenticationCredentialsAuthType.Password;
@@ -399,7 +396,7 @@ namespace HEAppE.DataAccessTier
 
                 if (!string.IsNullOrEmpty(credential.Password))
                 {
-                    switch (credential.GetClusterForProject(clusterId, projectId).ConnectionProtocol)
+                    switch (cluster.ConnectionProtocol)
                     {
                         case ClusterConnectionProtocol.MicrosoftHpcApi:
                             return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
@@ -510,6 +507,7 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<JobSpecification> JobSpecifications { get; set; }
         public virtual DbSet<TaskSpecification> TaskSpecifications { get; set; }
         public virtual DbSet<Project> Projects { get; set; }
+        public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
         #endregion
 
         #region Notifications Entities

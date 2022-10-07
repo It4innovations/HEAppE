@@ -30,14 +30,6 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
         #endregion
 
-        #region Public Methods
-        public Cluster GetClusterForProject(long clusterId, long projectId)
-        {
-            var cluster = ClusterProjectCredentials.Find(x => x.ClusterId == clusterId
-                                                                && x.ProjectId == projectId)?.ClusterProject.Cluster;
-            return cluster;
-        }
-        #endregion
         #region Override Methods
         public override string ToString()
         {

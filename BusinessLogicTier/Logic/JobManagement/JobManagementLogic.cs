@@ -115,8 +115,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         _unitOfWork.Save();
                         transactionScope.Complete();
                     }
+                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+                    if (clusterProject == null)
+                    {
+                        ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+                    }
                     //Create job directory
-                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo);
+                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath);
                     return jobInfo;
                 }
                 catch (Exception e)
@@ -153,9 +158,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     }
                 }
                 jobInfo.SubmitTime = DateTime.UtcNow;
+                var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+                if (clusterProject == null)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+                }
                 var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                                                       .CreateScheduler(jobInfo.Specification.Cluster)
-                                                      .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
+                                                      .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser, clusterProject);
 
 
                 jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
@@ -182,7 +192,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
                 var cluster = jobInfo.Specification.Cluster;
-                var serviceAccount = jobInfo.Specification.Cluster.GetServiceAccountCredentials(jobInfo.Specification.ProjectId);
+                var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId);
                 var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, serviceAccount)
                                                                     .ToList();
 
@@ -206,9 +216,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is deleting the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
             if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
             {
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).DeleteJobDirectory(jobInfo);
+                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
             }
             else
             {
@@ -305,14 +320,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     }
                 }
-
+                
                 if (cluster.UpdateJobStateByServiceAccount.Value)
                 {
-                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, jobGroup.SelectMany(s => s.Tasks)).ToList();
+                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks)).ToList();
                 }
                 else
                 {
-                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, f.SelectMany(s => s.Tasks))));
+                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks))));
                 }
 
                 bool isNeedUpdateJobState = false;
@@ -349,9 +364,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info(string.Format("User {0} with job Id {1} is copying job data to temp {2}", loggedUser.GetLogIdentification(), submittedJobInfoId, hash));
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
-                    .CopyJobDataToTemp(jobInfo, hash, path);
+                    .CopyJobDataToTemp(jobInfo, clusterProject.LocalBasepath, hash, path);
         }
 
 
@@ -359,9 +379,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info(string.Format("User {0} with job Id {1} is copying job data from temp {2}", loggedUser.GetLogIdentification(), createdJobInfoId, hash));
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
-                    .CopyJobDataFromTemp(jobInfo, hash);
+                    .CopyJobDataFromTemp(jobInfo, clusterProject.LocalBasepath, hash);
         }
 
         public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)
@@ -661,15 +686,15 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return dbJobInfo;
         }
 
-        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks)
+        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork, IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks)
         {
             var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
                                            .ToList();
 
             var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
             var cluster = jobSpecification.Cluster;
-            var serviceAccount = cluster.GetServiceAccountCredentials(jobSpecification.ProjectId);
-            
+            var serviceAccount = unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId);
+
             return scheduler.GetActualTasksInfo(unfinishedTasks, serviceAccount);
         }
 

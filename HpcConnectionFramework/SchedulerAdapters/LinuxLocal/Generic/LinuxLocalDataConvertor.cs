@@ -29,7 +29,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <summary>
         /// Constructor
         /// </summary>
-        public LinuxLocalDataConvertor() : base(null) 
+        public LinuxLocalDataConvertor() : base(null)
         {
         }
         #endregion
@@ -105,7 +105,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="jobSpecification">Internal Job Specification</param>
         /// <param name="schedulerAllocationCmd">Scheduler command</param>
         /// <returns></returns>
-        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd = null)
+        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, ClusterProject clusterProject, object schedulerAllocationCmd = null)
         {
             var localHpcJobInfo = Convert.ToBase64String(Encoding.UTF8.GetBytes(
                     jobSpecification.ConvertToLocalHPCInfo(LinuxLocalTaskState.Q.ToString(), LinuxLocalTaskState.Q.ToString()))
@@ -118,7 +118,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                     jobSpecification,
                     task,
                     task.CommandTemplate.TemplateParameters,
-                    task.CommandParameterValues
+                    task.CommandParameterValues, 
+                    clusterProject
                     );
                 taskCommandLine.Append(ReplaceTemplateDirectivesInCommand($"{task.CommandTemplate.ExecutableFile} {task.CommandTemplate.CommandParameters}", commandParameterDictionary));
 
@@ -135,7 +136,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             }
 
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
+            return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {clusterProject.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
         #endregion
         #region Local Methods
