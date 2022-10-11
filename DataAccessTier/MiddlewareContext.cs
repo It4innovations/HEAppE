@@ -225,7 +225,7 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects, false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
@@ -247,7 +247,7 @@ namespace HEAppE.DataAccessTier
 
             //Update Authentication type
             ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
-                                    .ForEach(cpc => 
+                                    .ForEach(cpc =>
                                     cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
 
             SaveChanges();
@@ -342,6 +342,12 @@ namespace HEAppE.DataAccessTier
                 case OpenStackAuthenticationCredentialProjectDomain openstackCredProjDomain:
                     {
                         var entity = Set<T>().Find(openstackCredProjDomain.OpenStackAuthenticationCredentialId, openstackCredProjDomain.OpenStackProjectDomainId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+                case ClusterProjectCredentials clusterProjectCredentials:
+                    {
+                        var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
