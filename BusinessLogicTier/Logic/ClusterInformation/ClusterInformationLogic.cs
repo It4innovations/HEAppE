@@ -111,14 +111,15 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId);
             var serviceCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId);
 
+            var firstCredentials = credentials.FirstOrDefault();
 
             var lastUsedId = ClusterUserCache.GetLastUserId(cluster);
             if (lastUsedId is null)
             {   // No user has been used from this cluster
                 // return first usable account
-                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, credentials[0].Id);
-                _log.DebugFormat("Using initial cluster account: {0}", credentials[0].Username);
-                return credentials[0];
+                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, firstCredentials.Id);
+                _log.DebugFormat("Using initial cluster account: {0}", firstCredentials.Username);
+                return firstCredentials;
             }
             else
             {
@@ -128,10 +129,10 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 {
                     // No credentials with Id higher than last used found
                     // use first usable account
-                    creds = credentials[0];
+                    creds = firstCredentials;
                 }
 
-                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, credentials[0].Id);
+                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, firstCredentials.Id);
                 _log.DebugFormat("Using cluster account: {0}", creds.Username);
                 return creds;
             }
