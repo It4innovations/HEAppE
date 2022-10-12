@@ -148,8 +148,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
 
         /// <summary>
         /// Job end time
-        /// Note: Not supported!
         /// </summary>
+        [Scheduler("mtime", Format = "ddd MMM d HH:mm:ss yyyy")]
         public DateTime? EndTime { get; set; }
 
         /// <summary>
