@@ -158,14 +158,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     }
                 }
                 jobInfo.SubmitTime = DateTime.UtcNow;
-                var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
-                if (clusterProject == null)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
-                }
                 var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                                                       .CreateScheduler(jobInfo.Specification.Cluster)
-                                                      .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser, clusterProject);
+                                                      .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
 
 
                 jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);

@@ -170,7 +170,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="schedulerAllocationCmd">Scheduler allocation command</param>
         /// <returns></returns>
-        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, ClusterProject clusterProject, object schedulerAllocationCmd)
+        public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
             ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
             jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
@@ -181,7 +181,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             {
                 foreach (var task in jobSpecification.Tasks)
                 {
-                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, clusterProject, schedulerAllocationCmd)}{globalJobParameters});echo $_{task.Id};_{task.Id}_parsed=$(set -- $_{task.Id};echo $4);");
+                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)}{globalJobParameters});echo $_{task.Id};_{task.Id}_parsed=$(set -- $_{task.Id};echo $4);");
                 }
             }
 

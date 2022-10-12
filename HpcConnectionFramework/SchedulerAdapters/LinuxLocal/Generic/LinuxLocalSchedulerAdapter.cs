@@ -78,25 +78,26 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
-        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var shellCommandSb = new StringBuilder();
             SshCommandWrapper command = null;
 
-            string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, clusterProject, null);
+            string shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
             string sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.ExecuteCmdPath} {sshCommandBase64}");
 
             shellCommandSb.Clear();
+            string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
 
             //compose command with parameters of job and task IDs
-            shellCommandSb.Append($"{_linuxLocalCommandScripts.RunLocalCmdPath} {clusterProject.LocalBasepath}/{jobSpecification.Id}/");
+            shellCommandSb.Append($"{_linuxLocalCommandScripts.RunLocalCmdPath} {localBasePath}/{jobSpecification.Id}/");
             jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
             //log local HPC Run script to log file
-            shellCommandSb.Append($" >> {clusterProject.LocalBasepath}/{jobSpecification.Id}/job_log.txt");
+            shellCommandSb.Append($" >> {localBasePath}/{jobSpecification.Id}/job_log.txt");
             shellCommand = shellCommandSb.ToString();
 
             sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));

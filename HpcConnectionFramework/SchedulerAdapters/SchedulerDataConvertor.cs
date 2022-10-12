@@ -48,7 +48,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="schedulerAllocationCmd">Scheduler allocation command</param>
         /// <returns></returns>
-        public virtual object ConvertJobSpecificationToJob(JobSpecification jobSpecification, ClusterProject clusterProject, object schedulerAllocationCmd)
+        public virtual object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd)
         {
             ISchedulerJobAdapter jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
             jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart, jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
@@ -59,7 +59,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             {
                 foreach (var task in jobSpecification.Tasks)
                 {
-                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, clusterProject, schedulerAllocationCmd)}{globalJobParameters});echo $_{task.Id};");
+                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)}{globalJobParameters});echo $_{task.Id};");
                 }
             }
 
@@ -75,7 +75,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="schedulerAllocationCmd">Scheduler allocation cmd</param>
         /// <returns></returns>
         /// <exception cref="ApplicationException"></exception>
-        public virtual object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, ClusterProject clusterProject, object schedulerAllocationCmd)
+        public virtual object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
         {
             ISchedulerTaskAdapter taskAdapter = _conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
             taskAdapter.DependsOn = taskSpecification.DependsOn;
@@ -98,8 +98,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 taskAdapter.Runtime = Convert.ToInt32(taskSpecification.WalltimeLimit);
             }
 
-            string jobClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(clusterProject.LocalBasepath, jobSpecification);
-            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectory, taskSpecification);
+            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
 
             string stdErrFilePath = FileSystemUtils.ConcatenatePaths(workDirectory, taskSpecification.StandardErrorFile);
             taskAdapter.StdErrFilePath = workDirectory.Equals(stdErrFilePath) ? string.Empty : stdErrFilePath;
@@ -126,7 +125,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
 
             Dictionary<string, string> templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
-                                                            template.TemplateParameters, taskSpecification.CommandParameterValues, clusterProject);
+                                                            template.TemplateParameters, taskSpecification.CommandParameterValues);
             taskAdapter.SetPreparationAndCommand(workDirectory, ReplaceTemplateDirectivesInCommand(template.PreparationScript, templateParameters),
                                                  ReplaceTemplateDirectivesInCommand($"{template.ExecutableFile} {template.CommandParameters}", templateParameters),
                                                  stdOutFilePath, stdErrFilePath, CreateTaskDirectorySymlinkCommand(taskSpecification));
@@ -207,7 +206,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="taskParametersValues">Task parameters values</param>
         /// <returns></returns>
         protected static Dictionary<string, string> CreateTemplateParameterValuesDictionary(JobSpecification jobSpecification, TaskSpecification taskSpecification,
-                ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues, ClusterProject clusterProject)
+                ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues)
         {
             var finalParameters = new Dictionary<string, string>();
             foreach (CommandTemplateParameter templateParameter in templateParameters)
@@ -230,8 +229,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
                     if (templateParameter.Query == "Task.Workdir")
                     {
-                        string taskClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(clusterProject.LocalBasepath, jobSpecification);
-                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskClusterDirectory, taskSpecification);
+                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
                     }
 
                     if (templateParameter.Query.StartsWith("Task."))

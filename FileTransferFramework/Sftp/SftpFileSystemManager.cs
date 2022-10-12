@@ -27,9 +27,9 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         #endregion
         #region AbstractFileSystemManager Members
-        public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string localBasepath, string relativeFilePath)
+        public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification);
             var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
@@ -62,9 +62,9 @@ namespace HEAppE.FileTransferFramework.Sftp
                 _connectionPool.ReturnConnection(connection);
             }
         }
-        public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string localBasepath)
+        public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(localBasepath, jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification);
             var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {

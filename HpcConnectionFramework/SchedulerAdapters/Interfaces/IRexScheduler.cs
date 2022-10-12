@@ -11,7 +11,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
     /// </summary>
     public interface IRexScheduler
     {
-        IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject);
+        IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
         IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, ClusterAuthenticationCredentials credentials);
 

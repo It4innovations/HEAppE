@@ -51,12 +51,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
-        public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject)
+        public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster);
             try
             {
-                var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials, clusterProject);
+                var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
                 return tasks;
             }
             finally

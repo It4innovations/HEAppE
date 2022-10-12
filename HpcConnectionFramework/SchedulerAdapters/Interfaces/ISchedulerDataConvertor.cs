@@ -10,9 +10,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
     /// </summary>
     public interface ISchedulerDataConvertor
     {
-        object ConvertJobSpecificationToJob(JobSpecification jobSpecification, ClusterProject clusterProject, object schedulerAllocationCmd);
+        object ConvertJobSpecificationToJob(JobSpecification jobSpecification, object schedulerAllocationCmd);
 
-        object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, ClusterProject clusterProject, object schedulerAllocationCmd);
+        object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd);
 
         void FillingSchedulerJobResultObjectFromSchedulerAttribute(Cluster cluster, object schedulerResultObj, Dictionary<string, string> parsedParameters);
 

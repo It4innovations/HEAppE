@@ -65,12 +65,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
             SshCommandWrapper command = null;
 
-            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, clusterProject, "sbatch");
+            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
             string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecuteCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
             try

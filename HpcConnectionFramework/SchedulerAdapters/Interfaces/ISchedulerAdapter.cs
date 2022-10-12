@@ -11,7 +11,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
     /// </summary>
     public interface ISchedulerAdapter
     {
-        IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject);
+        IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials);
 
         IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo);
 

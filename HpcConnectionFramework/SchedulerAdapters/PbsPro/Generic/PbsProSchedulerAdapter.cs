@@ -70,12 +70,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials, ClusterProject clusterProject)
+        public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var jobIdsWithJobArrayIndexes = new List<string>();
             SshCommandWrapper command = null;
 
-            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, clusterProject, "qsub  -koed");
+            string sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "qsub  -koed");
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
             string sshCommandBase64 = $"{_commands.InterpreterCommand} '{_commands.ExecuteCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
