@@ -96,7 +96,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 certGenerator.Regenerate();
                 publicKey = certGenerator.ToPuTTYPublicKey();
             }
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -165,7 +165,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 IList<TaskFileOffset> currentTaskFileOffsets = (from taskFileOffset in taskFileOffsets where taskFileOffset.SubmittedTaskInfoId == taskInfo.Id select taskFileOffset).ToList();
                 foreach (TaskFileOffset currentOffset in currentTaskFileOffsets)
                 {
-                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
                     if (clusterProject == null)
                     {
                         ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -197,7 +197,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                     FileSystemFactory.GetInstance(fileTransferMethodGroup.Key.Protocol).CreateFileSystemManager(fileTransferMethodGroup.Key);
                 foreach (var jobInfo in fileTransferMethodGroup)
                 {
-                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
                     if (clusterProject == null)
                     {
                         ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -235,7 +235,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -248,7 +248,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
