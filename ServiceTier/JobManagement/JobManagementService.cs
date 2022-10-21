@@ -59,6 +59,8 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, jobLogic.GetSubmittedJobInfoById(createdJobInfoId, loggedUser).Specification.ProjectId);
+                    var createdJob = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId);
                     SubmittedJobInfo jobInfo = jobLogic.SubmitJob(createdJobInfoId, loggedUser);
                     return jobInfo.ConvertIntToExt();
                 }
@@ -78,6 +80,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser).Specification.ProjectId);
                     SubmittedJobInfo jobInfo = jobLogic.CancelJob(submittedJobInfoId, loggedUser);
                     return jobInfo.ConvertIntToExt();
                 }
@@ -97,6 +100,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser).Specification.ProjectId);
                     jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
                 }
             }
@@ -134,6 +138,7 @@ namespace HEAppE.ServiceTier.JobManagement
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     SubmittedJobInfo jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser).Specification.ProjectId);
                     return jobInfo.ConvertIntToExt();
                 }
             }
@@ -152,6 +157,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser).Specification.ProjectId);
                     jobLogic.CopyJobDataToTemp(submittedJobInfoId, loggedUser, sessionCode, path);
                 }
             }
@@ -169,6 +175,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, jobLogic.GetSubmittedJobInfoById(createdJobInfoId, loggedUser).Specification.ProjectId);
                     jobLogic.CopyJobDataFromTemp(createdJobInfoId, loggedUser, tempSessionCode);
                 }
             }
@@ -186,6 +193,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, jobLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser).Specification.ProjectId.Value);
                     var nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedTaskInfoId, loggedUser);
                     return nodesIPs.ToArray();
                 }
