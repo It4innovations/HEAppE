@@ -742,6 +742,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AccountingString")
+                        .IsUnique();
+
                     b.ToTable("Project");
                 });
 
@@ -1255,10 +1258,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("AccountingString")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Description")
                         .IsRequired()

@@ -179,6 +179,10 @@ namespace HEAppE.DataAccessTier
                 .HasOne(cp => cp.ClusterAuthenticationCredentials)
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
+
+            modelBuilder.Entity<Project>()
+                .HasIndex(p => p.AccountingString)
+                .IsUnique();
         }
         #endregion
         #region Seeding methods
@@ -191,8 +195,6 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
             InsertOrUpdateSeedData(GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserRoles), false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
@@ -227,6 +229,9 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
+
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);

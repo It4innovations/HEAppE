@@ -17,9 +17,6 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [StringLength(200)]
         public string Description { get; set; }
 
-        [StringLength(50)]
-        public string AccountingString { get; set; }
-
         public virtual List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; } = new List<AdaptorUserUserGroup>();
 
         [ForeignKey("Project")]
@@ -30,7 +27,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         public List<AdaptorUser> Users => AdaptorUserUserGroups?.Select(g => g.AdaptorUser).ToList();
 
         public override string ToString() {
-            return String.Format("AdaptorUserGroup: Id={0}, Name={1}, AccountingString={2}", Id, Name, AccountingString);
+            return String.Format("AdaptorUserGroup: Id={0}, Name={1}, Project={2}", Id, Name, Project);
         }
     }
 }

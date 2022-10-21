@@ -129,7 +129,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             }
         }
 
-        public ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode)
+        public ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, string sessionCode)
         {
             try
             {
@@ -137,9 +137,11 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
 
+                    //Memory cache key with personal session code due security purpose of access to cluster reference to project
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>()
                         {    clusterNodeId.ToString(),
+                             sessionCode,
                              nameof(GetCurrentClusterNodeUsage)
                         }
                     );
@@ -153,7 +155,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                     {
                         _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                         IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                        ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, projectId, loggedUser);
+                        ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
                         _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(), TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));
                         return nodeUsage.ConvertIntToExt();
                     }

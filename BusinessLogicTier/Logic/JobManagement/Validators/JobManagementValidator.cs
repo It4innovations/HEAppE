@@ -49,7 +49,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         private string ValidateJobSpecification(JobSpecification job)
         {
             ValidateRequestedCluster(job);
-
+            ValidateRequestedProject(job);
 
             if (job.Id != 0 && _unitOfWork.JobSpecificationRepository.GetById(job.Id) == null)
             {
@@ -182,6 +182,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             {
                 ValidateGenericCommandTemplateSetup(task);
             }
+
+            if (task.CommandTemplate.ProjectId.HasValue)
+            {
+                if(task.CommandTemplate.ProjectId != task.JobSpecification.ProjectId)
+                {
+                    _messageBuilder.AppendLine($"Task {task.Name} has specified CommandTemplateId \"{task.CommandTemplate.Id}\" which is not referenced to ProjectId \"{task.JobSpecification.ProjectId}\" at JobSpecification");
+                }
+            }
         }
 
         private void ValidateWallTimeLimit(TaskSpecification task)
@@ -199,6 +207,15 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 _messageBuilder.AppendLine(
                     $"Defined task {task.Name} has set higher WalltimeLimit ({task.WalltimeLimit.Value}) than the maximum on this cluster node, " +
                     $"maximal WallTimeLimit is {clusterNodeType.MaxWalltime}");
+            }
+        }
+
+        private void ValidateRequestedProject(JobSpecification job)
+        {
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(job.ClusterId, job.ProjectId);
+            if(clusterProject == null)
+            {
+                _messageBuilder.AppendLine($"Requested project with Id {job.ProjectId} has no reference to cluster with Id {job.ClusterId}.");
             }
         }
 

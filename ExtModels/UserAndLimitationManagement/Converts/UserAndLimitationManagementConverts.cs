@@ -2,6 +2,7 @@
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.DTO;
 using System.Linq;
@@ -27,7 +28,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 Id = userGroup.Id,
                 Name = userGroup.Name,
                 Description = userGroup.Description,
-                AccountingString = userGroup.AccountingString,
+                Project = userGroup.Project?.ConvertIntToExt(),
                 Users = userGroup.Users.Select(s => s.ConvertIntToExt())
                                         .ToArray()
             };

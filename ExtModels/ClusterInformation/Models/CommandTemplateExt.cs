@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HEAppE.ExtModels.JobManagement.Models;
+using System;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models
@@ -11,6 +12,9 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
 
         [DataMember(Name = "Name")]
         public string Name { get; set; }
+
+        [DataMember(Name = "Project")]
+        public ProjectExt Project { get; set;}
 
         [DataMember(Name = "Description")]
         public string Description { get; set; }

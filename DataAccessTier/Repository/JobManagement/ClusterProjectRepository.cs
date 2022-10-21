@@ -19,7 +19,7 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement
         }
         #endregion
         #region Methods
-        public ClusterProject GetClusterProjectForJob(long clusterId, long projectId)
+        public ClusterProject GetClusterProjectForClusterAndProject(long clusterId, long projectId)
         {
             return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId).FirstOrDefault();
         }

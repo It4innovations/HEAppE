@@ -56,18 +56,6 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             return jobstateAggregationExt;
         }
 
-        public static ProjectExt ConvertIntToExt(this Project project)
-        {
-            var taskInfoUsageReportExt = new ProjectExt
-            {
-                AccountingString = project.AccountingString,
-                StartDate = project.StartDate,
-                EndDate = project.EndDate
-            };
-
-            return taskInfoUsageReportExt;
-        }
-
         public static SubmittedJobInfoReportExt ConvertIntToExt(this SubmittedJobInfoUsageReport jobInfo)
         {
             var jobInfoReportBriefExt = new SubmittedJobInfoReportExt
@@ -75,7 +63,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Id = jobInfo.Id,
                 Name = jobInfo.Name,
                 State = jobInfo.State.ConvertIntToExt(),
-                Project = jobInfo.Project.ConvertIntToExt(),
+                Project = jobInfo.Project?.ConvertIntToExt(),
                 SubmitTime = jobInfo.SubmitTime,
                 StartTime = jobInfo.StartTime,
                 EndTime = jobInfo.EndTime,
@@ -93,7 +81,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Id = jobInfo.Id,
                 Name = jobInfo.Name,
                 State = jobInfo.State.ConvertIntToExt(),
-                Project = jobInfo.Project.ConvertIntToExt(),
+                Project = jobInfo.Project?.ConvertIntToExt(),
                 CreationTime = jobInfo.CreationTime,
                 SubmitTime = jobInfo.SubmitTime,
                 StartTime = jobInfo.StartTime,
@@ -152,7 +140,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Name = taskInfo.Name,
                 JobId = taskInfo.JobId,
                 JobName = taskInfo.JobName,
-                Project = taskInfo.Project.ConvertIntToExt(),
+                Project = taskInfo.Project?.ConvertIntToExt(),
                 State = taskInfo.State.ConvertIntToExt(),
                 StartTime = taskInfo.StartTime,
                 EndTime = taskInfo.EndTime,

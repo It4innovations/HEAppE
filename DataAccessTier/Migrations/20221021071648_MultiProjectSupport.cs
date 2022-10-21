@@ -104,6 +104,10 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "ServiceAccountCredentialsId",
                 table: "Cluster");
 
+            migrationBuilder.DropColumn(
+                name: "AccountingString",
+                table: "AdaptorUserGroup");
+
             migrationBuilder.AddColumn<long>(
                 name: "ProjectId",
                 table: "TaskSpecification",
@@ -264,6 +268,12 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IX_ClusterProjectCredentials_ClusterAuthenticationCredentialsId",
                 table: "ClusterProjectCredentials",
                 column: "ClusterAuthenticationCredentialsId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_Project_AccountingString",
+                table: "Project",
+                column: "AccountingString",
+                unique: true);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_AdaptorUserGroup_Project_ProjectId",
@@ -460,6 +470,13 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "ServiceAccountCredentialsId",
                 table: "Cluster",
                 type: "bigint",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "AccountingString",
+                table: "AdaptorUserGroup",
+                type: "nvarchar(50)",
+                maxLength: 50,
                 nullable: true);
 
             migrationBuilder.CreateTable(

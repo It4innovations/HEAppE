@@ -52,7 +52,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic);
             _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
 
-
             foreach (var task in specification.Tasks)
             {
                 ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser)
@@ -115,7 +114,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         _unitOfWork.Save();
                         transactionScope.Complete();
                     }
-                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
                     if (clusterProject == null)
                     {
                         ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -211,7 +210,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is deleting the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -359,7 +358,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info(string.Format("User {0} with job Id {1} is copying job data to temp {2}", loggedUser.GetLogIdentification(), submittedJobInfoId, hash));
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -374,7 +373,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info(string.Format("User {0} with job Id {1} is copying job data from temp {2}", loggedUser.GetLogIdentification(), createdJobInfoId, hash));
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForJob(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
@@ -435,6 +434,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId);
             specification.Submitter = loggedUser;
             specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser);
+            specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
 
             foreach (TaskSpecification task in specification.Tasks)
             {
@@ -511,11 +511,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             //Combination parameters from template
             taskSpecification.Priority ??= default(TaskPriority);
 
-
-            if(taskSpecification.Project.AccountingString != taskSpecification.JobSpecification.SubmitterGroup.AccountingString)
-            {
-                taskSpecification.Project.AccountingString = taskSpecification.JobSpecification.SubmitterGroup.AccountingString;
-            }           
+            taskSpecification.Project??= taskSpecification.JobSpecification.Project;
         }
 
         /// <summary>

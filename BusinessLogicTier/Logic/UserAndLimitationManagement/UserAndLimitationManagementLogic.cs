@@ -216,7 +216,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             ApplicationCredentialsDTO openStackCredentials;
             try
             {
-                var userGroupsName = userAccount.AdaptorUserUserGroups.Select(s => s.AdaptorUserGroup.AccountingString.ToLower())
+                var userGroupsName = userAccount.AdaptorUserUserGroups.Select(s => s.AdaptorUserGroup.Project?.AccountingString.ToLower())
                                                                         .ToList();
 
                 var openStackProject = _openStackInstance.Projects.Where(w => userGroupsName.Intersect(w.ProjectDomains.Select(s => s.Name.ToLower()))

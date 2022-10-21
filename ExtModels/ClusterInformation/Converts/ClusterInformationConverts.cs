@@ -2,6 +2,8 @@
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.JobManagement.Converts;
+using HEAppE.ExtModels.JobReporting.Converts;
 using System;
 using System.Linq;
 
@@ -46,6 +48,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
             {
                 Id = commandTemplate.Id,
                 Name = commandTemplate.Name,
+                Project = commandTemplate.Project?.ConvertIntToExt(),
                 Description = commandTemplate.Description,
                 Code = commandTemplate.Code,
                 IsGeneric = commandTemplate.IsGeneric,

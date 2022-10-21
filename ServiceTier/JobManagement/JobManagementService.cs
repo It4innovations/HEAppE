@@ -37,6 +37,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, specification.ProjectId);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     JobSpecification js = specification.ConvertExtToInt();
                     SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);

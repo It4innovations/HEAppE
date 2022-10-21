@@ -180,7 +180,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 Id = jobInfo.Id,
                 Name = jobInfo.Name,
                 State = jobInfo.State.ConvertIntToExt(),
-                Project = jobInfo.Project.ConvertIntToExt(),
+                Project = jobInfo.Project?.ConvertIntToExt(),
                 CreationTime = jobInfo.CreationTime,
                 SubmitTime = jobInfo.SubmitTime,
                 StartTime = jobInfo.StartTime,
@@ -212,10 +212,11 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             return convert;
         }
 
-        private static ProjectExt ConvertIntToExt(this Project project)
+        public static ProjectExt ConvertIntToExt(this Project project)
         {
             ProjectExt convert = new()
             {
+                Id = project.Id,
                 AccountingString = project.AccountingString,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,

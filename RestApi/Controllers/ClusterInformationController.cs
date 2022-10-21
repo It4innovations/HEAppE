@@ -1,8 +1,13 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.ClusterInformation;
 using HEAppE.ServiceTier.ClusterInformation;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -83,6 +88,12 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
+                // check if user can access project
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter);
+                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, model.ProjectId);
+                }
                 return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
             }
             catch (Exception e)
@@ -114,7 +125,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.ProjectId, model.SessionCode));
+                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
             }
             catch (Exception e)
             {

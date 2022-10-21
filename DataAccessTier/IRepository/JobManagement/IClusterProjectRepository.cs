@@ -6,6 +6,6 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement
 {
     public interface IClusterProjectRepository : IRepository<ClusterProject>
     {
-        ClusterProject GetClusterProjectForJob(long clusterId, long projectId);
+        ClusterProject GetClusterProjectForClusterAndProject(long clusterId, long projectId);
     }
 }

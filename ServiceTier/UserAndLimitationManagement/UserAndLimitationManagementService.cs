@@ -180,7 +180,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// <param name="requiredUserRole">Required user role.</param>
         /// <returns>AdaptorUser object if user has required user role.</returns>
         /// <exception cref="InsufficientRoleException">Is thrown if the user doesn't have <paramref name="requiredUserRole"/>.</exception>
-        internal static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, UserRoleType requiredUserRole)
+        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, UserRoleType requiredUserRole)
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
@@ -204,6 +204,19 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)requiredUserRole);
                 throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.Roles);
+            }
+        }
+        /// <summary>
+        /// Check if user is in Group which is referenced to specific project
+        /// </summary>
+        /// <param name="user">User account</param>
+        /// <param name="projectId">Project identifier</param>
+        /// <exception cref="AdaptorUserNotReferencedForProjectException"></exception>
+        public static void CheckUserProjectReference(AdaptorUser user, long projectId)
+        {
+            if (!user.Groups.Any(g => g.ProjectId == projectId))
+            {
+                throw new AdaptorUserNotReferencedForProjectException($"User {user.GetLogIdentification()} is not able to run job under ProjectId={projectId}");
             }
         }
 
