@@ -216,7 +216,27 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         {
             if (!user.Groups.Any(g => g.ProjectId == projectId))
             {
-                throw new AdaptorUserNotReferencedForProjectException($"User {user.GetLogIdentification()} is not able to run job under ProjectId={projectId}");
+                throw new AdaptorUserNotReferencedForProjectException($"User {user.GetLogIdentification()} is not able to run job under ProjectId={projectId}.");
+            }
+            var allProjectGroups = user.Groups.Where(g => g.ProjectId == projectId).Select(x=>x.Project);
+            foreach(var project in allProjectGroups)
+            {
+                if (project.IsDeleted)
+                {
+                    throw new ProjectConfigurationException($"Project with ProjectId={projectId} is deleted.");
+                }
+                if(project.StartDate >= project.EndDate)
+                {
+                    throw new ProjectConfigurationException($"Project with ProjectId={projectId} has StartDate={project.StartDate} after EndDate={project.EndDate}.");
+                }
+                if (project.StartDate > DateTime.UtcNow)
+                {
+                    throw new ProjectConfigurationException($"Project with ProjectId={projectId} has not started.");
+                }
+                if (project.EndDate <= DateTime.UtcNow)
+                {
+                    throw new ProjectConfigurationException($"Project with ProjectId={projectId} has ended.");
+                }
             }
         }
 
