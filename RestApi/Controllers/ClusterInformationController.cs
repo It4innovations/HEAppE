@@ -92,7 +92,7 @@ namespace HEAppE.RestApi.Controllers
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter);
-                    UserAndLimitationManagementService.CheckUserProjectReference(loggedUser, model.ProjectId);
+                    UserAndLimitationManagementService.CheckUserAssignmentToProject(loggedUser, model.ProjectId);
                 }
                 return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
             }
