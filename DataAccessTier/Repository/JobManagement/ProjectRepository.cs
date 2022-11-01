@@ -17,5 +17,11 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement
 
         }
         #endregion
+        #region Methods
+        public IEnumerable<Project> GetAllActiveProjects()
+        {
+            return _context.Projects.Where(p=>!p.IsDeleted && p.EndDate >= DateTime.UtcNow);
+        }
+        #endregion
     }
 }

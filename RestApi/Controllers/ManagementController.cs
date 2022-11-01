@@ -1,4 +1,8 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.ExtModels.JobManagement.Converts;
+using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.RestApi.Configuration;
@@ -66,8 +70,7 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
 
-                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
-                                                         model.ExecutableFile, model.PreparationScript, model.SessionCode));
+                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
             catch (Exception e)
             {
@@ -170,6 +173,11 @@ namespace HEAppE.RestApi.Controllers
                 var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
                 if (result)
                 {
+                    List<ProjectExt> activeProjects = new();
+                    using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                    {
+                        activeProjects = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExt()).ToList();
+                    }
                     return Ok(new InstanceInformationExt()
                     {
                         Name = DeploymentInformationsConfiguration.Name,
@@ -180,7 +188,8 @@ namespace HEAppE.RestApi.Controllers
                         URL = DeploymentInformationsConfiguration.Host,
                         URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
                         DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
-                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList()
+                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
+                        Projects = activeProjects
                     });
                 }
                 else

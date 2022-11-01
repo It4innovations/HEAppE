@@ -69,17 +69,6 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             return result;
         }
 
-        private static Project ConvertExtToInt(this ProjectExt projectExt)
-        {
-            var convert = new Project
-            {
-                AccountingString = projectExt.AccountingString,
-                StartDate = projectExt.StartDate,
-                EndDate = projectExt.EndDate
-            };
-            return convert;
-        }
-
         private static TaskSpecification ConvertExtToInt(this TaskSpecificationExt taskSpecificationExt, JobSpecification jobSpecification)
         {
             var result = new TaskSpecification
@@ -217,9 +206,14 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             ProjectExt convert = new()
             {
                 Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
                 AccountingString = project.AccountingString,
+                CreatedAt = project.CreatedAt,
+                ModifiedAt = project.ModifiedAt,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
+                IsDeleted = project.IsDeleted
             };
             return convert;
         }

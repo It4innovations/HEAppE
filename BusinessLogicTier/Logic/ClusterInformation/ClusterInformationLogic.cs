@@ -40,7 +40,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
         public IEnumerable<Cluster> ListAvailableClusters()
         {
-            return _unitOfWork.ClusterRepository.GetAll();
+            return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
         }
 
         public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser)
