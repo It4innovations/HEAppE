@@ -65,7 +65,7 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
                     NumberOfNodes = n.NumberOfNodes,
                     Queue = n.Queue,
                     RequestedNodeGroups = n.RequestedNodeGroups,
-                    PossibleCommands = n.PossibleCommands.Where(p => !p.Project.IsDeleted && p.Project.EndDate >= System.DateTime.UtcNow).ToList()
+                    PossibleCommands = n.PossibleCommands.Where(p => p.ProjectId == null || (!p.Project.IsDeleted && p.Project.EndDate >= System.DateTime.UtcNow)).ToList()
                 }).ToList()
             });
         }
