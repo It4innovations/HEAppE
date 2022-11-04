@@ -28,19 +28,10 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "EndDate")]
         public DateTime EndDate { get; set; }
 
-        [DataMember(Name = "CreatedAt")]
-        public DateTime CreatedAt { get; set; }
-
-        [DataMember(Name = "ModifiedAt")]
-        public DateTime? ModifiedAt { get; set; }
-
-        [DataMember(Name = "IsDeleted")]
-        public bool IsDeleted { get; set; }
-
         #region Public methods
         public override string ToString()
         {
-            return $"Project: Id={Id}, Name={Name}, Description={Description}, AccountingString={AccountingString}, StartDate={StartDate}, EndDate={EndDate}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}";
+            return $"Project: Id={Id}, Name={Name}, Description={Description}, AccountingString={AccountingString}, StartDate={StartDate}, EndDate={EndDate}";
         }
         #endregion
     }
