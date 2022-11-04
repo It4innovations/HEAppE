@@ -234,7 +234,6 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
-            ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
@@ -244,6 +243,8 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjectDomains, false);
+
+            ValidateSeed();
 
             SaveChanges();
 
@@ -258,6 +259,13 @@ namespace HEAppE.DataAccessTier
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
+        }
+
+        private void ValidateSeed()
+        {
+            _log.Info("Seed validation has started.");
+            ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
+            _log.Info("Seed validation completed.");
         }
 
         /// <summary>
