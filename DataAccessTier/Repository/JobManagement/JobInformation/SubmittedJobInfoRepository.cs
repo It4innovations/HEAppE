@@ -41,10 +41,11 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
                             .ToList();
         }
 
-        public IEnumerable<SubmittedJobInfo> GetAllWithSubmittedTaskAndAdaptorUser()
+        public IEnumerable<SubmittedJobInfo> GetAllWithSubmittedTaskAdaptorUserAndProject()
         {
             return _dbSet.Include(i => i.Submitter)
                          .Include(i=>i.Specification)
+                         .Include(i=>i.Project)
                          .Include(i => i.Tasks)
                             .ThenInclude(i=>i.Specification)
                             .ThenInclude(i=>i.CommandTemplate)
