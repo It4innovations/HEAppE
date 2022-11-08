@@ -27,12 +27,12 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
         [DataMember(Name = "FileTransferMethodId")]
         public long? FileTransferMethodId { get; set; }
 
-        [DataMember(Name = "CommandTemplates")]
-        public CommandTemplateExt[] CommandTemplates { get; set; }
+        [DataMember(Name = "FileTransferMethodId")]
+        public ProjectCommandTemplatesExt[] ProjectCommandTemplates { get;set;}
 
         public override string ToString()
         {
-            return $"ClusterNodeTypeExt(id={Id}; name={Name}; description={Description}; numberOfNodes={NumberOfNodes}; coresPerNode={CoresPerNode}; maxWalltime={MaxWalltime}; fileTransferMethodId={FileTransferMethodId}; possibleCommands={CommandTemplates})";
+            return $"ClusterNodeTypeExt(id={Id}; name={Name}; description={Description}; numberOfNodes={NumberOfNodes}; coresPerNode={CoresPerNode}; maxWalltime={MaxWalltime}; fileTransferMethodId={FileTransferMethodId}; projects={ProjectCommandTemplates})";
         }
     }
 }

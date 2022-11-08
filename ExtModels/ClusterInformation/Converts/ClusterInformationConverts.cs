@@ -27,6 +27,26 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 
         public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
         {
+            var groupedPossibleCommandsByProject = nodeType.PossibleCommands.Where(c => c.IsEnabled)
+                                                                                .GroupBy(x => x.Project).ToList();
+
+            var commandTemplatesForAllProjects = groupedPossibleCommandsByProject.FirstOrDefault(x => x.Key == null)?
+                                                                                    .Select(x => x.ConvertIntToExt())
+                                                                                    .ToArray();
+
+            var projectCommnadTemplates = groupedPossibleCommandsByProject.Where(x => x.Key != null)
+                                                                            .Select(s => new ProjectCommandTemplatesExt()
+                                                                            {
+                                                                                Project = s.Key.ConvertIntToExt(),
+                                                                                CommandTemplates = s.Select(x => x.ConvertIntToExt()).ToArray()
+                                                                            }).ToList();
+
+            //Append CommandTemplates which are not referenced to any project (references all Projects)
+            if (commandTemplatesForAllProjects != null)
+            {
+                projectCommnadTemplates.ForEach(p => p.CommandTemplates = commandTemplatesForAllProjects.Concat(p.CommandTemplates).ToArray());
+            }
+
             var convert = new ClusterNodeTypeExt()
             {
                 Id = nodeType.Id,
@@ -36,8 +56,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
                 FileTransferMethodId = nodeType.FileTransferMethodId,
-                CommandTemplates = nodeType.PossibleCommands.Where(c=>c.IsEnabled).Select(s=> s.ConvertIntToExt())
-                                                             .ToArray()
+                ProjectCommandTemplates = projectCommnadTemplates.ToArray()
             };
             return convert;
         }
@@ -48,12 +67,11 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
             {
                 Id = commandTemplate.Id,
                 Name = commandTemplate.Name,
-                Project = commandTemplate.Project?.ConvertIntToExt(),
                 Description = commandTemplate.Description,
                 Code = commandTemplate.Code,
                 IsGeneric = commandTemplate.IsGeneric,
-                TemplateParameters = commandTemplate.TemplateParameters.Where(w=> string.IsNullOrEmpty(w.Query) && w.IsVisible)
-                                                                        .Select(s=>s.ConvertIntToExt())
+                TemplateParameters = commandTemplate.TemplateParameters.Where(w => string.IsNullOrEmpty(w.Query) && w.IsVisible)
+                                                                        .Select(s => s.ConvertIntToExt())
                                                                         .ToArray()
             };
             return convert;
