@@ -16,10 +16,10 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [StringLength(200)]
         public string Description { get; set; }
 
-        public virtual List<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; } = new List<AdaptorUserUserRole>();
+        public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
 
         [NotMapped]
-        public List<AdaptorUser> Users => AdaptorUserUserRoles?.Select(g => g.AdaptorUser).ToList();
+        public List<AdaptorUser> Users => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUser).ToList();
 
         public override string ToString()
         {

@@ -216,7 +216,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             ApplicationCredentialsDTO openStackCredentials;
             try
             {
-                var userGroupsName = userAccount.AdaptorUserUserGroups.Select(s => s.AdaptorUserGroup.Project?.AccountingString.ToLower())
+                var userGroupsName = userAccount.AdaptorUserUserGroupRoles.Select(s => s.AdaptorUserGroup.Project?.AccountingString.ToLower())
                                                                         .ToList();
 
                 var openStackProject = _openStackInstance.Projects.Where(w => userGroupsName.Intersect(w.ProjectDomains.Select(s => s.Name.ToLower()))
@@ -283,7 +283,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
 
             // Check if the user is in the keycloak group.
-            if (!user.AdaptorUserUserGroups.Any(userGroup => userGroup.AdaptorUserGroupId == keycloakGroup.Id))
+            if (!user.AdaptorUserUserGroupRoles.Any(userGroup => userGroup.AdaptorUserGroupId == keycloakGroup.Id))
             {
                 // Assign user to the group.
                 if (!AddUserToGroup(user, keycloakGroup))
@@ -304,7 +304,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
             {
-                user.AdaptorUserUserRoles = availableRoles.Select(s => new AdaptorUserUserRole
+                #warning Needs to be moddified
+                user.AdaptorUserUserGroupRoles = availableRoles.Select(s => new AdaptorUserUserGroupRole
                 {
                     AdaptorUserId = user.Id,
                     AdaptorUserRoleId = s.Id
@@ -374,7 +375,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>True if user was added to the group.</returns>
         private bool AddUserToGroup(AdaptorUser userAccount, AdaptorUserGroup group)
         {
-            userAccount.AdaptorUserUserGroups.Add(new AdaptorUserUserGroup
+            userAccount.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
             {
                 AdaptorUserId = userAccount.Id,
                 AdaptorUserGroupId = group.Id

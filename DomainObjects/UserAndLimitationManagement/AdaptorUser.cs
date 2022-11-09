@@ -36,17 +36,15 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         public long? LanguageId { get; set; }
         public virtual Language Language { get; set; }
 
-        public virtual List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; } = new List<AdaptorUserUserGroup>();
-
-        public virtual List<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; } = new List<AdaptorUserUserRole>();
+        public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
 
         public virtual List<ResourceLimitation> Limitations { get; set; } = new List<ResourceLimitation>();
 
         [NotMapped]
-        public List<AdaptorUserGroup> Groups => AdaptorUserUserGroups?.Select(g => g.AdaptorUserGroup).ToList();
+        public List<AdaptorUserGroup> Groups => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUserGroup).ToList();
 
         [NotMapped]
-        public List<AdaptorUserRole> Roles => AdaptorUserUserRoles?.Select(g => g.AdaptorUserRole).ToList();
+        public List<AdaptorUserRole> Roles => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUserRole).ToList();
 
         /// <summary>
         /// Check if user have specified user role.
@@ -55,11 +53,11 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         /// <returns>True if user has the specified role.</returns>
         public bool HasUserRole(AdaptorUserRole role)
         {
-            if (AdaptorUserUserRoles is null)
+            if (AdaptorUserUserGroupRoles is null)
             {
                 return false;
             }
-            return AdaptorUserUserRoles.Any(userRole => userRole.AdaptorUserRoleId == role.Id);
+            return AdaptorUserUserGroupRoles.Any(userRole => userRole.AdaptorUserRoleId == role.Id);
         }
 
         public string GetLogIdentification()

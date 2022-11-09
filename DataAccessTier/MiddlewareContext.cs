@@ -91,17 +91,21 @@ namespace HEAppE.DataAccessTier
         {
             base.OnModelCreating(modelBuilder);
 
-            //M:N relations for AdaptorUserUserGroup
-            modelBuilder.Entity<AdaptorUserUserGroup>()
-                .HasKey(ug => new { ug.AdaptorUserId, ug.AdaptorUserGroupId });
-            modelBuilder.Entity<AdaptorUserUserGroup>()
+            //M:N relations for AdaptorUserUserGroupRole
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
+                .HasKey(ug => new { ug.AdaptorUserId, ug.AdaptorUserGroupId, ug.AdaptorUserRoleId });
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
                 .HasOne(ug => ug.AdaptorUser)
-                .WithMany(u => u.AdaptorUserUserGroups)
+                .WithMany(u => u.AdaptorUserUserGroupRoles)
                 .HasForeignKey(ug => new { ug.AdaptorUserId });
-            modelBuilder.Entity<AdaptorUserUserGroup>()
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
                 .HasOne(ug => ug.AdaptorUserGroup)
                 .WithMany(g => g.AdaptorUserUserGroups)
                 .HasForeignKey(ug => new { ug.AdaptorUserGroupId });
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
+               .HasOne(ug => ug.AdaptorUserRole)
+               .WithMany(g => g.AdaptorUserUserGroupRoles)
+               .HasForeignKey(ug => new { ug.AdaptorUserRoleId });
 
             modelBuilder.Entity<AdaptorUserRole>().HasAlternateKey(x => x.Name);
 
@@ -128,18 +132,6 @@ namespace HEAppE.DataAccessTier
                 .HasOne(ug => ug.OpenStackAuthenticationCredential)
                 .WithMany(g => g.OpenStackAuthenticationCredentialProjectDomains)
                 .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
-
-            // M:N relations for AdaptorUserUserRole
-            modelBuilder.Entity<AdaptorUserUserRole>()
-                .HasKey(userRole => new { userRole.AdaptorUserId, userRole.AdaptorUserRoleId });
-            modelBuilder.Entity<AdaptorUserUserRole>()
-                .HasOne(userRole => userRole.AdaptorUser)
-                .WithMany(userRole => userRole.AdaptorUserUserRoles)
-                .HasForeignKey(userRoles => new { userRoles.AdaptorUserId });
-            modelBuilder.Entity<AdaptorUserUserRole>()
-                .HasOne(userRole => userRole.AdaptorUserRole)
-                .WithMany(userRole => userRole.AdaptorUserUserRoles)
-                .HasForeignKey(userRoles => new { userRoles.AdaptorUserRoleId });
 
             //M:N relations for TaskDependency for same table TaskSpecification
             //Cascade delete or update are not allowed
@@ -195,7 +187,8 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
-            InsertOrUpdateSeedData(GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserRoles), false);
+#warning ToDo: implement method GetAllUserRoles 
+           /* InsertOrUpdateSeedData(GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserGroupRoles), false);*/
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
@@ -231,7 +224,7 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroupRoles, false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
@@ -369,19 +362,13 @@ namespace HEAppE.DataAccessTier
                         break;
                     }
 
-                case AdaptorUserUserGroup userGroupItem:
+                case AdaptorUserUserGroupRole userGroupItem:
                     {
-                        var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId);
+                        var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId, userGroupItem.AdaptorUserRoleId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
 
-                case AdaptorUserUserRole userRoleItem:
-                    {
-                        var entity = Set<T>().Find(userRoleItem.AdaptorUserId, userRoleItem.AdaptorUserRoleId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
                 case OpenStackAuthenticationCredentialDomain openstackCredDomain:
                     {
                         var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
@@ -471,7 +458,7 @@ namespace HEAppE.DataAccessTier
             return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
 
-        /// <summary>
+/*        /// <summary>
         /// Returns all User to Role mappings and adds cascade roles for specific roles
         /// </summary>
         /// <param name="adaptorUserUserRoles"></param>
@@ -524,7 +511,7 @@ namespace HEAppE.DataAccessTier
                     AdaptorUserRoleId = (long)roleType
                 });
             }
-        }
+        }*/
         #endregion
         #region Entities
 
@@ -576,9 +563,8 @@ namespace HEAppE.DataAccessTier
         #region UserAndLimitationManagement Entities
         public virtual DbSet<AdaptorUser> AdaptorUsers { get; set; }
         public virtual DbSet<AdaptorUserGroup> AdaptorUserGroups { get; set; }
-        public virtual DbSet<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; }
+        public virtual DbSet<AdaptorUserUserGroupRole> AdaptorUserUserGroups { get; set; }
         public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
-        public virtual DbSet<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; }
         public virtual DbSet<ResourceLimitation> ResourceLimitations { get; set; }
         public virtual DbSet<SessionCode> SessionCodes { get; set; }
         public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }

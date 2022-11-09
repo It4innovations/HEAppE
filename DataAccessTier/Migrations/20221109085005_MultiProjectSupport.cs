@@ -32,6 +32,12 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "EnvironmentVariable");
 
             migrationBuilder.DropTable(
+                name: "AdaptorUserUserGroup");
+
+            migrationBuilder.DropTable(
+                name: "AdaptorUserUserRole");
+
+            migrationBuilder.DropTable(
                 name: "PropertyChangeSpecification");
 
             migrationBuilder.DropTable(
@@ -146,6 +152,37 @@ namespace HEAppE.DataAccessTier.Migrations
                 nullable: true);
 
             migrationBuilder.CreateTable(
+                name: "AdaptorUserUserGroupRole",
+                columns: table => new
+                {
+                    AdaptorUserId = table.Column<long>(type: "bigint", nullable: false),
+                    AdaptorUserGroupId = table.Column<long>(type: "bigint", nullable: false),
+                    AdaptorUserRoleId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AdaptorUserUserGroupRole", x => new { x.AdaptorUserId, x.AdaptorUserGroupId, x.AdaptorUserRoleId });
+                    table.ForeignKey(
+                        name: "FK_AdaptorUserUserGroupRole_AdaptorUser_AdaptorUserId",
+                        column: x => x.AdaptorUserId,
+                        principalTable: "AdaptorUser",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AdaptorUserUserGroupRole_AdaptorUserGroup_AdaptorUserGroupId",
+                        column: x => x.AdaptorUserGroupId,
+                        principalTable: "AdaptorUserGroup",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AdaptorUserUserGroupRole_AdaptorUserRole_AdaptorUserRoleId",
+                        column: x => x.AdaptorUserRoleId,
+                        principalTable: "AdaptorUserRole",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "Project",
                 columns: table => new
                 {
@@ -254,6 +291,16 @@ namespace HEAppE.DataAccessTier.Migrations
                 column: "ProjectId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_AdaptorUserUserGroupRole_AdaptorUserGroupId",
+                table: "AdaptorUserUserGroupRole",
+                column: "AdaptorUserGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AdaptorUserUserGroupRole_AdaptorUserRoleId",
+                table: "AdaptorUserUserGroupRole",
+                column: "AdaptorUserRoleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_ClusterProject_ClusterId_ProjectId",
                 table: "ClusterProject",
                 columns: new[] { "ClusterId", "ProjectId" },
@@ -349,6 +396,9 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropForeignKey(
                 name: "FK_TaskSpecification_Project_ProjectId",
                 table: "TaskSpecification");
+
+            migrationBuilder.DropTable(
+                name: "AdaptorUserUserGroupRole");
 
             migrationBuilder.DropTable(
                 name: "ClusterProjectCredentials");
@@ -480,6 +530,54 @@ namespace HEAppE.DataAccessTier.Migrations
                 nullable: true);
 
             migrationBuilder.CreateTable(
+                name: "AdaptorUserUserGroup",
+                columns: table => new
+                {
+                    AdaptorUserId = table.Column<long>(type: "bigint", nullable: false),
+                    AdaptorUserGroupId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AdaptorUserUserGroup", x => new { x.AdaptorUserId, x.AdaptorUserGroupId });
+                    table.ForeignKey(
+                        name: "FK_AdaptorUserUserGroup_AdaptorUser_AdaptorUserId",
+                        column: x => x.AdaptorUserId,
+                        principalTable: "AdaptorUser",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AdaptorUserUserGroup_AdaptorUserGroup_AdaptorUserGroupId",
+                        column: x => x.AdaptorUserGroupId,
+                        principalTable: "AdaptorUserGroup",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "AdaptorUserUserRole",
+                columns: table => new
+                {
+                    AdaptorUserId = table.Column<long>(type: "bigint", nullable: false),
+                    AdaptorUserRoleId = table.Column<long>(type: "bigint", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_AdaptorUserUserRole", x => new { x.AdaptorUserId, x.AdaptorUserRoleId });
+                    table.ForeignKey(
+                        name: "FK_AdaptorUserUserRole_AdaptorUser_AdaptorUserId",
+                        column: x => x.AdaptorUserId,
+                        principalTable: "AdaptorUser",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_AdaptorUserUserRole_AdaptorUserRole_AdaptorUserRoleId",
+                        column: x => x.AdaptorUserRoleId,
+                        principalTable: "AdaptorUserRole",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "JobTemplate",
                 columns: table => new
                 {
@@ -569,6 +667,16 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IX_Cluster_ServiceAccountCredentialsId",
                 table: "Cluster",
                 column: "ServiceAccountCredentialsId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AdaptorUserUserGroup_AdaptorUserGroupId",
+                table: "AdaptorUserUserGroup",
+                column: "AdaptorUserGroupId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_AdaptorUserUserRole_AdaptorUserRoleId",
+                table: "AdaptorUserUserRole",
+                column: "AdaptorUserRoleId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PropertyChangeSpecification_JobTemplateId",

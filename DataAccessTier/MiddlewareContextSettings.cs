@@ -18,10 +18,7 @@ namespace HEAppE.DataAccessTier
 
         public static List<AdaptorUserGroup> AdaptorUserGroups { get; set; }
 
-        public static List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; }
-
-        public static List<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; }
-
+        public static List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; }
 
         public static List<OpenStackInstance> OpenStackInstances { get; set; }
 

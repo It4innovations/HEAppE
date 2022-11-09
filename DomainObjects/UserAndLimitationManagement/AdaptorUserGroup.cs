@@ -17,7 +17,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [StringLength(200)]
         public string Description { get; set; }
 
-        public virtual List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; } = new List<AdaptorUserUserGroup>();
+        public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroups { get; set; } = new List<AdaptorUserUserGroupRole>();
 
         [ForeignKey("Project")]
         public long? ProjectId { get; set; }
