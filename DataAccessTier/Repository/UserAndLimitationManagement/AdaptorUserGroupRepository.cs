@@ -22,14 +22,14 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         public AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id)
         {
             return _dbSet.Where(w=> w.Id == id)
-                          .Include(i => i.AdaptorUserUserGroups)
+                          .Include(i => i.AdaptorUserUserGroupRoles)
                           .ThenInclude(i=>i.AdaptorUser)
                           .FirstOrDefault();
         }
 
         public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroups()
         {
-            return _dbSet.Include(i => i.AdaptorUserUserGroups)
+            return _dbSet.Include(i => i.AdaptorUserUserGroupRoles)
                           .ThenInclude(i => i.AdaptorUser)
                           .ToList();
         }
