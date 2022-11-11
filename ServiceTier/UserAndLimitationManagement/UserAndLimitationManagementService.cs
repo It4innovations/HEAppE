@@ -11,6 +11,7 @@ using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
@@ -143,9 +144,9 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
+                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
                     IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser).Select(s=>s.ConvertIntToExt());
+                    return userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser).Select(s => s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
@@ -161,7 +162,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator);
+                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
                     return loggedUser is not null;
                 }
             }
@@ -178,14 +179,22 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// <param name="sessionCode">User session code.</param>
         /// <param name="unitOfWork">Unit of work.</param>
         /// <param name="requiredUserRole">Required user role.</param>
+        /// <param name="projectId">Project ID (is is null, then test for all projects)</param>
         /// <returns>AdaptorUser object if user has required user role.</returns>
         /// <exception cref="InsufficientRoleException">Is thrown if the user doesn't have <paramref name="requiredUserRole"/>.</exception>
-        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, UserRoleType requiredUserRole)
+        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, UserRoleType requiredUserRole, long? projectId)
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            CheckUserRole(loggedUser, requiredUserRole);
+            if (!projectId.HasValue)
+            {
+                loggedUser.Groups.Select(x => x.ProjectId).ToList().ForEach(projectId => CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value));
+            }
+            else
+            {
+                CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value);
+            }
 
             return loggedUser;
         }
@@ -195,35 +204,16 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// </summary>
         /// <param name="user">User account with roles.</param>
         /// <param name="requiredRole">Required user role.</param>
+        /// <param name="projectId">Project ID</param>
         /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="allowedRoles"/></exception>
-        internal static void CheckUserRole(AdaptorUser user, UserRoleType requiredUserRole)
+        internal static void CheckUserRoleForProject(AdaptorUser user, UserRoleType requiredUserRole, long projectId)
         {
-            bool hasRequiredRole = user.Roles.Any(userRole => (UserRoleType)userRole.Id == requiredUserRole);
+            bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == requiredUserRole && x.AdaptorUserGroup.ProjectId == projectId && !x.AdaptorUserGroup.Project.IsDeleted && x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow);
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)requiredUserRole);
-                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.Roles);
-            }
-        }
-        /// <summary>
-        /// Check if user is in Group which is referenced to specific project
-        /// </summary>
-        /// <param name="user">User account</param>
-        /// <param name="projectId">Project identifier</param>
-        /// <exception cref="AdaptorUserNotReferencedForProjectException"></exception>
-        public static void CheckUserAssignmentToProject(AdaptorUser user, long projectId)
-        {
-            var project = user.Groups.FirstOrDefault(f => f.ProjectId == projectId && !f.Project.IsDeleted)?.Project;
-
-            if (project is null)
-            {
-                throw new AdaptorUserNotReferencedForProjectException($"User {user.GetLogIdentification()} is not able to run job under ProjectId={projectId}.");
-            }
-
-            if (project.EndDate <= DateTime.UtcNow)
-            {
-                throw new ProjectConfigurationException($"Project with ProjectId={projectId} has ended.");
+                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.GetRolesForProject(projectId), projectId);
             }
         }
 

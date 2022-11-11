@@ -90,7 +90,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, projectId);
 
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>()
@@ -135,7 +135,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
 
                     //Memory cache key with personal session code due security purpose of access to cluster reference to project
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(

@@ -91,8 +91,7 @@ namespace HEAppE.RestApi.Controllers
                 // check if user can access project
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter);
-                    UserAndLimitationManagementService.CheckUserAssignmentToProject(loggedUser, model.ProjectId);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter, model.ProjectId);
                 }
                 return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
             }

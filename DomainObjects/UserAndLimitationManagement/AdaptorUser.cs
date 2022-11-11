@@ -1,3 +1,4 @@
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.Logging;
 using HEAppE.DomainObjects.Notifications;
 using System;
@@ -45,6 +46,11 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         [NotMapped]
         public List<AdaptorUserRole> Roles => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUserRole).ToList();
+
+        public List<AdaptorUserRole> GetRolesForProject(long projectId)
+        {
+            return AdaptorUserUserGroupRoles.Where(x=> x.AdaptorUserGroup.ProjectId == projectId).Select(x=>x.AdaptorUserRole).ToList();
+        }
 
         /// <summary>
         /// Check if user have specified user role.
