@@ -4,6 +4,7 @@ using HEAppE.KeycloakOpenIdAuthentication.JsonTypes;
 using HEAppE.RestUtils;
 using RestSharp;
 using RestSharp.Authenticators;
+using RestSharp.Authenticators.OAuth2;
 using System;
 using System.Linq;
 using System.Net;
@@ -91,8 +92,10 @@ namespace HEAppE.KeycloakOpenIdAuthentication
             _basicRestClient.Authenticator = new JwtAuthenticator(offlineToken);
             RestRequest restRequest = new RestRequest($"realms/{KeycloakConfiguration.RealmName}/protocol/{KeycloakConfiguration.Protocol}/userinfo", Method.Post)
                                             .AddHeader("content-type", "application/x-www-form-urlencoded")
+                                            .AddParameter("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket", ParameterType.GetOrPost)
                                             .AddParameter("audience", KeycloakConfiguration.ClientId, ParameterType.GetOrPost)
-                                            .AddParameter("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket", ParameterType.GetOrPost);
+                                            .AddParameter("scope", "openid", ParameterType.GetOrPost, false);
+                                            
 
             var response = await _basicRestClient.ExecuteAsync(restRequest);
             return ParseHelper.ParseJsonOrThrow<KeycloakUserInfoResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
@@ -110,7 +113,7 @@ namespace HEAppE.KeycloakOpenIdAuthentication
                                         .AddHeader("content-type", "application/x-www-form-urlencoded")
                                         .AddParameter("client_secret", KeycloakConfiguration.SecretId, ParameterType.GetOrPost)
                                         .AddParameter("client_id", KeycloakConfiguration.ClientId, ParameterType.GetOrPost)
-                                        .AddParameter("scope", "offline_access", ParameterType.GetOrPost)
+                                        .AddParameter("scope", "offline_access openid", ParameterType.GetOrPost)
                                         .AddParameter("requested_token_type", "urn:ietf:params:oauth:token-type:refresh_token", ParameterType.GetOrPost)
                                         .AddParameter("subject_token_type", "urn:ietf:params:oauth:token-type:access_token", ParameterType.GetOrPost)
                                         .AddParameter("subject_token", accessToken, ParameterType.GetOrPost)
