@@ -1303,7 +1303,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("AdaptorUserRole");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroup", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroupRole", b =>
                 {
                     b.Property<long>("AdaptorUserId")
                         .HasColumnType("bigint");
@@ -1311,26 +1311,16 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("AdaptorUserGroupId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("AdaptorUserId", "AdaptorUserGroupId");
-
-                    b.HasIndex("AdaptorUserGroupId");
-
-                    b.ToTable("AdaptorUserUserGroup");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserRole", b =>
-                {
-                    b.Property<long>("AdaptorUserId")
-                        .HasColumnType("bigint");
-
                     b.Property<long>("AdaptorUserRoleId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("AdaptorUserId", "AdaptorUserRoleId");
+                    b.HasKey("AdaptorUserId", "AdaptorUserGroupId", "AdaptorUserRoleId");
+
+                    b.HasIndex("AdaptorUserGroupId");
 
                     b.HasIndex("AdaptorUserRoleId");
 
-                    b.ToTable("AdaptorUserUserRole");
+                    b.ToTable("AdaptorUserUserGroupRole");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.OpenStackSession", b =>
@@ -1859,7 +1849,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroup", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroupRole", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "AdaptorUserGroup")
                         .WithMany("AdaptorUserUserGroups")
@@ -1868,31 +1858,20 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "AdaptorUser")
-                        .WithMany("AdaptorUserUserGroups")
+                        .WithMany("AdaptorUserUserGroupRoles")
                         .HasForeignKey("AdaptorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", "AdaptorUserRole")
+                        .WithMany("AdaptorUserUserGroupRoles")
+                        .HasForeignKey("AdaptorUserRoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("AdaptorUser");
 
                     b.Navigation("AdaptorUserGroup");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserRole", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "AdaptorUser")
-                        .WithMany("AdaptorUserUserRoles")
-                        .HasForeignKey("AdaptorUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", "AdaptorUserRole")
-                        .WithMany("AdaptorUserUserRoles")
-                        .HasForeignKey("AdaptorUserRoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AdaptorUser");
 
                     b.Navigation("AdaptorUserRole");
                 });
@@ -2038,9 +2017,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
                 {
-                    b.Navigation("AdaptorUserUserGroups");
-
-                    b.Navigation("AdaptorUserUserRoles");
+                    b.Navigation("AdaptorUserUserGroupRoles");
 
                     b.Navigation("Limitations");
                 });
@@ -2052,7 +2029,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", b =>
                 {
-                    b.Navigation("AdaptorUserUserRoles");
+                    b.Navigation("AdaptorUserUserGroupRoles");
                 });
 #pragma warning restore 612, 618
         }

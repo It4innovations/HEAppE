@@ -209,11 +209,8 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 Name = project.Name,
                 Description = project.Description,
                 AccountingString = project.AccountingString,
-                CreatedAt = project.CreatedAt,
-                ModifiedAt = project.ModifiedAt,
                 StartDate = project.StartDate,
-                EndDate = project.EndDate,
-                IsDeleted = project.IsDeleted
+                EndDate = project.EndDate
             };
             return convert;
         }

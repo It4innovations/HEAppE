@@ -17,7 +17,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         #region Methods
         public IEnumerable<AdaptorUserRole> GetAllByUserId(long userId)
         {
-            return GetAll().SelectMany(s => s.AdaptorUserUserRoles)
+            return GetAll().SelectMany(s => s.AdaptorUserUserGroupRoles)
                             .Where(w => w.AdaptorUserId == userId)
                             .Select(s => s.AdaptorUserRole)
                             .ToList();
