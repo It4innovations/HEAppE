@@ -2,8 +2,8 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <AssemblyName>KeycloakOpenIdAuthentication</AssemblyName>
-    <RootNamespace>HEAppE.KeycloakOpenIdAuthentication</RootNamespace>
+    <AssemblyName>ExternalAuthentication</AssemblyName>
+    <RootNamespace>HEAppE.ExternalAuthentication</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

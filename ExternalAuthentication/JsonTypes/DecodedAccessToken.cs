@@ -4,7 +4,7 @@ using System.Diagnostics;
 using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
 
-namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
+namespace HEAppE.ExternalAuthentication.JsonTypes
 {
     /// <summary>
     /// Wrapper around decoded JwtSecurityToken, which simplifies access to required fields and claims.

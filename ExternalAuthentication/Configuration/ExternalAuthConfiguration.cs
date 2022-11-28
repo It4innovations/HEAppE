@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 
-namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
+namespace HEAppE.ExternalAuthentication.Configuration
 {
     /// <summary>
     /// KeyCloak settings
     /// </summary>
-    public class KeycloakConfiguration
+    public class ExternalAuthConfiguration
     {
         #region Properties
         /// <summary>
@@ -50,24 +50,14 @@ namespace HEAppE.KeycloakOpenIdAuthentication.Configuration
         public static Dictionary<string,string> RoleMapping { get; set; }
 
         /// <summary>
-        /// Project
+        /// Projects
         /// </summary>
-        public static string Project { get; set; }
-
-        /// <summary>
-        /// Project UUID
-        /// </summary>
-        public static string ProjectUUID { get; set; }
-
+        public static IEnumerable<ExternalAuthProjectConfiguration> Projects { get; set; }
+        
         /// <summary>
         /// User prefix in HEAppE DB
         /// </summary>
         public static string HEAppEUserPrefix { get; set; }
-
-        /// <summary>
-        /// Group name in HEAppE DB
-        /// </summary>
-        public static string HEAppEGroupName { get; set; }
         #endregion
     }
 }

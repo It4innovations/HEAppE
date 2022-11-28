@@ -16,9 +16,9 @@
     <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
     <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+    <ProjectReference Include="..\ExternalAuthentication\ExternalAuthentication.csproj" />
     <ProjectReference Include="..\FileTransferFramework\FileTransferFramework.csproj" />
     <ProjectReference Include="..\HpcConnectionFramework\HpcConnectionFramework.csproj" />
-    <ProjectReference Include="..\KeycloakOpenIdAuthentication\KeycloakOpenIdAuthentication.csproj" />
     <ProjectReference Include="..\OpenStackAPI\OpenStackAPI.csproj" />
   </ItemGroup>
 

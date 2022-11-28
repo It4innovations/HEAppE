@@ -1,7 +1,7 @@
 ﻿using System;
 using HEAppE.RestUtils.Interfaces;
 
-namespace HEAppE.KeycloakOpenIdAuthentication.Exceptions
+namespace HEAppE.ExternalAuthentication.Exceptions
 {
     /// <summary>
     /// KeyCloak Exception

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using HEAppE.RestUtils.JsonConvertors;
 
-namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
+namespace HEAppE.ExternalAuthentication.JsonTypes
 {
     /// <summary>
     /// Token introspection result

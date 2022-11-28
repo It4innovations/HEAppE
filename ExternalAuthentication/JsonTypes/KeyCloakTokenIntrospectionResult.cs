@@ -1,7 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System.Collections.Generic;
 
-namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
+namespace HEAppE.ExternalAuthentication.JsonTypes
 {
     /// <summary>
     /// KeyCloak Extension for token introspection result

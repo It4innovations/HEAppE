@@ -1,16 +1,7 @@
-﻿using HEAppE.KeycloakOpenIdAuthentication;
-using Microsoft.AspNetCore.Mvc;
-using RestSharp;
-using RestSharp.Authenticators;
+﻿using Microsoft.AspNetCore.Mvc;
 using RestSharpWebClient.Model;
 using System;
 using System.Collections.Generic;
-using System.Security.Cryptography.Xml;
-using HEAppE.KeycloakOpenIdAuthentication.Exceptions;
-using HEAppE.KeycloakOpenIdAuthentication.JsonTypes;
-using HEAppE.OpenStackAPI;
-using HEAppE.OpenStackAPI.Exceptions;
-using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using Newtonsoft.Json;
 
 namespace RestSharpWebClient.Controllers

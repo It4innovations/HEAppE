@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace HEAppE.KeycloakOpenIdAuthentication.JsonTypes
+namespace HEAppE.ExternalAuthentication.JsonTypes
 {
     /// <summary>
     /// Address user info result
