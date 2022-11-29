@@ -679,7 +679,7 @@ namespace RestSharpWebClient.Pages
         {
             var client = new RestClient(baseUrl);
             var request = new RestRequest("JobManagement/CreateJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
-                new CreateJobModel
+                new CreateJobByProjectModel
                 {
                     JobSpecification = jobSpec,
                     SessionCode = sessionCode

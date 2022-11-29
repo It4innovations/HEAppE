@@ -16,7 +16,7 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = _validationObject switch
             {
-                CreateJobModel model => ValidateCreateJobModel(model),
+                CreateJobByProjectModel model => ValidateCreateJobModel(model),
                 SubmitJobModel model => ValidateSubmitJobModel(model),
                 CancelJobModel model => ValidateCancelJobModel(model),
                 DeleteJobModel model => ValidateDeleteJobModel(model),
@@ -139,9 +139,37 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateCreateJobModel(CreateJobModel validationObj)
+        private string ValidateCreateJobModel(CreateJobByProjectModel validationObj)
         {
             _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
+            if (validationObj.JobSpecification.ProjectId.HasValue)
+            {
+                //todo: single project heappe - if is single project, then check if project id is same
+                if (validationObj.JobSpecification.ProjectId.Value <= 0)
+                {
+                    _messageBuilder.AppendLine("ProjectId must be greater than 0.");
+                }
+            }
+            else if(false)//todo: single project heappe
+            {
+                _messageBuilder.AppendLine("ProjectId must be set, because this in non single project HEAppE instance.");
+            }
+            
+            ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateJobModel(CreateJobByAccountingStringModel validationObj)
+        {
+            _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
+            if(string.IsNullOrEmpty(validationObj.JobSpecification.AccountingString))
+            {
+                _messageBuilder.AppendLine("AccountingString cannot be null or empty");
+            }
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
             if (!validationResult.IsValid)
             {
@@ -162,11 +190,6 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     _messageBuilder.AppendLine("Name contains illegal characters.");
                 }
-            }
-
-            if (job.ProjectId <= 0)
-            {
-                _messageBuilder.AppendLine("ProjectId must be greater than 0.");
             }
 
             if (job.WaitingLimit.HasValue && job.WaitingLimit.Value < 0)

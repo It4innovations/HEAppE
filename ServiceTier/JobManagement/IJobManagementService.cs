@@ -5,7 +5,8 @@ namespace HEAppE.ServiceTier.JobManagement
 {
     public interface IJobManagementService
     {
-        SubmittedJobInfoExt CreateJob(JobSpecificationExt specification, string sessionCode);
+        SubmittedJobInfoExt CreateJob(JobSpecificationByAccountingStringExt specification, string sessionCode);
+        SubmittedJobInfoExt CreateJob(JobSpecificationByProjectExt specification, string sessionCode);
         SubmittedJobInfoExt SubmitJob(long createdJobInfoId, string sessionCode);
         SubmittedJobInfoExt CancelJob(long submittedJobInfoId, string sessionCode);
         void DeleteJob(long submittedJobInfoId, string sessionCode);

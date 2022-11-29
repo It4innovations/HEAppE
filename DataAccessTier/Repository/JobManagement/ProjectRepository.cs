@@ -22,6 +22,11 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement
         {
             return _context.Projects.Where(p=>!p.IsDeleted && p.EndDate >= DateTime.UtcNow);
         }
+
+        public Project GetByAccountingString(string accountingString)
+        {
+            return _context.Projects.FirstOrDefault(p=>p.AccountingString == accountingString);
+        }
         #endregion
     }
 }
