@@ -125,18 +125,13 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             return transferMethod;
         }
 
-        public void EndFileTransfer(long submittedJobInfoId, FileTransferMethod transferMethod, AdaptorUser loggedUser)
+        public void EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser)
         {
             _log.Info($"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             Cluster cluster = jobInfo.Specification.Cluster;
 
-            if (transferMethod.Credentials is not FileTransferKeyCredentials credentials)
-            {
-                throw new FileTransferTemporaryKeyException($"Credentials of class {transferMethod.Credentials.GetType().Name} are not supported!");
-            }
-
-            var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == credentials.PublicKey);
+            var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == publicKey);
             if (temporaryKey is null)
             {
                 throw new FileTransferTemporaryKeyException("The direct transfer could not be finished due to a public key mismatch!");

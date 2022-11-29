@@ -27,7 +27,7 @@ namespace HEAppE.ServiceTier.FileTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                     FileTransferMethod fileTransferMethod = fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
                     return fileTransferMethod.ConvertIntToExt();
@@ -40,15 +40,15 @@ namespace HEAppE.ServiceTier.FileTransfer
             }
         }
         
-        public void EndFileTransfer(long submittedJobInfoId, FileTransferMethodExt usedTransferMethod, string sessionCode)
+        public void EndFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
-                    fileTransferLogic.EndFileTransfer(submittedJobInfoId, FileTransferConverts.ConvertFileTransferMethodExtToInt(usedTransferMethod), loggedUser);
+                    fileTransferLogic.EndFileTransfer(submittedJobInfoId, publicKey, loggedUser);
                 }
             }
             catch (Exception exc)

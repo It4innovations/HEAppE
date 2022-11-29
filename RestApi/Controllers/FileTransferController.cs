@@ -88,7 +88,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                _service.EndFileTransfer(model.SubmittedJobInfoId, model.UsedTransferMethod, model.SessionCode);
+                _service.EndFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
                 return Ok("EndFileTransfer");
             }
             catch (Exception e)
