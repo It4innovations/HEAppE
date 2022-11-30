@@ -8,6 +8,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
+using HEAppE.ServiceTier;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
@@ -23,6 +24,7 @@ using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace HEAppE.RestApi
@@ -132,6 +134,13 @@ namespace HEAppE.RestApi
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 gen.IncludeXmlComments(xmlPath);
             });
+
+            //Set Single Project HEAppE Instance
+            if (MiddlewareContextSettings.Projects.Count == 1)
+            {
+                ServiceTierSettings.SingleProjectId = MiddlewareContextSettings.Projects.FirstOrDefault()?.Id;
+            }
+
         }
 
         /// <summary>

@@ -38,7 +38,12 @@ namespace HEAppE.ServiceTier.JobManagement
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    JobSpecification js = specification.ConvertExtToInt(specification.ProjectId);
+                    JobSpecification js = specification.ConvertExtToInt(
+                                                            specification.ProjectId.HasValue ? specification.ProjectId.Value : 
+                                                                (ServiceTierSettings.SingleProjectId.HasValue ? ServiceTierSettings.SingleProjectId.Value : 
+                                                                    throw new InputValidationException($"This is not single project HEAppE instance. Please specify ProjectId.")
+                                                                )
+                                                            );
                     SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
                     return jobInfo.ConvertIntToExt();
                 }
@@ -57,7 +62,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     Project project = unitOfWork.ProjectRepository.GetByAccountingString(specification.AccountingString);
-                    if(project == null)
+                    if (project == null)
                     {
                         _logger.Error($"Accounting string '{specification.AccountingString}' does not exist in the system.");
                         throw new InputValidationException($"Accounting string '{specification.AccountingString}' does not exist in the system.");

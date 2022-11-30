@@ -76,7 +76,7 @@ namespace RestSharpWebClient.Pages
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
                 //CreateJobSpecification
-                JobSpecificationExt jobSpec = CreateJobSpecification();
+                JobSpecificationByProjectExt jobSpec = CreateJobSpecification();
                 sb.AppendLine(String.Format("JobSpecification created"));
                 sb.AppendLine(jobSpec.ToString());
 
@@ -122,7 +122,7 @@ namespace RestSharpWebClient.Pages
                 //CancelJob(2, sessionCode);
 
                 //CreateJobSpecification
-                JobSpecificationExt jobSpec = CreateJobSpecification();
+                JobSpecificationByProjectExt jobSpec = CreateJobSpecification();
                 sb.AppendLine(String.Format("JobSpecification created"));
                 sb.AppendLine(jobSpec.ToString());
 
@@ -365,7 +365,7 @@ namespace RestSharpWebClient.Pages
                 sb.AppendLine(String.Format("sessionCode: {0}", sessionCode));
 
                 //CreateJobSpecification
-                JobSpecificationExt jobSpec = CreateJobSpecification();
+                JobSpecificationByProjectExt jobSpec = CreateJobSpecification();
                 sb.AppendLine(String.Format("JobSpecification created"));
                 sb.AppendLine(jobSpec.ToString());
 
@@ -617,7 +617,7 @@ namespace RestSharpWebClient.Pages
             return sessionCode;
         }
 
-        private static JobSpecificationExt CreateJobSpecification()
+        private static JobSpecificationByProjectExt CreateJobSpecification()
         {
             TaskSpecificationExt testTask = new TaskSpecificationExt();
             testTask.Name = "ASBTestJob";
@@ -657,7 +657,7 @@ namespace RestSharpWebClient.Pages
             //    };
 
 
-            JobSpecificationExt testJob = new JobSpecificationExt();
+            JobSpecificationByProjectExt testJob = new JobSpecificationByProjectExt();
             testJob.Name = "ASBTestJob";
             testJob.ProjectId = 1;
             testJob.WaitingLimit = 0;
@@ -675,7 +675,7 @@ namespace RestSharpWebClient.Pages
             return testJob;
         }
 
-        private static async Task<SubmittedJobInfoExt> CreateJobAsync(JobSpecificationExt jobSpec, string sessionCode)
+        private static async Task<SubmittedJobInfoExt> CreateJobAsync(JobSpecificationByProjectExt jobSpec, string sessionCode)
         {
             var client = new RestClient(baseUrl);
             var request = new RestRequest("JobManagement/CreateJob", Method.Post) { RequestFormat = DataFormat.Json }.AddJsonBody(
@@ -763,7 +763,7 @@ namespace RestSharpWebClient.Pages
                 new EndFileTransferModel
                 {
                     SubmittedJobInfoId = jobId,
-                    UsedTransferMethod = ft,
+                    PublicKey = ft.Credentials.PublicKey,
                     SessionCode = sessionCode
                 });
             response = await client.ExecuteAsync(request);
@@ -918,7 +918,7 @@ namespace RestSharpWebClient.Pages
                 new EndFileTransferModel
                 {
                     SubmittedJobInfoId = jobId,
-                    UsedTransferMethod = ft,
+                    PublicKey = ft.Credentials.PublicKey,
                     SessionCode = sessionCode
                 });
             response = await client.ExecuteAsync(request);

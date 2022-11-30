@@ -9,6 +9,7 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
+using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
@@ -186,14 +187,18 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
-
-            if (!projectId.HasValue)
+            
+            if (projectId.HasValue)
             {
-                loggedUser.Groups.Select(x => x.ProjectId).ToList().ForEach(projectId => CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value));
+                CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value);
+            }
+            else if(ServiceTierSettings.SingleProjectId.HasValue)
+            {
+                CheckUserRoleForProject(loggedUser, requiredUserRole, ServiceTierSettings.SingleProjectId.Value);
             }
             else
             {
-                CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value);
+                loggedUser.Groups.Select(x => x.ProjectId).ToList().ForEach(projectId => CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value));
             }
 
             return loggedUser;

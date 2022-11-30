@@ -1,5 +1,6 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.ServiceTier;
 using HEAppE.Utils.Validation;
 using System;
 using System.Linq;
@@ -149,10 +150,14 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     _messageBuilder.AppendLine("ProjectId must be greater than 0.");
                 }
+                if (ServiceTierSettings.SingleProjectId.HasValue && ServiceTierSettings.SingleProjectId.Value != validationObj.JobSpecification.ProjectId.Value)
+                {
+                    _messageBuilder.AppendLine($"ProjectId must be set to '{ServiceTierSettings.SingleProjectId.Value}' because this is single project HEAppE instance.");
+                }
             }
-            else if(false)//todo: single project heappe
+            else if(!ServiceTierSettings.SingleProjectId.HasValue)
             {
-                _messageBuilder.AppendLine("ProjectId must be set, because this in non single project HEAppE instance.");
+                _messageBuilder.AppendLine("ProjectId must be set, because this is non single project HEAppE instance.");
             }
             
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
