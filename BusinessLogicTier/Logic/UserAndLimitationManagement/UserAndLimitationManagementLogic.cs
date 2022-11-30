@@ -1,11 +1,18 @@
-﻿using HEAppE.KeycloakOpenIdAuthentication;
+﻿using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+using HEAppE.ExternalAuthentication;
+using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.ExternalAuthentication.Exceptions;
+using HEAppE.OpenStackAPI;
+using HEAppE.OpenStackAPI.DTO;
+using HEAppE.OpenStackAPI.Exceptions;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -14,14 +21,7 @@ using System.Reflection;
 using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
-using HEAppE.DomainObjects.OpenStack;
-using HEAppE.KeycloakOpenIdAuthentication.Exceptions;
-using HEAppE.OpenStackAPI;
-using HEAppE.OpenStackAPI.DTO;
-using HEAppE.OpenStackAPI.Exceptions;
-using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier.Configuration;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
@@ -103,7 +103,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (user == null)
             {
-                string wrongCredentialsError =  $"Authentication of user {credentials.Username} was not successful due to wrong credentials.";
+                string wrongCredentialsError = $"Authentication of user {credentials.Username} was not successful due to wrong credentials.";
                 _log.Error(wrongCredentialsError);
                 throw new InvalidAuthenticationCredentialsException(wrongCredentialsError);
             }
@@ -220,7 +220,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                                                                         .ToList();
 
                 var openStackProject = _openStackInstance.Projects.Where(w => userGroupsName.Intersect(w.ProjectDomains.Select(s => s.Name.ToLower()))
-                                                                                                                        .Any() 
+                                                                                                                        .Any()
                                                                               || userGroupsName.Contains(w.Name.ToLower()))
                                                                     .FirstOrDefault();
                 if (openStackProject is null)
@@ -277,7 +277,15 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, UserOpenId openIdUser)
         {
-            if (!TryGetUserGroupByName(KeycloakConfiguration.HEAppEGroupName, out var keycloakGroup))
+
+            foreach (var project in openIdUser.Projects)
+            {
+
+            }
+
+
+
+            if (!TryGetUserGroupByName(ExternalAuthConfiguration.HEAppEGroupName, out AdaptorUserGroup keycloakGroup))
             {
                 throw new OpenIdAuthenticationException("Keycloak group doesn't exist. Keycloak user's group and roles can't be synchronized.");
             }
@@ -294,12 +302,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 _log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
             }
 
-            if (!openIdUser.ProjectRoles.TryGetValue(KeycloakConfiguration.Project, out IEnumerable<string> openIdRoles))
+            if (!openIdUser.ProjectRoles.TryGetValue(ExternalAuthConfiguration.Project, out IEnumerable<string> openIdRoles))
             {
                 throw new OpenIdAuthenticationException("No roles for specific project is set");
             }
 
-            var availableRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(openIdRoles).ToList();
+            var availableRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(new List<string>() { "" }).ToList();  //openIdRoles
             var userRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
 
             if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))

@@ -1,4 +1,4 @@
-﻿namespace HEAppE.KeycloakOpenIdAuthentication
+﻿namespace HEAppE.ExternalAuthentication
 {
     public class KeycloakSettings
     {

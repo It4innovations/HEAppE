@@ -1,9 +1,9 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
-using HEAppE.KeycloakOpenIdAuthentication.Exceptions;
-using HEAppE.KeycloakOpenIdAuthentication.JsonTypes;
+using HEAppE.ExternalAuthentication.Exceptions;
+using HEAppE.ExternalAuthentication.JsonTypes;
 
-namespace HEAppE.KeycloakOpenIdAuthentication
+namespace HEAppE.ExternalAuthentication
 {
     public static class JwtTokenDecoder
     {

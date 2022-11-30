@@ -77,10 +77,9 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 }
                 else
                 {
-                    _log.Error("Credentials of class " + credentials.GetType().Name +
-                              " are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.");
-                    throw new ArgumentException("Credentials of class " + credentials.GetType().Name +
-                                                " are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.");
+                    var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
+                    _log.Error(message);
+                    throw new ArgumentException(message);
                 }
 
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())

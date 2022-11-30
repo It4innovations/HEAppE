@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace HEAppE.KeycloakOpenIdAuthentication.Exceptions
+namespace HEAppE.ExternalAuthentication.Exceptions
 {
     /// <summary>
     /// Exception thrown when unable to parse JWT token.
