@@ -136,7 +136,6 @@ namespace HEAppE.RestApi
             {
                 ServiceTierSettings.SingleProjectId = MiddlewareContextSettings.Projects.FirstOrDefault()?.Id;
             }
-
         }
 
         /// <summary>

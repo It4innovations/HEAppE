@@ -33,6 +33,8 @@ namespace HEAppE.ExternalAuthentication
                 var projectRoleMapping = new Dictionary<string, ProjectOpenId>();
                 foreach (var propertyInfo in obj.Attributes.GetType().GetProperties())
                 {
+
+
                     var jsonPropertyName = propertyInfo?.GetCustomAttribute<JsonPropertyAttribute>().PropertyName ?? string.Empty;
                     if (ExternalAuthConfiguration.RoleMapping.TryGetValue(jsonPropertyName, out string mappedRole))
                     {
@@ -45,7 +47,7 @@ namespace HEAppE.ExternalAuthentication
                         {
                             if (projectRoleMapping.TryGetValue(projectId, out ProjectOpenId project))
                             {
-                                project.Roles.Union(new List<string>() { mappedRole });
+                                _ = project.Roles.Union(new List<string>() { mappedRole });
                             }
                             else
                             {

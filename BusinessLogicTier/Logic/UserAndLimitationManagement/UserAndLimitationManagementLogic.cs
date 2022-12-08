@@ -278,57 +278,57 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, UserOpenId openIdUser)
         {
 
-            foreach (var project in openIdUser.Projects)
-            {
+            //foreach (var project in openIdUser.Projects)
+            //{
 
-            }
+            //}
 
 
 
-            if (!TryGetUserGroupByName(ExternalAuthConfiguration.HEAppEGroupName, out AdaptorUserGroup keycloakGroup))
-            {
-                throw new OpenIdAuthenticationException("Keycloak group doesn't exist. Keycloak user's group and roles can't be synchronized.");
-            }
+            //if (!TryGetUserGroupByName(ExternalAuthConfiguration.HEAppEGroupName, out AdaptorUserGroup keycloakGroup))
+            //{
+            //    throw new OpenIdAuthenticationException("Keycloak group doesn't exist. Keycloak user's group and roles can't be synchronized.");
+            //}
 
-            // Check if the user is in the keycloak group.
-            if (!user.AdaptorUserUserGroupRoles.Any(userGroup => userGroup.AdaptorUserGroupId == keycloakGroup.Id))
-            {
-                // Assign user to the group.
-                if (!AddUserToGroup(user, keycloakGroup))
-                {
-                    throw new OpenIdAuthenticationException("Failed to assign user to the group. Check the log for details.");
-                }
+            //// Check if the user is in the keycloak group.
+            //if (!user.AdaptorUserUserGroupRoles.Any(userGroup => userGroup.AdaptorUserGroupId == keycloakGroup.Id))
+            //{
+            //    // Assign user to the group.
+            //    if (!AddUserToGroup(user, keycloakGroup))
+            //    {
+            //        throw new OpenIdAuthenticationException("Failed to assign user to the group. Check the log for details.");
+            //    }
 
-                _log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
-            }
+            //    _log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
+            //}
 
-            if (!openIdUser.ProjectRoles.TryGetValue(ExternalAuthConfiguration.Project, out IEnumerable<string> openIdRoles))
-            {
-                throw new OpenIdAuthenticationException("No roles for specific project is set");
-            }
+            //if (!openIdUser.ProjectRoles.TryGetValue(ExternalAuthConfiguration.Project, out IEnumerable<string> openIdRoles))
+            //{
+            //    throw new OpenIdAuthenticationException("No roles for specific project is set");
+            //}
 
-            var availableRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(new List<string>() { "" }).ToList();  //openIdRoles
-            var userRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
+            //var availableRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(new List<string>() { "" }).ToList();  //openIdRoles
+            //var userRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
 
-            if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
-            {
-                #warning Needs to be moddified
-                user.AdaptorUserUserGroupRoles = availableRoles.Select(s => new AdaptorUserUserGroupRole
-                {
-                    AdaptorUserId = user.Id,
-                    AdaptorUserRoleId = s.Id
-                }).ToList();
+            //if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
+            //{
+            //    #warning Needs to be moddified
+            //    user.AdaptorUserUserGroupRoles = availableRoles.Select(s => new AdaptorUserUserGroupRole
+            //    {
+            //        AdaptorUserId = user.Id,
+            //        AdaptorUserRoleId = s.Id
+            //    }).ToList();
 
-                try
-                {
-                    _unitOfWork.Save();
-                    _log.Info($"Open-Id: User '{user.Username}' has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
-                }
-                catch (Exception e)
-                {
-                    _log.Error("Failed to set user roles.", e);
-                }
-            }
+            //    try
+            //    {
+            //        _unitOfWork.Save();
+            //        _log.Info($"Open-Id: User '{user.Username}' has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
+            //    }
+            //    catch (Exception e)
+            //    {
+            //        _log.Error("Failed to set user roles.", e);
+            //    }
+            //}
         }
 
         /// <summary>

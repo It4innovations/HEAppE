@@ -5,8 +5,8 @@
     <UserSecretsId>dab15c82-52af-4b49-a1e0-16114b0cc218</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
-    <PackageReference Include="RestSharp" Version="108.0.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.2" />
+    <PackageReference Include="RestSharp" Version="108.0.3" />
     <PackageReference Include="SshNet.Security.Cryptography" Version="1.3.0" />
   </ItemGroup>
   <ItemGroup>

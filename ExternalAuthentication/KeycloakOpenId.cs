@@ -92,7 +92,8 @@ namespace HEAppE.ExternalAuthentication
             RestRequest restRequest = new RestRequest($"realms/{ExternalAuthConfiguration.RealmName}/protocol/{ExternalAuthConfiguration.Protocol}/userinfo", Method.Post)
                                             .AddHeader("content-type", "application/x-www-form-urlencoded")
                                             .AddParameter("audience", ExternalAuthConfiguration.ClientId, ParameterType.GetOrPost)
-                                            .AddParameter("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket", ParameterType.GetOrPost);
+                                            .AddParameter("grant_type", "urn:ietf:params:oauth:grant-type:uma-ticket", ParameterType.GetOrPost)
+                                            .AddParameter("scope", "openid", ParameterType.GetOrPost);
 
             var response = await _basicRestClient.ExecuteAsync(restRequest);
             return ParseHelper.ParseJsonOrThrow<KeycloakUserInfoResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
@@ -110,7 +111,7 @@ namespace HEAppE.ExternalAuthentication
                                         .AddHeader("content-type", "application/x-www-form-urlencoded")
                                         .AddParameter("client_secret", ExternalAuthConfiguration.SecretId, ParameterType.GetOrPost)
                                         .AddParameter("client_id", ExternalAuthConfiguration.ClientId, ParameterType.GetOrPost)
-                                        .AddParameter("scope", "offline_access", ParameterType.GetOrPost)
+                                        .AddParameter("scope", "offline_access openid", ParameterType.GetOrPost)
                                         .AddParameter("requested_token_type", "urn:ietf:params:oauth:token-type:refresh_token", ParameterType.GetOrPost)
                                         .AddParameter("subject_token_type", "urn:ietf:params:oauth:token-type:access_token", ParameterType.GetOrPost)
                                         .AddParameter("subject_token", accessToken, ParameterType.GetOrPost)
