@@ -268,25 +268,10 @@ namespace HEAppE.DataAccessTier
         /// <exception cref="ApplicationException"></exception>
         private void ValidateCommandTemplateToProjectReference(List<CommandTemplate> commandTemplates, List<ClusterProject> clusterProjects)
         {
-            //check if exists CommandTemplate with reference to Project while ClusterProject reference exists
-            foreach (var clusterProjectByCluster in clusterProjects.GroupBy(u => u.ClusterId))
-            {
-                var commandTemplatesByCluster = commandTemplates.Where(x => x.ClusterNodeType.ClusterId == clusterProjectByCluster.Key);
-                foreach (var clusterProject in clusterProjectByCluster)
-                {
-                    if (!commandTemplatesByCluster.Any(x => !x.ProjectId.HasValue || x.ProjectId == clusterProject.ProjectId))
-                    {
-                        string message = $"ClusterId={clusterProject.Id} has reference to ProjectId={clusterProject.ProjectId} but in system does not exist CommandTemplate with reference to this Project and Cluster.";
-                        _log.Error(message);
-                        throw new ApplicationException(message);
-                    }
-                }
-            }
-
             //check if exists ClusterProject reference if CommandTemplate is referenced to some project
-            foreach(var commandTemplate in commandTemplates.Where(x=>x.ProjectId.HasValue))
+            foreach (var commandTemplate in commandTemplates.Where(x => x.ProjectId.HasValue))
             {
-                if(!clusterProjects.Any(x=>x.ClusterId == commandTemplate.ClusterNodeType.ClusterId && x.ProjectId == commandTemplate.ProjectId))
+                if (clusterProjects.Any(x => x.ClusterId != commandTemplate.ClusterNodeType.ClusterId || x.ProjectId != commandTemplate.ProjectId))
                 {
                     string message = $"CommandTemplateId={commandTemplate.Id} is referenced to ProjectId={commandTemplate.ProjectId} but in system does not exist ClusterProject reference.";
                     _log.Error(message);
