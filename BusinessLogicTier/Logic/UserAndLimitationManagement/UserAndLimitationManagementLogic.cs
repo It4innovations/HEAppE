@@ -1,6 +1,7 @@
 ﻿using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
+using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -13,6 +14,7 @@ using HEAppE.ExternalAuthentication.Exceptions;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.Exceptions;
+using HEAppE.Utils;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -277,58 +279,53 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         private void SynchonizeKeycloakUserGroupAndRoles(AdaptorUser user, UserOpenId openIdUser)
         {
+            try
+            {
+                bool hasUserGroup = false;
+                // if project does not exist ???
+                foreach (var project in openIdUser.Projects)
+                {
+                    if (!TryGetUserGroupByName(project.HEAppEGroupName, out AdaptorUserGroup keycloakGroup))
+                    {
+                        _log.Warn($"Open-Id: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
+                        continue;
+                    }
 
-            //foreach (var project in openIdUser.Projects)
-            //{
+                    hasUserGroup = true;
 
-            //}
+                    var roles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(project.Roles);
 
+                    var l = new List<AdaptorUserUserGroupRole>();
 
+                    foreach (var xxx in roles)
+                    {
+                        l.Add(
+                        new AdaptorUserUserGroupRole()
+                        {
+                            AdaptorUser = user,
+                            AdaptorUserGroup = keycloakGroup,
+                            AdaptorUserRole = xxx,
 
-            //if (!TryGetUserGroupByName(ExternalAuthConfiguration.HEAppEGroupName, out AdaptorUserGroup keycloakGroup))
-            //{
-            //    throw new OpenIdAuthenticationException("Keycloak group doesn't exist. Keycloak user's group and roles can't be synchronized.");
-            //}
+                        });
+                    }
+                    user.AdaptorUserUserGroupRoles = UserRoleUtils.GetAllUserRoles(l).ToList();
+                    //_log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
 
-            //// Check if the user is in the keycloak group.
-            //if (!user.AdaptorUserUserGroupRoles.Any(userGroup => userGroup.AdaptorUserGroupId == keycloakGroup.Id))
-            //{
-            //    // Assign user to the group.
-            //    if (!AddUserToGroup(user, keycloakGroup))
-            //    {
-            //        throw new OpenIdAuthenticationException("Failed to assign user to the group. Check the log for details.");
-            //    }
+                }
 
-            //    _log.Info($"Open-Id: User '{user.Username}' was added to group: '{keycloakGroup.Name}'");
-            //}
+                if (!hasUserGroup)
+                {
+                    throw new OpenIdAuthenticationException($"Open-Id: User(\"{user.Username}\") has not User group!");
+                }
 
-            //if (!openIdUser.ProjectRoles.TryGetValue(ExternalAuthConfiguration.Project, out IEnumerable<string> openIdRoles))
-            //{
-            //    throw new OpenIdAuthenticationException("No roles for specific project is set");
-            //}
+                _unitOfWork.Save();
+                //_log.Info($"Open-Id: User(\"{user.Username}\") has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
 
-            //var availableRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(new List<string>() { "" }).ToList();  //openIdRoles
-            //var userRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByUserId(user.Id).ToList();
-
-            //if (!(availableRoles.Count == userRoles.Count && availableRoles.Count == availableRoles.Intersect(userRoles).Count()))
-            //{
-            //    #warning Needs to be moddified
-            //    user.AdaptorUserUserGroupRoles = availableRoles.Select(s => new AdaptorUserUserGroupRole
-            //    {
-            //        AdaptorUserId = user.Id,
-            //        AdaptorUserRoleId = s.Id
-            //    }).ToList();
-
-            //    try
-            //    {
-            //        _unitOfWork.Save();
-            //        _log.Info($"Open-Id: User '{user.Username}' has new roles: '{string.Join(",", availableRoles.Select(role => role.Name)) ?? "None"}' old roles were: '{string.Join(",", userRoles.Select(role => role.Name)) ?? "None"}'");
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        _log.Error("Failed to set user roles.", e);
-            //    }
-            //}
+            }
+            catch(OpenIdAuthenticationException e)
+            {
+                _log.Error("Failed to set user roles.", e);
+            }
         }
 
         /// <summary>

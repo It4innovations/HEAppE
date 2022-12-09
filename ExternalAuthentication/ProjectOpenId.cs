@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 
 namespace HEAppE.ExternalAuthentication
 {
@@ -26,6 +22,6 @@ namespace HEAppE.ExternalAuthentication
         /// <summary>
         /// HEAppE group
         /// </summary>
-        public IEnumerable<string> Roles { get; set; }
+        public ICollection<string> Roles { get; set; }
     }
 }

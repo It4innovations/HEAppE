@@ -13,7 +13,7 @@ using System.Reflection;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 
 namespace HEAppE.ServiceTier.FileTransfer
 {

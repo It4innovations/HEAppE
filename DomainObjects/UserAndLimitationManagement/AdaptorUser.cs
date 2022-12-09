@@ -1,4 +1,3 @@
-using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.Logging;
 using HEAppE.DomainObjects.Notifications;
 using System;
@@ -49,7 +48,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public List<AdaptorUserRole> GetRolesForProject(long projectId)
         {
-            return AdaptorUserUserGroupRoles.Where(x=> x.AdaptorUserGroup.ProjectId == projectId).Select(x=>x.AdaptorUserRole).ToList();
+            return AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserGroup.ProjectId == projectId).Select(x => x.AdaptorUserRole).ToList();
         }
 
         /// <summary>

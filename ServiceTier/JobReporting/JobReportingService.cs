@@ -12,10 +12,10 @@ using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Logic.JobReporting.Exceptions;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
-using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.JobReporting.Converts;
 using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 
 namespace HEAppE.ServiceTier.JobReporting
 {

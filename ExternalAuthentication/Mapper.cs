@@ -33,29 +33,35 @@ namespace HEAppE.ExternalAuthentication
                 var projectRoleMapping = new Dictionary<string, ProjectOpenId>();
                 foreach (var propertyInfo in obj.Attributes.GetType().GetProperties())
                 {
-
-
                     var jsonPropertyName = propertyInfo?.GetCustomAttribute<JsonPropertyAttribute>().PropertyName ?? string.Empty;
                     if (ExternalAuthConfiguration.RoleMapping.TryGetValue(jsonPropertyName, out string mappedRole))
                     {
-                        var projectIds = (propertyInfo.GetValue(obj.Attributes) as IEnumerable<AccessRightsResult>)
-                                                                            ?.Where(w => ExternalAuthConfiguration.Projects.Select(s => s.UUID).Contains(w.ProjectId))
-                                                                             .Select(s => s.ProjectName)
-                                                                             .ToList();
+                        List<string> projectIds = (propertyInfo.GetValue(obj.Attributes) as IEnumerable<AccessRightsResult>)?.Select(s => s.ProjectId).ToList();
+                        var projects = ExternalAuthConfiguration.Projects.Where(w => projectIds.Contains(w.UUID));
 
-                        foreach (string projectId in projectIds ?? throw new Exception($"Open-Id: For defined Project Id \"{string.Join(",", ExternalAuthConfiguration.Projects.Select(s=>s.Name))}\" are nothing!"))
+                        if(projects is null)
                         {
-                            if (projectRoleMapping.TryGetValue(projectId, out ProjectOpenId project))
+                            throw new Exception($"Open-Id: There are not defined project Ids \"{string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name))}\" in Open-Id server!");
+                        }
+
+
+                        foreach (ExternalAuthProjectConfiguration project in projects)
+                        {
+
+                            if (projectRoleMapping.TryGetValue(project.UUID, out ProjectOpenId pp))
                             {
-                                _ = project.Roles.Union(new List<string>() { mappedRole });
+                                if (!pp.Roles.Contains(mappedRole))
+                                {
+                                    pp.Roles.Add(mappedRole);
+                                }
                             }
                             else
                             {
-                                projectRoleMapping.Add(projectId, new ProjectOpenId()
+                                projectRoleMapping.Add(project.UUID, new ProjectOpenId()
                                 {
-                                    Name = projectId,
-                                    UUID = projectId,
-                                    HEAppEGroupName = "",
+                                    Name = project.Name,
+                                    UUID = project.UUID,
+                                    HEAppEGroupName = project.HEAppEGroupName,
                                     Roles = new List<string>() { mappedRole }
                                 });
                             }

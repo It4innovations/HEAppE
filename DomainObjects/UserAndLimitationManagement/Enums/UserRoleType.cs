@@ -1,20 +1,20 @@
-﻿namespace HEAppE.ServiceTier.UserAndLimitationManagement.Roles
+﻿namespace HEAppE.DomainObjects.UserAndLimitationManagement.Enums
 {
     /// <summary>
     /// User role enum.
     /// </summary>
-    public enum UserRoleType : long
+    public enum UserRoleType
     {
         /// <summary>
         /// HEAppE administrator role with access to the entire system.
         /// </summary>
         Administrator = 1,
-        
+
         /// <summary>
         /// HEAppE maintainer role for getting information about actual HEAppE status.
         /// </summary>
         Maintainer = 2,
-        
+
         /// <summary>
         /// Standard user, can submit and check his own jobs.
         /// </summary>

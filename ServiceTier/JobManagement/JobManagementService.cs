@@ -14,7 +14,7 @@ using System.Reflection;
 using HEAppE.ExtModels.JobManagement.Converts;
 using log4net;
 using HEAppE.ExtModels.JobManagement.Models;
-using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 
 namespace HEAppE.ServiceTier.JobManagement
 {

@@ -1,5 +1,4 @@
 using HEAppE.DomainObjects.JobManagement;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -8,7 +7,8 @@ using System.Linq;
 namespace HEAppE.DomainObjects.UserAndLimitationManagement
 {
     [Table("AdaptorUserGroup")]
-    public class AdaptorUserGroup : IdentifiableDbEntity {
+    public class AdaptorUserGroup : IdentifiableDbEntity
+    {
         [Required]
         [StringLength(50)]
         public string Name { get; set; }
@@ -26,8 +26,9 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [NotMapped]
         public List<AdaptorUser> Users => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUser).ToList();
 
-        public override string ToString() {
-            return String.Format("AdaptorUserGroup: Id={0}, Name={1}, Project={2}", Id, Name, Project);
+        public override string ToString()
+        {
+            return $"AdaptorUserGroup: Id={Id}, Name={Name}, Project={Project}";
         }
     }
 }
