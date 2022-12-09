@@ -35,9 +35,9 @@ namespace HEAppE.ExternalAuthentication.Configuration
         public static string SecretId { get; set; }
 
         /// <summary>
-        /// Client connection timeout in miliseconds
+        /// Client connection timeout in seconds
         /// </summary>
-        public static int ConnectionTimeout { get; set; } = 15000;
+        public static double ConnectionTimeout { get; set; } = 15;
 
         /// <summary>
         /// Allowed client Ids

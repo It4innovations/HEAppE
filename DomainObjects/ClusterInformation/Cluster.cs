@@ -20,10 +20,10 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public string Description { get; set; }
 
         [Required]
-        [StringLength(30)]
+        [StringLength(50)]
         public string MasterNodeName { get; set; }
 
-        [StringLength(30)]
+        [StringLength(50)]
         public string DomainName { get; set; }
 
         public int? Port { get; set; }

@@ -204,7 +204,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds
+                    MaxTimeout = (int) (BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
                 };
                 var basicRestClient = new RestClient(options);
 
@@ -250,7 +250,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds
+                    MaxTimeout = BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000
                 };
                 var basicRestClient = new RestClient(options);
 

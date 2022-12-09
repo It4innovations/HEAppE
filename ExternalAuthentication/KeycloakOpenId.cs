@@ -46,7 +46,7 @@ namespace HEAppE.ExternalAuthentication
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = ExternalAuthConfiguration.ConnectionTimeout
+                    MaxTimeout = (int) (ExternalAuthConfiguration.ConnectionTimeout * 1000)
                 };
                 _basicRestClient = new RestClient(options);
             }
