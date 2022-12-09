@@ -44,7 +44,6 @@ namespace HEAppE.ExternalAuthentication
                             throw new Exception($"Open-Id: There are not defined project Ids \"{string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name))}\" in Open-Id server!");
                         }
 
-
                         foreach (ExternalAuthProjectConfiguration project in projects)
                         {
 

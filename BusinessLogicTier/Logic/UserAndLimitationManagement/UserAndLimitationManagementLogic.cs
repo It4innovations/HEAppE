@@ -316,6 +316,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 if (!hasUserGroup)
                 {
                     throw new OpenIdAuthenticationException($"Open-Id: User(\"{user.Username}\") has not User group!");
+                    //TODO smazani 
                 }
 
                 _unitOfWork.Save();

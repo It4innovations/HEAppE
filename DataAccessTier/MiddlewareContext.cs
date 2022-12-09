@@ -256,7 +256,7 @@ namespace HEAppE.DataAccessTier
         private void ValidateSeed()
         {
             _log.Info("Seed validation has started.");
-            //ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
+            ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
             _log.Info("Seed validation completed.");
         }
 
