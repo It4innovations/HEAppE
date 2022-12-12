@@ -269,9 +269,11 @@ namespace HEAppE.DataAccessTier
         private void ValidateCommandTemplateToProjectReference(List<CommandTemplate> commandTemplates, List<ClusterProject> clusterProjects)
         {
             //check if exists ClusterProject reference if CommandTemplate is referenced to some project
-            foreach (var commandTemplate in commandTemplates.Where(x => x.ProjectId.HasValue))
+            var commandTemplatesWithProjectReference = commandTemplates.Where(x => x.ProjectId.HasValue);
+            foreach (var commandTemplate in commandTemplatesWithProjectReference)
             {
-                if (clusterProjects.Any(x => x.ClusterId != commandTemplate.ClusterNodeType.ClusterId || x.ProjectId != commandTemplate.ProjectId))
+                //if does not exist Cluster to Project reference, throw exception
+                if (!clusterProjects.Any(x => x.ClusterId == commandTemplate.ClusterNodeType.ClusterId && x.ProjectId == commandTemplate.ProjectId))
                 {
                     string message = $"CommandTemplateId={commandTemplate.Id} is referenced to ProjectId={commandTemplate.ProjectId} but in system does not exist ClusterProject reference.";
                     _log.Error(message);

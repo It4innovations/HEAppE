@@ -50,7 +50,10 @@
       {
         "AdaptorUserId": 1,
         "AdaptorUserGroupId": 1,
-        "AdaptorUserRoleId": 1
+        "AdaptorUserRoleId": 1,
+        "CreatedAt": "2015-01-01 00:00:00",
+        "ModifiedAt": null,
+        "IsDeleted":  false
       }
     ],
     "ClusterProxyConnections": [

@@ -35,13 +35,13 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("DomainName")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("MasterNodeName")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -1314,6 +1314,15 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("AdaptorUserRoleId")
                         .HasColumnType("bigint");
 
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("AdaptorUserId", "AdaptorUserGroupId", "AdaptorUserRoleId");
 
                     b.HasIndex("AdaptorUserGroupId");
@@ -1852,7 +1861,7 @@ namespace HEAppE.DataAccessTier.Migrations
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroupRole", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "AdaptorUserGroup")
-                        .WithMany("AdaptorUserUserGroups")
+                        .WithMany("AdaptorUserUserGroupRoles")
                         .HasForeignKey("AdaptorUserGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
@@ -2024,7 +2033,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>
                 {
-                    b.Navigation("AdaptorUserUserGroups");
+                    b.Navigation("AdaptorUserUserGroupRoles");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", b =>

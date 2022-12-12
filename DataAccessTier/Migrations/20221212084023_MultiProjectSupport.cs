@@ -145,6 +145,27 @@ namespace HEAppE.DataAccessTier.Migrations
                 type: "bigint",
                 nullable: true);
 
+            migrationBuilder.AlterColumn<string>(
+                name: "MasterNodeName",
+                table: "Cluster",
+                type: "nvarchar(50)",
+                maxLength: 50,
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(30)",
+                oldMaxLength: 30);
+
+            migrationBuilder.AlterColumn<string>(
+                name: "DomainName",
+                table: "Cluster",
+                type: "nvarchar(50)",
+                maxLength: 50,
+                nullable: true,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(30)",
+                oldMaxLength: 30,
+                oldNullable: true);
+
             migrationBuilder.AddColumn<long>(
                 name: "ProjectId",
                 table: "AdaptorUserGroup",
@@ -157,7 +178,10 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     AdaptorUserId = table.Column<long>(type: "bigint", nullable: false),
                     AdaptorUserGroupId = table.Column<long>(type: "bigint", nullable: false),
-                    AdaptorUserRoleId = table.Column<long>(type: "bigint", nullable: false)
+                    AdaptorUserRoleId = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    IsDeleted = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -507,6 +531,27 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "ClusterAuthenticationCredentials",
                 type: "bigint",
                 nullable: true);
+
+            migrationBuilder.AlterColumn<string>(
+                name: "MasterNodeName",
+                table: "Cluster",
+                type: "nvarchar(30)",
+                maxLength: 30,
+                nullable: false,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(50)",
+                oldMaxLength: 50);
+
+            migrationBuilder.AlterColumn<string>(
+                name: "DomainName",
+                table: "Cluster",
+                type: "nvarchar(30)",
+                maxLength: 30,
+                nullable: true,
+                oldClrType: typeof(string),
+                oldType: "nvarchar(50)",
+                oldMaxLength: 50,
+                oldNullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "LocalBasepath",
