@@ -49,9 +49,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(0)]
         [ProducesResponseType(typeof(IEnumerable<ClusterExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult ListAvailableClusters()
         {
             try
@@ -60,9 +60,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.ListAvailableClusters());
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -74,9 +78,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(535)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult GetCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
         {
             try
@@ -95,9 +99,13 @@ namespace HEAppE.RestApi.Controllers
                 }
                 return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -110,9 +118,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(94)]
         [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CurrentClusterNodeUsage(CurrentClusterNodeUsageModel model)
         {
             try
@@ -126,9 +134,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion

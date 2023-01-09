@@ -42,9 +42,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult GetFileTransferMethod(GetFileTransferMethodModel model)
         {
             try
@@ -58,9 +58,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.GetFileTransferMethod(model.SubmittedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -73,9 +77,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(4700)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult EndFileTransfer(EndFileTransferModel model)
         {
             try
@@ -91,9 +95,13 @@ namespace HEAppE.RestApi.Controllers
                 _service.EndFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
                 return Ok("EndFileTransfer");
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -106,9 +114,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(480)]
         [ProducesResponseType(typeof(IEnumerable<JobFileContentExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult DownloadPartsOfJobFilesFromCluster(DownloadPartsOfJobFilesFromClusterModel model)
         {
             try
@@ -122,9 +130,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -137,9 +149,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(IEnumerable<FileInformationExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult ListChangedFilesForJob(ListChangedFilesForJobModel model)
         {
             try
@@ -153,9 +165,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -168,9 +184,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(378)]
         [ProducesResponseType(typeof(IEnumerable<byte>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult DownloadFileFromCluster(DownloadFileFromClusterModel model)
         {
             try
@@ -184,9 +200,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion

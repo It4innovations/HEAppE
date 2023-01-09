@@ -42,9 +42,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(50000)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CreateJob(CreateJobByProjectModel model)
         {
             try
@@ -58,9 +58,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.CreateJob(model.JobSpecification, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -73,9 +77,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(50000)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CreateJobByAccountingString(CreateJobByAccountingStringModel model)
         {
             try
@@ -89,9 +93,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.CreateJob(model.JobSpecification, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -104,9 +112,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(94)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult SubmitJob(SubmitJobModel model)
         {
             try
@@ -120,9 +128,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -135,9 +147,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CancelJob(CancelJobModel model)
         {
             try
@@ -151,9 +163,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -162,13 +178,13 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("DeleteJob")]
+        [HttpDelete("DeleteJob")]
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult DeleteJob(DeleteJobModel model)
         {
             try
@@ -183,9 +199,13 @@ namespace HEAppE.RestApi.Controllers
                 _service.DeleteJob(model.SubmittedJobInfoId, model.SessionCode);
                 return Ok("Job deleted.");
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -198,9 +218,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<SubmittedJobInfoExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult ListJobsForCurrentUser(ListJobsForCurrentUserModel model)
         {
             try
@@ -214,9 +234,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.ListJobsForCurrentUser(model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -229,9 +253,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult GetCurrentInfoForJob(GetCurrentInfoForJobModel model)
         {
             try
@@ -245,9 +269,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.GetCurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -260,9 +288,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(364)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CopyJobDataToTemp(CopyJobDataToTempModel model)
         {
             try
@@ -277,9 +305,13 @@ namespace HEAppE.RestApi.Controllers
                 _service.CopyJobDataToTemp(model.SubmittedJobInfoId, model.SessionCode, model.Path);
                 return Ok("Data were copied to Temp");
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -292,9 +324,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(154)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CopyJobDataFromTemp(CopyJobDataFromTempModel model)
         {
             try
@@ -309,9 +341,13 @@ namespace HEAppE.RestApi.Controllers
                 _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
                 return Ok("Data were copied to Temp");
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -324,9 +360,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult GetAllocatedNodesIPs(GetAllocatedNodesIPsModel model)
         {
             try
@@ -340,9 +376,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.GetAllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion

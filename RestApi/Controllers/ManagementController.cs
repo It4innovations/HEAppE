@@ -53,9 +53,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(1520)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CreateCommandTemplate(CreateCommandTemplateModel model)
         {
             try
@@ -72,9 +72,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -83,13 +87,13 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">ModifyCommandTemplateModel</param>
         /// <returns></returns>
-        [HttpPost("ModifyCommandTemplate")]
+        [HttpPut("ModifyCommandTemplate")]
         [RequestSizeLimit(1520)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
         {
             try
@@ -107,9 +111,13 @@ namespace HEAppE.RestApi.Controllers
                 return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
                                                          model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -118,13 +126,13 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">RemoveCommandTemplateModel</param>
         /// <returns></returns>
-        [HttpPost("RemoveCommandTemplate")]
+        [HttpDelete("RemoveCommandTemplate")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
         {
             try
@@ -141,9 +149,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -156,9 +168,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult GetInstanceInformations(string sessionCode)
         {
             try
@@ -197,9 +209,13 @@ namespace HEAppE.RestApi.Controllers
                     return BadRequest(null);
                 }
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion
