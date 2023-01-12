@@ -114,7 +114,7 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("CurrentClusterNodeUsage")]
+        [HttpGet("CurrentClusterNodeUsage")]
         [RequestSizeLimit(94)]
         [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -122,6 +122,42 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CurrentClusterNodeUsage(CurrentClusterNodeUsageModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get actual cluster node usage
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("CurrentClusterNodeUsage")]
+        [RequestSizeLimit(94)]
+        [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [Obsolete]
+        public IActionResult Obsolete_CurrentClusterNodeUsage(CurrentClusterNodeUsageModel model)
         {
             try
             {
