@@ -112,7 +112,8 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get actual cluster node usage
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
+        /// <param name="clusterNodeId">ClusterNode ID</param>
         /// <returns></returns>
         [HttpGet("CurrentClusterNodeUsage")]
         [RequestSizeLimit(94)]
@@ -121,10 +122,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult CurrentClusterNodeUsage(CurrentClusterNodeUsageModel model)
+        public IActionResult CurrentClusterNodeUsage(string sessionCode, long clusterNodeId)
         {
             try
             {
+                var model = new CurrentClusterNodeUsageModel()
+                {
+                    SessionCode= sessionCode,
+                    ClusterNodeId = clusterNodeId
+                };
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
                 if (!validationResult.IsValid)

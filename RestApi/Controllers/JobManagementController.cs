@@ -318,10 +318,12 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
+
+
         /// <summary>
-        /// Get all jobs for user
+        ///Get all jobs for user
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("ListJobsForCurrentUser")]
         [RequestSizeLimit(60)]
@@ -330,10 +332,14 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult ListJobsForCurrentUser(ListJobsForCurrentUserModel model)
+        public IActionResult ListJobsForCurrentUser(string sessionCode)
         {
             try
             {
+                var model = new ListJobsForCurrentUserModel()
+                {
+                    SessionCode = sessionCode,
+                };
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"ListJobsForCurrentUser\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
@@ -390,9 +396,10 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// Get current job information
+        /// GetCurrentInfoForJob
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
+        /// <param name="submittedJobInfoId">SubmittedJobInfo ID</param>
         /// <returns></returns>
         [HttpGet("GetCurrentInfoForJob")]
         [RequestSizeLimit(98)]
@@ -401,10 +408,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetCurrentInfoForJob(GetCurrentInfoForJobModel model)
+        public IActionResult GetCurrentInfoForJob(string sessionCode, long submittedJobInfoId)
         {
             try
             {
+                var model = new GetCurrentInfoForJobModel()
+                {
+                    SessionCode = sessionCode,
+                    SubmittedJobInfoId = submittedJobInfoId
+                };
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"GetCurrentInfoForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
@@ -533,9 +545,10 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// Get allocated node IP addresses
+        /// 
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
+        /// <param name="submittedTaskInfoId">SubmittedTaskInfo ID</param>
         /// <returns></returns>
         [HttpGet("GetAllocatedNodesIPs")]
         [RequestSizeLimit(98)]
@@ -544,10 +557,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetAllocatedNodesIPs(GetAllocatedNodesIPsModel model)
+        public IActionResult GetAllocatedNodesIPs(string sessionCode, long submittedTaskInfoId)
         {
             try
             {
+                var model = new GetAllocatedNodesIPsModel()
+                {
+                    SessionCode = sessionCode,
+                    SubmittedTaskInfoId = submittedTaskInfoId
+                };
                 _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"GetAllocatedNodesIPs\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)

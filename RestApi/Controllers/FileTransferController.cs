@@ -143,7 +143,8 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get all changes files during job execution
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
+        /// <param name="submittedJobInfoId">SubmittedJobInfo ID</param>
         /// <returns></returns>
         [HttpGet("ListChangedFilesForJob")]
         [RequestSizeLimit(98)]
@@ -152,10 +153,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult ListChangedFilesForJob(ListChangedFilesForJobModel model)
+        public IActionResult ListChangedFilesForJob(string sessionCode, long submittedJobInfoId)
         {
             try
             {
+                var model = new ListChangedFilesForJobModel()
+                {
+                    SessionCode = sessionCode,
+                    SubmittedJobInfoId = submittedJobInfoId
+                };
                 _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new FileTransferValidator(model).Validate();
                 if (!validationResult.IsValid)

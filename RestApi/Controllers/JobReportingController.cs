@@ -142,7 +142,8 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get resource usage for executed job
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
+        /// <param name="jobId">Job ID</param>
         /// <returns></returns>
         [HttpGet("GetResourceUsageReportForJob")]
         [RequestSizeLimit(86)]
@@ -151,10 +152,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetResourceUsageReportForJob(GetResourceUsageReportForJobModel model)
+        public IActionResult GetResourceUsageReportForJob(string sessionCode, long jobId)
         {
             try
             {
+                var model = new GetResourceUsageReportForJobModel()
+                {
+                    SessionCode = sessionCode,
+                    JobId = jobId
+                };
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetResourceUsageReportForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
