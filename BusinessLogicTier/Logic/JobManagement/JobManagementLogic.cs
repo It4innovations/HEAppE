@@ -630,7 +630,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         Specification = s,
                         State = TaskState.Configuring,
                         Priority = s.Priority ?? TaskPriority.Average,
-                        NodeType = s.ClusterNodeType
+                        NodeType = s.ClusterNodeType,
+                        Project = s.Project
                     })
                     .ToList()
             };

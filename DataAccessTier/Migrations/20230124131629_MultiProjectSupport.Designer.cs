@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20221212084023_MultiProjectSupport")]
+    [Migration("20230124131629_MultiProjectSupport")]
     partial class MultiProjectSupport
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

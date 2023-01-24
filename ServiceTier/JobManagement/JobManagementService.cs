@@ -39,8 +39,8 @@ namespace HEAppE.ServiceTier.JobManagement
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     JobSpecification js = specification.ConvertExtToInt(
-                                                            specification.ProjectId.HasValue ? specification.ProjectId.Value : 
-                                                                (ServiceTierSettings.SingleProjectId.HasValue ? ServiceTierSettings.SingleProjectId.Value : 
+                                                            specification.ProjectId.HasValue ? specification.ProjectId.Value :
+                                                                (ServiceTierSettings.SingleProjectId.HasValue ? ServiceTierSettings.SingleProjectId.Value :
                                                                     throw new InputValidationException($"This is not single project HEAppE instance. Please specify ProjectId.")
                                                                 )
                                                             );
@@ -220,6 +220,11 @@ namespace HEAppE.ServiceTier.JobManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
+                    var job = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+                    if (job is null)
+                    {
+                        throw new InputValidationException($"Task with ID '{submittedTaskInfoId}' does not exist in the system");
+                    }
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId).Project.Id);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     var nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedTaskInfoId, loggedUser);
