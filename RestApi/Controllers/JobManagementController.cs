@@ -532,7 +532,7 @@ namespace HEAppE.RestApi.Controllers
                 }
 
                 _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
-                return Ok("Data were copied to Temp");
+                return Ok("Data were copied from Temp");
             }
             catch (Exception exception)
             {
