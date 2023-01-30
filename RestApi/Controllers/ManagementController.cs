@@ -1,6 +1,7 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
@@ -51,7 +52,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("CreateCommandTemplate")]
         [RequestSizeLimit(1520)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -89,7 +90,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPut("ModifyCommandTemplate")]
         [RequestSizeLimit(1520)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -128,7 +129,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpDelete("RemoveCommandTemplate")]
         [RequestSizeLimit(90)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
