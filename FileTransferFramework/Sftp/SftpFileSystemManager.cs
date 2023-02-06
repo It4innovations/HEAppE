@@ -29,14 +29,14 @@ namespace HEAppE.FileTransferFramework.Sftp
         #region AbstractFileSystemManager Members
         public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification);
+            string basePath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
             var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);
                 using (var stream = new MemoryStream())
                 {
-                    string file = jobClusterDirectoryPath + relativeFilePath;
+                    string file = basePath + relativeFilePath;
                     client.DownloadFile(file, stream);
                     return stream.ToArray();
                 }
