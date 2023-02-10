@@ -117,7 +117,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("HttpGetToJobNode")]
         [RequestSizeLimit(50000)]
-        [ProducesResponseType(typeof(int?), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -152,7 +152,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("HttpPostToJobNode")]
         [RequestSizeLimit(50000)]
-        [ProducesResponseType(typeof(int?), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
