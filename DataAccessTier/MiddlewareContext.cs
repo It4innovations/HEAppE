@@ -4,17 +4,16 @@ using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.Notifications;
+using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.Utils;
+using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using log4net;
 using System.Reflection;
-using System;
-using HEAppE.DomainObjects.OpenStack;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using HEAppE.Utils;
 
 namespace HEAppE.DataAccessTier
 {
@@ -85,7 +84,8 @@ namespace HEAppE.DataAccessTier
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseLazyLoadingProxies();
-            optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+            optionsBuilder.UseSqlServer("Server=localhost,8000;TrustServerCertificate=True;Encrypt=false;Database=heappe_it4it;User=heappe_it4it;Password=test1234;");
+           // optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -122,16 +122,16 @@ namespace HEAppE.DataAccessTier
                 .WithMany(g => g.OpenStackAuthenticationCredentialDomains)
                 .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
 
-            //M:N relations for OpenStackAuthenticationCredentialProjectDomain
-            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
-                .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackProjectDomainId });
-            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
-                .HasOne(ug => ug.OpenStackProjectDomain)
-                .WithMany(u => u.OpenStackAuthenticationCredentialProjectDomains)
-                .HasForeignKey(ug => new { ug.OpenStackProjectDomainId });
-            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
+            //M:N relations for OpenStackAuthenticationCredentialProject
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
+                .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackProjectId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
+                .HasOne(ug => ug.OpenStackProject)
+                .WithMany(u => u.OpenStackAuthenticationCredentialProjects)
+                .HasForeignKey(ug => new { ug.OpenStackProjectId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
                 .HasOne(ug => ug.OpenStackAuthenticationCredential)
-                .WithMany(g => g.OpenStackAuthenticationCredentialProjectDomains)
+                .WithMany(g => g.OpenStackAuthenticationCredentialProjects)
                 .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
 
             //M:N relations for TaskDependency for same table TaskSpecification
@@ -231,10 +231,9 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjects);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjectDomains);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjectDomains, false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjects, false);
 
             ValidateSeed();
 
@@ -246,8 +245,7 @@ namespace HEAppE.DataAccessTier
 
             //Update Authentication type
             ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
-                                    .ForEach(cpc =>
-                                    cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
+                                    .ForEach(cpc => cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
@@ -354,16 +352,15 @@ namespace HEAppE.DataAccessTier
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
-
-                case OpenStackAuthenticationCredentialDomain openstackCredDomain:
+                case OpenStackAuthenticationCredentialProject openstackCredProject:
                     {
-                        var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
+                        var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId, openstackCredProject.OpenStackProjectId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
-                case OpenStackAuthenticationCredentialProjectDomain openstackCredProjDomain:
+                case OpenStackAuthenticationCredentialDomain openstackCredDomain:
                     {
-                        var entity = Set<T>().Find(openstackCredProjDomain.OpenStackAuthenticationCredentialId, openstackCredProjDomain.OpenStackProjectDomainId);
+                        var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
@@ -458,7 +455,6 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<OpenStackInstance> OpenStackInstances { get; set; }
         public virtual DbSet<OpenStackDomain> OpenStackDomains { get; set; }
         public virtual DbSet<OpenStackProject> OpenStackProjects { get; set; }
-        public virtual DbSet<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
         #endregion
 
         #region FileTransfer Entities

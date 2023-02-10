@@ -80,13 +80,13 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenStack")]
-        [RequestSizeLimit(2048)]
+        [RequestSizeLimit(2088)]
         [ProducesResponseType(typeof(OpenStackApplicationCredentialsExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public async Task<IActionResult> AuthenticateUserOpenStackAsync(AuthenticateUserOpenIdModel model)
+        public async Task<IActionResult> AuthenticateUserOpenStackAsync(AuthenticateUserOpenIdOpenStackModel model)
         {
             try
             {

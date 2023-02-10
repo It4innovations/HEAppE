@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -19,7 +20,14 @@ namespace HEAppE.DomainObjects.OpenStack
 
         public virtual OpenStackDomain OpenStackDomain { get; set; }
 
-        public virtual List<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
+        [Required]
+        [ForeignKey("AdaptorUserGroup")]
+        public long AdaptorUserGroupId { get; set; }
+
+        public virtual AdaptorUserGroup AdaptorUserGroup { get; set; }
+
+        public virtual List<OpenStackAuthenticationCredentialProject> OpenStackAuthenticationCredentialProjects { get; set; }
+
         public override string ToString()
         {
             return $"OpenStackProject: Id={Id}, Name={Name}, UID={UID}";

@@ -19,6 +19,7 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = _validationObject switch
             {
+                AuthenticateUserOpenIdOpenStackModel model => ValidateAuthenticateUserOpenIdOpenStackModel(model),
                 AuthenticateUserOpenIdModel model => ValidateAuthenticateUserOpenIdModel(model),
                 AuthenticateUserPasswordModel model => ValidateAuthenticateUserPasswordModel(model),
                 AuthenticateUserDigitalSignatureModel model => ValidateAuthenticateUserDigitalSignatureModel(model),
@@ -61,6 +62,17 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateAuthenticateUserOpenIdModel(AuthenticateUserOpenIdModel validationObj)
         {
+            ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateAuthenticateUserOpenIdOpenStackModel(AuthenticateUserOpenIdOpenStackModel validationObj)
+        {
+            ValidateAuthenticateUserOpenIdModel(validationObj);
             ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
             if (!validationResult.IsValid)
             {

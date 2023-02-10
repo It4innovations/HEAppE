@@ -1,18 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier.Factory;
+﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
-using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -22,6 +13,11 @@ using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement
 {
@@ -64,7 +60,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     {
                         Username = credentials.Username,
                         DigitalSignature = Array.ConvertAll(((DigitalSignatureCredentialsExt)credentials).DigitalSignature, b => unchecked((byte)b)),
-                        SignedContent = CombineContentWithSalt(credentials.Username)
+                        SignedContent = StringUtils.CombineContentWithSalt(credentials.Username)
                     };
                 }
                 else if (credentials is OpenIdCredentialsExt openIdCredentials)
@@ -99,7 +95,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 
         public async Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials)
         {
-            if (credentials is OpenIdCredentialsExt openIdCredentials)
+            if (credentials is OpenIdOpenStackCredentialsExt openIdCredentials)
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
@@ -112,6 +108,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>()
                         {   user.Id.ToString(),
+                            openIdCredentials.ProjectId.ToString(),
                             nameof(AuthenticateUserToOpenStackAsync)
                         }
                     );
@@ -124,7 +121,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     else
                     {
                         _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                        var appCreds = await userLogic.AuthenticateKeycloakUserToOpenStackAsync(user);
+                        var appCreds = await userLogic.AuthenticateOpenIdUserToOpenStackAsync(user, openIdCredentials.ProjectId);
                         _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(), TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
                         return appCreds.ConvertIntToExt();
                     }
@@ -186,12 +183,12 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
-            
+
             if (projectId.HasValue)
             {
                 CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value);
             }
-            else if(ServiceTierSettings.SingleProjectId.HasValue)
+            else if (ServiceTierSettings.SingleProjectId.HasValue)
             {
                 CheckUserRoleForProject(loggedUser, requiredUserRole, ServiceTierSettings.SingleProjectId.Value);
             }
@@ -207,10 +204,10 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// Check whether the user has any of the allowed roles to access given functionality.
         /// </summary>
         /// <param name="user">User account with roles.</param>
-        /// <param name="requiredRole">Required user role.</param>
+        /// <param name="requiredUserRole">Required user role.</param>
         /// <param name="projectId">Project ID</param>
         /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="allowedRoles"/></exception>
-        internal static void CheckUserRoleForProject(AdaptorUser user, UserRoleType requiredUserRole, long projectId)
+        private static void CheckUserRoleForProject(AdaptorUser user, UserRoleType requiredUserRole, long projectId)
         {
             bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == requiredUserRole && x.AdaptorUserGroup.ProjectId == projectId && !x.AdaptorUserGroup.Project.IsDeleted && x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow);
             if (!hasRequiredRole)
@@ -219,31 +216,6 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)requiredUserRole);
                 throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.GetRolesForProject(projectId), projectId);
             }
-        }
-
-        /// <summary>
-        ///   Combines username with random salt.
-        ///   Username is inserted into salt string on position
-        ///   given by integer value of first character of the salt moduFlo length of the salt.
-        /// </summary>
-        /// <param name="username">Username</param>
-        /// <param name="salt">Salt</param>
-        /// <returns>Combined string</returns>
-        private string CombineContentWithSalt(string username)
-        {
-            string salt = GetRandomString();
-            int val = (Encoding.UTF8.GetBytes(salt)[0]) % salt.Length;
-            StringBuilder sb = new StringBuilder(salt);
-            sb.Insert(val, username);
-            return sb.ToString();
-        }
-
-        private static string GetRandomString()
-        {
-            var random = new byte[16];
-            var rng = new RNGCryptoServiceProvider();
-            rng.GetNonZeroBytes(random);
-            return Convert.ToBase64String(random);
         }
     }
 }

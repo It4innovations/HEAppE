@@ -1099,19 +1099,19 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("OpenStackAuthenticationCredentialDomain");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProjectDomain", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProject", b =>
                 {
                     b.Property<long>("OpenStackAuthenticationCredentialId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("OpenStackProjectDomainId")
+                    b.Property<long>("OpenStackProjectId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackProjectDomainId");
+                    b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackProjectId");
 
-                    b.HasIndex("OpenStackProjectDomainId");
+                    b.HasIndex("OpenStackProjectId");
 
-                    b.ToTable("OpenStackAuthenticationCredentialProjectDomain");
+                    b.ToTable("OpenStackAuthenticationCredentialProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
@@ -1127,6 +1127,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long>("OpenStackInstanceId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("UID")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.HasKey("Id");
 
@@ -1164,6 +1168,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
+                    b.Property<long>("AdaptorUserGroupId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Name")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
@@ -1177,34 +1184,11 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AdaptorUserGroupId");
+
                     b.HasIndex("OpenStackDomainId");
 
                     b.ToTable("OpenStackProject");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Name")
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<long>("OpenStackProjectId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("UID")
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("OpenStackProjectId");
-
-                    b.ToTable("OpenStackProjectDomain");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
@@ -1788,23 +1772,23 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("OpenStackDomain");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProjectDomain", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProject", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", "OpenStackAuthenticationCredential")
-                        .WithMany("OpenStackAuthenticationCredentialProjectDomains")
+                        .WithMany("OpenStackAuthenticationCredentialProjects")
                         .HasForeignKey("OpenStackAuthenticationCredentialId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", "OpenStackProjectDomain")
-                        .WithMany("OpenStackAuthenticationCredentialProjectDomains")
-                        .HasForeignKey("OpenStackProjectDomainId")
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProject", "OpenStackProject")
+                        .WithMany("OpenStackAuthenticationCredentialProjects")
+                        .HasForeignKey("OpenStackProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("OpenStackAuthenticationCredential");
 
-                    b.Navigation("OpenStackProjectDomain");
+                    b.Navigation("OpenStackProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
@@ -1820,24 +1804,21 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProject", b =>
                 {
+                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "AdaptorUserGroup")
+                        .WithMany()
+                        .HasForeignKey("AdaptorUserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackDomain", "OpenStackDomain")
                         .WithMany("OpenStackProjects")
                         .HasForeignKey("OpenStackDomainId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.Navigation("AdaptorUserGroup");
+
                     b.Navigation("OpenStackDomain");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProject", "OpenStackProject")
-                        .WithMany("OpenStackProjectDomains")
-                        .HasForeignKey("OpenStackProjectId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("OpenStackProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
@@ -1999,7 +1980,7 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Navigation("OpenStackAuthenticationCredentialDomains");
 
-                    b.Navigation("OpenStackAuthenticationCredentialProjectDomains");
+                    b.Navigation("OpenStackAuthenticationCredentialProjects");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
@@ -2016,12 +1997,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProject", b =>
                 {
-                    b.Navigation("OpenStackProjectDomains");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
-                {
-                    b.Navigation("OpenStackAuthenticationCredentialProjectDomains");
+                    b.Navigation("OpenStackAuthenticationCredentialProjects");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>

@@ -1,5 +1,6 @@
 ﻿using HEAppE.ExternalAuthentication.Configuration;
-using HEAppE.ExternalAuthentication.JsonTypes;
+using HEAppE.ExternalAuthentication.DTO;
+using HEAppE.ExternalAuthentication.DTO.JsonTypes;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;

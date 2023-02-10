@@ -1,7 +1,7 @@
 ﻿using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.OpenStackAPI.DTO;
+using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.OpenStackAPI.Exceptions;
-using HEAppE.OpenStackAPI.JsonTypes.Authentication;
 using HEAppE.RestUtils;
 using log4net;
 using Newtonsoft.Json;
@@ -63,13 +63,12 @@ namespace HEAppE.OpenStackAPI
         /// <summary>
         /// Authenticate the user with password for no specific scopes.
         /// </summary>
-        /// <param name="serviceAcc">OpenStack service account.</param>
         /// <param name="project">OpenStack project.</param>
         /// <returns>Authentication response from the rest api with the authentication token.</returns>
         /// <exception cref="OpenStackAPIException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
-        public async Task<AuthenticationResponse> AuthenticateAsync(OpenStackServiceAccDTO serviceAcc, OpenStackProjectDTO project)
+        public async Task<AuthenticationResponse> AuthenticateAsync(OpenStackProjectDTO project)
         {
-            var requestObject = AuthenticationRequest.CreateScopedAuthenticationPasswordRequest(serviceAcc, project);
+            var requestObject = AuthenticationRequest.CreateScopedAuthenticationPasswordRequest(project);
             string requestBody = JsonConvert.SerializeObject(requestObject, IgnoreNullSerializer.Instance);
 
             RestRequest request = new RestRequest($"v{OpenStackSettings.OpenStackVersion}/auth/tokens", Method.Post)
@@ -89,7 +88,7 @@ namespace HEAppE.OpenStackAPI
         /// <returns>Created application credentials.</returns>
         public async Task<ApplicationCredentialsDTO> CreateApplicationCredentialsAsync(string requestedUserName, AuthenticationResponse authResponse)
         {
-            string uniqueTokenName = requestedUserName + '_' + Guid.NewGuid();
+            string uniqueTokenName = $"{requestedUserName}_{Guid.NewGuid()}";
             var sessionExpiresAt = DateTime.UtcNow.AddSeconds(OpenStackSettings.OpenStackSessionExpiration);
 
             var requestObject = ApplicationCredentialsRequest.CreateApplicationCredentialsRequest(uniqueTokenName, sessionExpiresAt);

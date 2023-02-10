@@ -37,7 +37,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IOpenStackAuthenticationCredentialsRepository _openStackAuthenticationCredentialsRepository;
         private IOpenStackDomainRepository _openStackDomainRepository;
         private IOpenStackInstanceRepository _openStackInstanceRepository;
-        private IOpenStackProjectDomainRepository _openStackProjectDomainRepository;
         private IOpenStackProjectRepository _openStackProjectRepository;
         private IEnvironmentVariableRepository _environmentVariableRepository;
         private IFileTransferMethodRepository _fileTransferMethodRepository;
@@ -159,15 +158,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _openStackInstanceRepository = _openStackInstanceRepository ?? new OpenStackInstanceRepository(_context);
-
-            }
-        }
-
-        public IOpenStackProjectDomainRepository OpenStackProjectDomainRepository
-        {
-            get
-            {
-                return _openStackProjectDomainRepository = _openStackProjectDomainRepository ?? new OpenStackProjectDomainRepository(_context);
 
             }
         }

@@ -26,14 +26,11 @@ namespace HEAppE.DataAccessTier
 
         public static List<OpenStackProject> OpenStackProjects { get; set; }
 
-        public static List<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
-
         public static List<OpenStackAuthenticationCredential> OpenStackAuthenticationCredentials { get; set; }
 
         public static List<OpenStackAuthenticationCredentialDomain> OpenStackAuthenticationCredentialDomains { get; set; }
 
-        public static List<OpenStackAuthenticationCredentialProjectDomain> OpenStackAuthenticationCredentialProjectDomains { get; set; }
-
+        public static List<OpenStackAuthenticationCredentialProject> OpenStackAuthenticationCredentialProjects { get; set; }
 
         public static List<ClusterProxyConnection> ClusterProxyConnections { get; set; }
 

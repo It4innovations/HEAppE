@@ -26,7 +26,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository { get; }
         IOpenStackDomainRepository OpenStackDomainRepository { get; }
         IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
-        IOpenStackProjectDomainRepository OpenStackProjectDomainRepository { get; }
         IOpenStackProjectRepository OpenStackProjectRepository { get; }
         IEnvironmentVariableRepository EnvironmentVariableRepository { get; }
         IFileTransferMethodRepository FileTransferMethodRepository { get; }
