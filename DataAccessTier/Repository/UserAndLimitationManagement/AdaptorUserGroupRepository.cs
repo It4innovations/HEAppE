@@ -27,11 +27,12 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
                           .FirstOrDefault();
         }
 
-        public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroups()
+        public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndProject()
         {
-            return _dbSet.Include(i => i.AdaptorUserUserGroupRoles)
-                          .ThenInclude(i => i.AdaptorUser)
-                          .ToList();
+            return _dbSet.Include(p=> p.Project)
+                            .Include(i => i.AdaptorUserUserGroupRoles)
+                            .ThenInclude(i => i.AdaptorUser)
+                            .ToList();
         }
 
         public AdaptorUserGroup GetDefaultSubmitterGroup()
