@@ -19,8 +19,8 @@
       },
       {
         "Id": 2,
-        "Name": "KeycloakGroup",
-        "Description": "{KeyCloakGroupDescription}",
+        "Name": "OpenIDGroup",
+        "Description": "{OpenIDGroupDescription}",
         "ProjectId": 1
       }
     ],
@@ -61,9 +61,9 @@
         "Id": 1,
         "Host": "",
         "Port": 8000,
+        "Type": 1,
         "Username": null,
-        "Password": null,
-        "Type": 1
+        "Password": null
       }
     ],
     "Clusters": [
@@ -72,13 +72,12 @@
         "Name": "{LocalComputingClusterName}",
         "Description": "{ClusterDescription}",
         "MasterNodeName": "host.docker.internal",
-        "DomainName": "localhost",
-        "Port": 49500,
-        "TimeZone": "CET",
         "SchedulerType": 1,
         "ConnectionProtocol": 2,
-        "ServiceAccountCredentialsId": 1,
+        "TimeZone": "CET",
+        "Port": 49500,
         "UpdateJobStateByServiceAccount": true,
+        "DomainName": "localhost",
         "ProxyConnectionId": null
       }
     ],
@@ -88,16 +87,14 @@
         "Username": "heappeclient",
         "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "ClusterId": 1
+        "PrivateKeyPassword": "{PrivateKeyPassword}"
       },
       {
         "Id": 2,
         "Username": "heappeclient",
         "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "ClusterId": 1
+        "PrivateKeyPassword": "{PrivateKeyPassword}"
       }
     ],
     "Projects": [
@@ -109,16 +106,18 @@
         "StartDate": "{StartDate}",
         "EndDate": "{EndDate}",
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       }
     ],
     "ClusterProjects": [
       {
         "Id": 1,
-        "ProjectId": 1,
         "ClusterId": 1,
+        "ProjectId": 1,
         "LocalBasepath": "/home/heappeclient/heappetests",
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       }
     ],
@@ -128,6 +127,7 @@
         "ClusterAuthenticationCredentialsId": 1,
         "IsServiceAccount": true,
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       },
       {
@@ -135,6 +135,7 @@
         "ClusterAuthenticationCredentialsId": 2,
         "IsServiceAccount": false,
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       }
     ],
@@ -146,10 +147,9 @@
         "NumberOfNodes": 1,
         "CoresPerNode": 1,
         "Queue": "qexp",
-        "RequestedNodeGroups": null,
         "MaxWalltime": "{MaxWalltime}",
         "ClusterId": 1,
-        "FileTransferMethodId": 3,
+        "FileTransferMethodId": 1,
         "ClusterAllocationName": null
       }
     ],
@@ -175,7 +175,7 @@
         "ExecutableFile": "~/.key_scripts/generic.sh",
         "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
         "PreparationScript": null,
-        "ClusterNodeTypeId": 2,
+        "ClusterNodeTypeId": 1,
         "IsGeneric": true,
         "IsEnabled": true,
         "ProjectId": 1
@@ -222,19 +222,12 @@
         "Name": "English"
       }
     ],
-    "OpenStackInstances": [
-      {
-        "Id": 1,
-        "Name": "",
-        "InstanceUrl": ""
-      }
-    ],
     "OpenStackDomains": [
       {
         "Id": 1,
         "Name": "",
-        "UID": "",
-        "OpenStackInstanceId": 1
+        "OpenStackInstanceId": 1,
+        "UID": ""
       }
     ],
     "OpenStackAuthenticationCredentials": [
@@ -251,7 +244,6 @@
         "Name": "",
         "UID": "",
         "OpenStackDomainId": 1,
-        "OpenStackAuthenticationCredentialId": 1,
         "AdaptorUserGroupId": 2
       }
     ],

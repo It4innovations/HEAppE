@@ -73,7 +73,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 }
                 else
                 {
-                    var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HaaSMiddleware.ServiceTier.UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
+                    var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
                     _log.Error(message);
                     throw new ArgumentException(message);
                 }
@@ -93,14 +93,14 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
         }
 
-        public async Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials)
+        public async Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials, long projectId)
         {
-            if (credentials is OpenIdOpenStackCredentialsExt openIdCredentials)
+            if (credentials is OpenIdCredentialsExt openIdCredentials)
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    AdaptorUser user = await userLogic.AuthenticateUserToOpenStackAsync(new OpenIdCredentials
+                    AdaptorUser user = await userLogic.AuthenticateUserToOpenIdAsync(new OpenIdCredentials
                     {
                         OpenIdAccessToken = openIdCredentials.OpenIdAccessToken
                     });
@@ -108,7 +108,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>()
                         {   user.Id.ToString(),
-                            openIdCredentials.ProjectId.ToString(),
+                            projectId.ToString(),
                             nameof(AuthenticateUserToOpenStackAsync)
                         }
                     );
@@ -121,7 +121,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     else
                     {
                         _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                        var appCreds = await userLogic.AuthenticateOpenIdUserToOpenStackAsync(user, openIdCredentials.ProjectId);
+                        var appCreds = await userLogic.AuthenticateOpenIdUserToOpenStackAsync(user, projectId);
                         _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(), TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
                         return appCreds.ConvertIntToExt();
                     }

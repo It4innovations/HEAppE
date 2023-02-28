@@ -16,7 +16,6 @@ namespace HEAppE.RestApi.InputValidator
             string message = _validationObject switch
             {
                 PasswordCredentialsExt ext => ValidateUserPasswordCredentials(ext),
-                OpenIdOpenStackCredentialsExt ext => ValidateOpenIdOpenStackCredentials(ext),
                 OpenIdCredentialsExt ext => ValidateOpenIdCredentials(ext),
                 DigitalSignatureCredentialsExt ext => ValidateDigitalSignatureCredentials(ext),
                 FileTransferKeyCredentialsExt ext => ValidateAsymmetricKeyCredentials(ext),
@@ -103,16 +102,6 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("OpenIdAccessToken contains illegal characters.");
             }
 
-            return _messageBuilder.ToString();
-        }
-
-        private string ValidateOpenIdOpenStackCredentials(OpenIdOpenStackCredentialsExt credentials)
-        {
-            ValidateOpenIdCredentials(credentials);
-            if (credentials.ProjectId > 0)
-            {
-                _messageBuilder.AppendLine("ProjectId must be greater than zero.");
-            }
             return _messageBuilder.ToString();
         }
 

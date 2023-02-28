@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HEAppE.DomainObjects.OpenStack
 {
@@ -18,6 +13,6 @@ namespace HEAppE.DomainObjects.OpenStack
         public long OpenStackProjectId { get; set; }
         public virtual OpenStackProject OpenStackProject { get; set; }
 
-        public bool IsDefault = false;
+        public bool IsDefault { get; set; } = false;
     }
 }

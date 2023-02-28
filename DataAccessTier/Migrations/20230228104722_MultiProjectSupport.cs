@@ -231,7 +231,8 @@ namespace HEAppE.DataAccessTier.Migrations
                 columns: table => new
                 {
                     OpenStackAuthenticationCredentialId = table.Column<long>(type: "bigint", nullable: false),
-                    OpenStackProjectId = table.Column<long>(type: "bigint", nullable: false)
+                    OpenStackProjectId = table.Column<long>(type: "bigint", nullable: false),
+                    IsDefault = table.Column<bool>(type: "bit", nullable: false)
                 },
                 constraints: table =>
                 {

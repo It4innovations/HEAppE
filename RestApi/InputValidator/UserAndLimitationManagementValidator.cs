@@ -72,7 +72,11 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateAuthenticateUserOpenIdOpenStackModel(AuthenticateUserOpenIdOpenStackModel validationObj)
         {
-            ValidateAuthenticateUserOpenIdModel(validationObj);
+            if (validationObj.ProjectId <=0)
+            {
+                _messageBuilder.AppendLine("ProjectId must be greater than 0!");
+            }
+
             ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
             if (!validationResult.IsValid)
             {

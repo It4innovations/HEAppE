@@ -97,7 +97,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials));
+                return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials, model.ProjectId));
             }
             catch (Exception exception)
             {

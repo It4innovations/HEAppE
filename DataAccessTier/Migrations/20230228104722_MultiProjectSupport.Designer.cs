@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20230210190947_MultiProjectSupport")]
+    [Migration("20230228104722_MultiProjectSupport")]
     partial class MultiProjectSupport
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1108,6 +1108,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long>("OpenStackProjectId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
 
                     b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackProjectId");
 

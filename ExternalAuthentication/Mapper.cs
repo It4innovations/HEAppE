@@ -32,6 +32,7 @@ namespace HEAppE.ExternalAuthentication
             try
             {
                 var projectRoleMapping = new Dictionary<string, ProjectOpenId>();
+                bool hasMappedGroup = false;
                 foreach (var propertyInfo in obj.Attributes.GetType().GetProperties())
                 {
                     var jsonPropertyName = propertyInfo?.GetCustomAttribute<JsonPropertyAttribute>().PropertyName ?? string.Empty;
@@ -44,7 +45,7 @@ namespace HEAppE.ExternalAuthentication
                         {
                             throw new Exception($"Open-Id: There are not defined project Ids \"{string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name))}\" in Open-Id server!");
                         }
-
+                        hasMappedGroup = true;
                         foreach (ExternalAuthProjectConfiguration project in projects)
                         {
 
@@ -67,7 +68,8 @@ namespace HEAppE.ExternalAuthentication
                             }
                         }
                     }
-                    else
+
+                    if(!hasMappedGroup)
                     {
                         throw new Exception("Open-Id: Project-role mapping is not correctly defined!");
                     }

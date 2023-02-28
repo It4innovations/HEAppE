@@ -9,7 +9,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement {
 	public interface IUserAndLimitationManagementLogic {
 		AdaptorUser GetUserForSessionCode(string sessionCode);
 		Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials);
-		Task<AdaptorUser> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials);
+		Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials);
 		Task<ApplicationCredentialsDTO> AuthenticateOpenIdUserToOpenStackAsync(AdaptorUser adaptorUser, long projectId);
 		IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser);
 		bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo);

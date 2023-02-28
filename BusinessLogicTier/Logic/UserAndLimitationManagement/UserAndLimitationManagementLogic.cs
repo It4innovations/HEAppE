@@ -4,7 +4,6 @@ using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
@@ -15,7 +14,6 @@ using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.ExternalAuthentication.KeyCloak.Exceptions;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
-using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.Utils;
 using log4net;
@@ -93,24 +91,71 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             };
         }
 
-        public async Task<AdaptorUser> AuthenticateUserToOpenStackAsync(AuthenticationCredentials credentials)
+        public async Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials)
         {
-            _log.Info($"User {credentials.Username} wants to authenticate to the OpenStack.");
-            if (credentials is not OpenIdCredentials openIdCredentials)
-            {
-                string unsupportedCredentialsError = $"Credentials of class {credentials.GetType().Name} are not supported.";
-                _log.Error(unsupportedCredentialsError);
-                throw new ArgumentException(unsupportedCredentialsError);
-            }
-            var user = await HandleOpenIdAuthenticationAsync(openIdCredentials);
+            _log.Info($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
+
+            var user = await HandleOpenIdAuthenticationAsync(credentials);
             return user;
         }
 
+        /// <summary>
+        /// Create new session/application credentials for authenticated user.
+        /// </summary>
+        /// <param name="adaptorUser">User with access to OpenStack part of the HEAppE.</param>
+        /// <param name="projectId">Project Id</param>
+        /// <returns>OpenStack application credentials.</returns>
+        /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
         public async Task<ApplicationCredentialsDTO> AuthenticateOpenIdUserToOpenStackAsync(AdaptorUser adaptorUser, long projectId)
         {
-            _log.Info($"OpenId: user \"{adaptorUser.Username}\" wants to authenticate to the OpenStack project \"{projectId}\".");
-            return await CreateNewOpenStackSessionAsync(adaptorUser, projectId);
+            try
+            {
+                _log.Info($"OpenId: user \"{adaptorUser.Username}\" wants to authenticate to the OpenStack project \"{projectId}\".");
+
+                if (!adaptorUser.Groups.Any(f => f.ProjectId == projectId))
+                {
+                    throw new OpenStackAPIException($"User does not have permission to create OpenStack credentials for project \"{projectId}\"!");
+                }
+
+                var openStackProject = GetOpenStackInstanceWithProjects(projectId);
+                bool hasRequiredRole = adaptorUser.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == UserRoleType.Submitter
+                                                                                                    && x.AdaptorUserGroup.ProjectId == openStackProject.HEAppEProjectId
+                                                                                                    && !x.AdaptorUserGroup.Project.IsDeleted
+                                                                                                    && x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow);
+
+                if (!hasRequiredRole)
+                {
+                    using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+                    var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)UserRoleType.Submitter);
+                    throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, adaptorUser.GetRolesForProject(openStackProject.HEAppEProjectId.Value), openStackProject.HEAppEProjectId.Value);
+                }
+
+                var openStack = new OpenStack(openStackProject.Domain.InstanceUrl);
+                var authResponse = await openStack.AuthenticateAsync(openStackProject);
+                var openStackCredentials = await openStack.CreateApplicationCredentialsAsync(adaptorUser.Username, authResponse);
+
+                var openStackSession = new OpenStackSession
+                {
+                    UserId = adaptorUser.Id,
+                    AuthenticationTime = DateTime.UtcNow,
+                    ExpirationTime = openStackCredentials.ExpiresAt,
+                    ApplicationCredentialsId = openStackCredentials.ApplicationCredentialsId,
+                    ApplicationCredentialsSecret = openStackCredentials.ApplicationCredentialsSecret
+                };
+
+                _unitOfWork.OpenStackSessionRepository.Insert(openStackSession);
+                _unitOfWork.Save();
+
+                _log.Info($"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
+                return openStackCredentials;
+            }
+            catch (OpenStackAPIException ex)
+            {
+                _log.Error($"Failed to retrieve OpenStack token for authorized OpenId user: \"{adaptorUser.Username}\". Reason: \"{ex.Message}\"");
+                throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
+            }
         }
+
         public AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser)
         {
             return loggedUser.Groups.FirstOrDefault() ?? _unitOfWork.AdaptorUserGroupRepository.GetDefaultSubmitterGroup();
@@ -150,6 +195,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             return result;
         }
         #endregion
+        #region Private Methods
         private OpenStackProjectDTO GetOpenStackInstanceWithProjects(long? projectId)
         {
             var project = _unitOfWork.OpenStackProjectRepository.GetOpenStackProjectByProjectId(projectId.Value);
@@ -158,11 +204,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 throw new OpenStackAPIException($"There are not defined OpenStack project \"{projectId}\"!");
             }
 
-            var projectCredentials = project.OpenStackAuthenticationCredentialProjects.FirstOrDefault(f => f.IsDefault).OpenStackAuthenticationCredential?? project.OpenStackAuthenticationCredentialProjects.FirstOrDefault().OpenStackAuthenticationCredential;
+            var projectCredentials = project.OpenStackAuthenticationCredentialProjects.FirstOrDefault(f => f.IsDefault) ?? project.OpenStackAuthenticationCredentialProjects.FirstOrDefault();
 
             if (projectCredentials is null)
             {
-                throw new OpenStackAPIException($"There are not assigned user credentials for OpenStack project \"{projectId}\"");
+                throw new OpenStackAPIException($"There are not assigned user credentials for OpenStack project \"{projectId}\"!");
             }
 
             return new OpenStackProjectDTO()
@@ -172,68 +218,17 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 HEAppEProjectId = project.AdaptorUserGroup.ProjectId,
                 Domain = new OpenStackDomainDTO()
                 {
-                    Name = project.Name,
-                    UID = project.UID,
+                    Name = project.OpenStackDomain.Name,
+                    UID = project.OpenStackDomain.UID,
                     InstanceUrl = project.OpenStackDomain.OpenStackInstance.InstanceUrl
                 },
                 Credentials = new OpenStackCredentialsDTO()
                 {
-                    Id = projectCredentials.UserId,
-                    Username = projectCredentials.Username,
-                    Password = projectCredentials.Password
+                    Id = projectCredentials.OpenStackAuthenticationCredential.UserId,
+                    Username = projectCredentials.OpenStackAuthenticationCredential.Username,
+                    Password = projectCredentials.OpenStackAuthenticationCredential.Password
                 }
             };
-        }
-
-        /// <summary>
-        /// Create new session/application credentials for authenticated user.
-        /// </summary>
-        /// <param name="user">User with access to OpenStack part of the HEAppE.</param>
-        /// <param name="projectId">Project Id</param>
-        /// <returns>OpenStack application credentials.</returns>
-        /// <exception cref="AuthenticationException">is throws, if OpenStack service is inaccessible.</exception>
-        private async Task<ApplicationCredentialsDTO> CreateNewOpenStackSessionAsync(AdaptorUser user, long projectId)
-        {
-            try
-            {
-                var openStackProject = GetOpenStackInstanceWithProjects(projectId);
-
-
-                bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == UserRoleType.Submitter
-                                                                                                    && x.AdaptorUserGroup.ProjectId == openStackProject.HEAppEProjectId
-                                                                                                    && !x.AdaptorUserGroup.Project.IsDeleted
-                                                                                                    && x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow);
-                if (!hasRequiredRole)
-                {
-                    using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-                    var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)UserRoleType.Submitter);
-                    throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.GetRolesForProject(openStackProject.HEAppEProjectId.Value), openStackProject.HEAppEProjectId.Value);
-                }
-
-                var openStack = new OpenStack(openStackProject.Domain.InstanceUrl);
-                var authResponse = await openStack.AuthenticateAsync(openStackProject);
-                var openStackCredentials = await openStack.CreateApplicationCredentialsAsync(user.Username, authResponse);
-
-                var openStackSession = new OpenStackSession
-                {
-                    UserId = user.Id,
-                    AuthenticationTime = DateTime.UtcNow,
-                    ExpirationTime = openStackCredentials.ExpiresAt,
-                    ApplicationCredentialsId = openStackCredentials.ApplicationCredentialsId,
-                    ApplicationCredentialsSecret = openStackCredentials.ApplicationCredentialsSecret
-                };
-
-                _unitOfWork.OpenStackSessionRepository.Insert(openStackSession);
-                _unitOfWork.Save();
-
-                _log.Info($"Created new OpenStack 'session' (application credentials) for user \"{user.Username}\".");
-                return openStackCredentials;
-            }
-            catch (OpenStackAPIException ex)
-            {
-                _log.Error($"Failed to retrieve OpenStack token for authorized OpenId user: \"{user.Username}\". Reason: \"{ex.Message}\"");
-                throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
-            }
         }
 
         /// <summary>
@@ -275,6 +270,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             lock (_lockCreateUserObj)
             {
+                var changedTime = DateTime.UtcNow;
                 AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
                 if (user is null)
                 {
@@ -283,6 +279,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         Username = openIdUser.UserName,
                         Deleted = false,
                         Synchronize = false,
+                        LanguageId = 1,
+                        Email = openIdUser.Email,
                         CreatedAt = DateTime.UtcNow,
                         ModifiedAt = null
                     };
@@ -303,30 +301,50 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     }
 
                     hasUserGroup = true;
-                    var roles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(project.Roles);
-                    userGroupRoles.AddRange(roles.Select(s => new AdaptorUserUserGroupRole()
-                    {
-                        AdaptorUser = user,
-                        AdaptorUserGroup = openIdGroup,
-                        AdaptorUserRole = s
-                    }));
 
-                    _log.Info($"OpenId: User '{user.Username}' was added to group: '{openIdGroup.Name}'");
+                    var databaseGroupRoles = user.AdaptorUserUserGroupRoles.Where(w => w.AdaptorUserGroup == openIdGroup).ToList();
+                    var groupRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(project.Roles);
+
+                    //Set roles for group to IsDeleted
+                    databaseGroupRoles.ForEach(f => { f.IsDeleted = true; f.ModifiedAt = changedTime; });
+
+                    foreach (var groupRole in groupRoles)
+                    {
+                        var dbGroupRole = databaseGroupRoles.FirstOrDefault(f => f.AdaptorUserRole.Name == groupRole.Name);
+
+                        if (dbGroupRole is null)
+                        {
+                            userGroupRoles.Add(new AdaptorUserUserGroupRole()
+                            {
+                                AdaptorUser = user,
+                                AdaptorUserGroup = openIdGroup,
+                                AdaptorUserRole = groupRole,
+                                IsDeleted = false,
+                                CreatedAt = changedTime
+                            });
+                        }
+                        else
+                        {
+                            dbGroupRole.IsDeleted = false;
+                            dbGroupRole.ModifiedAt = changedTime;
+                        }
+                    }
+                    _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
                 }
 
                 if (!hasUserGroup)
                 {
-                    user.AdaptorUserUserGroupRoles.Clear();
+                    user.AdaptorUserUserGroupRoles.ForEach(f => { f.IsDeleted = true; f.ModifiedAt = changedTime; });
+                    _unitOfWork.Save();
                     throw new OpenIdAuthenticationException($"Open-d: User(\"{user.Username}\") has not User group!");
                 }
                 else
                 {
-                    user.AdaptorUserUserGroupRoles = userGroupRoles;
+                    user.AdaptorUserUserGroupRoles.AddRange(userGroupRoles);
+                    _unitOfWork.Save();
                 }
 
-                _unitOfWork.Save();
-                _log.Info($"OpenId: User \"{user.Username}\" has groups: \"{string.Join(",", openIdUser.Projects.Select(s => s.HEAppEGroupName))}\"");
-                return user; ;
+                return user;
             }
         }
 
@@ -458,5 +476,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             return session.LastAccessTime < DateTime.UtcNow.AddSeconds(-_sessionExpirationSeconds);
         }
+        #endregion
     }
 }

@@ -19,8 +19,8 @@
       },
       {
         "Id": 2,
-        "Name": "KeycloakGroup",
-        "Description": "{KeyCloakGroupDescription}",
+        "Name": "OpenIdGroup",
+        "Description": "{OpenIdGroupDescription}",
         "ProjectId": 1
       }
     ],
@@ -61,9 +61,9 @@
         "Id": 1,
         "Host": "",
         "Port": 8000,
+        "Type": 1,
         "Username": null,
-        "Password": null,
-        "Type": 1
+        "Password": null
       }
     ],
     "Clusters": [
@@ -72,13 +72,12 @@
         "Name": "{ClusterName}",
         "Description": "{ClusterDescription}",
         "MasterNodeName": "{ClusterLoginURL}",
-        "DomainName": "{DomainName}",
-        "Port": null,
-        "TimeZone": "CET",
         "SchedulerType": 2,
         "ConnectionProtocol": 2,
-        "ServiceAccountCredentialsId": 1,
+        "TimeZone": "CET",
+        "Port": null,
         "UpdateJobStateByServiceAccount": true,
+        "DomainName": "{DomainName}",
         "ProxyConnectionId": null
       }
     ],
@@ -88,16 +87,14 @@
         "Username": "{UserName}",
         "Password": null,
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "ClusterId": 1
+        "PrivateKeyPassword": "{PrivateKeyPassword}"
       },
       {
         "Id": 2,
         "Username": "{UserName}",
         "Password": null,
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "ClusterId": 1
+        "PrivateKeyPassword": "{PrivateKeyPassword}"
       }
     ],
     "Projects": [
@@ -109,16 +106,18 @@
         "StartDate": "{StartDate}",
         "EndDate": "{EndDate}",
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       }
     ],
     "ClusterProjects": [
       {
         "Id": 1,
-        "ProjectId": 1,
         "ClusterId": 1,
+        "ProjectId": 1,
         "LocalBasepath": "{LocalBasepath}",
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       }
     ],
@@ -128,6 +127,7 @@
         "ClusterAuthenticationCredentialsId": 1,
         "IsServiceAccount": true,
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       },
       {
@@ -135,6 +135,7 @@
         "ClusterAuthenticationCredentialsId": 2,
         "IsServiceAccount": false,
         "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
         "IsDeleted": false
       }
     ],
@@ -146,7 +147,6 @@
         "NumberOfNodes": "{NumberOfNodes}",
         "CoresPerNode": "{CoresPerNode}",
         "Queue": "{Queue}",
-        "RequestedNodeGroups": null,
         "MaxWalltime": "{MaxWalltime}",
         "ClusterId": 1,
         "FileTransferMethodId": 1,
@@ -165,7 +165,7 @@
         "ClusterNodeTypeId": 1,
         "IsGeneric": false,
         "IsEnabled": true,
-        "ProjectId": 1
+        "ProjectId": null
       },
       {
         "Id": 2,
@@ -175,10 +175,10 @@
         "ExecutableFile": "~/.key_scripts/generic.sh",
         "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
         "PreparationScript": null,
-        "ClusterNodeTypeId": 2,
+        "ClusterNodeTypeId": 1,
         "IsGeneric": true,
         "IsEnabled": true,
-        "ProjectId": 1
+        "ProjectId": null
       }
     ],
     "CommandTemplateParameters": [
@@ -233,8 +233,8 @@
       {
         "Id": 1,
         "Name": "",
-        "UID": "",
-        "OpenStackInstanceId": 1
+        "OpenStackInstanceId": 1,
+        "UID": ""
       }
     ],
     "OpenStackAuthenticationCredentials": [
@@ -251,7 +251,6 @@
         "Name": "",
         "UID": "",
         "OpenStackDomainId": 1,
-        "OpenStackAuthenticationCredentialId": 1,
         "AdaptorUserGroupId": 2
       }
     ],

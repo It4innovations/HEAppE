@@ -1107,6 +1107,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("OpenStackProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
                     b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackProjectId");
 
                     b.HasIndex("OpenStackProjectId");

@@ -84,8 +84,7 @@ namespace HEAppE.DataAccessTier
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
             optionsBuilder.UseLazyLoadingProxies();
-            optionsBuilder.UseSqlServer("Server=localhost,8000;TrustServerCertificate=True;Encrypt=false;Database=heappe_it4it;User=heappe_it4it;Password=test1234;");
-           // optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
+            optionsBuilder.UseSqlServer(MiddlewareContextSettings.ConnectionString);
         }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
