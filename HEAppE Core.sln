@@ -35,8 +35,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenStackAPI", "OpenStackAP
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestUtils", "RestUtils\RestUtils.csproj", "{C39874CF-5CBC-4A12-AF62-9E8BEB504EA7}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestSharpWebClient", "RestSharpWebClient\RestSharpWebClient.csproj", "{66C5B6B7-D82F-49EF-A7A5-4A73F781D5EC}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestApiModels", "RestApiModels\RestApiModels.csproj", "{4905C069-A386-4A1B-A4B1-CA37842105FB}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalAuthentication", "ExternalAuthentication\ExternalAuthentication.csproj", "{1AB62861-D48A-4CAB-AF6B-A678DC39C3BC}"
@@ -111,10 +109,6 @@ Global
 		{C39874CF-5CBC-4A12-AF62-9E8BEB504EA7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C39874CF-5CBC-4A12-AF62-9E8BEB504EA7}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C39874CF-5CBC-4A12-AF62-9E8BEB504EA7}.Release|Any CPU.Build.0 = Release|Any CPU
-		{66C5B6B7-D82F-49EF-A7A5-4A73F781D5EC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{66C5B6B7-D82F-49EF-A7A5-4A73F781D5EC}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{66C5B6B7-D82F-49EF-A7A5-4A73F781D5EC}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{66C5B6B7-D82F-49EF-A7A5-4A73F781D5EC}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4905C069-A386-4A1B-A4B1-CA37842105FB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4905C069-A386-4A1B-A4B1-CA37842105FB}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4905C069-A386-4A1B-A4B1-CA37842105FB}.Release|Any CPU.ActiveCfg = Release|Any CPU
