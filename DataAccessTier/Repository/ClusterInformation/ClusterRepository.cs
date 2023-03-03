@@ -15,7 +15,7 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         }
         #endregion
 
-        #region Methods
+        #region Public Methods
         /// <summary>
         /// Get Cluster with reference to project
         /// </summary>
@@ -34,40 +34,52 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         /// <returns></returns>
         public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
         {
-            return GetAll().Select(c => new Cluster()
+            return GetAll().Select(c => GetCluster(c)).ToList();
+        }
+        #endregion
+
+        #region Private Methods
+        private Cluster GetCluster(Cluster cluster)
+        {
+            return new Cluster()
             {
-                Id = c.Id,
-                Name = c.Name,
-                Description = c.Description,
-                ClusterProjects = c.ClusterProjects,
-                ConnectionProtocol = c.ConnectionProtocol,
-                DomainName = c.DomainName,
-                FileTransferMethods = c.FileTransferMethods,
-                MasterNodeName = c.MasterNodeName,
-                Port = c.Port,
-                ProxyConnection = c.ProxyConnection,
-                ProxyConnectionId = c.ProxyConnectionId,
-                SchedulerType = c.SchedulerType,
-                TimeZone = c.TimeZone,
-                UpdateJobStateByServiceAccount = c.UpdateJobStateByServiceAccount,
-                NodeTypes = c.NodeTypes.Select(n => new ClusterNodeType()
-                {
-                    Id = n.Id,
-                    Name = n.Name,
-                    ClusterId = n.ClusterId,
-                    Cluster = n.Cluster,
-                    ClusterAllocationName = n.ClusterAllocationName,
-                    CoresPerNode = n.CoresPerNode,
-                    Description = n.Description,
-                    FileTransferMethod = n.FileTransferMethod,
-                    FileTransferMethodId = n.FileTransferMethodId,
-                    MaxWalltime = n.MaxWalltime,
-                    NumberOfNodes = n.NumberOfNodes,
-                    Queue = n.Queue,
-                    RequestedNodeGroups = n.RequestedNodeGroups,
-                    PossibleCommands = n.PossibleCommands.Where(p => p.ProjectId == null || (!p.Project.IsDeleted && p.Project.EndDate >= System.DateTime.UtcNow)).ToList()
-                }).ToList()
-            });
+                Id = cluster.Id,
+                Name = cluster.Name,
+                Description = cluster.Description,
+                ClusterProjects = cluster.ClusterProjects,
+                ConnectionProtocol = cluster.ConnectionProtocol,
+                DomainName = cluster.DomainName,
+                FileTransferMethods = cluster.FileTransferMethods,
+                MasterNodeName = cluster.MasterNodeName,
+                Port = cluster.Port,
+                ProxyConnection = cluster.ProxyConnection,
+                ProxyConnectionId = cluster.ProxyConnectionId,
+                SchedulerType = cluster.SchedulerType,
+                TimeZone = cluster.TimeZone,
+                UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount,
+                NodeTypes = cluster.NodeTypes.Select(n => GetClusterNodeType(n)).ToList()
+            };
+        }
+
+        private ClusterNodeType GetClusterNodeType(ClusterNodeType n)
+        {
+            return new ClusterNodeType()
+            {
+                Id = n.Id,
+                Name = n.Name,
+                ClusterId = n.ClusterId,
+                Cluster = n.Cluster,
+                ClusterAllocationName = n.ClusterAllocationName,
+                CoresPerNode = n.CoresPerNode,
+                Description = n.Description,
+                FileTransferMethod = n.FileTransferMethod,
+                FileTransferMethodId = n.FileTransferMethodId,
+                MaxWalltime = n.MaxWalltime,
+                NumberOfNodes = n.NumberOfNodes,
+                Queue = n.Queue,
+                RequestedNodeGroups = n.RequestedNodeGroups,
+                PossibleCommands = n.PossibleCommands.Where(p => p.ProjectId == null || (!p.Project.IsDeleted && p.Project.EndDate >= System.DateTime.UtcNow)).ToList()
+            };
         }
         #endregion
     }

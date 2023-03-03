@@ -8,6 +8,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.DTO;
 using HEAppE.ExternalAuthentication.KeyCloak;
@@ -475,6 +476,20 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         private static bool IsSessionExpired(SessionCode session)
         {
             return session.LastAccessTime < DateTime.UtcNow.AddSeconds(-_sessionExpirationSeconds);
+        }
+
+        public IEnumerable<ProjectReference> GetProjectsForCurrentUser(AdaptorUser loggedUser)
+        {
+            var projectReferences = new List<ProjectReference>();
+            foreach(var groupRole in loggedUser.AdaptorUserUserGroupRoles.GroupBy(x=>x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First()))
+            {
+                projectReferences.Add(new()
+                {
+                    Role = groupRole.AdaptorUserRole,
+                    Project = groupRole.AdaptorUserGroup.Project
+                });
+            }
+            return projectReferences;
         }
         #endregion
     }

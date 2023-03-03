@@ -153,6 +153,24 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
         }
 
+        public IEnumerable<ProjectReferenceExt> GetProjectsForCurrentUser(string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
+                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                    return userLogic.GetProjectsForCurrentUser(loggedUser).Select(p => p.ConvertIntToExt());
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
         public bool ValidateUserPermissions(string sessionCode)
         {
             try

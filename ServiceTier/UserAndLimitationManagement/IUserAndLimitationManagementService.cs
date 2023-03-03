@@ -9,6 +9,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials);
         Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials, long projectId);
         IEnumerable<ResourceUsageExt> GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode);
+        IEnumerable<ProjectReferenceExt> GetProjectsForCurrentUser(string sessionCode);
         bool ValidateUserPermissions(string sessionCode);
     }
 }

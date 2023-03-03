@@ -184,25 +184,55 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">Session code</param>
         /// <returns></returns>
-        [HttpPost("GetCurrentUsageAndLimitationsForCurrentUser")]
+        [HttpGet("GetCurrentUsageAndLimitationsForCurrentUser")]
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetCurrentUsageAndLimitationsForCurrentUser(GetCurrentUsageAndLimitationsForCurrentUserModel model)
+        public IActionResult GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{sessionCode}\"");
+                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(model.SessionCode));
+                return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(sessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        [HttpGet("GetProjectsForCurrentUser")]
+        [RequestSizeLimit(60)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectReferenceExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult GetProjectsForCurrentUser(string sessionCode)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetProjectsForCurrentUser\" Parameters: \"{sessionCode}\"");
+                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetProjectsForCurrentUser(sessionCode));
             }
             catch (Exception exception)
             {

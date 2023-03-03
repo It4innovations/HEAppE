@@ -24,10 +24,21 @@ namespace HEAppE.RestApi.InputValidator
                 AuthenticateUserPasswordModel model => ValidateAuthenticateUserPasswordModel(model),
                 AuthenticateUserDigitalSignatureModel model => ValidateAuthenticateUserDigitalSignatureModel(model),
                 GetCurrentUsageAndLimitationsForCurrentUserModel model => ValidateCurrentUsageAndLimitationsForCurrentUserModel(model),
+                GetProjectsForCurrentUserModel model => ValidateGetProjectsForCurrentUserModel(model),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateGetProjectsForCurrentUserModel(GetProjectsForCurrentUserModel model)
+        {
+            ValidationResult validationResult = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+            return _messageBuilder.ToString();
         }
 
         private string ValidateCurrentUsageAndLimitationsForCurrentUserModel(GetCurrentUsageAndLimitationsForCurrentUserModel validationObj)
