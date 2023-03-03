@@ -30,6 +30,8 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndProject()
         {
             return _dbSet.Include(p=> p.Project)
+                            .ThenInclude(i => i.CommandTemplates)
+                            .ThenInclude(i => i.TemplateParameters)
                             .Include(i => i.AdaptorUserUserGroupRoles)
                             .ThenInclude(i => i.AdaptorUser)
                             .ToList();

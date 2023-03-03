@@ -210,7 +210,8 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 Description = project.Description,
                 AccountingString = project.AccountingString,
                 StartDate = project.StartDate,
-                EndDate = project.EndDate
+                EndDate = project.EndDate,
+                CommandTemplates = project.CommandTemplates.Select(x=>x.ConvertIntToExt()).ToArray()
             };
             return convert;
         }

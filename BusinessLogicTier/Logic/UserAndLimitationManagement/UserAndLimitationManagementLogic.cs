@@ -481,12 +481,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         public IEnumerable<ProjectReference> GetProjectsForCurrentUser(AdaptorUser loggedUser)
         {
             var projectReferences = new List<ProjectReference>();
-            foreach(var groupRole in loggedUser.AdaptorUserUserGroupRoles.GroupBy(x=>x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First()))
+
+            foreach (var groupRole in loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First()))
             {
+                var project = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject().FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
                 projectReferences.Add(new()
                 {
                     Role = groupRole.AdaptorUserRole,
-                    Project = groupRole.AdaptorUserGroup.Project
+                    Project = project
                 });
             }
             return projectReferences;

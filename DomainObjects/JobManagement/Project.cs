@@ -36,6 +36,7 @@ namespace HEAppE.DomainObjects.JobManagement
         public bool IsDeleted { get; set; } = false;
 
         public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
+        public virtual List<CommandTemplate> CommandTemplates { get; set; } = new List<CommandTemplate>();
 
         #region Public methods
         public override string ToString()
