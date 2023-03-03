@@ -17,40 +17,46 @@ namespace HEAppE.Utils
         /// <returns></returns>
         public static IEnumerable<AdaptorUserUserGroupRole> GetAllUserRoles(List<AdaptorUserUserGroupRole> adaptorUserUserGroupRoles)
         {
-            foreach (var userRoleGroup in adaptorUserUserGroupRoles?.GroupBy(x => x.AdaptorUserId))
+            List<AdaptorUserUserGroupRole> groupRoleCascadeAppender = new List<AdaptorUserUserGroupRole>(adaptorUserUserGroupRoles);
+            foreach (var userGroupRole in adaptorUserUserGroupRoles)
             {
-                var userRoles = userRoleGroup.ToList();
-                if (IsRoleInCollection(userRoles, UserRoleType.Administrator))
-                {
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Maintainer, adaptorUserUserGroupRoles);
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserGroupRoles);
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Submitter, adaptorUserUserGroupRoles);
-                }
+                var currentUserGroupRoles = GetUserRolesInGroup(adaptorUserUserGroupRoles, userGroupRole.AdaptorUserId, userGroupRole.AdaptorUserGroupId);
 
-                if (IsRoleInCollection(userRoles, UserRoleType.Submitter))
+                if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Administrator))
                 {
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserGroupRoles);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Maintainer, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
+                }
+                else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Maintainer))
+                {
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
+                }
+                else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Submitter))
+                {
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
                 }
             }
-            return adaptorUserUserGroupRoles;
+            return groupRoleCascadeAppender.Distinct();
         }
 
         /// <summary>
-        /// Checks and adds role to collection when is not in collection grouped by user
+        /// Checks and adds role when is not in collection grouped by user
         /// </summary>
-        /// <param name="currentUserUserGroupRoles">Collection of role to user mapping grouped by user</param>
-        /// <param name="roleType">System role</param>
-        /// <param name="adaptorUserUserGroupRoleCollection">Global role to user collection mapping</param>
-        public static void CheckAndAddUserUserRole(IEnumerable<AdaptorUserUserGroupRole> currentUserUserGroupRoles, UserRoleType roleType, List<AdaptorUserUserGroupRole> adaptorUserUserGroupRoleCollection)
+        /// <param name="userGroupRole">Current userGroup role from configuration</param>
+        /// <param name="currentUserGroupRoles">All user roles in specific group</param>
+        /// <param name="roleType">System role type</param>
+        /// <param name="adaptorUserUserGroupRoleDBCollection">All user group roles for append</param>
+        public static void CheckAndAddMissingUserUserRole(AdaptorUserUserGroupRole userGroupRole, List<AdaptorUserUserGroupRole> currentUserGroupRoles, UserRoleType roleType, List<AdaptorUserUserGroupRole> adaptorUserUserGroupRoleDBCollection)
         {
-            var userRole = currentUserUserGroupRoles.FirstOrDefault();
-            if (!IsRoleInCollection(currentUserUserGroupRoles, roleType))
+            if (!IsRoleInCollection(currentUserGroupRoles, roleType))
             {
-                adaptorUserUserGroupRoleCollection.Add(new AdaptorUserUserGroupRole()
+                adaptorUserUserGroupRoleDBCollection.Add(new AdaptorUserUserGroupRole()
                 {
-                    AdaptorUserId = userRole.AdaptorUserId,
+                    AdaptorUserId = userGroupRole.AdaptorUserId,
                     AdaptorUserRoleId = (long)roleType,
-                    AdaptorUserGroupId = userRole.AdaptorUserId
+                    AdaptorUserGroupId = userGroupRole.AdaptorUserGroupId
                 });
             }
         }
@@ -64,6 +70,18 @@ namespace HEAppE.Utils
         public static bool IsRoleInCollection(IEnumerable<AdaptorUserUserGroupRole> adaptorUserUserGroupRoles, UserRoleType role)
         {
             return adaptorUserUserGroupRoles.Any(x => x.AdaptorUserRoleId.Equals((long)role));
+        }
+
+        /// <summary>
+        /// Returns user roles in specific group
+        /// </summary>
+        /// <param name="adaptorUserUserGroupRoles">All user group roles</param>
+        /// <param name="userId">AdaptorUserId</param>
+        /// <param name="groupId">AdaptorUserGroupId</param>
+        /// <returns></returns>
+        public static List<AdaptorUserUserGroupRole> GetUserRolesInGroup(List<AdaptorUserUserGroupRole> adaptorUserUserGroupRoles, long userId, long groupId)
+        {
+            return adaptorUserUserGroupRoles.Where(x => x.AdaptorUserId == userId && x.AdaptorUserGroupId == groupId).ToList();
         }
     }
 }
