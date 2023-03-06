@@ -11,6 +11,9 @@ using HEAppE.BusinessLogicTier.Logic;
 using System.Collections.Generic;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using Microsoft.Extensions.Caching.Memory;
+using System.Runtime.Serialization;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -81,10 +84,56 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetUserResourceUsageReport(GetUserResourceUsageReportModel model)
+        [Obsolete]
+        public IActionResult Obsolete_GetUserResourceUsageReport(GetUserResourceUsageReportModel model)
         {
             try
             {
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserResourceUsageReport\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new JobReportingValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetUserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get resource usage report for user
+        /// </summary>
+        /// <param name="userId">User ID</param>
+        /// <param name="startTime">StartTime</param>
+        /// <param name="endTime">EndTime</param>
+        /// <param name="sessionCode">SessionCode</param>
+        /// <returns></returns>
+        [HttpGet("GetUserResourceUsageReport")]
+        [RequestSizeLimit(166)]
+        [ProducesResponseType(typeof(UserResourceUsageReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
+        {
+            try
+            {
+                var model = new GetUserResourceUsageReportModel()
+                {
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    UserId = userId,
+                    SessionCode = sessionCode
+                };
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
@@ -116,10 +165,56 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetUserGroupResourceUsageReport(GetUserGroupResourceUsageReportModel model)
+        [Obsolete]
+        public IActionResult Obsolete_GetUserGroupResourceUsageReport(GetUserGroupResourceUsageReportModel model)
         {
             try
             {
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserGroupResourceUsageReport\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new JobReportingValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetUserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get resource usage for user group
+        /// </summary>
+        /// <param name="groupId">Group ID</param>
+        /// <param name="startTime">StartTime</param>
+        /// <param name="endTime">EndTime</param>
+        /// <param name="sessionCode">SessionCode</param>
+        /// <returns></returns>
+        [HttpGet("GetUserGroupResourceUsageReport")]
+        [RequestSizeLimit(168)]
+        [ProducesResponseType(typeof(UserGroupResourceUsageReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
+        {
+            try
+            {
+                var model = new GetUserGroupResourceUsageReportModel()
+                {
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    GroupId = groupId,
+                    SessionCode = sessionCode
+                };
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserGroupResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
