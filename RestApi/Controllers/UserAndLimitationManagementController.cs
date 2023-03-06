@@ -184,6 +184,42 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">Session code</param>
         /// <returns></returns>
+        [HttpPost("GetCurrentUsageAndLimitationsForCurrentUser")]
+        [RequestSizeLimit(60)]
+        [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [Obsolete]
+        public IActionResult Obsolete_GetCurrentUsageAndLimitationsForCurrentUser(GetCurrentUsageAndLimitationsForCurrentUserModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get current resource usage
+        /// </summary>
+        /// <param name="model">Session code</param>
+        /// <returns></returns>
         [HttpGet("GetCurrentUsageAndLimitationsForCurrentUser")]
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
