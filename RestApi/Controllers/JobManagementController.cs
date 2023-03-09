@@ -68,7 +68,7 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-        /// <summary>
+        /*/// <summary>
         /// Create job specification
         /// </summary>
         /// <param name="model"></param>
@@ -101,7 +101,7 @@ namespace HEAppE.RestApi.Controllers
                 }
                 return Problem(null, null, null, exception.Message);
             }
-        }
+        }*/
 
         /// <summary>
         /// Submit job
