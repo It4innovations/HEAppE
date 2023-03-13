@@ -6,7 +6,7 @@ using System.Xml.Linq;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 {
-    [DataContract(Name = "ClusterNodeTypeResourceUsageExt")]
+    [DataContract(Name = "NodeUsedCoresAndLimitationExt")]
     public class NodeUsedCoresAndLimitationExt
     {
         public int CoresUsed { get; set; } = 0;
