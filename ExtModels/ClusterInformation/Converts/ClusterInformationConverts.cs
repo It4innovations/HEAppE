@@ -1,9 +1,12 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobReporting.Converts;
+using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using System;
 using System.Linq;
 
@@ -53,6 +56,22 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 MaxWalltime = nodeType.MaxWalltime,
                 FileTransferMethodId = nodeType.FileTransferMethodId,
                 Projects = projectExts.OrderBy(p => p.Id).ToArray()
+            };
+            return convert;
+        }
+
+        public static ClusterNodeTypeResourceUsageExt ConvertIntToExt(this ClusterNodeTypeResourceUsage nodeType)
+        {
+            var convert = new ClusterNodeTypeResourceUsageExt()
+            {
+                Id = nodeType.Id,
+                Name = nodeType.Name,
+                Description = nodeType.Description,
+                NumberOfNodes = nodeType.NumberOfNodes,
+                CoresPerNode = nodeType.CoresPerNode,
+                MaxWalltime = nodeType.MaxWalltime,
+                FileTransferMethodId = nodeType.FileTransferMethod.Id,
+                NodeUsedCoresAndLimitation = nodeType.NodeUsedCoresAndLimitation.ConvertIntToExt(),
             };
             return convert;
         }

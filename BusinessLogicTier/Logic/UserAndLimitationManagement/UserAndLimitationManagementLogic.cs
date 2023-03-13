@@ -4,6 +4,7 @@ using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
@@ -193,6 +194,59 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 result.Add(usage);
             }
 
+            return result;
+        }
+
+        public IList<ProjectResourceUsage> GetCurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser)
+        {
+            var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+            var projects = _unitOfWork.ProjectRepository.GetAll();
+
+            IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
+            foreach (var project in projects)
+            {
+                var usage = new ProjectResourceUsage
+                {
+                    Id = project.Id,
+                    AccountingString = project.AccountingString,
+                    CreatedAt = project.CreatedAt,
+                    Description = project.Description,
+                    EndDate = project.EndDate,
+                    ModifiedAt = project.ModifiedAt,
+                    StartDate = project.StartDate,
+                    IsDeleted = project.IsDeleted,
+                    Name = project.Name,
+                    NodeTypes = new List<ClusterNodeTypeResourceUsage>()
+                };
+
+                var nodeTypes = project.CommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
+                foreach (ClusterNodeType nodeType in nodeTypes)
+                {
+                    var tasksAtNode = allUserJobs.SelectMany(x=>x.Tasks).Where(x=>x.NodeType == nodeType);
+                    var clusterNodeUsedCoresAndLimitation = new NodeUsedCoresAndLimitation()
+                    {
+                        CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
+                        Limitation = loggedUser.Limitations.Where(w => w.NodeType == nodeType).FirstOrDefault(),
+                        NodeType = nodeType
+                    };
+                    var clusterNodeTypeUsage = new ClusterNodeTypeResourceUsage()
+                    {
+                        Id = nodeType.Id,
+                        Name=nodeType.Name,
+                        Cluster=nodeType.Cluster,
+                        ClusterAllocationName=nodeType.ClusterAllocationName,
+                        CoresPerNode = nodeType.CoresPerNode,
+                        Description = nodeType.Description,
+                        FileTransferMethod= nodeType.FileTransferMethod,
+                        MaxWalltime = nodeType.MaxWalltime,
+                        NumberOfNodes=nodeType.NumberOfNodes,
+                        Queue = nodeType.Queue,
+                        NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
+                    };
+                    usage.NodeTypes.Add(clusterNodeTypeUsage);
+                }
+                result.Add(usage);
+            }
             return result;
         }
         #endregion

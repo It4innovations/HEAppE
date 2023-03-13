@@ -5,10 +5,12 @@ using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.ExtModels.JobManagement.Converts
 {
@@ -32,7 +34,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                                                         .Select(s => s.ConvertExtToInt())
                                                         .ToList(),
                 FileTransferMethodId = jobSpecification.FileTransferMethodId,
-                ClusterId = jobSpecification.ClusterId??0
+                ClusterId = jobSpecification.ClusterId ?? 0
             };
 
             //Same Reference for DependOn tasks
@@ -106,7 +108,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                     SynchronizationType = FileSynchronizationType.IncrementalAppend
                 },
                 ClusterNodeTypeId = taskSpecificationExt.ClusterNodeTypeId.Value,
-                CommandTemplateId = taskSpecificationExt.CommandTemplateId??0,
+                CommandTemplateId = taskSpecificationExt.CommandTemplateId ?? 0,
                 EnvironmentVariables = taskSpecificationExt.EnvironmentVariables?
                                                             .Select(s => s.ConvertExtToInt())
                                                             .ToList(),
@@ -211,7 +213,22 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 AccountingString = project.AccountingString,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
-                CommandTemplates = project.CommandTemplates.Select(x=>x.ConvertIntToExt()).ToArray()
+                CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
+            };
+            return convert;
+        }
+
+        public static ProjectResourceUsageExt ConvertIntToExt(this ProjectResourceUsage project)
+        {
+            ProjectResourceUsageExt convert = new()
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                AccountingString = project.AccountingString,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                NodeTypes = project.NodeTypes.Select(x => x.ConvertIntToExt()).ToArray(),
             };
             return convert;
         }

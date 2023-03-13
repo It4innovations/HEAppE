@@ -222,7 +222,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("GetCurrentUsageAndLimitationsForCurrentUser")]
         [RequestSizeLimit(60)]
-        [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectResourceUsageExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -238,7 +238,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(sessionCode));
+                return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUserByProject(sessionCode));
             }
             catch (Exception exception)
             {

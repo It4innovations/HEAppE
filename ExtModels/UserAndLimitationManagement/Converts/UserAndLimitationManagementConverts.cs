@@ -6,6 +6,7 @@ using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.DTO;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
@@ -47,7 +48,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             return convert;
         }
 
-        private static ResourceLimitationExt ConvertIntToExt(this ResourceLimitation resourceLimitation)
+        public static ResourceLimitationExt ConvertIntToExt(this ResourceLimitation resourceLimitation)
         {
             if (resourceLimitation != null)
             {
@@ -119,6 +120,16 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 Project = projectReference.Project.ConvertIntToExt(),
                 Role = projectReference.Role.ConvertIntToExt()
             };
+        }
+
+        public static NodeUsedCoresAndLimitationExt ConvertIntToExt(this NodeUsedCoresAndLimitation usedCoresAndLimitations)
+        {
+            var convert = new NodeUsedCoresAndLimitationExt()
+            {
+                CoresUsed = usedCoresAndLimitations.CoresUsed,
+                Limitation = usedCoresAndLimitations.Limitation.ConvertIntToExt()
+            };
+            return convert;
         }
     }
 }
