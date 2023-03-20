@@ -9,6 +9,8 @@
 
         public long? HEAppEProjectId { get; set; }
 
+        public OpenStackProjectDomainDTO ProjectDomain { get; set; }
+
         public OpenStackDomainDTO Domain { get; set; }
 
         public OpenStackCredentialsDTO Credentials { get; set; }

@@ -69,8 +69,8 @@ namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication
         /// <returns>Request object.</returns>
         public static AuthenticationRequest CreateScopedAuthenticationPasswordRequest(OpenStackProjectDTO project)
         {
-            var projectDomain = project.Domain;
-            var req = CreateUnscopedAuthenticationPasswordRequest(project.Credentials, projectDomain);
+            var projectDomain = project.ProjectDomain;
+            var req = CreateUnscopedAuthenticationPasswordRequest(project.Credentials, project.Domain);
 
             var domain = projectDomain is not null
                 ? new Domain()

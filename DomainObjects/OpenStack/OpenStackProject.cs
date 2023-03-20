@@ -21,6 +21,12 @@ namespace HEAppE.DomainObjects.OpenStack
         public virtual OpenStackDomain OpenStackDomain { get; set; }
 
         [Required]
+        [ForeignKey("OpenStackProjectDomain")]
+        public long OpenStackProjectDomainId { get; set; }
+
+        public virtual OpenStackProjectDomain OpenStackProjectDomain { get; set; }
+
+        [Required]
         [ForeignKey("AdaptorUserGroup")]
         public long AdaptorUserGroupId { get; set; }
 

@@ -229,6 +229,7 @@ namespace HEAppE.DataAccessTier
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjectDomains);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);

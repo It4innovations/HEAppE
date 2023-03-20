@@ -24,6 +24,8 @@ namespace HEAppE.DataAccessTier
 
         public static List<OpenStackDomain> OpenStackDomains { get; set; }
 
+        public static List<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
+
         public static List<OpenStackProject> OpenStackProjects { get; set; }
 
         public static List<OpenStackAuthenticationCredential> OpenStackAuthenticationCredentials { get; set; }

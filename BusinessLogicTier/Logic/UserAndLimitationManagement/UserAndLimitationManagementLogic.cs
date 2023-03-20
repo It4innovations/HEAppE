@@ -271,10 +271,15 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 Name = project.Name,
                 UID = project.UID,
                 HEAppEProjectId = project.AdaptorUserGroup.ProjectId,
+                ProjectDomain = new OpenStackProjectDomainDTO()
+                {
+                    UID = project.OpenStackProjectDomain.UID,
+                    Name = project.OpenStackProjectDomain.Name
+                },
                 Domain = new OpenStackDomainDTO()
                 {
-                    Name = project.OpenStackDomain.Name,
                     UID = project.OpenStackDomain.UID,
+                    Name = project.OpenStackDomain.Name,               
                     InstanceUrl = project.OpenStackDomain.OpenStackInstance.InstanceUrl
                 },
                 Credentials = new OpenStackCredentialsDTO()

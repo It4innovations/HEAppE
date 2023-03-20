@@ -31,6 +31,10 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "FK_EnvironmentVariable_TaskTemplate_TaskTemplateId",
                 table: "EnvironmentVariable");
 
+            migrationBuilder.DropForeignKey(
+                name: "FK_OpenStackProjectDomain_OpenStackProject_OpenStackProjectId",
+                table: "OpenStackProjectDomain");
+
             migrationBuilder.DropTable(
                 name: "AdaptorUserUserGroup");
 
@@ -44,13 +48,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "PropertyChangeSpecification");
 
             migrationBuilder.DropTable(
-                name: "OpenStackProjectDomain");
-
-            migrationBuilder.DropTable(
                 name: "JobTemplate");
 
             migrationBuilder.DropTable(
                 name: "TaskTemplate");
+
+            migrationBuilder.DropIndex(
+                name: "IX_OpenStackProjectDomain_OpenStackProjectId",
+                table: "OpenStackProjectDomain");
 
             migrationBuilder.DropIndex(
                 name: "IX_EnvironmentVariable_JobTemplateId",
@@ -83,6 +88,10 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropColumn(
                 name: "Project",
                 table: "SubmittedJobInfo");
+
+            migrationBuilder.DropColumn(
+                name: "OpenStackProjectId",
+                table: "OpenStackProjectDomain");
 
             migrationBuilder.DropColumn(
                 name: "Project",
@@ -140,6 +149,13 @@ namespace HEAppE.DataAccessTier.Migrations
 
             migrationBuilder.AddColumn<long>(
                 name: "AdaptorUserGroupId",
+                table: "OpenStackProject",
+                type: "bigint",
+                nullable: false,
+                defaultValue: 0L);
+
+            migrationBuilder.AddColumn<long>(
+                name: "OpenStackProjectDomainId",
                 table: "OpenStackProject",
                 type: "bigint",
                 nullable: false,
@@ -350,6 +366,11 @@ namespace HEAppE.DataAccessTier.Migrations
                 column: "AdaptorUserGroupId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_OpenStackProject_OpenStackProjectDomainId",
+                table: "OpenStackProject",
+                column: "OpenStackProjectDomainId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_JobSpecification_ProjectId",
                 table: "JobSpecification",
                 column: "ProjectId");
@@ -434,6 +455,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 onDelete: ReferentialAction.Cascade);
 
             migrationBuilder.AddForeignKey(
+                name: "FK_OpenStackProject_OpenStackProjectDomain_OpenStackProjectDomainId",
+                table: "OpenStackProject",
+                column: "OpenStackProjectDomainId",
+                principalTable: "OpenStackProjectDomain",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_SubmittedJobInfo_Project_ProjectId",
                 table: "SubmittedJobInfo",
                 column: "ProjectId",
@@ -474,6 +503,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
             migrationBuilder.DropForeignKey(
                 name: "FK_OpenStackProject_AdaptorUserGroup_AdaptorUserGroupId",
+                table: "OpenStackProject");
+
+            migrationBuilder.DropForeignKey(
+                name: "FK_OpenStackProject_OpenStackProjectDomain_OpenStackProjectDomainId",
                 table: "OpenStackProject");
 
             migrationBuilder.DropForeignKey(
@@ -520,6 +553,10 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "OpenStackProject");
 
             migrationBuilder.DropIndex(
+                name: "IX_OpenStackProject_OpenStackProjectDomainId",
+                table: "OpenStackProject");
+
+            migrationBuilder.DropIndex(
                 name: "IX_JobSpecification_ProjectId",
                 table: "JobSpecification");
 
@@ -545,6 +582,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
             migrationBuilder.DropColumn(
                 name: "AdaptorUserGroupId",
+                table: "OpenStackProject");
+
+            migrationBuilder.DropColumn(
+                name: "OpenStackProjectDomainId",
                 table: "OpenStackProject");
 
             migrationBuilder.DropColumn(
@@ -576,6 +617,13 @@ namespace HEAppE.DataAccessTier.Migrations
                 type: "nvarchar(50)",
                 maxLength: 50,
                 nullable: true);
+
+            migrationBuilder.AddColumn<long>(
+                name: "OpenStackProjectId",
+                table: "OpenStackProjectDomain",
+                type: "bigint",
+                nullable: false,
+                defaultValue: 0L);
 
             migrationBuilder.AddColumn<string>(
                 name: "Project",
@@ -720,45 +768,6 @@ namespace HEAppE.DataAccessTier.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "OpenStackProjectDomain",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Name = table.Column<string>(type: "nvarchar(40)", maxLength: 40, nullable: true),
-                    OpenStackProjectId = table.Column<long>(type: "bigint", nullable: false),
-                    UID = table.Column<string>(type: "nvarchar(80)", maxLength: 80, nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OpenStackProjectDomain", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_OpenStackProjectDomain_OpenStackProject_OpenStackProjectId",
-                        column: x => x.OpenStackProjectId,
-                        principalTable: "OpenStackProject",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "TaskTemplate",
-                columns: table => new
-                {
-                    Id = table.Column<long>(type: "bigint", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    MaxCores = table.Column<int>(type: "int", nullable: true),
-                    MinCores = table.Column<int>(type: "int", nullable: true),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Priority = table.Column<int>(type: "int", nullable: true),
-                    Project = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
-                    WalltimeLimit = table.Column<int>(type: "int", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_TaskTemplate", x => x.Id);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "OpenStackAuthenticationCredentialProjectDomain",
                 columns: table => new
                 {
@@ -780,6 +789,24 @@ namespace HEAppE.DataAccessTier.Migrations
                         principalTable: "OpenStackProjectDomain",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "TaskTemplate",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    MaxCores = table.Column<int>(type: "int", nullable: true),
+                    MinCores = table.Column<int>(type: "int", nullable: true),
+                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
+                    Priority = table.Column<int>(type: "int", nullable: true),
+                    Project = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
+                    WalltimeLimit = table.Column<int>(type: "int", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_TaskTemplate", x => x.Id);
                 });
 
             migrationBuilder.CreateTable(
@@ -809,6 +836,11 @@ namespace HEAppE.DataAccessTier.Migrations
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
                 });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_OpenStackProjectDomain_OpenStackProjectId",
+                table: "OpenStackProjectDomain",
+                column: "OpenStackProjectId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_EnvironmentVariable_JobTemplateId",
@@ -854,11 +886,6 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IX_OpenStackAuthenticationCredentialProjectDomain_OpenStackProjectDomainId",
                 table: "OpenStackAuthenticationCredentialProjectDomain",
                 column: "OpenStackProjectDomainId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_OpenStackProjectDomain_OpenStackProjectId",
-                table: "OpenStackProjectDomain",
-                column: "OpenStackProjectId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_PropertyChangeSpecification_JobTemplateId",
@@ -917,6 +944,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 principalTable: "TaskTemplate",
                 principalColumn: "Id",
                 onDelete: ReferentialAction.Restrict);
+
+            migrationBuilder.AddForeignKey(
+                name: "FK_OpenStackProjectDomain_OpenStackProject_OpenStackProjectId",
+                table: "OpenStackProjectDomain",
+                column: "OpenStackProjectId",
+                principalTable: "OpenStackProject",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
         }
     }
 }

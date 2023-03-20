@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20230228104722_MultiProjectSupport")]
+    [Migration("20230320143056_MultiProjectSupport")]
     partial class MultiProjectSupport
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -1183,6 +1183,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("OpenStackDomainId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("OpenStackProjectDomainId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("UID")
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
@@ -1193,7 +1196,29 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("OpenStackDomainId");
 
+                    b.HasIndex("OpenStackProjectDomainId");
+
                     b.ToTable("OpenStackProject");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("UID")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("OpenStackProjectDomain");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
@@ -1506,7 +1531,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasForeignKey("ClusterNodeTypeId");
 
                     b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
-                        .WithMany()
+                        .WithMany("CommandTemplates")
                         .HasForeignKey("ProjectId");
 
                     b.Navigation("ClusterNodeType");
@@ -1821,9 +1846,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", "OpenStackProjectDomain")
+                        .WithMany()
+                        .HasForeignKey("OpenStackProjectDomainId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.Navigation("AdaptorUserGroup");
 
                     b.Navigation("OpenStackDomain");
+
+                    b.Navigation("OpenStackProjectDomain");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
@@ -1957,6 +1990,8 @@ namespace HEAppE.DataAccessTier.Migrations
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Project", b =>
                 {
                     b.Navigation("ClusterProjects");
+
+                    b.Navigation("CommandTemplates");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskSpecification", b =>

@@ -233,8 +233,8 @@
       {
         "Id": 1,
         "Name": "",
-        "OpenStackInstanceId": 1,
-        "UID": ""
+        "UID": "",
+        "OpenStackInstanceId": 1
       }
     ],
     "OpenStackAuthenticationCredentials": [
@@ -245,12 +245,20 @@
         "Password": ""
       }
     ],
+    "OpenStackProjectDomains": [
+      {
+        "Id": 1,
+        "Name": "",
+        "UID": ""
+      }
+    ],
     "OpenStackProjects": [
       {
         "Id": 1,
         "Name": "",
         "UID": "",
         "OpenStackDomainId": 1,
+        "OpenStackProjectDomainId": 1,
         "AdaptorUserGroupId": 2
       }
     ],
@@ -258,7 +266,7 @@
       {
         "OpenStackAuthenticationCredentialId": 1,
         "OpenStackProjectId": 1,
-        "IsDefault":  true
+        "IsDefault": true
       }
     ],
     "OpenStackAuthenticationCredentialDomains": [
