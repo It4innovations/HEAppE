@@ -185,8 +185,9 @@ namespace HEAppE.DataAccessTier
             _log.Info("Seed data into tha database started.");
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
+
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster

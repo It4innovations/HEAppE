@@ -46,13 +46,15 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
             return _dbSet.Include(i => i.Submitter)
                          .Include(i=>i.Specification)
                          .Include(i=>i.Project)
+                            .ThenInclude(i=>i.CommandTemplates)
+                                .ThenInclude(i=>i.TemplateParameters)
                          .Include(i => i.Tasks)
                             .ThenInclude(i=>i.Specification)
-                            .ThenInclude(i=>i.CommandTemplate)
+                                .ThenInclude(i=>i.CommandTemplate)
                          .Include(i => i.Tasks)
                             .ThenInclude(i => i.Specification)
-                            .ThenInclude(i => i.ClusterNodeType)
-                            .ThenInclude(i=> i.Cluster)
+                                .ThenInclude(i => i.ClusterNodeType)
+                                    .ThenInclude(i=> i.Cluster)
                          .ToList();
         }
         #endregion
