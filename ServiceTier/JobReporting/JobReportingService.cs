@@ -16,6 +16,10 @@ using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.JobReporting.Converts;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using System.Text.RegularExpressions;
+using System.Security.Cryptography.X509Certificates;
+using HEAppE.ExtModels.JobReporting.Models.ListReport;
+using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 
 namespace HEAppE.ServiceTier.JobReporting
 {
@@ -36,7 +40,7 @@ namespace HEAppE.ServiceTier.JobReporting
             _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         }
         #endregion
-        public IEnumerable<AdaptorUserGroupExt> ListAdaptorUserGroups(string sessionCode)
+        public IEnumerable<UserGroupListReportExt> ListAdaptorUserGroups(string sessionCode)
         {
             try
             {
@@ -44,7 +48,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer, null);
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.GetAdaptorUserGroups().Select(s=>s.ConvertIntToExt());
+                    return jobReportingLogic.GetUserGroupListReport().Select(s => s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
@@ -53,8 +57,8 @@ namespace HEAppE.ServiceTier.JobReporting
                 return null;
             }
         }
-        
-        public UserResourceUsageReportExt GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
+
+        public UserResourceReportExt GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             try
             {
@@ -76,8 +80,8 @@ namespace HEAppE.ServiceTier.JobReporting
                 return null;
             }
         }
-        
-        public UserGroupResourceUsageReportExt GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
+
+        public UserGroupReportExt GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             try
             {
@@ -91,7 +95,7 @@ namespace HEAppE.ServiceTier.JobReporting
                     }
 
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.GetUserGroupResourceUsageReport(loggedUser.Id, groupId, startTime, endTime).ConvertIntToExt();
+                    return jobReportingLogic.GetUserGroupResourceUsageReport( groupId, startTime, endTime).ConvertIntToExt();
                 }
             }
             catch (Exception exc)
@@ -100,8 +104,28 @@ namespace HEAppE.ServiceTier.JobReporting
                 return null;
             }
         }
-        
-        public SubmittedJobInfoUsageReportExt GetResourceUsageReportForJob(long jobId, string sessionCode)
+
+        public IEnumerable<UserGroupReportExt> GetAggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
+
+                    IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+                    List<long> userGroupIds = loggedUser.Groups.Select(val => val.Id).Distinct().ToList();
+                    return jobReportingLogic.GetAggregatedUserGroupResourceUsageReport(userGroupIds, startTime, endTime).Select(x => x.ConvertIntToExt()).ToList();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public ProjectReportExt GetResourceUsageReportForJob(long jobId, string sessionCode)
         {
             try
             {
@@ -109,7 +133,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.GetResourceUsageReportForJob(jobId).ConvertUsageIntToExt();
+                    return jobReportingLogic.GetResourceUsageReportForJob(jobId).ConvertIntToExt();
                 }
             }
             catch (Exception exc)
@@ -137,7 +161,7 @@ namespace HEAppE.ServiceTier.JobReporting
             }
         }
 
-        public IEnumerable<SubmittedJobInfoReportExt> GetJobsDetailedReport(string sessionCode)
+        public IEnumerable<UserGroupDetailedReportExt> GetJobsDetailedReport(string sessionCode)
         {
             try
             {
@@ -145,7 +169,8 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
                     var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return reportingLogic.GetResourceUsageReport().Select(s => s.ConvertIntToExt());
+                    List<long> userGroupIds = loggedUser.Groups.Select(val => val.Id).Distinct().ToList();
+                    return reportingLogic.GetJobsDetailedReport(userGroupIds).Select(s => s.ConvertIntToDetailedExt());
                 }
             }
             catch (Exception exc)

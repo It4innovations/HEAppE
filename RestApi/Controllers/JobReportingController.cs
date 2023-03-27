@@ -14,6 +14,8 @@ using Microsoft.Extensions.Caching.Memory;
 using System.Runtime.Serialization;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System.Text.RegularExpressions;
+using HEAppE.ExtModels.JobReporting.Models.ListReport;
+using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -44,7 +46,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("ListAdaptorUserGroups")]
         [RequestSizeLimit(58)]
-        [ProducesResponseType(typeof(IEnumerable<AdaptorUserGroupExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(UserGroupListReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -75,42 +77,6 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get resource usage report for user
         /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("GetUserResourceUsageReport")]
-        [RequestSizeLimit(166)]
-        [ProducesResponseType(typeof(UserResourceUsageReportExt), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [Obsolete]
-        public IActionResult Obsolete_GetUserResourceUsageReport(GetUserResourceUsageReportModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserResourceUsageReport\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new JobReportingValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                return Ok(_service.GetUserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
-        }
-
-        /// <summary>
-        /// Get resource usage report for user
-        /// </summary>
         /// <param name="userId">User ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
@@ -118,7 +84,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("GetUserResourceUsageReport")]
         [RequestSizeLimit(166)]
-        [ProducesResponseType(typeof(UserResourceUsageReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(UserResourceReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -156,42 +122,6 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get resource usage for user group
         /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("GetUserGroupResourceUsageReport")]
-        [RequestSizeLimit(168)]
-        [ProducesResponseType(typeof(UserGroupResourceUsageReportExt), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [Obsolete]
-        public IActionResult Obsolete_GetUserGroupResourceUsageReport(GetUserGroupResourceUsageReportModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserGroupResourceUsageReport\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new JobReportingValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                return Ok(_service.GetUserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
-        }
-
-        /// <summary>
-        /// Get resource usage for user group
-        /// </summary>
         /// <param name="groupId">Group ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
@@ -199,7 +129,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("GetUserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
-        [ProducesResponseType(typeof(UserGroupResourceUsageReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(UserGroupReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -234,36 +164,31 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-        /// <summary>
-        /// Get resource usage for executed job
-        /// </summary>
-        /// <param name="sessionCode">Session code</param>
-        /// <param name="jobId">Job ID</param>
-        /// <returns></returns>
-        [HttpGet("GetResourceUsageReportForJob")]
-        [RequestSizeLimit(86)]
-        [ProducesResponseType(typeof(SubmittedJobInfoUsageReportExt), StatusCodes.Status200OK)]
+        [HttpGet("GetAggregatedUserGroupResourceUsageReport")]
+        [RequestSizeLimit(168)]
+        [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetResourceUsageReportForJob(string sessionCode, long jobId)
+        public IActionResult GetAggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode)
         {
             try
             {
-                var model = new GetResourceUsageReportForJobModel()
+                var model = new GetAggredatedUserGroupResourceUsageReportModel()
                 {
-                    SessionCode = sessionCode,
-                    JobId = jobId
+                    StartTime = startTime,
+                    EndTime = endTime,
+                    SessionCode = sessionCode
                 };
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetResourceUsageReportForJob\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetAggregatedUserGroupResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetResourceUsageReportForJob(model.JobId, model.SessionCode));
+                return Ok(_service.GetAggregatedUserGroupResourceUsageReport(model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -278,20 +203,25 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get resource usage for executed job
         /// </summary>
-        /// <param name="model"></param>
+        /// <param name="sessionCode">Session code</param>
+        /// <param name="jobId">Job ID</param>
         /// <returns></returns>
-        [HttpPost("GetResourceUsageReportForJob")]
+        [HttpGet("GetResourceUsageReportForJob")]
         [RequestSizeLimit(86)]
-        [ProducesResponseType(typeof(SubmittedJobInfoUsageReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [Obsolete]
-        public IActionResult Obsolete_GetResourceUsageReportForJob(GetResourceUsageReportForJobModel model)
+        public IActionResult GetResourceUsageReportForJob(string sessionCode, long jobId)
         {
             try
             {
+                var model = new GetResourceUsageReportForJobModel()
+                {
+                    SessionCode = sessionCode,
+                    JobId = jobId
+                };
                 _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetResourceUsageReportForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
@@ -353,7 +283,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("GetJobsDetailedReport")]
         [RequestSizeLimit(90)]
-        [ProducesResponseType(typeof(IEnumerable<SubmittedJobInfoReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<UserGroupDetailedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
