@@ -31,11 +31,9 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
         public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
         {
             // get all projects
-            var projects = nodeType.PossibleCommands.Where(c => c.IsEnabled && c.ProjectId != null)
-                                                        .Select(x => x.Project)
-                                                            .Distinct()
+            var projects = nodeType.Cluster.ClusterProjects.Select(x => x.Project)
+                                                                .Where(p => !p.IsDeleted)
                                                                 .ToList();
-
             var projectExts = projects.Select(x => x.ConvertIntToExt()).ToList();
 
             // select possible commands for specific project or command for all projects
@@ -44,6 +42,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 project.CommandTemplates = nodeType.PossibleCommands.Where(c => c.IsEnabled && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
                                                                         .Select(command => command.ConvertIntToExt())
                                                                             .ToArray();
+
             }
 
             var convert = new ClusterNodeTypeExt()
@@ -55,7 +54,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
                 FileTransferMethodId = nodeType.FileTransferMethodId,
-                Projects = projectExts.OrderBy(p => p.Id).ToArray()
+                Projects = projectExts.Where(p => p.CommandTemplates.Any()).ToArray()
             };
             return convert;
         }
