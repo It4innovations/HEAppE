@@ -15,6 +15,10 @@ namespace HEAppE.ExtModels.JobReporting.Models.DetailedReport
         [DataMember]
         public string Description { get; set; }
         [DataMember]
+        public string ClusterName { get; set; }
+        [DataMember]
+        public string QueueName { get; set; }
+        [DataMember]
         public List<JobDetailedReportExt> Jobs { get; set; }
     }
 }

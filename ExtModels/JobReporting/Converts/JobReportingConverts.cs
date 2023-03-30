@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
@@ -52,9 +53,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 State = report.SubmittedTaskInfo.State.ConvertIntToExt(),
                 CommandTemplateId = report.SubmittedTaskInfo.Specification.CommandTemplateId,
                 Usage = report.Usage,
-                ClusterName = report.SubmittedTaskInfo.Specification.ClusterNodeType.Cluster.Name,
-                CommandTemplateName = report.SubmittedTaskInfo.Specification.CommandTemplate.Name,
-                QueueName = report.SubmittedTaskInfo.Specification.ClusterNodeType.Queue
+                CommandTemplateName = report.SubmittedTaskInfo.Specification.CommandTemplate.Name
             };
 
             return convert;
@@ -112,6 +111,8 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Id = report.ClusterNodeType.Id,
                 Name = report.ClusterNodeType.Name,
                 Description = report.ClusterNodeType.Description,
+                ClusterName = report.ClusterNodeType.Cluster.Name,
+                QueueName = report.ClusterNodeType.Queue,
                 Jobs = report.Jobs.Select(x => x.ConvertIntToDetailedExt()).ToList(),
                 TotalUsage = report.TotalUsage
             };
@@ -193,8 +194,8 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             };
 
             return convert;
-        }        
-        
+        }
+
         public static UserGroupDetailedReportExt ConvertIntToDetailedExt(this UserGroupReport report)
         {
             var convert = new UserGroupDetailedReportExt()

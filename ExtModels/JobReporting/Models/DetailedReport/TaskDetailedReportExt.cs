@@ -28,10 +28,6 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember]
         public string CommandTemplateName { get; set; }
         [DataMember]
-        public string ClusterName { get; set; }
-        [DataMember]
-        public string QueueName { get; set; }
-        [DataMember]
         public double? Usage { get; set; }
     }
 }

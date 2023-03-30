@@ -246,7 +246,7 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
-        [HttpGet("GetJobsStateAgregationReport")]
+        [HttpGet("JobsStateAgregationReport")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(IEnumerable<JobStateAggregationReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
