@@ -84,7 +84,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("UserResourceUsageReport")]
         [RequestSizeLimit(166)]
-        [ProducesResponseType(typeof(UserResourceReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

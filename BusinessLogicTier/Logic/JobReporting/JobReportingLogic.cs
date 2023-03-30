@@ -111,22 +111,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public UserResourceUsageReport UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime)
+        public IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime)
         {
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId);
-
-            var projectReports = user.AdaptorUserUserGroupRoles.Select(x => x.AdaptorUserGroup.Project)
-                                                                .Distinct()
-                                                                .Select(x => GetProjectReport(x, startTime, endTime))
-                                                                .ToList();
-
-            var userReport = new UserResourceUsageReport
-            {
-                UsageType = DomainObjects.JobReporting.Enums.UsageType.CoreHours,
-                Projects = projectReports,
-                TotalUsage = projectReports.Sum(x => x.TotalUsage)
-            };
-            return userReport;
+            var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
+            return AggregatedUserGroupResourceUsageReport(userGroups, startTime, endTime);
         }
 
         /// <summary>

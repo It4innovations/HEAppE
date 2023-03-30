@@ -20,6 +20,7 @@ using System.Text.RegularExpressions;
 using System.Security.Cryptography.X509Certificates;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;
 using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
+using HEAppE.DomainObjects.JobReporting;
 
 namespace HEAppE.ServiceTier.JobReporting
 {
@@ -58,20 +59,16 @@ namespace HEAppE.ServiceTier.JobReporting
             }
         }
 
-        public UserResourceReportExt UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
+        public IEnumerable<UserGroupReportExt> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, null);
-                    if (loggedUser.Id != userId)
-                    {
-                        throw new NotAllowedException("Logged user is not allowed to request this report.");
-                    }
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer, null);
 
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.UserResourceUsageReport(userId, startTime, endTime).ConvertIntToExt();
+                    return jobReportingLogic.UserResourceUsageReport(userId, startTime, endTime).Select(g => g.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
@@ -95,7 +92,7 @@ namespace HEAppE.ServiceTier.JobReporting
                     }
 
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.UserGroupResourceUsageReport( groupId, startTime, endTime).ConvertIntToExt();
+                    return jobReportingLogic.UserGroupResourceUsageReport(groupId, startTime, endTime).ConvertIntToExt();
                 }
             }
             catch (Exception exc)

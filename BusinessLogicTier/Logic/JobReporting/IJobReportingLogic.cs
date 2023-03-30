@@ -11,7 +11,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport();
         IEnumerable<UserGroupReport> JobsDetailedReport(IEnumerable<long> groupIds);
         ProjectReport ResourceUsageReportForJob(long jobId);
-        UserResourceUsageReport UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime);
+        IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime);
         UserGroupReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime);
         IEnumerable<UserGroupReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime);
     }
