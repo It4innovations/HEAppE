@@ -10,11 +10,11 @@ namespace HEAppE.ServiceTier.JobReporting
     public interface IJobReportingService
     {
         IEnumerable<UserGroupListReportExt> ListAdaptorUserGroups(string sessionCode);
-        UserResourceReportExt GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode);
-        UserGroupReportExt GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode);
-        IEnumerable<UserGroupReportExt> GetAggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode);
-        ProjectReportExt GetResourceUsageReportForJob(long jobId, string sessionCode);
+        UserResourceReportExt UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode);
+        UserGroupReportExt UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode);
+        IEnumerable<UserGroupReportExt> AggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode);
+        ProjectReportExt ResourceUsageReportForJob(long jobId, string sessionCode);
         IEnumerable<JobStateAggregationReportExt> GetJobsStateAgregationReport(string sessionCode);
-        IEnumerable<UserGroupDetailedReportExt> GetJobsDetailedReport(string sessionCode);
+        IEnumerable<UserGroupDetailedReportExt> JobsDetailedReport(string sessionCode);
     }
 }

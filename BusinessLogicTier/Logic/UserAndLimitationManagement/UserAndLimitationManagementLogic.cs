@@ -197,7 +197,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             return result;
         }
 
-        public IList<ProjectResourceUsage> GetCurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser)
+        public IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser)
         {
             var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
             var projects = _unitOfWork.ProjectRepository.GetAll();
@@ -537,7 +537,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             return session.LastAccessTime < DateTime.UtcNow.AddSeconds(-_sessionExpirationSeconds);
         }
 
-        public IEnumerable<ProjectReference> GetProjectsForCurrentUser(AdaptorUser loggedUser)
+        public IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser)
         {
             var projectReferences = new List<ProjectReference>();
 

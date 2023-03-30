@@ -7,12 +7,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
 {
     public interface IJobReportingLogic
     {
-        IEnumerable<UserGroupListReport> GetUserGroupListReport();
-        IEnumerable<JobStateAggregationReport> GetAggregatedJobsByStateReport();
-        IEnumerable<UserGroupReport> GetJobsDetailedReport(IEnumerable<long> groupIds);
-        ProjectReport GetResourceUsageReportForJob(long jobId);
-        UserResourceUsageReport GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime);
-        UserGroupReport GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime);
-        IEnumerable<UserGroupReport> GetAggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime);
+        IEnumerable<UserGroupListReport> UserGroupListReport();
+        IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport();
+        IEnumerable<UserGroupReport> JobsDetailedReport(IEnumerable<long> groupIds);
+        ProjectReport ResourceUsageReportForJob(long jobId);
+        UserResourceUsageReport UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime);
+        UserGroupReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime);
+        IEnumerable<UserGroupReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime);
     }
 }

@@ -47,7 +47,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns list of all UserGroups and all Projects in groups
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<UserGroupListReport> GetUserGroupListReport()
+        public IEnumerable<UserGroupListReport> UserGroupListReport()
         {
             var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject();
             var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport()
@@ -65,7 +65,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="jobId">Job ID</param>
         /// <returns></returns>
         /// <exception cref="ApplicationException"></exception>
-        public ProjectReport GetResourceUsageReportForJob(long jobId)
+        public ProjectReport ResourceUsageReportForJob(long jobId)
         {
             var job = _unitOfWork.SubmittedJobInfoRepository.GetById(jobId);
             if (job is null)
@@ -85,7 +85,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns aggregated job reports by state
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<JobStateAggregationReport> GetAggregatedJobsByStateReport()
+        public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport()
         {
             return _unitOfWork.SubmittedJobInfoRepository.GetAll().GroupBy(g => g.State)
                                                                   .Select(s => new JobStateAggregationReport
@@ -99,9 +99,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns Resource Usage Report for all Jobs
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<UserGroupReport> GetJobsDetailedReport(IEnumerable<long> groupIds)
+        public IEnumerable<UserGroupReport> JobsDetailedReport(IEnumerable<long> groupIds)
         {
-            return GetAggregatedUserGroupResourceUsageReport(groupIds, DateTime.MinValue, DateTime.UtcNow);
+            return AggregatedUserGroupResourceUsageReport(groupIds, DateTime.MinValue, DateTime.UtcNow);
         }
 
         /// <summary>
@@ -111,7 +111,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public UserResourceUsageReport GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime)
+        public UserResourceUsageReport UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime)
         {
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId);
 
@@ -137,7 +137,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
         /// <exception cref="ApplicationException"></exception>
-        public UserGroupReport GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime)
+        public UserGroupReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime)
         {
             AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId);
             if (group is null)
@@ -162,9 +162,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public IEnumerable<UserGroupReport> GetAggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
+        public IEnumerable<UserGroupReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
         {
-            return groupIds.Select(groupId => GetUserGroupResourceUsageReport(groupId, startTime, endTime)).ToList();
+            return groupIds.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime)).ToList();
         }
         #endregion
         #region Private Methods

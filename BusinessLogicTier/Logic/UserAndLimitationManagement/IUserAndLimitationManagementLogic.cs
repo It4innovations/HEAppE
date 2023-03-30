@@ -14,10 +14,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement {
 		Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials);
 		Task<ApplicationCredentialsDTO> AuthenticateOpenIdUserToOpenStackAsync(AdaptorUser adaptorUser, long projectId);
 		IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser);
-		IList<ProjectResourceUsage> GetCurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser);
+		IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser);
 		bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo);
 		bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo);
 		AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser);
-        IEnumerable<ProjectReference> GetProjectsForCurrentUser(AdaptorUser loggedUser);
+        IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser);
     }
 }

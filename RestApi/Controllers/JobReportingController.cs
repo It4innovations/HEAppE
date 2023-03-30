@@ -82,32 +82,32 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="endTime">EndTime</param>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
-        [HttpGet("GetUserResourceUsageReport")]
+        [HttpGet("UserResourceUsageReport")]
         [RequestSizeLimit(166)]
         [ProducesResponseType(typeof(UserResourceReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetUserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
+        public IActionResult UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             try
             {
-                var model = new GetUserResourceUsageReportModel()
+                var model = new UserResourceUsageReportModel()
                 {
                     StartTime = startTime,
                     EndTime = endTime,
                     UserId = userId,
                     SessionCode = sessionCode
                 };
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserResourceUsageReport\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"UserResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetUserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
+                return Ok(_service.UserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -127,32 +127,32 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="endTime">EndTime</param>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
-        [HttpGet("GetUserGroupResourceUsageReport")]
+        [HttpGet("UserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
         [ProducesResponseType(typeof(UserGroupReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetUserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
+        public IActionResult UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             try
             {
-                var model = new GetUserGroupResourceUsageReportModel()
+                var model = new UserGroupResourceUsageReportModel()
                 {
                     StartTime = startTime,
                     EndTime = endTime,
                     GroupId = groupId,
                     SessionCode = sessionCode
                 };
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetUserGroupResourceUsageReport\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"UserGroupResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetUserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
+                return Ok(_service.UserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -164,14 +164,14 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-        [HttpGet("GetAggregatedUserGroupResourceUsageReport")]
+        [HttpGet("AggregatedUserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
         [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetAggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode)
+        public IActionResult AggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode)
         {
             try
             {
@@ -181,14 +181,14 @@ namespace HEAppE.RestApi.Controllers
                     EndTime = endTime,
                     SessionCode = sessionCode
                 };
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetAggregatedUserGroupResourceUsageReport\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"AggregatedUserGroupResourceUsageReport\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetAggregatedUserGroupResourceUsageReport(model.StartTime, model.EndTime, model.SessionCode));
+                return Ok(_service.AggregatedUserGroupResourceUsageReport(model.StartTime, model.EndTime, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -206,30 +206,30 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="sessionCode">Session code</param>
         /// <param name="jobId">Job ID</param>
         /// <returns></returns>
-        [HttpGet("GetResourceUsageReportForJob")]
+        [HttpGet("ResourceUsageReportForJob")]
         [RequestSizeLimit(86)]
         [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetResourceUsageReportForJob(string sessionCode, long jobId)
+        public IActionResult ResourceUsageReportForJob(string sessionCode, long jobId)
         {
             try
             {
-                var model = new GetResourceUsageReportForJobModel()
+                var model = new ResourceUsageReportForJobModel()
                 {
                     SessionCode = sessionCode,
                     JobId = jobId
                 };
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetResourceUsageReportForJob\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"ResourceUsageReportForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobReportingValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetResourceUsageReportForJob(model.JobId, model.SessionCode));
+                return Ok(_service.ResourceUsageReportForJob(model.JobId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -253,7 +253,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetJobAgregationReport(string sessionCode)
+        public IActionResult JobAgregationReport(string sessionCode)
         {
             try
             {
@@ -281,25 +281,25 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
-        [HttpGet("GetJobsDetailedReport")]
+        [HttpGet("JobsDetailedReport")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(IEnumerable<UserGroupDetailedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetJobsDetailedReport(string sessionCode)
+        public IActionResult JobsDetailedReport(string sessionCode)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetJobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");
+                _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"JobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");
                 ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetJobsDetailedReport(sessionCode));
+                return Ok(_service.JobsDetailedReport(sessionCode));
             }
             catch (Exception exception)
             {

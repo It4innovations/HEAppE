@@ -155,7 +155,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
         }
 
-        public IEnumerable<ProjectResourceUsageExt> GetCurrentUsageAndLimitationsForCurrentUserByProject(string sessionCode)
+        public IEnumerable<ProjectResourceUsageExt> CurrentUsageAndLimitationsForCurrentUserByProject(string sessionCode)
         {
             try
             {
@@ -163,7 +163,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 {
                     AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
                     IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.GetCurrentUsageAndLimitationsForUserByProject(loggedUser).Select(s => s.ConvertIntToExt());
+                    return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser).Select(s => s.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
@@ -173,7 +173,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
         }
 
-        public IEnumerable<ProjectReferenceExt> GetProjectsForCurrentUser(string sessionCode)
+        public IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode)
         {
             try
             {
@@ -181,7 +181,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                 {
                     AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
                     IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.GetProjectsForCurrentUser(loggedUser).Select(p => p.ConvertIntToExt());
+                    return userLogic.ProjectsForCurrentUser(loggedUser).Select(p => p.ConvertIntToExt());
                 }
             }
             catch (Exception exc)

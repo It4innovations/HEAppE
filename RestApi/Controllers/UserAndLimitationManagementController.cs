@@ -220,14 +220,14 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">Session code</param>
         /// <returns></returns>
-        [HttpGet("GetCurrentUsageAndLimitationsForCurrentUser")]
+        [HttpGet("CurrentUsageAndLimitationsForCurrentUser")]
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<ProjectResourceUsageExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode)
+        public IActionResult CurrentUsageAndLimitationsForCurrentUser(string sessionCode)
         {
             try
             {
@@ -238,7 +238,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUserByProject(sessionCode));
+                return Ok(_service.CurrentUsageAndLimitationsForCurrentUserByProject(sessionCode));
             }
             catch (Exception exception)
             {
@@ -250,14 +250,14 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-        [HttpGet("GetProjectsForCurrentUser")]
+        [HttpGet("ProjectsForCurrentUser")]
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<ProjectReferenceExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetProjectsForCurrentUser(string sessionCode)
+        public IActionResult ProjectsForCurrentUser(string sessionCode)
         {
             try
             {
@@ -268,7 +268,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetProjectsForCurrentUser(sessionCode));
+                return Ok(_service.ProjectsForCurrentUser(sessionCode));
             }
             catch (Exception exception)
             {

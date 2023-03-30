@@ -15,9 +15,9 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = _validationObject switch
             {
-                GetUserResourceUsageReportModel model => ValidateGetUserResourceUsageReportModel(model),
-                GetResourceUsageReportForJobModel model => ValidateGetResourceUsageReportForJobModel(model),
-                GetUserGroupResourceUsageReportModel model => ValidateGetUserGroupResourceUsageReportModel(model),
+                UserResourceUsageReportModel model => ValidateUserResourceUsageReportModel(model),
+                ResourceUsageReportForJobModel model => ValidateResourceUsageReportForJobModel(model),
+                UserGroupResourceUsageReportModel model => ValidateUserGroupResourceUsageReportModel(model),
                 GetAggredatedUserGroupResourceUsageReportModel model => ValidateGetAggredatedUserGroupResourceUsageReportModel(model),
                 ListAdaptorUserGroupsModel model => ValidateListAdaptorUserGroupsModel(model),
                 _ => string.Empty
@@ -37,7 +37,7 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateGetUserGroupResourceUsageReportModel(GetUserGroupResourceUsageReportModel model)
+        private string ValidateUserGroupResourceUsageReportModel(UserGroupResourceUsageReportModel model)
         {
             ValidateId(model.GroupId, nameof(model.GroupId));
             if (model.StartTime > model.EndTime)
@@ -54,7 +54,7 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateGetResourceUsageReportForJobModel(GetResourceUsageReportForJobModel validationObj)
+        private string ValidateResourceUsageReportForJobModel(ResourceUsageReportForJobModel validationObj)
         {
             ValidateId(validationObj.JobId, nameof(validationObj.JobId));
 
@@ -67,7 +67,7 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateGetUserResourceUsageReportModel(GetUserResourceUsageReportModel validationObj)
+        private string ValidateUserResourceUsageReportModel(UserResourceUsageReportModel validationObj)
         {
             ValidateId(validationObj.UserId, nameof(validationObj.UserId));
 

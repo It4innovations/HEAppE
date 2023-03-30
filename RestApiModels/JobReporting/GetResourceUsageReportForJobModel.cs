@@ -9,14 +9,14 @@ using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobReporting
 {
-    [DataContract(Name = "GetResourceUsageReportForJobModel")]
-    public class GetResourceUsageReportForJobModel : SessionCodeModel
+    [DataContract(Name = "ResourceUsageReportForJobModel")]
+    public class ResourceUsageReportForJobModel : SessionCodeModel
     {
         [DataMember(Name = "JobId")]
         public long JobId { get; set; }
         public override string ToString()
         {
-            return $"GetResourceUsageReportForJobModel({base.ToString()}; JobId: {JobId})";
+            return $"ResourceUsageReportForJobModel({base.ToString()}; JobId: {JobId})";
         }
     }
 }
