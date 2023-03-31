@@ -44,25 +44,25 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("GetDataTransferMethod")]
+        [HttpPost("RequestDataTransfer")]
         [RequestSizeLimit(170)]
         [ProducesResponseType(typeof(DataTransferMethodExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult BeginDataTransfer(GetDataTransferMethodModel model)
+        public IActionResult RequestDataTransfer(GetDataTransferMethodModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"GetDataTransferMethod\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"RequestDataTransfer\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetDataTransferMethod(model.IpAddress, model.Port, model.SubmittedJobInfoId, model.SessionCode));
+                return Ok(_service.RequestDataTransfer(model.IpAddress, model.Port, model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -75,30 +75,30 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// End Data Transfer
+        /// CLose Data Transfer
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("EndDataTransfer")]
+        [HttpPost("CloseDataTransfer")]
         [RequestSizeLimit(188)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult EndDataTransfer(EndDataTransferModel model)
+        public IActionResult CloseDataTransfer(EndDataTransferModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"EndDataTransfer\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"CloseDataTransfer\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                _service.EndDataTransfer(model.UsedTransferMethod, model.SessionCode);
-                return Ok("EndDataTransfer");
+                _service.CloseDataTransfer(model.UsedTransferMethod, model.SessionCode);
+                return Ok("CloseDataTransfer");
             }
             catch (Exception exception)
             {

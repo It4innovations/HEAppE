@@ -84,7 +84,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             }
         }
 
-        public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, string sessionCode)
+        public IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, string sessionCode)
         {
             try
             {
@@ -97,7 +97,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                         {   commandTemplateId.ToString(),
                             projectId.ToString(),
                             userScriptPath,
-                            nameof(GetCommandTemplateParametersName)
+                            nameof(RequestCommandTemplateParametersName)
                         }
                     );
 

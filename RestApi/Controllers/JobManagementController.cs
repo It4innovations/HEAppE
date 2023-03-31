@@ -396,35 +396,35 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// GetCurrentInfoForJob
+        /// Get current info for job
         /// </summary>
         /// <param name="sessionCode">Session code</param>
         /// <param name="submittedJobInfoId">SubmittedJobInfo ID</param>
         /// <returns></returns>
-        [HttpGet("GetCurrentInfoForJob")]
+        [HttpGet("CurrentInfoForJob")]
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetCurrentInfoForJob(string sessionCode, long submittedJobInfoId)
+        public IActionResult CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
         {
             try
             {
-                var model = new GetCurrentInfoForJobModel()
+                var model = new CurrentInfoForJobModel()
                 {
                     SessionCode = sessionCode,
                     SubmittedJobInfoId = submittedJobInfoId
                 };
-                _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"GetCurrentInfoForJob\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CurrentInfoForJob\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+                return Ok(_service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -449,7 +449,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [Obsolete]
-        public IActionResult Obsolete_GetCurrentInfoForJob(GetCurrentInfoForJobModel model)
+        public IActionResult Obsolete_GetCurrentInfoForJob(CurrentInfoForJobModel model)
         {
             try
             {
@@ -460,7 +460,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+                return Ok(_service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -545,35 +545,35 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// 
+        /// Get Allocated Nodes IPs
         /// </summary>
         /// <param name="sessionCode">Session code</param>
         /// <param name="submittedTaskInfoId">SubmittedTaskInfo ID</param>
         /// <returns></returns>
-        [HttpGet("GetAllocatedNodesIPs")]
+        [HttpGet("AllocatedNodesIPs")]
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetAllocatedNodesIPs(string sessionCode, long submittedTaskInfoId)
+        public IActionResult AllocatedNodesIPs(string sessionCode, long submittedTaskInfoId)
         {
             try
             {
-                var model = new GetAllocatedNodesIPsModel()
+                var model = new AllocatedNodesIPsModel()
                 {
                     SessionCode = sessionCode,
                     SubmittedTaskInfoId = submittedTaskInfoId
                 };
-                _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"GetAllocatedNodesIPs\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"AllocatedNodesIPs\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new JobManagementValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetAllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
+                return Ok(_service.AllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -598,7 +598,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [Obsolete]
-        public IActionResult Obsolete_GetAllocatedNodesIPs(GetAllocatedNodesIPsModel model)
+        public IActionResult Obsolete_GetAllocatedNodesIPs(AllocatedNodesIPsModel model)
         {
             try
             {
@@ -609,7 +609,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetAllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
+                return Ok(_service.AllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
             }
             catch (Exception exception)
             {

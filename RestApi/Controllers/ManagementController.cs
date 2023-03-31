@@ -50,7 +50,7 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">CreateCommandTemplate</param>
         /// <returns></returns>
-        [HttpPost("CreateCommandTemplate")]
+        [HttpPost("CommandTemplate")]
         [RequestSizeLimit(1520)]
         [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -88,7 +88,7 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">ModifyCommandTemplateModel</param>
         /// <returns></returns>
-        [HttpPut("ModifyCommandTemplate")]
+        [HttpPut("CommandTemplate")]
         [RequestSizeLimit(1520)]
         [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -127,7 +127,7 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">RemoveCommandTemplateModel</param>
         /// <returns></returns>
-        [HttpDelete("RemoveCommandTemplate")]
+        [HttpDelete("CommandTemplate")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -165,14 +165,14 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
-        [HttpGet("GetInstanceInformations")]
+        [HttpGet("InstanceInformations")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetInstanceInformations(string sessionCode)
+        public IActionResult InstanceInformations(string sessionCode)
         {
             try
             {

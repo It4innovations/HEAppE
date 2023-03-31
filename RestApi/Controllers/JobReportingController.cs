@@ -164,6 +164,13 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Get aggregated resource report usage for user groups
+        /// </summary>
+        /// <param name="startTime"></param>
+        /// <param name="endTime"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
         [HttpGet("AggregatedUserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
         [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]

@@ -74,14 +74,14 @@ namespace HEAppE.RestApi.Controllers
         /// Get command template parameters name
         /// </summary>
         /// <returns></returns>
-        [HttpPost("GetCommandTemplateParametersName")]
+        [HttpPost("RequestCommandTemplateParametersName")]
         [RequestSizeLimit(535)]
         [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
+        public IActionResult RequestCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
         {
             try
             {
@@ -97,7 +97,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter, model.ProjectId);
                 }
-                return Ok(_service.GetCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
+                return Ok(_service.RequestCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
             }
             catch (Exception exception)
             {

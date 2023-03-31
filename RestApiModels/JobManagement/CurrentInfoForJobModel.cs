@@ -10,7 +10,7 @@ using HEAppE.RestApiModels.AbstractModels;
 namespace HEAppE.RestApiModels.JobManagement
 {
     [DataContract(Name = "GetCurrentInfoForJobModel")]
-    public class GetCurrentInfoForJobModel : SubmittedJobInfoModel
+    public class CurrentInfoForJobModel : SubmittedJobInfoModel
     {
         public override string ToString()
         {

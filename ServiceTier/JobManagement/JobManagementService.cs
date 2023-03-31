@@ -158,7 +158,7 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public SubmittedJobInfoExt GetCurrentInfoForJob(long submittedJobInfoId, string sessionCode)
+        public SubmittedJobInfoExt CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
         {
             try
             {
@@ -217,7 +217,7 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, string sessionCode)
+        public IEnumerable<string> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode)
         {
             try
             {

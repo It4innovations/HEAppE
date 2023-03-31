@@ -22,17 +22,17 @@ namespace HEAppE.RestApi.InputValidator
                 CancelJobModel model => ValidateCancelJobModel(model),
                 DeleteJobModel model => ValidateDeleteJobModel(model),
                 ListJobsForCurrentUserModel model => ValidateListJobsForCurrentUserModel(model),
-                GetCurrentInfoForJobModel model => ValidateGetCurrentInfoForJobModel(model),
+                CurrentInfoForJobModel model => ValidateGetCurrentInfoForJobModel(model),
                 CopyJobDataToTempModel model => ValidateCopyJobDataToTempModel(model),
                 CopyJobDataFromTempModel model => ValidateCopyJobDataFromTempModel(model),
-                GetAllocatedNodesIPsModel model => ValidateGetAllocatedNodesIPsModel(model),
+                AllocatedNodesIPsModel model => ValidateGetAllocatedNodesIPsModel(model),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
         }
 
-        private string ValidateGetAllocatedNodesIPsModel(GetAllocatedNodesIPsModel validationObj)
+        private string ValidateGetAllocatedNodesIPsModel(AllocatedNodesIPsModel validationObj)
         {
             ValidateId(validationObj.SubmittedTaskInfoId, nameof(validationObj.SubmittedTaskInfoId));
 
@@ -82,7 +82,7 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateGetCurrentInfoForJobModel(GetCurrentInfoForJobModel validationObj)
+        private string ValidateGetCurrentInfoForJobModel(CurrentInfoForJobModel validationObj)
         {
             ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
 

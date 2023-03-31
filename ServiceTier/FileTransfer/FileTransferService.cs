@@ -21,7 +21,7 @@ namespace HEAppE.ServiceTier.FileTransfer
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         
-        public FileTransferMethodExt GetFileTransferMethod(long submittedJobInfoId, string sessionCode)
+        public FileTransferMethodExt RequestFileTransfer(long submittedJobInfoId, string sessionCode)
         {
             try
             {
@@ -40,7 +40,7 @@ namespace HEAppE.ServiceTier.FileTransfer
             }
         }
         
-        public void EndFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode)
+        public void CloseFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode)
         {
             try
             {

@@ -250,6 +250,11 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
+        /// <summary>
+        /// Get projects for current user
+        /// </summary>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
         [HttpGet("ProjectsForCurrentUser")]
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<ProjectReferenceExt>), StatusCodes.Status200OK)]

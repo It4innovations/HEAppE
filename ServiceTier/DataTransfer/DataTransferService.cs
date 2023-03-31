@@ -18,7 +18,7 @@ namespace HEAppE.ServiceTier.DataTransfer
 {
     public class DataTransferService : IDataTransferService
     {
-        public DataTransferMethodExt GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId, string sessionCode)
+        public DataTransferMethodExt RequestDataTransfer(string nodeIPAddress, int nodePort, long submittedTaskInfoId, string sessionCode)
         {
             try
             {
@@ -37,7 +37,7 @@ namespace HEAppE.ServiceTier.DataTransfer
             }
         }
 
-        public void EndDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode)
+        public void CloseDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode)
         {
             try
             {

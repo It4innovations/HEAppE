@@ -38,25 +38,25 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("GetFileTransferMethod")]
+        [HttpPost("RequestFileTransfer")]
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult GetFileTransferMethod(GetFileTransferMethodModel model)
+        public IActionResult RequestFileTransfer(GetFileTransferMethodModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"GetFileTransferMethod\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new FileTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetFileTransferMethod(model.SubmittedJobInfoId, model.SessionCode));
+                return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -69,22 +69,22 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// End file transfer tunnel
+        /// Close file transfer tunnel
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("EndFileTransfer")]
+        [HttpPost("CloseFileTransfer")]
         [RequestSizeLimit(4700)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult EndFileTransfer(EndFileTransferModel model)
+        public IActionResult CloseFileTransfer(EndFileTransferModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"EndFileTransfer\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"CloseFileTransfer\" Parameters: \"{model}\"");
 
                 ValidationResult validationResult = new FileTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
@@ -92,8 +92,8 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                _service.EndFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
-                return Ok("EndFileTransfer");
+                _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
+                return Ok("CloseFileTransfer");
             }
             catch (Exception exception)
             {
