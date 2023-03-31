@@ -182,7 +182,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="endTime">EndTime</param>
         private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Project project, DateTime startTime, DateTime endTime)
         {
-            var nodeTypes = project.CommandTemplates.Select(x => x.ClusterNodeType).Distinct().ToList();
+            var nodeTypes = project.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes).Distinct().ToList();
 
             var nodeTypeReports = nodeTypes.Select(nodeType => new ClusterNodeTypeReport()
             {
@@ -204,9 +204,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         {
             var jobsInProject = _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAdaptorUserAndProject()
                                                                                     .Where(x => x.Project.Id == projectId &&
-                                                                                                x.CreationTime >= startTime &&
-                                                                                                x.EndTime <= endTime)
-                                                                                    .ToList();
+                                                                                                x.StartTime >= startTime &&
+                                                                                                x.EndTime <= endTime && 
+                                                                                                x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
+                                                                                                .ToList();
             var jobReports = jobsInProject.Select(job => new JobReport()
             {
                 SubmittedJobInfo = job,
@@ -225,7 +226,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         private List<TaskReport> GetTaskReportsForJob(SubmittedJobInfo job, long nodeTypeId, long projectId)
         {
             var tasks = job.Tasks.Where(x =>
-                x.Project.Id == projectId && x.Specification.ClusterNodeType.Id == nodeTypeId);
+                x.Project.Id == projectId && x.Specification.ClusterNodeType.Id == nodeTypeId).ToList();
             var taskReports = tasks.Select(task => new TaskReport()
             {
                 SubmittedTaskInfo = task,
