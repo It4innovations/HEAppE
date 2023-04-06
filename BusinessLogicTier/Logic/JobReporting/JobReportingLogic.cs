@@ -65,7 +65,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="jobId">Job ID</param>
         /// <returns></returns>
         /// <exception cref="ApplicationException"></exception>
-        public ProjectReport ResourceUsageReportForJob(long jobId)
+        public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds)
         {
             var job = _unitOfWork.SubmittedJobInfoRepository.GetById(jobId);
             if (job is null)
@@ -73,12 +73,19 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                 throw new ApplicationException($"Specified Job Id: \"{jobId}\" is not specified in system!");
             }
 
-            var projectReport = new ProjectReport
+            if (reporterGroupIds.Any(x => x == job.Project.Id))
             {
-                ClusterNodeTypes = GetClusterNodeTypeReportsForJob(job),
-                Project = job.Project
-            };
-            return projectReport;
+                var projectReport = new ProjectReport
+                {
+                    ClusterNodeTypes = GetClusterNodeTypeReportsForJob(job),
+                    Project = job.Project
+                };
+                return projectReport;
+            }
+            else
+            {
+                throw new ApplicationException($"This reporter cannot view report for Job: \"{jobId}\" because reporter has not access to job's project!");
+            }
         }
 
         /// <summary>
@@ -111,11 +118,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime)
+        public IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime)
         {
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId);
             var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
-            return AggregatedUserGroupResourceUsageReport(userGroups, startTime, endTime);
+            var reporterAndUserGroupsIntersect = reporterGroupIds.Intersect(userGroups);
+            return AggregatedUserGroupResourceUsageReport(reporterAndUserGroupsIntersect, startTime, endTime);
         }
 
         /// <summary>
@@ -205,7 +213,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var jobsInProject = _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAdaptorUserAndProject()
                                                                                     .Where(x => x.Project.Id == projectId &&
                                                                                                 x.StartTime >= startTime &&
-                                                                                                x.EndTime <= endTime && 
+                                                                                                x.EndTime <= endTime &&
                                                                                                 x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
                                                                                                 .ToList();
             var jobReports = jobsInProject.Select(job => new JobReport()
@@ -230,7 +238,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var taskReports = tasks.Select(task => new TaskReport()
             {
                 SubmittedTaskInfo = task,
-                Usage = JobReportingLogicConverts.CalculateUsedResourcesForTask(task)
+                Usage = JobReportingLogicConverts.CalculateUsedResourcesForTask(task) ?? 0
             }).ToList();
             return taskReports;
         }
@@ -257,6 +265,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                 var jobReport = new JobReport()
                 {
                     SubmittedJobInfo = job,
+                    Tasks = new List<TaskReport>()
                 };
 
                 foreach (var task in tasksForNodeType.Distinct())
@@ -264,7 +273,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                     var taskReport = new TaskReport()
                     {
                         SubmittedTaskInfo = task,
-                        Usage = JobReportingLogicConverts.CalculateUsedResourcesForTask(task)
+                        Usage = JobReportingLogicConverts.CalculateUsedResourcesForTask(task) ?? 0
                     };
                     jobReport.Tasks.Add(taskReport);
 

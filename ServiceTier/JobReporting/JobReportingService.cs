@@ -21,6 +21,7 @@ using System.Security.Cryptography.X509Certificates;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;
 using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 using HEAppE.DomainObjects.JobReporting;
+using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 
 namespace HEAppE.ServiceTier.JobReporting
 {
@@ -47,7 +48,7 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer, null);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.GroupReporter, null);
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     return jobReportingLogic.UserGroupListReport().Select(s => s.ConvertIntToExt());
                 }
@@ -65,10 +66,11 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Maintainer, null);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.GroupReporter, null);
 
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.UserResourceUsageReport(userId, startTime, endTime).Select(g => g.ConvertIntToExt());
+                    var reporterGroups = loggedUser.Groups.Select(x => x.Id).Distinct().ToList();
+                    return jobReportingLogic.UserResourceUsageReport(userId, reporterGroups, startTime, endTime).Select(g => g.ConvertIntToExt());
                 }
             }
             catch (Exception exc)
@@ -130,7 +132,8 @@ namespace HEAppE.ServiceTier.JobReporting
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
                     IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                    return jobReportingLogic.ResourceUsageReportForJob(jobId).ConvertIntToExt();
+                    List<long> userGroupIds = loggedUser.Groups.Select(val => val.Id).Distinct().ToList();
+                    return jobReportingLogic.ResourceUsageReportForJob(jobId, userGroupIds).ConvertIntToExt();
                 }
             }
             catch (Exception exc)
@@ -146,7 +149,7 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.GroupReporter, null);
                     var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     return reportingLogic.AggregatedJobsByStateReport().Select(s => s.ConvertIntToExt());
                 }
@@ -164,7 +167,7 @@ namespace HEAppE.ServiceTier.JobReporting
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.GroupReporter, null);
                     var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                     List<long> userGroupIds = loggedUser.Groups.Select(val => val.Id).Distinct().ToList();
                     return reportingLogic.JobsDetailedReport(userGroupIds).Select(s => s.ConvertIntToDetailedExt());

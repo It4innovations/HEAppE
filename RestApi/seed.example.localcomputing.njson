@@ -42,6 +42,11 @@
       },
       {
         "Id": 4,
+        "Name": "GroupReporter",
+        "Description": "Users with this role car report in assigned groups."
+      },
+      {
+        "Id": 5,
         "Name": "Reporter",
         "Description": "Users with this role can watch other jobs in the same group."
       }

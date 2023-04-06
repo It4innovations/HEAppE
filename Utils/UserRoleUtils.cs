@@ -26,14 +26,21 @@ namespace HEAppE.Utils
                 {
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Maintainer, groupRoleCascadeAppender);
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
                 }
                 else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Maintainer))
                 {
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
                 }
                 else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Submitter))
+                {
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
+                }
+                else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.GroupReporter))
                 {
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
                 }

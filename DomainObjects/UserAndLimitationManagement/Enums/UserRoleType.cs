@@ -21,8 +21,13 @@
         Submitter = 3,
 
         /// <summary>
+        /// Users with this role car report in assigned groups.
+        /// </summary>
+        GroupReporter = 4,
+
+        /// <summary>
         /// Users with this role can watch other jobs in the same group.
         /// </summary>
-        Reporter = 4
+        Reporter = 5
     }
 }
