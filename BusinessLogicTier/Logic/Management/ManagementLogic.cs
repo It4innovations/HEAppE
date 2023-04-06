@@ -16,7 +16,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork = unitOfWork;
         }
 
-        public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript)
+        public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
             if (commandTemplate is null)
@@ -73,7 +73,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 IsEnabled = true,
                 ClusterNodeType = commandTemplate.ClusterNodeType,
                 ClusterNodeTypeId = commandTemplate.ClusterNodeTypeId,
-                Code = code,
+                ExtendedAllocationCommand = extendedAllocationCommand,
                 ExecutableFile = executableFile,
                 PreparationScript = preparationScript,
                 TemplateParameters = templateParameters,
@@ -86,7 +86,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return newCommandTemplate;
         }
 
-        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript)
+        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate is null)
@@ -129,7 +129,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             commandTemplate.Name = name;
             commandTemplate.Description = description;
-            commandTemplate.Code = code;
+            commandTemplate.ExtendedAllocationCommand = extendedAllocationCommand;
             commandTemplate.PreparationScript = preparationScript;
             commandTemplate.TemplateParameters.ForEach(cmdParameters => _unitOfWork.CommandTemplateParameterRepository.Delete(cmdParameters));
             commandTemplate.TemplateParameters.AddRange(templateParameters);

@@ -129,7 +129,7 @@ namespace HEAppE.DomainObjects.JobManagement
                         writer.WriteStringValue(task.JobArrays);
 
                         writer.WritePropertyName("DependsOn");
-                        writer.WriteStringValue(string.Join(",", task.DependsOn.Select(x=>x.ParentTaskSpecificationId.ToString())));
+                        writer.WriteStringValue(string.Join(",", task.DependsOn.Select(x => x.ParentTaskSpecificationId.ToString())));
 
                         writer.WriteEndObject();
 

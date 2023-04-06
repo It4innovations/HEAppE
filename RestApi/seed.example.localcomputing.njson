@@ -152,6 +152,7 @@
         "NumberOfNodes": 1,
         "CoresPerNode": 1,
         "Queue": "qexp",
+        "QualityOfService": null,
         "MaxWalltime": "{MaxWalltime}",
         "ClusterId": 1,
         "FileTransferMethodId": 1,
@@ -163,9 +164,9 @@
         "Id": 1,
         "Name": "TestTemplate",
         "Description": "TestTemplate",
-        "Code": "TestTemplate",
-        "ExecutableFile": "{ExecutableFilePath}",
-        "CommandParameters": "{CommandParameters}",
+        "ExtendedAllocationCommand": null,
+        "ExecutableFile": "~/.key_scripts/test.sh",
+        "CommandParameters": "%%{inputParam}",
         "PreparationScript": null,
         "ClusterNodeTypeId": 1,
         "IsGeneric": false,
@@ -176,7 +177,7 @@
         "Id": 2,
         "Name": "GenericCommandTemplate",
         "Description": "Command template for generic job.",
-        "Code": "GenericCommandTemplate",
+        "ExtendedAllocationCommand": null,
         "ExecutableFile": "~/.key_scripts/generic.sh",
         "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
         "PreparationScript": null,
@@ -225,6 +226,13 @@
         "Id": 1,
         "IsoCode": "en-GB",
         "Name": "English"
+      }
+    ],
+    "OpenStackInstances": [
+      {
+        "Id": 1,
+        "Name": "",
+        "InstanceUrl": ""
       }
     ],
     "OpenStackDomains": [

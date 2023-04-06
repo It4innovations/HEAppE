@@ -1,21 +1,17 @@
-﻿using System;
-using HEAppE.ServiceTier.JobReporting;
+﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.ExtModels.JobReporting.Models;
+using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
+using HEAppE.ExtModels.JobReporting.Models.ListReport;
+using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobReporting;
+using HEAppE.ServiceTier.JobReporting;
+using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using HEAppE.RestApi.InputValidator;
-using HEAppE.Utils.Validation;
-using HEAppE.BusinessLogicTier.Logic;
-using System.Collections.Generic;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using Microsoft.Extensions.Caching.Memory;
-using System.Runtime.Serialization;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
-using System.Text.RegularExpressions;
-using HEAppE.ExtModels.JobReporting.Models.ListReport;
-using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.RestApi.Controllers
 {
