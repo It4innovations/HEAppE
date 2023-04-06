@@ -66,14 +66,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             SessionCode session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
             if (session is null)
             {
-                _log.Error($"Session code \"sessionCode\" is not present in the database.");
-                throw new SessionCodeNotValidException($"Session code \"sessionCode\" is not present in the database.");
+                _log.Error($"Session code \"{sessionCode}\" is not present in the database.");
+                throw new SessionCodeNotValidException($"Session code \"{sessionCode}\" is not present in the database.");
             }
 
             if (IsSessionExpired(session))
             {
-                _log.Warn($"Session code \"sessionCode\" already expired at \"session.LastAccessTime.AddSeconds(_sessionExpirationSeconds)\".");
-                throw new SessionCodeNotValidException($"Session code \"sessionCode\" already expired at \"session.LastAccessTime.AddSeconds(_sessionExpirationSeconds)\".");
+                _log.Warn($"Session code \"{sessionCode}\" already expired at \"{session.LastAccessTime.AddSeconds(_sessionExpirationSeconds)}\".");
+                throw new SessionCodeNotValidException($"Session code \"{sessionCode}\" already expired at \"{session.LastAccessTime.AddSeconds(_sessionExpirationSeconds)}\".");
             }
 
             session.LastAccessTime = DateTime.UtcNow;
