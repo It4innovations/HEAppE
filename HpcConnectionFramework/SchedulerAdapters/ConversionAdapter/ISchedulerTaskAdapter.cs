@@ -43,6 +43,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 
         string WorkDirectory { set; }
 
+        string ExtendedAllocationCommand { set; }
+
         void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode);
 
         void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables);

@@ -82,7 +82,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 Id = commandTemplate.Id,
                 Name = commandTemplate.Name,
                 Description = commandTemplate.Description,
-                Code = commandTemplate.Code,
+                ExtendedAllocationCommand = commandTemplate.ExtendedAllocationCommand,
                 IsGeneric = commandTemplate.IsGeneric,
                 TemplateParameters = commandTemplate.TemplateParameters.Where(w => string.IsNullOrEmpty(w.Query) && w.IsVisible)
                                                                         .Select(s => s.ConvertIntToExt())
