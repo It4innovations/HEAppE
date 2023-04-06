@@ -114,6 +114,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             taskAdapter.IsRerunnable = !string.IsNullOrEmpty(taskSpecification.JobArrays) || taskSpecification.IsRerunnable;
 
             taskAdapter.Queue = taskSpecification.ClusterNodeType.Queue;
+            taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
             taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
             taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
@@ -123,6 +124,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 throw new ApplicationException(@$"Command Template ""{taskSpecification.CommandTemplate.Name}"" for task 
                                                   ""{taskSpecification.Name}"" does not exist in the adaptor configuration.");
             }
+
+            template.
+
 
             Dictionary<string, string> templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
                                                             template.TemplateParameters, taskSpecification.CommandParameterValues);

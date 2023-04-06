@@ -15,6 +15,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 
         string Queue { set; }
 
+        string QualityOfService { set; }
+
         string ClusterAllocationName { set; }
 
         bool CpuHyperThreading { set; }

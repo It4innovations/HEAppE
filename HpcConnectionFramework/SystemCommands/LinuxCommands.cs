@@ -1,7 +1,6 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using HEAppE.Utils;
 using log4net;
 using Renci.SshNet;
 using System;
