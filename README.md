@@ -9,23 +9,10 @@ HPC-as-a-Service is a well known term in the area of high performance computing.
 
 To provide this simple and intuitive access to the supercomputing infrastructure an in-house application framework called HEAppE has been developed. This framework is utilizing a mid-layer principle, in software terminology also known as middleware. Middleware manages and provides information about submitted and running jobs and their data between the client application and the HPC infrastructure. HEAppE is able to submit required computation or simulation on HPC infrastructure, monitor the progress and notify the user should the need arise. It provides necessary functions for job management, monitoring and reporting, user authentication and authorization, file transfer, encryption, and various notification mechanisms.
 
-Major changes in the latest release includes
-- multi-platform **.NET Core** version 
-- **OpenAPI** REST API 
-- **dockerized** deployment and management 
-- updated **PBS** and **Slurm** workload manager adapter 
-- **SSH Agent** support
-- **multiple tasks** within single computational jobs
-- **job arrays** support and **job dependency** support
-- extremely **long running** job support
-- **OpenID** and **OpenStack** authentication support
-- various functional and security updates
-
 ## Documentation
-Please see the official HEAppE documentation at https://heappe.it4i.cz/docs.
+Please see the official HEAppE documentation at https://heappe.eu/docs.
 
 # References
-
 HEAppE Middleware has already been successfully used in a number of public and commercial projects:
 
 - in **H2020 project LEXIS** as a part of **LEXIS Platform** to provide the platform's job orchestrator access to a number of HPC systems in several HPC centers; https://lexis-project.eu
@@ -38,9 +25,6 @@ HEAppE Middleware has already been successfully used in a number of public and c
 
 ## Licence and Contact Information
 HEAppE Middleware is licensed under the **GNU General Public License v3.0**. For suport contact us via **support.heappe@it4i.cz**.
-
-## IT4Innovations national supercomputing center
-The IT4Innovations National Supercomputing Center operates the Karolina and Barbora supercomputers. The supercomputers are available to the academic community within the Czech Republic and Europe, and the industrial community worldwide.
 
 ### Acknowledgement
 This work was supported by The Ministry of Education, Youth and Sports from the National Programme of Sustainability (NPS II) project ”IT4Innovations excellence in science - LQ1602” and by the IT4Innovations infrastructure which is supported from the Large Infrastructures for Research, Experimental Development and Innovations project ”IT4Innovations National Supercomputing Center – LM2015070”.
