@@ -6,10 +6,16 @@ namespace HEAppE.DataAccessTier.Migrations
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.RenameColumn(
+            migrationBuilder.DropColumn(
                 name: "Code",
+                table: "CommandTemplate");
+
+            migrationBuilder.AddColumn<string>(
+                name: "ExtendedAllocationCommand",
                 table: "CommandTemplate",
-                newName: "ExtendedAllocationCommand");
+                type: "nvarchar(50)",
+                maxLength: 50,
+                nullable: true);
 
             migrationBuilder.AddColumn<string>(
                 name: "QualityOfService",
@@ -22,13 +28,20 @@ namespace HEAppE.DataAccessTier.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
+                name: "ExtendedAllocationCommand",
+                table: "CommandTemplate");
+
+            migrationBuilder.DropColumn(
                 name: "QualityOfService",
                 table: "ClusterNodeType");
 
-            migrationBuilder.RenameColumn(
-                name: "ExtendedAllocationCommand",
+            migrationBuilder.AddColumn<string>(
+                name: "Code",
                 table: "CommandTemplate",
-                newName: "Code");
+                type: "nvarchar(50)",
+                maxLength: 50,
+                nullable: false,
+                defaultValue: "");
         }
     }
 }

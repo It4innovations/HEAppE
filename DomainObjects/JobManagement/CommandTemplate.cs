@@ -15,7 +15,6 @@ namespace HEAppE.DomainObjects.JobManagement {
 		[StringLength(200)]
 		public string Description { get; set; }
 		
-		[Required]
 		[StringLength(50)]
 		public string ExtendedAllocationCommand { get; set; }
 
