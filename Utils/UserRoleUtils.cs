@@ -37,7 +37,6 @@ namespace HEAppE.Utils
                 }
                 else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Submitter))
                 {
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
                 }
                 else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.GroupReporter))
