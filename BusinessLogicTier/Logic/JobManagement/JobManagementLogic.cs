@@ -52,7 +52,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic);
             _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
 
-
             foreach (var task in specification.Tasks)
             {
                 ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser)
@@ -115,8 +114,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         _unitOfWork.Save();
                         transactionScope.Complete();
                     }
+                    var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+                    if (clusterProject == null)
+                    {
+                        ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+                    }
                     //Create job directory
-                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo);
+                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath);
                     return jobInfo;
                 }
                 catch (Exception e)
@@ -181,7 +185,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
                 scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
-                var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, jobInfo.Specification.Cluster.ServiceAccountCredentials)
+                var cluster = jobInfo.Specification.Cluster;
+                var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId);
+                var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, serviceAccount)
                                                                     .ToList();
 
                 foreach (var task in jobInfo.Tasks)
@@ -204,9 +210,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info("User " + loggedUser.GetLogIdentification() + " is deleting the job with info Id " + submittedJobInfoId);
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
             if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
             {
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).DeleteJobDirectory(jobInfo);
+                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
             }
             else
             {
@@ -303,14 +314,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     }
                 }
-
+                
                 if (cluster.UpdateJobStateByServiceAccount.Value)
                 {
-                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(scheduler, cluster.ServiceAccountCredentials, jobGroup.SelectMany(s => s.Tasks)).ToList();
+                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks)).ToList();
                 }
                 else
                 {
-                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(scheduler, f.Key, f.SelectMany(s => s.Tasks))));
+                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks))));
                 }
 
                 bool isNeedUpdateJobState = false;
@@ -347,9 +358,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info(string.Format("User {0} with job Id {1} is copying job data to temp {2}", loggedUser.GetLogIdentification(), submittedJobInfoId, hash));
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
-                    .CopyJobDataToTemp(jobInfo, hash, path);
+                    .CopyJobDataToTemp(jobInfo, clusterProject.LocalBasepath, hash, path);
         }
 
 
@@ -357,9 +373,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info(string.Format("User {0} with job Id {1} is copying job data from temp {2}", loggedUser.GetLogIdentification(), createdJobInfoId, hash));
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
+            if (clusterProject == null)
+            {
+                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
+            }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
-                    .CopyJobDataFromTemp(jobInfo, hash);
+                    .CopyJobDataFromTemp(jobInfo, clusterProject.LocalBasepath, hash);
         }
 
         public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)
@@ -401,91 +422,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return true;
         }
 
-        protected static object CombinePropertyValues(PropertyChangeSpecification propertyChange, object templateValue, object clientValue)
-        {
-            switch (propertyChange.ChangeMethod)
-            {
-                case PropertyChangeMethod.Append:
-                    if (templateValue == null || (templateValue is ICollection collection && collection.Count == 0))
-                    {
-                        return clientValue;
-                    }
-                    else if (clientValue == null || (clientValue is ICollection collection2 && collection2.Count == 0))
-                    {
-                        return templateValue;
-                    }
-                    else if (clientValue is bool boolean)
-                    {
-                        return ((bool)templateValue) || boolean;
-                    }
-                    else if (clientValue is string text)
-                    {
-                        return ((string)templateValue) + text;
-                    }
-                    else if (clientValue is int integer)
-                    {
-                        return ((int)templateValue) + integer;
-                    }
-                    else if (clientValue is float single)
-                    {
-                        return ((float)templateValue) + single;
-                    }
-                    else if (clientValue is double number)
-                    {
-                        return ((double)templateValue) + number;
-                    }
-                    else if (clientValue is ICollection arrayClientValue)
-                    {
-                        ArrayList arrayTemplateValue = new();
-                        foreach (var item in (IEnumerable)templateValue)
-                        {
-                            arrayTemplateValue.Add((item as ICloneable).Clone());
-                        }
-                        int arraySize = arrayTemplateValue.Count + arrayClientValue.Count;
-                        Array returnArray = Array.CreateInstance(arrayClientValue.GetType().GetGenericArguments().Single(), arraySize);
-                        arrayTemplateValue.CopyTo(returnArray, 0);
-                        arrayClientValue.CopyTo(returnArray, arrayTemplateValue.Count);
-                        return returnArray;
-                    }
-                    var msg = $"Property with name \"{propertyChange.PropertyName}\" with values \"{templateValue}\"," +
-                              $"\"{clientValue}\" could not be appended because its type cannot be appended.";
-
-                    _logger.Error(msg);
-                    throw new UnableToAppendToJobTemplatePropertyException(msg);
-
-                case PropertyChangeMethod.Rewrite:
-                    return clientValue;
-
-                default:
-                    _logger.Error($"Method \"{propertyChange.ChangeMethod}\" for changing the properties values is not supported.");
-                    throw new ArgumentException($"Method \"{propertyChange.ChangeMethod}\" for changing the properties values is not supported.");
-            }
-        }
-
-        protected static void CombineSpecificationWithJobTemplate(JobSpecification specification, JobTemplate jobTemplate)
-        {
-            if (jobTemplate != null && jobTemplate.PropertyChangeSpecification != null)
-            {
-                foreach (PropertyChangeSpecification propertyChange in jobTemplate.PropertyChangeSpecification)
-                {
-                    PropertyInfo property = specification.GetType().GetProperty(propertyChange.PropertyName);
-                    object clientPropertyValue = property.GetValue(specification, null);
-                    if (clientPropertyValue != null)
-                    {
-                        if (clientPropertyValue is ICollection collection)
-                        {
-                            if (collection.Count == 0)
-                            {
-                                continue;
-                            }
-                        }
-                        object newPropertyValue = CombinePropertyValues(propertyChange, property.GetValue(jobTemplate, null), clientPropertyValue);
-                        property.SetValue(specification, newPropertyValue, null);
-                    }
-                }
-            }
-        }
-
         protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser, IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
         {
             Cluster cluster = clusterLogic.GetClusterById(specification.ClusterId);
@@ -495,9 +431,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                                                                 .GetFileTransferMethodsByClusterId(cluster.Id)
                                                                                     .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-            specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id);
+            specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId);
             specification.Submitter = loggedUser;
             specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser);
+            specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
 
             foreach (TaskSpecification task in specification.Tasks)
             {
@@ -572,13 +509,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
 
             //Combination parameters from template
-            taskSpecification.Priority ??= taskSpecification.ClusterNodeType.TaskTemplate.Priority;
+            taskSpecification.Priority ??= default(TaskPriority);
 
-
-            if(taskSpecification.Project != taskSpecification.JobSpecification.SubmitterGroup.AccountingString)
-            {
-                taskSpecification.Project = taskSpecification.JobSpecification.SubmitterGroup.AccountingString;
-            }           
+            taskSpecification.Project??= taskSpecification.JobSpecification.Project;
         }
 
         /// <summary>
@@ -697,7 +630,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         Specification = s,
                         State = TaskState.Configuring,
                         Priority = s.Priority ?? TaskPriority.Average,
-                        NodeType = s.ClusterNodeType
+                        NodeType = s.ClusterNodeType,
+                        Project = s.Project
                     })
                     .ToList()
             };
@@ -744,12 +678,16 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return dbJobInfo;
         }
 
-        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IRexScheduler scheduler, ClusterAuthenticationCredentials credential, IEnumerable<SubmittedTaskInfo> jobTasks)
+        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork, IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks)
         {
             var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
                                            .ToList();
 
-            return scheduler.GetActualTasksInfo(unfinishedTasks, credential);
+            var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
+            var cluster = jobSpecification.Cluster;
+            var serviceAccount = unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId);
+
+            return scheduler.GetActualTasksInfo(unfinishedTasks, serviceAccount);
         }
 
         private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)

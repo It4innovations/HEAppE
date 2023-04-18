@@ -3,11 +3,12 @@ using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.KeycloakOpenIdAuthentication.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
+using HEAppE.ServiceTier;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
@@ -23,6 +24,7 @@ using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
 
 namespace HEAppE.RestApi
@@ -70,8 +72,6 @@ namespace HEAppE.RestApi
             services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
             //Other configuration
-            var keycloackConfiguration = new KeycloakConfiguration();
-
             Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
             Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
             Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
@@ -79,16 +79,14 @@ namespace HEAppE.RestApi
             MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
             Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
-            Configuration.Bind("KeycloakSettings", keycloackConfiguration);
+            Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
             Configuration.Bind("OpenStackSettings", new OpenStackSettings());
-
 
             services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
             services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
             services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
-            services.AddSingleton(keycloackConfiguration); //Maybe Interface
 
             //CORS
             services.AddCors(options =>
@@ -132,6 +130,12 @@ namespace HEAppE.RestApi
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 gen.IncludeXmlComments(xmlPath);
             });
+
+            //Set Single Project HEAppE Instance
+            if (MiddlewareContextSettings.Projects.Count == 1)
+            {
+                ServiceTierSettings.SingleProjectId = MiddlewareContextSettings.Projects.FirstOrDefault()?.Id;
+            }
         }
 
         /// <summary>
@@ -144,7 +148,7 @@ namespace HEAppE.RestApi
         {
             var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
             GlobalContext.Properties["instanceName"] = DeploymentInformationsConfiguration.Name;
-            GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version; 
+            GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version;
             GlobalContext.Properties["ip"] = DeploymentInformationsConfiguration.DeployedIPAddress;
 
             if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")

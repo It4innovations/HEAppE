@@ -1,12 +1,14 @@
 ﻿using System.Collections.Generic;
+using System.Runtime.Serialization;
+using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 
 namespace HEAppE.DomainObjects.JobReporting
 {
-    public class UserResourceUsageReport : ResourceUsageReport
+    public class UserResourceUsageReport
     {
-        public AdaptorUser User { get; set; }
-
-        public virtual IEnumerable<NodeTypeAggregatedUsage> NodeTypeReport { get; set; } = new List<NodeTypeAggregatedUsage>();
+        public double? TotalUsage { get; set; }
+        public UsageType UsageType { get; set; }
+        public IEnumerable<ProjectReport> Projects { get; set; }
     }
 }

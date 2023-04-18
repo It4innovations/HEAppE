@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HEAppE.ExtModels.JobManagement.Models;
+using System;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models
@@ -15,8 +16,8 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
         [DataMember(Name = "Description")]
         public string Description { get; set; }
 
-        [DataMember(Name = "Code")]
-        public string Code { get; set; }
+        [DataMember(Name = "ExtendedAllocationCommand")]
+        public string ExtendedAllocationCommand { get; set; }
 
         [DataMember(Name = "IsGeneric")]
         public bool IsGeneric { get; set; }
@@ -26,7 +27,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
 
         public override string ToString()
         {
-            return $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; code={Code}; isGeneric={IsGeneric}; templateParameters={TemplateParameters})";
+            return $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; templateParameters={TemplateParameters})";
         }
     }
 }

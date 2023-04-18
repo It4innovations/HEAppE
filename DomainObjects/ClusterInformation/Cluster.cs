@@ -1,7 +1,9 @@
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Linq;
 
 namespace HEAppE.DomainObjects.ClusterInformation
 {
@@ -18,35 +20,23 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public string Description { get; set; }
 
         [Required]
-        [StringLength(30)]
+        [StringLength(50)]
         public string MasterNodeName { get; set; }
 
-        [StringLength(30)]
+        [StringLength(50)]
         public string DomainName { get; set; }
 
         public int? Port { get; set; }
 
         [Required]
-        [StringLength(100)]
-        public string LocalBasepath { get; set; }
-
-        [Required]
         [StringLength(30)]
         public string TimeZone { get; set; } = "UTC";
-
-        [ForeignKey("ServiceAccountCredentials")]
-        public long? ServiceAccountCredentialsId { get; set; }
 
         public bool? UpdateJobStateByServiceAccount { get; set; } = true;
 
         public SchedulerType SchedulerType { get; set; }
 
         public virtual ClusterConnectionProtocol ConnectionProtocol { get; set; }
-
-        [InverseProperty("Cluster")]
-        public virtual List<ClusterAuthenticationCredentials> AuthenticationCredentials { get; set; } = new List<ClusterAuthenticationCredentials>();
-
-        public virtual ClusterAuthenticationCredentials ServiceAccountCredentials { get; set; }
 
         public virtual List<ClusterNodeType> NodeTypes { get; set; } = new List<ClusterNodeType>();
 
@@ -55,11 +45,12 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [ForeignKey("ClusterProxyConnection")]
         public long? ProxyConnectionId { get; set; }
         public virtual ClusterProxyConnection ProxyConnection { get; set; }
+        public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
         #endregion
         #region Override Methods
         public override string ToString()
         {
-            return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, LocalBasepath={LocalBasepath}, SchedulerType={SchedulerType}, TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
+            return $"Cluster: Id={Id}, Name={Name}, MasterNodeName={MasterNodeName}, Port={Port}, SchedulerType={SchedulerType}, TimeZone={TimeZone}, ConnectionProtocol={ConnectionProtocol}";
         }
         #endregion
     }

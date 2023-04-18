@@ -18,13 +18,14 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         #region Repositories
         IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository { get; }
         IClusterRepository ClusterRepository { get; }
+        IProjectRepository ProjectRepository { get; }
+        IClusterProjectRepository ClusterProjectRepository { get; }
         IClusterProxyConnectionRepository ClusterProxyConnectionRepository { get; }
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }
         IClusterNodeTypeRequestedGroupRepository ClusterNodeTypeRequestedGroupRepository { get; }
         IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository { get; }
         IOpenStackDomainRepository OpenStackDomainRepository { get; }
         IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
-        IOpenStackProjectDomainRepository OpenStackProjectDomainRepository { get; }
         IOpenStackProjectRepository OpenStackProjectRepository { get; }
         IEnvironmentVariableRepository EnvironmentVariableRepository { get; }
         IFileTransferMethodRepository FileTransferMethodRepository { get; }
@@ -37,8 +38,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         ICommandTemplateParameterRepository CommandTemplateParameterRepository { get; }
         ICommandTemplateParameterValueRepository CommandTemplateParameterValueRepository { get; }
         IJobSpecificationRepository JobSpecificationRepository { get; }
-        IJobTemplateRepository JobTemplateRepository { get; }
-        ITaskTemplateRepository TaskTemplateRepository { get; }
         ITaskSpecificationRepository TaskSpecificationRepository { get; }
         ITaskParalizationSpecificationRepository TaskParalizationSpecificationRepository { get; }
         ITaskSpecificationRequiredNodeRepository TaskSpecificationRequiredNodeRepository { get; }
@@ -47,7 +46,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IMessageTemplateRepository MessageTemplateRepository { get; }
         IMessageTemplateParameterRepository MessageTemplateParameterRepository { get; }
         INotificationRepository NotificationRepository { get; }
-        IPropertyChangeSpecificationRepository PropertyChangeSpecificationRepository { get; }
         IAdaptorUserRepository AdaptorUserRepository { get; }
         IAdaptorUserGroupRepository AdaptorUserGroupRepository { get; }
         IAdaptorUserRoleRepository AdaptorUserRoleRepository { get; }

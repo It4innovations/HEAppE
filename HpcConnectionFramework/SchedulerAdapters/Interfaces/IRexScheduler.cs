@@ -17,23 +17,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void CancelJob(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message, ClusterAuthenticationCredentials credentials);
 
-        ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType);
+        ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType, ClusterAuthenticationCredentials credentials);
 
         IEnumerable<string> GetAllocatedNodes(SubmittedTaskInfo taskInfo);
 
-        IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, string userScriptPath);
+        IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster, ClusterAuthenticationCredentials serviceCredentials, string userScriptPath);
 
         void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 
-        void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials);
+        void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, Cluster cluster);
 
-        void CreateJobDirectory(SubmittedJobInfo jobInfo);
+        void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath);
 
-        void DeleteJobDirectory(SubmittedJobInfo jobInfo);
+        void DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath);
 
-        void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string hash, string path);
+        void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash, string path);
 
-        void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string hash);
+        void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash);
 
         void CreateTunnel(SubmittedTaskInfo taskInfo, string nodeHost, int nodePort);
 

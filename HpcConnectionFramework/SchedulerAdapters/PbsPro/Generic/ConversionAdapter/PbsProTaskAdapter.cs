@@ -65,6 +65,18 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         }
 
         /// <summary>
+        /// Task quality of service
+        /// Note: Not supported
+        /// </summary>
+        public string QualityOfService
+        {
+            set
+            {
+
+            }
+        }
+
+        /// <summary>
         /// Task cluster allocation name
         /// Note: Not supported
         /// </summary>
@@ -217,12 +229,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         }
 
         /// <summary>
+        /// Extended allocation parameters from command template
+        /// </summary>
+        public string ExtendedAllocationCommand
+        {
+            set
+            {
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
+            }
+        }
+
+        /// <summary>
         /// Set requested resources for task
         /// </summary>
         /// <param name="requestedNodeGroups">Node group names</param>
         /// <param name="requiredNodes">Node names</param>
         /// <param name="placementPolicy">Specify placement policy (on same rack, etc.)</param>
-        /// <param name="paralizationSpecs">Task paralization specifications</param>
+        /// <param name="paralizationSpecs">Task parallel specifications</param>
         /// <param name="minCores">Task min cores</param>
         /// <param name="maxCores">Task max cores</param>
         /// <param name="coresPerNode">Cores per node</param>
@@ -275,7 +298,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         /// <summary>
         /// Set variables for task
         /// </summary>
-        /// <param name="variables">Task varibles</param>
+        /// <param name="variables">Task variables</param>
         public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)
         {
             if (variables != null && variables.Any())

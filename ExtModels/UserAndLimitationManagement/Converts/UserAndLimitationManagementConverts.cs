@@ -1,9 +1,12 @@
 ﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.DTO;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
@@ -27,7 +30,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 Id = userGroup.Id,
                 Name = userGroup.Name,
                 Description = userGroup.Description,
-                AccountingString = userGroup.AccountingString,
+                Project = userGroup.Project?.ConvertIntToExt(),
                 Users = userGroup.Users.Select(s => s.ConvertIntToExt())
                                         .ToArray()
             };
@@ -45,7 +48,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             return convert;
         }
 
-        private static ResourceLimitationExt ConvertIntToExt(this ResourceLimitation resourceLimitation)
+        public static ResourceLimitationExt ConvertIntToExt(this ResourceLimitation resourceLimitation)
         {
             if (resourceLimitation != null)
             {
@@ -99,6 +102,34 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 ApplicationCredentialsId = applicationCredentialsDto.ApplicationCredentialsId,
                 ApplicationCredentialsSecret = applicationCredentialsDto.ApplicationCredentialsSecret
             };
+        }
+
+        public static AdaptorUserRoleExt ConvertIntToExt(this AdaptorUserRole userRole)
+        {
+            return new AdaptorUserRoleExt
+            {
+                Name = userRole.Name,
+                Description = userRole.Description
+            };
+        }
+
+        public static ProjectReferenceExt ConvertIntToExt(this ProjectReference projectReference)
+        {
+            return new ProjectReferenceExt
+            {
+                Project = projectReference.Project.ConvertIntToExt(),
+                Role = projectReference.Role.ConvertIntToExt()
+            };
+        }
+
+        public static NodeUsedCoresAndLimitationExt ConvertIntToExt(this NodeUsedCoresAndLimitation usedCoresAndLimitations)
+        {
+            var convert = new NodeUsedCoresAndLimitationExt()
+            {
+                CoresUsed = usedCoresAndLimitations.CoresUsed,
+                Limitation = usedCoresAndLimitations.Limitation.ConvertIntToExt()
+            };
+            return convert;
         }
     }
 }

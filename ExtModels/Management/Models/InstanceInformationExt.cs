@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using HEAppE.ExtModels.JobManagement.Models;
+using System.Collections.Generic;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.Management.Models
@@ -63,6 +64,12 @@ namespace HEAppE.ExtModels.Management.Models
         /// </summary>
         [DataMember(Name = "ResourceAllocationTypes")]
         public IEnumerable<ResourceAllocationTypeExt> ResourceAllocationTypes { get; set; }
+
+        /// <summary>
+        /// Instance reference to HPC Projects
+        /// </summary>
+        [DataMember(Name = "Projects")]
+        public IEnumerable<ProjectExt> Projects { get; set; }
         #endregion
         #region Override methods
         /// <summary>
@@ -71,7 +78,7 @@ namespace HEAppE.ExtModels.Management.Models
         /// <returns></returns>
         public override string ToString()
         {
-            return $"InstanceInformationExt: Name={Name}, Description={Description}, Version={Version}, DeployedIPAddress={DeployedIPAddress}, Port={Port}, URL={URL}, URLPostfix={URLPostfix}, DeploymetType={DeploymentType}, ResourceAllocationTypes={ResourceAllocationTypes}";
+            return $"InstanceInformationExt: Name={Name}, Description={Description}, Version={Version}, DeployedIPAddress={DeployedIPAddress}, Port={Port}, URL={URL}, URLPostfix={URLPostfix}, DeploymetType={DeploymentType}, ResourceAllocationTypes={ResourceAllocationTypes}, Projects={Projects}";
         }
         #endregion
     }

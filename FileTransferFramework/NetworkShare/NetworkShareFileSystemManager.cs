@@ -27,18 +27,18 @@ namespace HEAppE.FileTransferFramework.NetworkShare
 
         public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(_fileSystem.Cluster.LocalBasepath, jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification);
             UnsetReadOnlyForAllFiles(jobClusterDirectoryPath);
             Directory.Delete(jobClusterDirectoryPath, true);
         }
 
         protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite, DateTime? lastModificationLimit,
-            string[] excludedFiles, ClusterAuthenticationCredentials credentials)
+            string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster)
         {
             FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles);
         }
 
-        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials)
+        protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone, string taskClusterDirectoryPath, DateTime? jobSubmitTime, ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster)
         {
             throw new NotImplementedException();
         }

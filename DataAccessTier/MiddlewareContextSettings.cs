@@ -18,25 +18,21 @@ namespace HEAppE.DataAccessTier
 
         public static List<AdaptorUserGroup> AdaptorUserGroups { get; set; }
 
-        public static List<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; }
-
-        public static List<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; }
-
+        public static List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; }
 
         public static List<OpenStackInstance> OpenStackInstances { get; set; }
 
         public static List<OpenStackDomain> OpenStackDomains { get; set; }
 
-        public static List<OpenStackProject> OpenStackProjects { get; set; }
-
         public static List<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
+
+        public static List<OpenStackProject> OpenStackProjects { get; set; }
 
         public static List<OpenStackAuthenticationCredential> OpenStackAuthenticationCredentials { get; set; }
 
         public static List<OpenStackAuthenticationCredentialDomain> OpenStackAuthenticationCredentialDomains { get; set; }
 
-        public static List<OpenStackAuthenticationCredentialProjectDomain> OpenStackAuthenticationCredentialProjectDomains { get; set; }
-
+        public static List<OpenStackAuthenticationCredentialProject> OpenStackAuthenticationCredentialProjects { get; set; }
 
         public static List<ClusterProxyConnection> ClusterProxyConnections { get; set; }
 
@@ -52,12 +48,12 @@ namespace HEAppE.DataAccessTier
 
         public static List<FileTransferMethod> FileTransferMethods { get; set; }
 
-        public static List<JobTemplate> JobTemplates { get; set; }
+        public static List<Project> Projects { get; set; }
 
-        public static List<TaskTemplate> TaskTemplates { get; set; }
+        public static List<ClusterProject> ClusterProjects { get; set; }
+
+        public static List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; }
 
         public static List<Language> Languages { get; set; }
-
-        public static List<PropertyChangeSpecification> PropertyChangeSpecifications { get; set; }
     }
 }

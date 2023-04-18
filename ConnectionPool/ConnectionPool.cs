@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -48,7 +49,7 @@ namespace HEAppE.ConnectionPool
         #endregion
 
         #region IConnectionPool Members
-        public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials)
+        public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster)
         {
             //log.DebugFormat("Thread {0} Requesting connectin for {1}",Thread.CurrentThread.ManagedThreadId, credentials.Username);
             ConnectionInfo connection = null;
@@ -68,7 +69,7 @@ namespace HEAppE.ConnectionPool
                         if (actualSize < maxSize)
                         {
                             // If there is space free, create new connection
-                            connection = ExpandPoolAndGetConnection(credentials);
+                            connection = ExpandPoolAndGetConnection(credentials, cluster);
                         }
                         else if (HasAnyFreeConnection())
                         {
@@ -78,7 +79,7 @@ namespace HEAppE.ConnectionPool
                             // Drop it
                             RemoveConnectionFromPool(oldest);
                             // Expand pool with newly created one
-                            connection = ExpandPoolAndGetConnection(credentials);
+                            connection = ExpandPoolAndGetConnection(credentials, cluster);
                         }
                         else
                         {
@@ -105,9 +106,9 @@ namespace HEAppE.ConnectionPool
         #endregion
 
         #region Local Methods
-        private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred)
+        private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster)
         {
-            object connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cred.Cluster.ProxyConnection, cred.Cluster.Port);
+            object connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, cluster.Port);
             var connection = new ConnectionInfo
             {
                 Connection = connectionObject,
@@ -118,9 +119,9 @@ namespace HEAppE.ConnectionPool
             return connection;
         }
 
-        private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred)
+        private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred, Cluster cluster)
         {
-            ConnectionInfo connection = InitializeConnection(cred);
+            ConnectionInfo connection = InitializeConnection(cred, cluster);
             actualSize++;
             if (poolCleanTimer != null && actualSize > minSize)
                 poolCleanTimer.Start();

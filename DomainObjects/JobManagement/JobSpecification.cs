@@ -94,7 +94,7 @@ namespace HEAppE.DomainObjects.JobManagement
                     writer.WriteStringValue(Name);
 
                     writer.WritePropertyName("Project");
-                    writer.WriteStringValue(Project);
+                    writer.WriteStringValue(Project.AccountingString);
 
                     writer.WritePropertyName("CreateTime");
                     writer.WriteStringValue(DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"));
@@ -129,7 +129,7 @@ namespace HEAppE.DomainObjects.JobManagement
                         writer.WriteStringValue(task.JobArrays);
 
                         writer.WritePropertyName("DependsOn");
-                        writer.WriteStringValue(string.Join(",", task.DependsOn.Select(x=>x.ParentTaskSpecificationId.ToString())));
+                        writer.WriteStringValue(string.Join(",", task.DependsOn.Select(x => x.ParentTaskSpecificationId.ToString())));
 
                         writer.WriteEndObject();
 

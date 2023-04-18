@@ -16,7 +16,15 @@ namespace HEAppE.BusinessLogicTier.Logic
             // Throw proper externally visible exceptions
             if (exception is ExternallyVisibleException)
             {
-                if (exception is InputValidationException)
+                if(exception is ProjectConfigurationException)
+                {
+                    throw new ProjectConfigurationException(exception.Message);
+                }
+                else if(exception is AdaptorUserNotReferencedForProjectException)
+                {
+                    throw new AdaptorUserNotReferencedForProjectException(exception.Message);
+                }
+                else if (exception is InputValidationException)
                 {
                     throw new InputValidationException(exception.Message);
                 }

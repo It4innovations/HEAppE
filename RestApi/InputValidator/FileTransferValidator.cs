@@ -74,7 +74,10 @@ namespace HEAppE.RestApi.InputValidator
         {
             ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
             ValidateSessionCode(model.SessionCode);
-            _ = ValidateFileTransferMethod(model.UsedTransferMethod);
+            if (string.IsNullOrEmpty(model.PublicKey))
+            {
+                _messageBuilder.AppendLine("PublicKey must be set");
+            }
 
             return _messageBuilder.ToString();
         }

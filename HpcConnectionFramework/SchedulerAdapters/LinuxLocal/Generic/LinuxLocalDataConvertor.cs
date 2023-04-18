@@ -29,7 +29,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <summary>
         /// Constructor
         /// </summary>
-        public LinuxLocalDataConvertor() : base(null) 
+        public LinuxLocalDataConvertor() : base(null)
         {
         }
         #endregion
@@ -133,9 +133,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 commands.Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(taskCommandLine.ToString())) + " ");
                 taskCommandLine.Clear();
             }
+             string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
 
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {jobSpecification.FileTransferMethod.Cluster.LocalBasepath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
+            return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {localBasePath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
         }
         #endregion
         #region Local Methods

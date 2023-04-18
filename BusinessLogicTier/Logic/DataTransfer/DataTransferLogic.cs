@@ -10,6 +10,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using log4net;
 using RestSharp;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -204,7 +205,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds
+                    MaxTimeout = (int) (BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
                 };
                 var basicRestClient = new RestClient(options);
 
@@ -250,20 +251,21 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds
+                    MaxTimeout = (int) (BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
                 };
                 var basicRestClient = new RestClient(options);
 
-                var request = new RestRequest(httpRequest, Method.Get);
+                var request = new RestRequest(httpRequest, Method.Post);
                 headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
 
                 //Body part
                 byte[] payload = Encoding.UTF8.GetBytes(httpPayload);
-                request.AddHeader("content-type", "application/x-www-form-urlencoded")
+                request.AddHeader("content-type", "raw")
                        .AddHeader("contentLength", payload.Length)
                        .AddBody(payload);
 
                 var response = await basicRestClient.ExecuteAsync(request);
+
                 if (response.StatusCode != HttpStatusCode.OK)
                 {
                     throw new UnableToCreateConnectionException($"Response code for HttpPost is not 200. Check your application.");

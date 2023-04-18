@@ -22,16 +22,19 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         public AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id)
         {
             return _dbSet.Where(w=> w.Id == id)
-                          .Include(i => i.AdaptorUserUserGroups)
+                          .Include(i => i.AdaptorUserUserGroupRoles)
                           .ThenInclude(i=>i.AdaptorUser)
                           .FirstOrDefault();
         }
 
-        public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroups()
+        public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndProject()
         {
-            return _dbSet.Include(i => i.AdaptorUserUserGroups)
-                          .ThenInclude(i => i.AdaptorUser)
-                          .ToList();
+            return _dbSet.Include(p=> p.Project)
+                            .ThenInclude(i => i.CommandTemplates)
+                            .ThenInclude(i => i.TemplateParameters)
+                            .Include(i => i.AdaptorUserUserGroupRoles)
+                            .ThenInclude(i => i.AdaptorUser)
+                            .ToList();
         }
 
         public AdaptorUserGroup GetDefaultSubmitterGroup()

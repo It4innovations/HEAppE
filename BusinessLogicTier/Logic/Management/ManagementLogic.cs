@@ -16,7 +16,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork = unitOfWork;
         }
 
-        public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, string description, string code, string executableFile, string preparationScript)
+        public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
             if (commandTemplate is null)
@@ -48,9 +48,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
+            var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster)
-                                                             .GetParametersFromGenericUserScript(cluster, executableFile)
+                                                             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
 
             List<CommandTemplateParameter> templateParameters = new();
@@ -72,7 +73,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 IsEnabled = true,
                 ClusterNodeType = commandTemplate.ClusterNodeType,
                 ClusterNodeTypeId = commandTemplate.ClusterNodeTypeId,
-                Code = code,
+                ExtendedAllocationCommand = extendedAllocationCommand,
                 ExecutableFile = executableFile,
                 PreparationScript = preparationScript,
                 TemplateParameters = templateParameters,
@@ -85,7 +86,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return newCommandTemplate;
         }
 
-        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, string description, string code, string executableFile, string preparationScript)
+        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate is null)
@@ -109,9 +110,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
+            var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster)
-                                                             .GetParametersFromGenericUserScript(cluster, executableFile)
+                                                             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
 
             var templateParameters = new List<CommandTemplateParameter>();
@@ -127,7 +129,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             commandTemplate.Name = name;
             commandTemplate.Description = description;
-            commandTemplate.Code = code;
+            commandTemplate.ExtendedAllocationCommand = extendedAllocationCommand;
             commandTemplate.PreparationScript = preparationScript;
             commandTemplate.TemplateParameters.ForEach(cmdParameters => _unitOfWork.CommandTemplateParameterRepository.Delete(cmdParameters));
             commandTemplate.TemplateParameters.AddRange(templateParameters);

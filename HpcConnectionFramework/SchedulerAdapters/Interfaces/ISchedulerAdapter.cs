@@ -27,13 +27,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys);
 
-        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo);
+        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
 
-        void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo);
+        void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
 
-        void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string path);
+        void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path);
 
-        void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash);
+        void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string hash, string localBasePath);
 
         void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort);
 

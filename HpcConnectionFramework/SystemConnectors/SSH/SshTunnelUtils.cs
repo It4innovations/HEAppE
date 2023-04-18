@@ -96,7 +96,8 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             }
             else
             {
-                throw new UnableToCreateTunnelException("Task \"{taskId}\" does not have an active ssh tunnel.");
+                throw new UnableToCreateTunnelException($"Task \"{taskId}\" does not have an active ssh tunnel.");
+
             }
         }
 
@@ -169,9 +170,14 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                         }
                     }
                 }
+                else
+                {
+                    break;
+                }
             }
             while (IsLocalPortFree(port));
             return port;
+
         }
 
         /// <summary>

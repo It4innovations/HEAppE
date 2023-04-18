@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
@@ -16,8 +17,9 @@ namespace HEAppE.DomainObjects.JobManagement {
 
         public TaskPriority? Priority { get; set; }
 
-		[StringLength(50)]
-		public string Project { get; set; }
+		[ForeignKey("Project")]
+		public long? ProjectId { get; set; }
+		public virtual Project Project { get; set; }
 
 		public int? WalltimeLimit { get; set; }
 

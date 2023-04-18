@@ -29,13 +29,14 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IAdaptorUserRepository _adaptorUserRepository;
         private IClusterProxyConnectionRepository _clusterProxyConnectionRepository;
         private IClusterRepository _clusterRepository;
+        private IProjectRepository _projectRepository;
+        private IClusterProjectRepository _clusterProjectRepository;
         private IClusterAuthenticationCredentialsRepository _clusterAuthenticationCredentialsRepository;
         private IClusterNodeTypeRepository _clusterNodeTypeRepository;
         private IClusterNodeTypeRequestedGroupRepository _clusterNodeTypeRequestedRepository;
         private IOpenStackAuthenticationCredentialsRepository _openStackAuthenticationCredentialsRepository;
         private IOpenStackDomainRepository _openStackDomainRepository;
         private IOpenStackInstanceRepository _openStackInstanceRepository;
-        private IOpenStackProjectDomainRepository _openStackProjectDomainRepository;
         private IOpenStackProjectRepository _openStackProjectRepository;
         private IEnvironmentVariableRepository _environmentVariableRepository;
         private IFileTransferMethodRepository _fileTransferMethodRepository;
@@ -45,14 +46,11 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private ICommandTemplateParameterRepository _commandTemplateParameterRepository;
         private ICommandTemplateParameterValueRepository _commandTemplateParameterValueRepository;
         private IJobSpecificationRepository _jobSpecificationRepository;
-        private IJobTemplateRepository _jobTemplateRepository;
-        private ITaskTemplateRepository _taskTemplateRepository;
         private ILanguageRepository _languageRepository;
         private IMessageLocalizationRepository _messagLocalizationRepository;
         private IMessageTemplateRepository _messageTemplateRepository;
         private IMessageTemplateParameterRepository _messageTemplateParameterRepository;
         private INotificationRepository _notificationRepository;
-        private IPropertyChangeSpecificationRepository _propertyChangeSpecificationRepository;
         private IResourceLimitationRepository _resourceLimitationRepository;
         private ISessionCodeRepository _sessionCodeRepository;
         private ISubmittedJobInfoRepository _submittedJobInfoRepository;
@@ -90,6 +88,24 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _clusterRepository = _clusterRepository ?? new ClusterRepository(_context);
+
+            }
+        }
+
+        public IProjectRepository ProjectRepository
+        {
+            get
+            {
+                return _projectRepository = _projectRepository ?? new ProjectRepository(_context);
+
+            }
+        }
+
+        public IClusterProjectRepository ClusterProjectRepository
+        {
+            get
+            {
+                return _clusterProjectRepository = _clusterProjectRepository ?? new ClusterProjectRepository(_context);
 
             }
         }
@@ -146,15 +162,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
-        public IOpenStackProjectDomainRepository OpenStackProjectDomainRepository
-        {
-            get
-            {
-                return _openStackProjectDomainRepository = _openStackProjectDomainRepository ?? new OpenStackProjectDomainRepository(_context);
-
-            }
-        }
-
         public IOpenStackProjectRepository OpenStackProjectRepository
         {
             get
@@ -163,7 +170,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
 
             }
         }
- 
+
         public IEnvironmentVariableRepository EnvironmentVariableRepository
         {
             get
@@ -252,22 +259,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
-        public IJobTemplateRepository JobTemplateRepository
-        {
-            get
-            {
-                return _jobTemplateRepository = _jobTemplateRepository ?? new JobTemplateRepository(_context);
-            }
-        }
-
-        public ITaskTemplateRepository TaskTemplateRepository
-        {
-            get
-            {
-                return _taskTemplateRepository = _taskTemplateRepository ?? new TaskTemplateRepository(_context);
-            }
-        }
-
         public ITaskSpecificationRepository TaskSpecificationRepository
         {
             get
@@ -328,14 +319,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _notificationRepository = _notificationRepository ?? new NotificationRepository(_context);
-            }
-        }
-
-        public IPropertyChangeSpecificationRepository PropertyChangeSpecificationRepository
-        {
-            get
-            {
-                return _propertyChangeSpecificationRepository = _propertyChangeSpecificationRepository ?? new PropertyChangeSpecificationRepository(_context);
             }
         }
 

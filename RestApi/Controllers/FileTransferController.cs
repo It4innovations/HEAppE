@@ -38,49 +38,53 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("GetFileTransferMethod")]
+        [HttpPost("RequestFileTransfer")]
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult GetFileTransferMethod(GetFileTransferMethodModel model)
+        public IActionResult RequestFileTransfer(GetFileTransferMethodModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"GetFileTransferMethod\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new FileTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetFileTransferMethod(model.SubmittedJobInfoId, model.SessionCode));
+                return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
         /// <summary>
-        /// End file transfer tunnel
+        /// Close file transfer tunnel
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("EndFileTransfer")]
+        [HttpPost("CloseFileTransfer")]
         [RequestSizeLimit(4700)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult EndFileTransfer(EndFileTransferModel model)
+        public IActionResult CloseFileTransfer(EndFileTransferModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"EndFileTransfer\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"CloseFileTransfer\" Parameters: \"{model}\"");
 
                 ValidationResult validationResult = new FileTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
@@ -88,12 +92,16 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                _service.EndFileTransfer(model.SubmittedJobInfoId, model.UsedTransferMethod, model.SessionCode);
-                return Ok("EndFileTransfer");
+                _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
+                return Ok("CloseFileTransfer");
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -106,9 +114,9 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(480)]
         [ProducesResponseType(typeof(IEnumerable<JobFileContentExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult DownloadPartsOfJobFilesFromCluster(DownloadPartsOfJobFilesFromClusterModel model)
         {
             try
@@ -122,9 +130,54 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Get all changes files during job execution
+        /// </summary>
+        /// <param name="sessionCode">Session code</param>
+        /// <param name="submittedJobInfoId">SubmittedJobInfo ID</param>
+        /// <returns></returns>
+        [HttpGet("ListChangedFilesForJob")]
+        [RequestSizeLimit(98)]
+        [ProducesResponseType(typeof(IEnumerable<FileInformationExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult ListChangedFilesForJob(string sessionCode, long submittedJobInfoId)
+        {
+            try
+            {
+                var model = new ListChangedFilesForJobModel()
+                {
+                    SessionCode = sessionCode,
+                    SubmittedJobInfoId = submittedJobInfoId
+                };
+                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -137,10 +190,11 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(98)]
         [ProducesResponseType(typeof(IEnumerable<FileInformationExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult ListChangedFilesForJob(ListChangedFilesForJobModel model)
+        [Obsolete]
+        public IActionResult Obsolete_ListChangedFilesForJob(ListChangedFilesForJobModel model)
         {
             try
             {
@@ -153,9 +207,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -166,11 +224,11 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("DownloadFileFromCluster")]
         [RequestSizeLimit(378)]
-        [ProducesResponseType(typeof(IEnumerable<byte>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult DownloadFileFromCluster(DownloadFileFromClusterModel model)
         {
             try
@@ -184,9 +242,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion

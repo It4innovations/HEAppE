@@ -1,9 +1,16 @@
 ﻿using System;
 using System.Linq;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
+using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.JobManagement.Converts;
+using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.JobReporting.Models;
+using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
+using HEAppE.ExtModels.JobReporting.Models.ListReport;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 
 namespace HEAppE.ExtModels.JobReporting.Converts
@@ -11,30 +18,207 @@ namespace HEAppE.ExtModels.JobReporting.Converts
     public static class JobReportingConverts
     {
         #region Public Methods
-        public static UserResourceUsageReportExt ConvertIntToExt(this UserResourceUsageReport report)
+
+        public static UsageTypeExt ConvertIntToExt(this UsageType usageType)
         {
-            var convert = new UserResourceUsageReportExt()
+            _ = Enum.TryParse(usageType.ToString(), out UsageTypeExt convert);
+            return convert;
+        }
+
+        public static TaskReportExt ConvertIntToExt(this TaskReport report)
+        {
+            var convert = new TaskReportExt()
             {
-                User = report.User.ConvertIntToExt(),
-                NodeTypeReports = report.NodeTypeReport.Select(s => s.ConvertIntToExt())
-                                                        .ToArray(),
-                StartTime = report.StartTime,
-                EndTime = report.EndTime,
-                TotalCorehoursUsage = report.TotalUsage
+                Id = report.SubmittedTaskInfo.Id,
+                Name = report.SubmittedTaskInfo.Name,
+                StartTime = report.SubmittedTaskInfo.StartTime,
+                EndTime = report.SubmittedTaskInfo.EndTime,
+                State = report.SubmittedTaskInfo.State.ConvertIntToExt(),
+                CommandTemplateId = report.SubmittedTaskInfo.Specification.CommandTemplateId,
+                Usage = report.Usage
             };
 
             return convert;
         }
 
-        public static UserGroupResourceUsageReportExt ConvertIntToExt(this UserGroupResourceUsageReport report)
+        public static TaskDetailedReportExt ConvertIntToDetailedExt(this TaskReport report)
         {
-            var convert = new UserGroupResourceUsageReportExt()
+            var convert = new TaskDetailedReportExt()
             {
-                UserReports = report.UserReport.Select(s => s.ConvertIntToExt())
-                                                .ToArray(),
-                StartTime = report.StartTime,
-                EndTime = report.EndTime,
-                TotalCorehoursUsage = report.TotalUsage
+                Id = report.SubmittedTaskInfo.Id,
+                ScheduledJobId = report.SubmittedTaskInfo.ScheduledJobId,
+                Name = report.SubmittedTaskInfo.Name,
+                StartTime = report.SubmittedTaskInfo.StartTime,
+                EndTime = report.SubmittedTaskInfo.EndTime,
+                State = report.SubmittedTaskInfo.State.ConvertIntToExt(),
+                CommandTemplateId = report.SubmittedTaskInfo.Specification.CommandTemplateId,
+                Usage = report.Usage,
+                CommandTemplateName = report.SubmittedTaskInfo.Specification.CommandTemplate.Name
+            };
+
+            return convert;
+        }
+
+        public static JobReportExt ConvertIntToExt(this JobReport report)
+        {
+            var convert = new JobReportExt()
+            {
+                Id = report.SubmittedJobInfo.Id,
+                Name = report.SubmittedJobInfo.Name,
+                Tasks = report.Tasks.Select(x => x.ConvertIntToExt()).ToList(),
+                State = report.SubmittedJobInfo.State.ConvertIntToExt()
+            };
+
+            return convert;
+        }
+
+        public static JobDetailedReportExt ConvertIntToDetailedExt(this JobReport report)
+        {
+            var convert = new JobDetailedReportExt()
+            {
+                Id = report.SubmittedJobInfo.Id,
+                Name = report.SubmittedJobInfo.Name,
+                Tasks = report.Tasks.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+                State = report.SubmittedJobInfo.State.ConvertIntToExt(),
+                CreationTime = report.SubmittedJobInfo.CreationTime,
+                StartTime = report.SubmittedJobInfo.StartTime,
+                SubmitTime = report.SubmittedJobInfo.SubmitTime,
+                EndTime = report.SubmittedJobInfo.EndTime,
+                Submitter = report.SubmittedJobInfo.Submitter.Username
+            };
+
+            return convert;
+        }
+
+        public static ClusterNodeTypeReportExt ConvertIntToExt(this ClusterNodeTypeReport report)
+        {
+            var convert = new ClusterNodeTypeReportExt()
+            {
+                Id = report.ClusterNodeType.Id,
+                Name = report.ClusterNodeType.Name,
+                Description = report.ClusterNodeType.Description,
+                Jobs = report.Jobs.Select(x => x.ConvertIntToExt()).ToList(),
+                TotalUsage = report.TotalUsage
+            };
+
+            return convert;
+        }
+
+        public static ClusterNodeTypeDetailedReportExt ConvertIntToDetailedExt(this ClusterNodeTypeReport report)
+        {
+            var convert = new ClusterNodeTypeDetailedReportExt()
+            {
+                Id = report.ClusterNodeType.Id,
+                Name = report.ClusterNodeType.Name,
+                Description = report.ClusterNodeType.Description,
+                ClusterName = report.ClusterNodeType.Cluster.Name,
+                QueueName = report.ClusterNodeType.Queue,
+                Jobs = report.Jobs.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+                TotalUsage = report.TotalUsage
+            };
+
+            return convert;
+        }
+
+        public static ProjectReportExt ConvertIntToExt(this ProjectReport report)
+        {
+            var convert = new ProjectReportExt()
+            {
+                Id = report.Project.Id,
+                Name = report.Project.Name,
+                Description = report.Project.Description,
+                AccountingString = report.Project.AccountingString,
+                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToExt()).ToList(),
+                TotalUsage = report.TotalUsage
+            };
+
+            return convert;
+        }
+
+        public static ProjectDetailedReportExt ConvertIntToDetailedExt(this ProjectReport report)
+        {
+            var convert = new ProjectDetailedReportExt()
+            {
+                Id = report.Project.Id,
+                Name = report.Project.Name,
+                Description = report.Project.Description,
+                AccountingString = report.Project.AccountingString,
+                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+                TotalUsage = report.TotalUsage,
+                StartDate = report.Project.StartDate,
+                EndDate = report.Project.EndDate
+            };
+
+            return convert;
+        }
+
+        public static ProjectListReportExt ConvertIntToListExt(this ProjectReport report)
+        {
+            var convert = new ProjectListReportExt()
+            {
+                Id = report.Project.Id,
+                Name = report.Project.Name,
+                Description = report.Project.Description,
+                AccountingString = report.Project.AccountingString,
+                TotalUsage = report.TotalUsage
+            };
+
+            return convert;
+        }
+
+        public static UserGroupListReportExt ConvertIntToExt(this UserGroupListReport report)
+        {
+            var convert = new UserGroupListReportExt()
+            {
+                Id = report.AdaptorUserGroup.Id,
+                Name = report.AdaptorUserGroup.Name,
+                Description = report.AdaptorUserGroup.Description,
+                Project = report.Project.ConvertIntToListExt(),
+                TotalUsage = report.TotalUsage,
+                UsageType = report.UsageType.ConvertIntToExt()
+            };
+
+            return convert;
+        }
+
+        public static UserGroupReportExt ConvertIntToExt(this UserGroupReport report)
+        {
+            var convert = new UserGroupReportExt()
+            {
+                Id = report.AdaptorUserGroup.Id,
+                Name = report.AdaptorUserGroup.Name,
+                Description = report.AdaptorUserGroup.Description,
+                Project = report.Project.ConvertIntToExt(),
+                TotalUsage = report.TotalUsage,
+                UsageType = report.UsageType.ConvertIntToExt()
+            };
+
+            return convert;
+        }
+
+        public static UserGroupDetailedReportExt ConvertIntToDetailedExt(this UserGroupReport report)
+        {
+            var convert = new UserGroupDetailedReportExt()
+            {
+                Id = report.AdaptorUserGroup.Id,
+                Name = report.AdaptorUserGroup.Name,
+                Description = report.AdaptorUserGroup.Description,
+                Project = report.Project.ConvertIntToDetailedExt(),
+                TotalUsage = report.TotalUsage,
+                UsageType = report.UsageType.ConvertIntToExt()
+            };
+
+            return convert;
+        }
+
+
+        public static UserResourceReportExt ConvertIntToExt(this UserResourceUsageReport report)
+        {
+            var convert = new UserResourceReportExt()
+            {
+                UsageType = report.UsageType.ConvertIntToExt(),
+                TotalUsage = report.TotalUsage,
+                Projects = report.Projects.Select(x => x.ConvertIntToExt()).ToList()
             };
 
             return convert;
@@ -53,129 +237,8 @@ namespace HEAppE.ExtModels.JobReporting.Converts
 
             return jobstateAggregationExt;
         }
-
-        public static SubmittedJobInfoReportExt ConvertIntToExt(this SubmittedJobInfoUsageReport jobInfo)
-        {
-            var jobInfoReportBriefExt = new SubmittedJobInfoReportExt
-            {
-                Id = jobInfo.Id,
-                Name = jobInfo.Name,
-                State = jobInfo.State.ConvertIntToExt(),
-                Project = jobInfo.Project,
-                SubmitTime = jobInfo.SubmitTime,
-                StartTime = jobInfo.StartTime,
-                EndTime = jobInfo.EndTime,
-                Submitter = jobInfo.Submitter.Username,
-                SubmittedTasks = jobInfo.TasksUsageReport.Select(s => s.ConvertIntToExt())
-            };
-
-            return jobInfoReportBriefExt;
-        }
-
-        public static SubmittedJobInfoUsageReportExt ConvertUsageIntToExt(this SubmittedJobInfoUsageReport jobInfo)
-        {
-            var jobInfoUsageReportExt = new SubmittedJobInfoUsageReportExt
-            {
-                Id = jobInfo.Id,
-                Name = jobInfo.Name,
-                State = jobInfo.State.ConvertIntToExt(),
-                Project = jobInfo.Project,
-                CreationTime = jobInfo.CreationTime,
-                SubmitTime = jobInfo.SubmitTime,
-                StartTime = jobInfo.StartTime,
-                EndTime = jobInfo.EndTime,
-                TotalAllocatedTime = jobInfo.TotalAllocatedTime,
-                TotalCorehoursUsage = jobInfo.TotalUsage,
-                SubmittedTasks = jobInfo.TasksUsageReport.Select(s => s.ConvertUsageIntToExt())
-            };
-
-            return jobInfoUsageReportExt;
-        }
-
-        public static SubmittedTaskInfoReportExt ConvertIntToExt(this SubmittedTaskInfoUsageReport taskInfo)
-        {
-            var taskInfoReportExt = new SubmittedTaskInfoReportExt
-            {
-                Id = taskInfo.Id,
-                ScheduledJobId = taskInfo.ScheduledJobId,
-                Name = taskInfo.Name,
-                State = taskInfo.State.ConvertIntToExt(),
-                StartTime = taskInfo.StartTime,
-                EndTime = taskInfo.EndTime,
-                CommandTemplateId = taskInfo.Specification.CommandTemplateId,
-                CommandTemplateName = taskInfo.Specification.CommandTemplate.Name,
-                ClusterName = taskInfo.Specification.ClusterNodeType.Cluster.Name,
-                QueueName = taskInfo.Specification.ClusterNodeType.Name
-            };
-
-            return taskInfoReportExt;
-        }
-
-        public static SubmittedTaskInfoUsageReportExt ConvertUsageIntToExt(this SubmittedTaskInfoUsageReport taskInfo)
-        {
-            var taskInfoUsageReportExt = new SubmittedTaskInfoUsageReportExt
-            {
-                Id = taskInfo.Id,
-                ScheduledJobId = taskInfo.ScheduledJobId,
-                Name = taskInfo.Name,
-                State = taskInfo.State.ConvertIntToExt(),
-                StartTime = taskInfo.StartTime,
-                EndTime = taskInfo.EndTime,
-                CommandTemplateId = taskInfo.Specification.CommandTemplateId,
-                AllocatedTime = taskInfo.AllocatedTime,
-                CorehoursUsage = taskInfo.Usage
-            };
-
-            return taskInfoUsageReportExt;
-        }
-
-        public static SubmittedTaskInfoUsageReportExtendedExt ConvertIntToExt(this SubmittedTaskInfoUsageReportExtended taskInfo)
-        {
-            var taskInfoExtendedUsageReportExt = new SubmittedTaskInfoUsageReportExtendedExt
-            {
-                Id = taskInfo.Id,
-                ScheduledJobId = taskInfo.ScheduledJobId,
-                Name = taskInfo.Name,
-                JobId = taskInfo.JobId,
-                JobName = taskInfo.JobName,
-                Project = taskInfo.Project,
-                State = taskInfo.State.ConvertIntToExt(),
-                StartTime = taskInfo.StartTime,
-                EndTime = taskInfo.EndTime,
-                CommandTemplateId = taskInfo.Specification.CommandTemplateId,
-                AllocatedTime = taskInfo.AllocatedTime,
-                CorehoursUsage = taskInfo.Usage
-            };
-
-            return taskInfoExtendedUsageReportExt;
-        }
         #endregion
         #region Private Methods
-        private static UserAggregatedUsageExt ConvertIntToExt(this UserAggregatedUsage report)
-        {
-            var convert = new UserAggregatedUsageExt()
-            {
-                User = report.User.ConvertIntToExt(),
-                NodeTypeReports = report.NodeTypeReport.Select(s => s.ConvertIntToExt())
-                                                        .ToArray(),
-                TotalCorehoursUsage = report.TotalUsage
-            };
-
-            return convert;
-        }
-
-        private static NodeTypeAggregatedUsageExt ConvertIntToExt(this NodeTypeAggregatedUsage report)
-        {
-            var convert = new NodeTypeAggregatedUsageExt()
-            {
-                ClusterNodeType = report.NodeType.ConvertIntToExt(),
-                SubmittedTasks = report.SubmittedTasks.Select(s => s.ConvertIntToExt())
-                                                       .ToArray(),
-                TotalCorehoursUsage = report.TotalUsage
-            };
-
-            return convert;
-        }
         #endregion
     }
 }

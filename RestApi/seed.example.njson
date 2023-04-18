@@ -15,13 +15,13 @@
         "Id": 1,
         "Name": "{GroupName}",
         "Description": "{GroupDescription}",
-        "AccountingString": "{AccountingString}"
+        "ProjectId": 1
       },
       {
         "Id": 2,
-        "Name": "KeycloakGroup",
-        "Description": "{KeyCloakGroupDescription}",
-        "AccountingString": "{KeycloakAccountingString}"
+        "Name": "OpenIdGroup",
+        "Description": "{OpenIdGroupDescription}",
+        "ProjectId": 1
       }
     ],
     "AdaptorUserRoles": [
@@ -42,30 +42,33 @@
       },
       {
         "Id": 4,
+        "Name": "GroupReporter",
+        "Description": "Users with this role car report in assigned groups."
+      },
+      {
+        "Id": 5,
         "Name": "Reporter",
         "Description": "Users with this role can watch other jobs in the same group."
       }
     ],
-    "AdaptorUserUserRoles": [
+    "AdaptorUserUserGroupRoles": [
       {
         "AdaptorUserId": 1,
-        "AdaptorUserRoleId": 1
-      }
-    ],
-    "AdaptorUserUserGroups": [
-      {
-        "AdaptorUserId": 1,
-        "AdaptorUserGroupId": 1
+        "AdaptorUserGroupId": 1,
+        "AdaptorUserRoleId": 1,
+        "CreatedAt": "2015-01-01 00:00:00",
+        "ModifiedAt": null,
+        "IsDeleted": false
       }
     ],
     "ClusterProxyConnections": [
       {
         "Id": 1,
         "Host": "",
-        "Port":8000,
+        "Port": 8000,
+        "Type": 1,
         "Username": null,
-        "Password": null,
-        "Type": 1
+        "Password": null
       }
     ],
     "Clusters": [
@@ -74,14 +77,12 @@
         "Name": "{ClusterName}",
         "Description": "{ClusterDescription}",
         "MasterNodeName": "{ClusterLoginURL}",
-        "DomainName": "{DomainName}",
-        "Port": null,
-        "LocalBasepath": "{LocalBasePath}",
-        "TimeZone": "CET",
         "SchedulerType": 2,
         "ConnectionProtocol": 2,
-        "ServiceAccountCredentialsId": 1,
+        "TimeZone": "CET",
+        "Port": null,
         "UpdateJobStateByServiceAccount": true,
+        "DomainName": "{DomainName}",
         "ProxyConnectionId": null
       }
     ],
@@ -91,16 +92,56 @@
         "Username": "{UserName}",
         "Password": null,
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "ClusterId": 1
+        "PrivateKeyPassword": "{PrivateKeyPassword}"
       },
       {
         "Id": 2,
         "Username": "{UserName}",
         "Password": null,
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "ClusterId": 1
+        "PrivateKeyPassword": "{PrivateKeyPassword}"
+      }
+    ],
+    "Projects": [
+      {
+        "Id": 1,
+        "Name": "{Name}",
+        "Description": "{Description}",
+        "AccountingString": "{AccountingString}",
+        "StartDate": "{StartDate}",
+        "EndDate": "{EndDate}",
+        "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
+        "IsDeleted": false
+      }
+    ],
+    "ClusterProjects": [
+      {
+        "Id": 1,
+        "ClusterId": 1,
+        "ProjectId": 1,
+        "LocalBasepath": "{LocalBasepath}",
+        "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
+        "IsDeleted": false
+      }
+    ],
+    "ClusterProjectCredentials": [
+      {
+        "ClusterProjectId": 1,
+        "ClusterAuthenticationCredentialsId": 1,
+        "IsServiceAccount": true,
+        "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
+        "IsDeleted": false
+      },
+      {
+        "ClusterProjectId": 1,
+        "ClusterAuthenticationCredentialsId": 2,
+        "IsServiceAccount": false,
+        "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
+        "IsDeleted": false
       }
     ],
     "ClusterNodeTypes": [
@@ -111,12 +152,10 @@
         "NumberOfNodes": "{NumberOfNodes}",
         "CoresPerNode": "{CoresPerNode}",
         "Queue": "{Queue}",
-        "RequestedNodeGroups": null,
+        "QualityOfService": null,
         "MaxWalltime": "{MaxWalltime}",
         "ClusterId": 1,
         "FileTransferMethodId": 1,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1,
         "ClusterAllocationName": null
       }
     ],
@@ -125,25 +164,27 @@
         "Id": 1,
         "Name": "TestTemplate",
         "Description": "TestTemplate",
-        "Code": "TestTemplate",
-        "ExecutableFile": "{ExecutableFilePath}",
-        "CommandParameters": "{CommandParameters}",
+        "ExtendedAllocationCommand": null,
+        "ExecutableFile": "~/.key_scripts/test.sh",
+        "CommandParameters": "%%{inputParam}",
         "PreparationScript": null,
         "ClusterNodeTypeId": 1,
         "IsGeneric": false,
-        "IsEnabled": true
+        "IsEnabled": true,
+        "ProjectId": null
       },
       {
         "Id": 2,
         "Name": "GenericCommandTemplate",
         "Description": "Command template for generic job.",
-        "Code": "GenericCommandTemplate",
+        "ExtendedAllocationCommand": null,
         "ExecutableFile": "~/.key_scripts/generic.sh",
         "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
         "PreparationScript": null,
-        "ClusterNodeTypeId": 2,
+        "ClusterNodeTypeId": 1,
         "IsGeneric": true,
-        "IsEnabled": true
+        "IsEnabled": true,
+        "ProjectId": null
       }
     ],
     "CommandTemplateParameters": [
@@ -180,77 +221,11 @@
         "ClusterId": 1
       }
     ],
-    "JobTemplates": [
-      {
-        "Id": 1,
-        "Name": "{DefaultName}",
-        "MinCores": { "MinCores" },
-        "MaxCores": { "MaxCores" },
-        "Priority": { "Priority" },
-        "Project": "{Project}",
-        "WalltimeLimit": { "WalltimeLimit" }
-      }
-    ],
-    "TaskTemplates": [
-      {
-        "Id": 1,
-        "Name": "{Name}",
-        "MinCores": { "MinCores" },
-        "MaxCores": { "MaxCores" },
-        "Priority": { "Priority" },
-        "Project": "{Project}",
-        "WalltimeLimit": { "WalltimeLimit" }
-      }
-    ],
     "Languages": [
       {
         "Id": 1,
         "IsoCode": "en-GB",
         "Name": "English"
-      }
-    ],
-    "PropertyChangeSpecifications": [
-      {
-        "Id": 1,
-        "PropertyName": "EnvironmentVariables",
-        "ChangeMethod": 1,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 2,
-        "PropertyName": "Name",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 3,
-        "PropertyName": "MinCores",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 4,
-        "PropertyName": "MaxCores",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 5,
-        "PropertyName": "Project",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
-      },
-      {
-        "Id": 6,
-        "PropertyName": "WalltimeLimit",
-        "ChangeMethod": 2,
-        "JobTemplateId": 1,
-        "TaskTemplateId": 1
       }
     ],
     "OpenStackInstances": [
@@ -264,23 +239,8 @@
       {
         "Id": 1,
         "Name": "",
+        "UID": "",
         "OpenStackInstanceId": 1
-      }
-    ],
-    "OpenStackProjects": [
-      {
-        "Id": 1,
-        "Name": "",
-        "UID": "",
-        "OpenStackDomainId": 1
-      }
-    ],
-    "OpenStackProjectDomains": [
-      {
-        "Id": 1,
-        "Name": "",
-        "UID": "",
-        "OpenStackProjectId": 1
       }
     ],
     "OpenStackAuthenticationCredentials": [
@@ -291,16 +251,34 @@
         "Password": ""
       }
     ],
+    "OpenStackProjectDomains": [
+      {
+        "Id": 1,
+        "Name": "",
+        "UID": ""
+      }
+    ],
+    "OpenStackProjects": [
+      {
+        "Id": 1,
+        "Name": "",
+        "UID": "",
+        "OpenStackDomainId": 1,
+        "OpenStackProjectDomainId": 1,
+        "AdaptorUserGroupId": 2
+      }
+    ],
+    "OpenStackAuthenticationCredentialProjects": [
+      {
+        "OpenStackAuthenticationCredentialId": 1,
+        "OpenStackProjectId": 1,
+        "IsDefault": true
+      }
+    ],
     "OpenStackAuthenticationCredentialDomains": [
       {
         "OpenStackAuthenticationCredentialId": 1,
         "OpenStackDomainId": 1
-      }
-    ],
-    "OpenStackAuthenticationCredentialProjectDomains": [
-      {
-        "OpenStackAuthenticationCredentialId": 1,
-        "OpenStackProjectDomainId": 1
       }
     ]
   }

@@ -15,6 +15,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 
         string Queue { set; }
 
+        string QualityOfService { set; }
+
         string ClusterAllocationName { set; }
 
         bool CpuHyperThreading { set; }
@@ -40,6 +42,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
         string StdOutFilePath { set; }
 
         string WorkDirectory { set; }
+
+        string ExtendedAllocationCommand { set; }
 
         void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode);
 

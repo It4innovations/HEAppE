@@ -19,10 +19,9 @@ namespace HEAppE.DomainObjects.OpenStack
         [StringLength(50)]
         public string Password { get; set; }
 
-        public virtual List<OpenStackAuthenticationCredentialProjectDomain> OpenStackAuthenticationCredentialProjectDomains { get; set; }
-
-
         public virtual List<OpenStackAuthenticationCredentialDomain> OpenStackAuthenticationCredentialDomains { get; set; }
+
+        public virtual List<OpenStackAuthenticationCredentialProject> OpenStackAuthenticationCredentialProjects { get; set; }
 
         public override string ToString()
         {

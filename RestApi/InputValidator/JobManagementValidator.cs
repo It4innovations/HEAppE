@@ -1,14 +1,14 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.ServiceTier;
 using HEAppE.Utils.Validation;
+using System;
 using System.Linq;
 
 namespace HEAppE.RestApi.InputValidator
 {
     public class JobManagementValidator : AbstractValidator
     {
-        private int ProjectNameLength { get => 50; }
-
         public JobManagementValidator(object validationObj) : base(validationObj)
         {
         }
@@ -17,22 +17,22 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = _validationObject switch
             {
-                CreateJobModel model => ValidateCreateJobModel(model),
+                CreateJobByProjectModel model => ValidateCreateJobModel(model),
                 SubmitJobModel model => ValidateSubmitJobModel(model),
                 CancelJobModel model => ValidateCancelJobModel(model),
                 DeleteJobModel model => ValidateDeleteJobModel(model),
                 ListJobsForCurrentUserModel model => ValidateListJobsForCurrentUserModel(model),
-                GetCurrentInfoForJobModel model => ValidateGetCurrentInfoForJobModel(model),
+                CurrentInfoForJobModel model => ValidateGetCurrentInfoForJobModel(model),
                 CopyJobDataToTempModel model => ValidateCopyJobDataToTempModel(model),
                 CopyJobDataFromTempModel model => ValidateCopyJobDataFromTempModel(model),
-                GetAllocatedNodesIPsModel model => ValidateGetAllocatedNodesIPsModel(model),
+                AllocatedNodesIPsModel model => ValidateGetAllocatedNodesIPsModel(model),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
         }
 
-        private string ValidateGetAllocatedNodesIPsModel(GetAllocatedNodesIPsModel validationObj)
+        private string ValidateGetAllocatedNodesIPsModel(AllocatedNodesIPsModel validationObj)
         {
             ValidateId(validationObj.SubmittedTaskInfoId, nameof(validationObj.SubmittedTaskInfoId));
 
@@ -82,7 +82,7 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateGetCurrentInfoForJobModel(GetCurrentInfoForJobModel validationObj)
+        private string ValidateGetCurrentInfoForJobModel(CurrentInfoForJobModel validationObj)
         {
             ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
 
@@ -140,9 +140,41 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateCreateJobModel(CreateJobModel validationObj)
+        private string ValidateCreateJobModel(CreateJobByProjectModel validationObj)
         {
             _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
+            if (validationObj.JobSpecification.ProjectId.HasValue)
+            {
+                //todo: single project heappe - if is single project, then check if project id is same
+                if (validationObj.JobSpecification.ProjectId.Value <= 0)
+                {
+                    _messageBuilder.AppendLine("ProjectId must be greater than 0.");
+                }
+                if (ServiceTierSettings.SingleProjectId.HasValue && ServiceTierSettings.SingleProjectId.Value != validationObj.JobSpecification.ProjectId.Value)
+                {
+                    _messageBuilder.AppendLine($"ProjectId must be set to '{ServiceTierSettings.SingleProjectId.Value}' because this is single project HEAppE instance.");
+                }
+            }
+            else if(!ServiceTierSettings.SingleProjectId.HasValue)
+            {
+                _messageBuilder.AppendLine("ProjectId must be set, because this is non single project HEAppE instance.");
+            }
+            
+            ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateJobModel(CreateJobByAccountingStringModel validationObj)
+        {
+            _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
+            if(string.IsNullOrEmpty(validationObj.JobSpecification.AccountingString))
+            {
+                _messageBuilder.AppendLine("AccountingString cannot be null or empty");
+            }
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
             if (!validationResult.IsValid)
             {
@@ -163,32 +195,13 @@ namespace HEAppE.RestApi.InputValidator
                 {
                     _messageBuilder.AppendLine("Name contains illegal characters.");
                 }
-                if (job.Name.Length > ProjectNameLength)
-                {
-                    _messageBuilder.AppendLine($"Name is too long, maximal length is {ProjectNameLength}");
-                }
-            }
-
-            if (string.IsNullOrEmpty(job.Project))
-            {
-                _messageBuilder.AppendLine("Project cannot be empty.");
-            }
-            else
-            {
-                if (ContainsIllegalCharacters(job.Project))
-                {
-                    _messageBuilder.AppendLine("Project contains illegal characters.");
-                }
-                if (job.Project.Length > ProjectNameLength)
-                {
-                    _messageBuilder.AppendLine($"Project is too long, maximal length is {ProjectNameLength}");
-                }
             }
 
             if (job.WaitingLimit.HasValue && job.WaitingLimit.Value < 0)
             {
                 _messageBuilder.AppendLine("WaitingLimit must be unsigned number");
             }
+
             if (job.WalltimeLimit.HasValue && job.WalltimeLimit.Value < 0)
             {
                 _messageBuilder.AppendLine("WalltimeLimit must be unsigned number");
@@ -252,11 +265,6 @@ namespace HEAppE.RestApi.InputValidator
             if (string.IsNullOrEmpty(task.Name))
             {
                 _messageBuilder.AppendLine("Task name cannot be empty.");
-            }
-
-            if (task.Name.Length > ProjectNameLength)
-            {
-                _messageBuilder.AppendLine($"Task name \"{task.Name}\" cannot be longer than {ProjectNameLength} characters.");
             }
 
             if (ContainsIllegalCharacters(task.Name))
