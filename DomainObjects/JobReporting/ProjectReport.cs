@@ -8,7 +8,7 @@ namespace HEAppE.DomainObjects.JobReporting
     public class ProjectReport
     {
         public Project Project { get; set; }
-        public List<ClusterNodeTypeReport> ClusterNodeTypes { get; set; }
-        public double? TotalUsage => ClusterNodeTypes.Sum(x => x.TotalUsage);
+        public List<ClusterReport> Clusters { get; set; }
+        public double? TotalUsage => Clusters.Sum(x => x.TotalUsage);
     }
 }

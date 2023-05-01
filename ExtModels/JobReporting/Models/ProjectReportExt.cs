@@ -24,6 +24,6 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember]
         public double? TotalUsage { get; set; }
         [DataMember]
-        public List<ClusterNodeTypeReportExt> ClusterNodeTypes { get; set; }
+        public List<ClusterReportExt> Clusters { get; set; }
     }
 }

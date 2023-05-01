@@ -23,6 +23,6 @@ namespace HEAppE.ExtModels.JobReporting.Models.DetailedReport
         [DataMember]
         public DateTime EndDate { get; set; }
         [DataMember]
-        public List<ClusterNodeTypeDetailedReportExt> ClusterNodeTypes { get; set; }
+        public List<ClusterDetailedReportExt> Clusters { get; set; }
     }
 }

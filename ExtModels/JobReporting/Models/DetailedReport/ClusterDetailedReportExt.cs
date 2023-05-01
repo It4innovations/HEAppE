@@ -3,8 +3,7 @@ using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.JobReporting.Models.DetailedReport
 {
-    [DataContract(Name = "ClusterNodeTypeDetailedReportExt")]
-    public class ClusterNodeTypeDetailedReportExt
+    public class ClusterDetailedReportExt
     {
         [DataMember]
         public long Id { get; set; }
@@ -15,8 +14,6 @@ namespace HEAppE.ExtModels.JobReporting.Models.DetailedReport
         [DataMember]
         public string Description { get; set; }
         [DataMember]
-        public string QueueName { get; set; }
-        [DataMember]
-        public List<JobDetailedReportExt> Jobs { get; set; }
+        public List<ClusterNodeTypeDetailedReportExt> ClusterNodeTypes { get; set; }
     }
 }
