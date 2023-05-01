@@ -1,6 +1,6 @@
 ﻿using HEAppE.BusinessLogicTier.Logic.JobReporting.Converts;
 using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using log4net;
@@ -8,12 +8,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using Project = HEAppE.DomainObjects.JobManagement.Project;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting
 {
@@ -121,6 +116,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         public IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime)
         {
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId);
+            if (user == null)
+            {
+                throw new ApplicationException($"Specified User Id: \"{userId}\" is not specified in system!");
+            }
             var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
             var reporterAndUserGroupsIntersect = reporterGroupIds.Intersect(userGroups);
             return AggregatedUserGroupResourceUsageReport(reporterAndUserGroupsIntersect, startTime, endTime);
