@@ -77,7 +77,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             {
                 var projectReport = new ProjectReport
                 {
-                    ClusterNodeTypes = GetClusterNodeTypeReportsForJob(job),
+                    Clusters = GetClusterReportsForJob(job),
                     Project = job.Project
                 };
                 return projectReport;
@@ -177,9 +177,29 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var projectReport = new ProjectReport()
             {
                 Project = project,
-                ClusterNodeTypes = GetClusterNodeTypeReports(project, startTime, endTime)
+                Clusters = GetClusterReports(project, startTime, endTime)
             };
             return projectReport;
+        }
+
+        /// <summary>
+        /// Returns Cluster reports for specified Project
+        /// </summary>
+        /// <param name="project"></param>
+        /// <param name="startTime"></param>
+        /// <param name="endTime"></param>
+        /// <returns></returns>
+        private List<ClusterReport> GetClusterReports(Project project, DateTime startTime, DateTime endTime)
+        {
+            var clusters = project.ClusterProjects.Where(cp=>cp.Project.Id == project.Id)
+                                                    .Select(x => x.Cluster)
+                                                        .Distinct().ToList();
+            var clusterReports = clusters.Select(cluster => new ClusterReport()
+            {
+                Cluster = cluster,
+                ClusterNodeTypes = GetClusterNodeTypeReports(cluster, project, startTime, endTime)
+            }).ToList();
+            return clusterReports;
         }
 
         /// <summary>
@@ -188,9 +208,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="project">Project</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Project project, DateTime startTime, DateTime endTime)
+        private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Cluster cluster, Project project,DateTime startTime, DateTime endTime)
         {
-            var nodeTypes = project.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes).Distinct().ToList();
+            var nodeTypes = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes).Distinct().ToList();
 
             var nodeTypeReports = nodeTypes.Select(nodeType => new ClusterNodeTypeReport()
             {
@@ -241,6 +261,22 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                 Usage = JobReportingLogicConverts.CalculateUsedResourcesForTask(task) ?? 0
             }).ToList();
             return taskReports;
+        }
+
+        /// <summary>
+        /// Takes a job and returns a list of reports for each unique cluster in the job
+        /// </summary>
+        /// <param name="job"></param>
+        /// <returns></returns>
+        private List<ClusterReport> GetClusterReportsForJob(SubmittedJobInfo job)
+        {
+            var clusters = job.Tasks.Select(x => x.NodeType.Cluster).Distinct().ToList();
+            var clusterReports = clusters.Select(cluster => new ClusterReport()
+            {
+                Cluster = cluster,
+                ClusterNodeTypes = GetClusterNodeTypeReportsForJob(job)
+            }).ToList();
+            return clusterReports;
         }
 
         /// <summary>

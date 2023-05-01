@@ -111,9 +111,22 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Id = report.ClusterNodeType.Id,
                 Name = report.ClusterNodeType.Name,
                 Description = report.ClusterNodeType.Description,
-                ClusterName = report.ClusterNodeType.Cluster.Name,
                 QueueName = report.ClusterNodeType.Queue,
                 Jobs = report.Jobs.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+                TotalUsage = report.TotalUsage
+            };
+
+            return convert;
+        }
+
+        public static ClusterReportExt ConvertIntToExt(this ClusterReport report)
+        {
+            var convert = new ClusterReportExt()
+            {
+                Id = report.Cluster.Id,
+                Name = report.Cluster.Name,
+                Description = report.Cluster.Description,
+                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToExt()).ToList(),
                 TotalUsage = report.TotalUsage
             };
 
@@ -128,10 +141,23 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Name = report.Project.Name,
                 Description = report.Project.Description,
                 AccountingString = report.Project.AccountingString,
-                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToExt()).ToList(),
+                Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList(),
                 TotalUsage = report.TotalUsage
             };
 
+            return convert;
+        }
+
+        public static ClusterDetailedReportExt ConvertIntToDetailedExt(this ClusterReport report)
+        {
+            var convert = new ClusterDetailedReportExt()
+            {
+                Id = report.Cluster.Id,
+                Name = report.Cluster.Name,
+                Description = report.Cluster.Description,
+                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+                TotalUsage = report.TotalUsage
+            };
             return convert;
         }
 
@@ -143,7 +169,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 Name = report.Project.Name,
                 Description = report.Project.Description,
                 AccountingString = report.Project.AccountingString,
-                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToDetailedExt()).ToList(),
+                Clusters = report.Clusters.Select(x => x.ConvertIntToDetailedExt()).ToList(),
                 TotalUsage = report.TotalUsage,
                 StartDate = report.Project.StartDate,
                 EndDate = report.Project.EndDate
