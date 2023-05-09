@@ -20,8 +20,8 @@ namespace HEAppE.Utils
         }
 
         public static string GetTaskClusterDirectoryPath(TaskSpecification taskSpecification)
-        {
-            string basePath = taskSpecification.JobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == taskSpecification.JobSpecification.ProjectId)?.LocalBasepath;
+        {        
+            string basePath = GetJobClusterDirectoryPath(taskSpecification.JobSpecification);
             string taskSubdirectory = !string.IsNullOrEmpty(taskSpecification.ClusterTaskSubdirectory)
                                         ? $"{taskSpecification.Id}/{taskSpecification.ClusterTaskSubdirectory}"
                                         : $"{taskSpecification.Id}";

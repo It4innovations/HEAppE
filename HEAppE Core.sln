@@ -23,8 +23,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HpcConnectionFramework", "H
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ServiceTier", "ServiceTier\ServiceTier.csproj", "{53A0FEEE-65E0-4754-8D53-082AB438AAEA}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HeappeUnitTests", "HeappeUnitTests\HeappeUnitTests.csproj", "{77B6D71D-B606-4DB0-8A90-DFEC708BF694}"
-EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExtModels", "ExtModels\ExtModels.csproj", "{C8452573-C43F-497C-81A2-BAF2B864D2F7}"
 EndProject
 Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{21CD25FE-2E20-46AA-82DC-0B173EC0FC84}"
@@ -85,10 +83,6 @@ Global
 		{53A0FEEE-65E0-4754-8D53-082AB438AAEA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{53A0FEEE-65E0-4754-8D53-082AB438AAEA}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{53A0FEEE-65E0-4754-8D53-082AB438AAEA}.Release|Any CPU.Build.0 = Release|Any CPU
-		{77B6D71D-B606-4DB0-8A90-DFEC708BF694}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{77B6D71D-B606-4DB0-8A90-DFEC708BF694}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{77B6D71D-B606-4DB0-8A90-DFEC708BF694}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{77B6D71D-B606-4DB0-8A90-DFEC708BF694}.Release|Any CPU.Build.0 = Release|Any CPU
 		{C8452573-C43F-497C-81A2-BAF2B864D2F7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{C8452573-C43F-497C-81A2-BAF2B864D2F7}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C8452573-C43F-497C-81A2-BAF2B864D2F7}.Release|Any CPU.ActiveCfg = Release|Any CPU

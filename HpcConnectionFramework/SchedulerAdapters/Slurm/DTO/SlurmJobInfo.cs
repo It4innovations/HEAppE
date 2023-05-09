@@ -79,7 +79,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         public DateTime CreationTime { get; set; }
 
         /// <summary>
-        /// Job submittion time
+        /// Job submission time
         /// </summary>
         [Scheduler("SubmitTime")]
         public DateTime SubmitTime { get; set; }
