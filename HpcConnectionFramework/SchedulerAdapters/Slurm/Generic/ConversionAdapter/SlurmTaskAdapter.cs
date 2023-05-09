@@ -69,6 +69,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         }
 
         /// <summary>
+        /// Task quality of service
+        /// </summary>
+        public string QualityOfService
+        {
+            set
+            {
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" --qos={value}" : string.Empty);
+            }
+        }
+
+        /// <summary>
         /// Task cluster allocation name
         /// </summary>
         public string ClusterAllocationName
@@ -219,12 +230,23 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         }
 
         /// <summary>
+        /// Extended allocation parameters from command template
+        /// </summary>
+        public string ExtendedAllocationCommand
+        {
+            set
+            {
+                _taskBuilder.Append(!string.IsNullOrEmpty(value) ? $" {value}" : string.Empty);
+            }
+        }
+
+        /// <summary>
         /// Set requested resources for task
         /// </summary>
         /// <param name="requestedNodeGroups">Node group names</param>
         /// <param name="requiredNodes">Node names</param>
         /// <param name="placementPolicy">Specify placement policy (on same rack, etc.)</param>
-        /// <param name="paralizationSpecs">Task paralization specifications</param>
+        /// <param name="paralizationSpecs">Task parallel specifications</param>
         /// <param name="minCores">Task min cores</param>
         /// <param name="maxCores">Task max cores</param>
         /// <param name="coresPerNode">Cores per node</param>
@@ -250,7 +272,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         }
 
         /// <summary>
-        /// Set enviroment variables for task
+        /// Set environment variables for task
         /// </summary>
         /// <param name="variables"></param>
         public void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables)

@@ -20,6 +20,7 @@ using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer.Exceptions;
 using HEAppE.BusinessLogicTier.Configuration;
+using System.IO;
 
 namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {
@@ -62,11 +63,14 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 Cluster cluster = activeTemporaryKeyGroup.Key;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
 
-                var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g => g.SubmittedJob.Specification.ClusterUser).ToList();
+                var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
+                    new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
+                    .ToList();
 
 
 
-                clusterUserActiveTempKey.ForEach(f => scheduler.RemoveDirectFileTransferAccessForUser(f.Select(S => S.PublicKey), f.Key));
+                clusterUserActiveTempKey.ForEach(f => scheduler.RemoveDirectFileTransferAccessForUser(f.Select(S => S.PublicKey), f.Key.ClusterUser, f.Key.Cluster));
+
 
                 activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
                 _unitOfWork.Save();
@@ -98,7 +102,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(cluster.LocalBasepath, jobInfo.Specification),
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
                 FileTransferCipherType = certGenerator.CipherType,
                 Credentials = new FileTransferKeyCredentials
                 {
@@ -121,24 +125,20 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             return transferMethod;
         }
 
-        public void EndFileTransfer(long submittedJobInfoId, FileTransferMethod transferMethod, AdaptorUser loggedUser)
+        public void EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser)
         {
             _log.Info($"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             Cluster cluster = jobInfo.Specification.Cluster;
 
-            if (transferMethod.Credentials is not FileTransferKeyCredentials credentials)
-            {
-                throw new FileTransferTemporaryKeyException($"Credentials of class {transferMethod.Credentials.GetType().Name} are not supported!");
-            }
-
-            var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == credentials.PublicKey);
+            var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == publicKey);
             if (temporaryKey is null)
             {
                 throw new FileTransferTemporaryKeyException("The direct transfer could not be finished due to a public key mismatch!");
             }
 
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUser(new string[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser);
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUser(
+                new string[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser, jobInfo.Specification.Cluster);
 
             temporaryKey.IsDeleted = true;
             _unitOfWork.Save();
@@ -216,6 +216,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 return null;
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+
             return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
         }
 
@@ -224,6 +225,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
                 return null;
+
             IRexFileSystemManager fileManager =
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
             try

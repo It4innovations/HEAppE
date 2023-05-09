@@ -4,5 +4,6 @@ namespace HEAppE.DataAccessTier.IRepository.OpenStack
 {
     public interface IOpenStackProjectRepository : IRepository<OpenStackProject>
     {
+        OpenStackProject GetOpenStackProjectByProjectId(long projectId);
     }
 }

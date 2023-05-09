@@ -1,4 +1,9 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.JobManagement.Converts;
+using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.RestApi.Configuration;
@@ -45,13 +50,13 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">CreateCommandTemplate</param>
         /// <returns></returns>
-        [HttpPost("CreateCommandTemplate")]
+        [HttpPost("CommandTemplate")]
         [RequestSizeLimit(1520)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult CreateCommandTemplate(CreateCommandTemplateModel model)
         {
             try
@@ -66,12 +71,15 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
 
-                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.Description, model.Code,
-                                                         model.ExecutableFile, model.PreparationScript, model.SessionCode));
+                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -80,13 +88,13 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">ModifyCommandTemplateModel</param>
         /// <returns></returns>
-        [HttpPost("ModifyCommandTemplate")]
+        [HttpPut("CommandTemplate")]
         [RequestSizeLimit(1520)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
         {
             try
@@ -101,12 +109,16 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(ModifyCommandTemplate));
 
-                return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.Description, model.Code,
+                return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
                                                          model.ExecutableFile, model.PreparationScript, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -115,13 +127,13 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">RemoveCommandTemplateModel</param>
         /// <returns></returns>
-        [HttpPost("RemoveCommandTemplate")]
+        [HttpDelete("CommandTemplate")]
         [RequestSizeLimit(90)]
-        [ProducesResponseType(typeof(IEnumerable<string>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
         {
             try
@@ -138,9 +150,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(_managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -149,14 +165,14 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
-        [HttpGet("GetInstanceInformations")]
+        [HttpGet("InstanceInformations")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult GetInstanceInformations(string sessionCode)
+        public IActionResult InstanceInformations(string sessionCode)
         {
             try
             {
@@ -168,8 +184,13 @@ namespace HEAppE.RestApi.Controllers
                 }
 
                 var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
-                if(result)
+                if (result)
                 {
+                    List<ProjectExt> activeProjects = new();
+                    using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                    {
+                        activeProjects = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExt()).ToList();
+                    }
                     return Ok(new InstanceInformationExt()
                     {
                         Name = DeploymentInformationsConfiguration.Name,
@@ -180,7 +201,8 @@ namespace HEAppE.RestApi.Controllers
                         URL = DeploymentInformationsConfiguration.Host,
                         URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
                         DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
-                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList()
+                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
+                        Projects = activeProjects
                     });
                 }
                 else
@@ -188,9 +210,13 @@ namespace HEAppE.RestApi.Controllers
                     return BadRequest(null);
                 }
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion

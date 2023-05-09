@@ -10,19 +10,21 @@ namespace HEAppE.DomainObjects.OpenStack
         [StringLength(40)]
         public string Name { get; set; }
 
-        public virtual List<OpenStackProject> OpenStackProjects { get; set; }
-
+        [StringLength(80)]
+        public string UID { get; set; }
 
         [ForeignKey("OpenStackInstance")]
         public long OpenStackInstanceId { get; set; }
 
         public virtual OpenStackInstance OpenStackInstance { get; set; }
 
+        public virtual List<OpenStackProject> OpenStackProjects { get; set; }
+
         public virtual List<OpenStackAuthenticationCredentialDomain> OpenStackAuthenticationCredentialDomains { get; set; }
 
         public override string ToString()
         {
-            return $"OpenStackDomain: Id={Id}, Name={Name}";
+            return $"OpenStackDomain: Id={Id}, Name={Name}, UID={UID}";
         }
     }
 }

@@ -35,18 +35,13 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("DomainName")
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<string>("LocalBasepath")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("MasterNodeName")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -62,9 +57,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int>("SchedulerType")
                         .HasColumnType("int");
 
-                    b.Property<long?>("ServiceAccountCredentialsId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("TimeZone")
                         .IsRequired()
                         .HasMaxLength(30)
@@ -76,8 +68,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ProxyConnectionId");
-
-                    b.HasIndex("ServiceAccountCredentialsId");
 
                     b.ToTable("Cluster");
                 });
@@ -91,9 +81,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int>("AuthenticationType")
                         .HasColumnType("int");
-
-                    b.Property<long?>("ClusterId")
-                        .HasColumnType("bigint");
 
                     b.Property<string>("Password")
                         .HasMaxLength(50)
@@ -113,8 +100,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ClusterId");
 
                     b.ToTable("ClusterAuthenticationCredentials");
                 });
@@ -144,9 +129,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("FileTransferMethodId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("JobTemplateId")
-                        .HasColumnType("bigint");
-
                     b.Property<int?>("MaxWalltime")
                         .HasColumnType("int");
 
@@ -158,22 +140,19 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int?>("NumberOfNodes")
                         .HasColumnType("int");
 
+                    b.Property<string>("QualityOfService")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
                     b.Property<string>("Queue")
                         .HasMaxLength(30)
                         .HasColumnType("nvarchar(30)");
-
-                    b.Property<long?>("TaskTemplateId")
-                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
                     b.HasIndex("ClusterId");
 
                     b.HasIndex("FileTransferMethodId");
-
-                    b.HasIndex("JobTemplateId");
-
-                    b.HasIndex("TaskTemplateId");
 
                     b.ToTable("ClusterNodeType");
                 });
@@ -306,6 +285,70 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("FileTransferTemporaryKey");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<long>("ClusterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LocalBasepath")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("ClusterId", "ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("ClusterProject");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentials", b =>
+                {
+                    b.Property<long>("ClusterProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ClusterAuthenticationCredentialsId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsServiceAccount")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ClusterProjectId", "ClusterAuthenticationCredentialsId");
+
+                    b.HasIndex("ClusterAuthenticationCredentialsId");
+
+                    b.ToTable("ClusterProjectCredentials");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
                 {
                     b.Property<long>("Id")
@@ -315,11 +358,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long?>("ClusterNodeTypeId")
                         .HasColumnType("bigint");
-
-                    b.Property<string>("Code")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("CommandParameters")
                         .HasMaxLength(200)
@@ -334,6 +372,11 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("ExtendedAllocationCommand")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
@@ -350,9 +393,14 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasIndex("ClusterNodeTypeId");
+
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("CommandTemplate");
                 });
@@ -429,18 +477,12 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("JobSpecificationId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("JobTemplateId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
                     b.Property<long?>("TaskSpecificationId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("TaskTemplateId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("Value")
@@ -451,11 +493,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("JobSpecificationId");
 
-                    b.HasIndex("JobTemplateId");
-
                     b.HasIndex("TaskSpecificationId");
-
-                    b.HasIndex("TaskTemplateId");
 
                     b.ToTable("EnvironmentVariable");
                 });
@@ -478,9 +516,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Project")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("SpecificationId")
                         .HasColumnType("bigint");
@@ -501,6 +538,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("float");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
 
                     b.HasIndex("SpecificationId");
 
@@ -568,6 +607,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int>("Priority")
                         .HasColumnType("int");
 
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("ScheduledJobId")
                         .HasColumnType("nvarchar(max)");
 
@@ -586,6 +628,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("NodeTypeId");
+
+                    b.HasIndex("ProjectId");
 
                     b.HasIndex("SpecificationId");
 
@@ -632,9 +676,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Project")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
 
                     b.Property<long?>("SubmitterGroupId")
                         .HasColumnType("bigint");
@@ -656,6 +699,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("FileTransferMethodId");
 
+                    b.HasIndex("ProjectId");
+
                     b.HasIndex("SubmitterGroupId");
 
                     b.HasIndex("SubmitterId");
@@ -663,58 +708,48 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("JobSpecification");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobTemplate", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Project", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bigint")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+
+                    b.Property<string>("AccountingString")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("Project")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("WalltimeLimit")
-                        .HasColumnType("int");
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
 
                     b.HasKey("Id");
 
-                    b.ToTable("JobTemplate");
-                });
+                    b.HasIndex("AccountingString")
+                        .IsUnique();
 
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.PropertyChangeSpecification", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<int>("ChangeMethod")
-                        .HasColumnType("int");
-
-                    b.Property<long?>("JobTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("PropertyName")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<long?>("TaskTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("JobTemplateId");
-
-                    b.HasIndex("TaskTemplateId");
-
-                    b.ToTable("PropertyChangeSpecification");
+                    b.ToTable("Project");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskDependency", b =>
@@ -819,9 +854,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ProgressFileId")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("Project")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
 
                     b.Property<string>("StandardErrorFile")
                         .HasMaxLength(30)
@@ -850,6 +884,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("ProgressFileId");
 
+                    b.HasIndex("ProjectId");
+
                     b.ToTable("TaskSpecification");
                 });
 
@@ -873,39 +909,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("TaskSpecificationId");
 
                     b.ToTable("TaskSpecificationRequiredNode");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskTemplate", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<int?>("MaxCores")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("MinCores")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Project")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<int?>("WalltimeLimit")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("TaskTemplate");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.Notifications.Language", b =>
@@ -1100,19 +1103,22 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("OpenStackAuthenticationCredentialDomain");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProjectDomain", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProject", b =>
                 {
                     b.Property<long>("OpenStackAuthenticationCredentialId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("OpenStackProjectDomainId")
+                    b.Property<long>("OpenStackProjectId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackProjectDomainId");
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
 
-                    b.HasIndex("OpenStackProjectDomainId");
+                    b.HasKey("OpenStackAuthenticationCredentialId", "OpenStackProjectId");
 
-                    b.ToTable("OpenStackAuthenticationCredentialProjectDomain");
+                    b.HasIndex("OpenStackProjectId");
+
+                    b.ToTable("OpenStackAuthenticationCredentialProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
@@ -1128,6 +1134,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long>("OpenStackInstanceId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("UID")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.HasKey("Id");
 
@@ -1165,11 +1175,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
+                    b.Property<long>("AdaptorUserGroupId")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("Name")
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<long>("OpenStackDomainId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("OpenStackProjectDomainId")
                         .HasColumnType("bigint");
 
                     b.Property<string>("UID")
@@ -1178,7 +1194,11 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AdaptorUserGroupId");
+
                     b.HasIndex("OpenStackDomainId");
+
+                    b.HasIndex("OpenStackProjectDomainId");
 
                     b.ToTable("OpenStackProject");
                 });
@@ -1194,16 +1214,11 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
-                    b.Property<long>("OpenStackProjectId")
-                        .HasColumnType("bigint");
-
                     b.Property<string>("UID")
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("OpenStackProjectId");
 
                     b.ToTable("OpenStackProjectDomain");
                 });
@@ -1260,10 +1275,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint")
                         .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
 
-                    b.Property<string>("AccountingString")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
                     b.Property<string>("Description")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1274,7 +1285,12 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<long?>("ProjectId")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
 
                     b.ToTable("AdaptorUserGroup");
                 });
@@ -1303,7 +1319,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("AdaptorUserRole");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroup", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroupRole", b =>
                 {
                     b.Property<long>("AdaptorUserId")
                         .HasColumnType("bigint");
@@ -1311,26 +1327,25 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("AdaptorUserGroupId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("AdaptorUserId", "AdaptorUserGroupId");
-
-                    b.HasIndex("AdaptorUserGroupId");
-
-                    b.ToTable("AdaptorUserUserGroup");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserRole", b =>
-                {
-                    b.Property<long>("AdaptorUserId")
-                        .HasColumnType("bigint");
-
                     b.Property<long>("AdaptorUserRoleId")
                         .HasColumnType("bigint");
 
-                    b.HasKey("AdaptorUserId", "AdaptorUserRoleId");
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("AdaptorUserId", "AdaptorUserGroupId", "AdaptorUserRoleId");
+
+                    b.HasIndex("AdaptorUserGroupId");
 
                     b.HasIndex("AdaptorUserRoleId");
 
-                    b.ToTable("AdaptorUserUserRole");
+                    b.ToTable("AdaptorUserUserGroupRole");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.OpenStackSession", b =>
@@ -1426,22 +1441,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany()
                         .HasForeignKey("ProxyConnectionId");
 
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ServiceAccountCredentials")
-                        .WithMany()
-                        .HasForeignKey("ServiceAccountCredentialsId");
-
                     b.Navigation("ProxyConnection");
-
-                    b.Navigation("ServiceAccountCredentials");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.Cluster", "Cluster")
-                        .WithMany("AuthenticationCredentials")
-                        .HasForeignKey("ClusterId");
-
-                    b.Navigation("Cluster");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", b =>
@@ -1454,21 +1454,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany()
                         .HasForeignKey("FileTransferMethodId");
 
-                    b.HasOne("HEAppE.DomainObjects.JobManagement.JobTemplate", "JobTemplate")
-                        .WithMany()
-                        .HasForeignKey("JobTemplateId");
-
-                    b.HasOne("HEAppE.DomainObjects.JobManagement.TaskTemplate", "TaskTemplate")
-                        .WithMany()
-                        .HasForeignKey("TaskTemplateId");
-
                     b.Navigation("Cluster");
 
                     b.Navigation("FileTransferMethod");
-
-                    b.Navigation("JobTemplate");
-
-                    b.Navigation("TaskTemplate");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterNodeTypeRequestedGroup", b =>
@@ -1500,13 +1488,57 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("SubmittedJob");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.Cluster", "Cluster")
+                        .WithMany("ClusterProjects")
+                        .HasForeignKey("ClusterId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("ClusterProjects")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Cluster");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentials", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ClusterAuthenticationCredentials")
+                        .WithMany("ClusterProjectCredentials")
+                        .HasForeignKey("ClusterAuthenticationCredentialsId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterProject", "ClusterProject")
+                        .WithMany("ClusterProjectCredentials")
+                        .HasForeignKey("ClusterProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClusterAuthenticationCredentials");
+
+                    b.Navigation("ClusterProject");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", "ClusterNodeType")
                         .WithMany("PossibleCommands")
                         .HasForeignKey("ClusterNodeTypeId");
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("CommandTemplates")
+                        .HasForeignKey("ProjectId");
+
                     b.Navigation("ClusterNodeType");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplateParameter", b =>
@@ -1537,21 +1569,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany("EnvironmentVariables")
                         .HasForeignKey("JobSpecificationId");
 
-                    b.HasOne("HEAppE.DomainObjects.JobManagement.JobTemplate", null)
-                        .WithMany("EnvironmentVariables")
-                        .HasForeignKey("JobTemplateId");
-
                     b.HasOne("HEAppE.DomainObjects.JobManagement.TaskSpecification", null)
                         .WithMany("EnvironmentVariables")
                         .HasForeignKey("TaskSpecificationId");
-
-                    b.HasOne("HEAppE.DomainObjects.JobManagement.TaskTemplate", null)
-                        .WithMany("EnvironmentVariables")
-                        .HasForeignKey("TaskTemplateId");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedJobInfo", b =>
                 {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId");
+
                     b.HasOne("HEAppE.DomainObjects.JobManagement.JobSpecification", "Specification")
                         .WithMany()
                         .HasForeignKey("SpecificationId");
@@ -1559,6 +1587,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "Submitter")
                         .WithMany()
                         .HasForeignKey("SubmitterId");
+
+                    b.Navigation("Project");
 
                     b.Navigation("Specification");
 
@@ -1582,6 +1612,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany()
                         .HasForeignKey("NodeTypeId");
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId");
+
                     b.HasOne("HEAppE.DomainObjects.JobManagement.TaskSpecification", "Specification")
                         .WithMany()
                         .HasForeignKey("SpecificationId");
@@ -1591,6 +1625,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasForeignKey("SubmittedJobInfoId");
 
                     b.Navigation("NodeType");
+
+                    b.Navigation("Project");
 
                     b.Navigation("Specification");
                 });
@@ -1611,6 +1647,12 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany()
                         .HasForeignKey("FileTransferMethodId");
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "SubmitterGroup")
                         .WithMany()
                         .HasForeignKey("SubmitterGroupId");
@@ -1625,24 +1667,11 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Navigation("FileTransferMethod");
 
+                    b.Navigation("Project");
+
                     b.Navigation("Submitter");
 
                     b.Navigation("SubmitterGroup");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.PropertyChangeSpecification", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.JobManagement.JobTemplate", "JobTemplate")
-                        .WithMany("PropertyChangeSpecification")
-                        .HasForeignKey("JobTemplateId");
-
-                    b.HasOne("HEAppE.DomainObjects.JobManagement.TaskTemplate", "TaskTemplate")
-                        .WithMany("PropertyChangeSpecification")
-                        .HasForeignKey("TaskTemplateId");
-
-                    b.Navigation("JobTemplate");
-
-                    b.Navigation("TaskTemplate");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskDependency", b =>
@@ -1697,6 +1726,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany()
                         .HasForeignKey("ProgressFileId");
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId");
+
                     b.Navigation("ClusterNodeType");
 
                     b.Navigation("CommandTemplate");
@@ -1706,6 +1739,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("LogFile");
 
                     b.Navigation("ProgressFile");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskSpecificationRequiredNode", b =>
@@ -1769,23 +1804,23 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("OpenStackDomain");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProjectDomain", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialProject", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", "OpenStackAuthenticationCredential")
-                        .WithMany("OpenStackAuthenticationCredentialProjectDomains")
+                        .WithMany("OpenStackAuthenticationCredentialProjects")
                         .HasForeignKey("OpenStackAuthenticationCredentialId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", "OpenStackProjectDomain")
-                        .WithMany("OpenStackAuthenticationCredentialProjectDomains")
-                        .HasForeignKey("OpenStackProjectDomainId")
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProject", "OpenStackProject")
+                        .WithMany("OpenStackAuthenticationCredentialProjects")
+                        .HasForeignKey("OpenStackProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("OpenStackAuthenticationCredential");
 
-                    b.Navigation("OpenStackProjectDomain");
+                    b.Navigation("OpenStackProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
@@ -1801,24 +1836,29 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProject", b =>
                 {
+                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "AdaptorUserGroup")
+                        .WithMany()
+                        .HasForeignKey("AdaptorUserGroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackDomain", "OpenStackDomain")
                         .WithMany("OpenStackProjects")
                         .HasForeignKey("OpenStackDomainId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("OpenStackDomain");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProject", "OpenStackProject")
-                        .WithMany("OpenStackProjectDomains")
-                        .HasForeignKey("OpenStackProjectId")
+                    b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", "OpenStackProjectDomain")
+                        .WithMany()
+                        .HasForeignKey("OpenStackProjectDomainId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("OpenStackProject");
+                    b.Navigation("AdaptorUserGroup");
+
+                    b.Navigation("OpenStackDomain");
+
+                    b.Navigation("OpenStackProjectDomain");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
@@ -1830,40 +1870,38 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("Language");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroup", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany()
+                        .HasForeignKey("ProjectId");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroupRole", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "AdaptorUserGroup")
-                        .WithMany("AdaptorUserUserGroups")
+                        .WithMany("AdaptorUserUserGroupRoles")
                         .HasForeignKey("AdaptorUserGroupId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "AdaptorUser")
-                        .WithMany("AdaptorUserUserGroups")
+                        .WithMany("AdaptorUserUserGroupRoles")
                         .HasForeignKey("AdaptorUserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", "AdaptorUserRole")
+                        .WithMany("AdaptorUserUserGroupRoles")
+                        .HasForeignKey("AdaptorUserRoleId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
                     b.Navigation("AdaptorUser");
 
                     b.Navigation("AdaptorUserGroup");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserRole", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "AdaptorUser")
-                        .WithMany("AdaptorUserUserRoles")
-                        .HasForeignKey("AdaptorUserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", "AdaptorUserRole")
-                        .WithMany("AdaptorUserUserRoles")
-                        .HasForeignKey("AdaptorUserRoleId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("AdaptorUser");
 
                     b.Navigation("AdaptorUserRole");
                 });
@@ -1903,11 +1941,16 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
-                    b.Navigation("AuthenticationCredentials");
+                    b.Navigation("ClusterProjects");
 
                     b.Navigation("FileTransferMethods");
 
                     b.Navigation("NodeTypes");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", b =>
+                {
+                    b.Navigation("ClusterProjectCredentials");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", b =>
@@ -1915,6 +1958,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("PossibleCommands");
 
                     b.Navigation("RequestedNodeGroups");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
+                {
+                    b.Navigation("ClusterProjectCredentials");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
@@ -1941,11 +1989,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("Tasks");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobTemplate", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Project", b =>
                 {
-                    b.Navigation("EnvironmentVariables");
+                    b.Navigation("ClusterProjects");
 
-                    b.Navigation("PropertyChangeSpecification");
+                    b.Navigation("CommandTemplates");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskSpecification", b =>
@@ -1963,13 +2011,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("TaskParalizationSpecifications");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskTemplate", b =>
-                {
-                    b.Navigation("EnvironmentVariables");
-
-                    b.Navigation("PropertyChangeSpecification");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplate", b =>
                 {
                     b.Navigation("Localizations");
@@ -1981,7 +2022,7 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Navigation("OpenStackAuthenticationCredentialDomains");
 
-                    b.Navigation("OpenStackAuthenticationCredentialProjectDomains");
+                    b.Navigation("OpenStackAuthenticationCredentialProjects");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackDomain", b =>
@@ -1998,31 +2039,24 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProject", b =>
                 {
-                    b.Navigation("OpenStackProjectDomains");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackProjectDomain", b =>
-                {
-                    b.Navigation("OpenStackAuthenticationCredentialProjectDomains");
+                    b.Navigation("OpenStackAuthenticationCredentialProjects");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
                 {
-                    b.Navigation("AdaptorUserUserGroups");
-
-                    b.Navigation("AdaptorUserUserRoles");
+                    b.Navigation("AdaptorUserUserGroupRoles");
 
                     b.Navigation("Limitations");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>
                 {
-                    b.Navigation("AdaptorUserUserGroups");
+                    b.Navigation("AdaptorUserUserGroupRoles");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", b =>
                 {
-                    b.Navigation("AdaptorUserUserRoles");
+                    b.Navigation("AdaptorUserUserGroupRoles");
                 });
 #pragma warning restore 612, 618
         }

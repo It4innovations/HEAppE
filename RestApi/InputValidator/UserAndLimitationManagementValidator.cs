@@ -19,14 +19,26 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = _validationObject switch
             {
+                AuthenticateUserOpenIdOpenStackModel model => ValidateAuthenticateUserOpenIdOpenStackModel(model),
                 AuthenticateUserOpenIdModel model => ValidateAuthenticateUserOpenIdModel(model),
                 AuthenticateUserPasswordModel model => ValidateAuthenticateUserPasswordModel(model),
                 AuthenticateUserDigitalSignatureModel model => ValidateAuthenticateUserDigitalSignatureModel(model),
                 GetCurrentUsageAndLimitationsForCurrentUserModel model => ValidateCurrentUsageAndLimitationsForCurrentUserModel(model),
+                GetProjectsForCurrentUserModel model => ValidateGetProjectsForCurrentUserModel(model),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateGetProjectsForCurrentUserModel(GetProjectsForCurrentUserModel model)
+        {
+            ValidationResult validationResult = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+            return _messageBuilder.ToString();
         }
 
         private string ValidateCurrentUsageAndLimitationsForCurrentUserModel(GetCurrentUsageAndLimitationsForCurrentUserModel validationObj)
@@ -61,6 +73,21 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateAuthenticateUserOpenIdModel(AuthenticateUserOpenIdModel validationObj)
         {
+            ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateAuthenticateUserOpenIdOpenStackModel(AuthenticateUserOpenIdOpenStackModel validationObj)
+        {
+            if (validationObj.ProjectId <=0)
+            {
+                _messageBuilder.AppendLine("ProjectId must be greater than 0!");
+            }
+
             ValidationResult validationResult = new CredentialsValidator(validationObj.Credentials).Validate();
             if (!validationResult.IsValid)
             {

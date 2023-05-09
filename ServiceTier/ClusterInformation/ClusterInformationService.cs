@@ -5,10 +5,10 @@ using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
-using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
@@ -84,19 +84,20 @@ namespace HEAppE.ServiceTier.ClusterInformation
             }
         }
 
-        public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, string sessionCode)
+        public IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, projectId);
 
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>()
                         {   commandTemplateId.ToString(),
+                            projectId.ToString(),
                             userScriptPath,
-                            nameof(GetCommandTemplateParametersName)
+                            nameof(RequestCommandTemplateParametersName)
                         }
                     );
 
@@ -109,7 +110,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                     {
                         _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                         IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                        IEnumerable<string> result = clusterLogic.GetCommandTemplateParametersName(commandTemplateId, userScriptPath, loggedUser);
+                        IEnumerable<string> result = clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
                         _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(_cacheLimitForGetCommandTemplateParametersName));
                         return result;
                     }
@@ -134,11 +135,13 @@ namespace HEAppE.ServiceTier.ClusterInformation
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
 
+                    //Memory cache key with personal session code due security purpose of access to cluster reference to project
                     string memoryCacheKey = StringUtils.CreateIdentifierHash(
                     new List<string>()
                         {    clusterNodeId.ToString(),
+                             sessionCode,
                              nameof(GetCurrentClusterNodeUsage)
                         }
                     );

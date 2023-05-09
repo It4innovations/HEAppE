@@ -8,8 +8,8 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
     {
         IEnumerable<Cluster> ListAvailableClusters();
         ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser);
-        IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, AdaptorUser loggedUser);
-        ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId);
+        IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, AdaptorUser loggedUser);
+        ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId);
         ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId);
         Cluster GetClusterById(long clusterId);
         IEnumerable<ClusterNodeType> ListClusterNodeTypes();

@@ -13,7 +13,7 @@ using System.Reflection;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 
 namespace HEAppE.ServiceTier.FileTransfer
 {
@@ -21,13 +21,13 @@ namespace HEAppE.ServiceTier.FileTransfer
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         
-        public FileTransferMethodExt GetFileTransferMethod(long submittedJobInfoId, string sessionCode)
+        public FileTransferMethodExt RequestFileTransfer(long submittedJobInfoId, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                     FileTransferMethod fileTransferMethod = fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
                     return fileTransferMethod.ConvertIntToExt();
@@ -40,15 +40,15 @@ namespace HEAppE.ServiceTier.FileTransfer
             }
         }
         
-        public void EndFileTransfer(long submittedJobInfoId, FileTransferMethodExt usedTransferMethod, string sessionCode)
+        public void CloseFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
-                    fileTransferLogic.EndFileTransfer(submittedJobInfoId, FileTransferConverts.ConvertFileTransferMethodExtToInt(usedTransferMethod), loggedUser);
+                    fileTransferLogic.EndFileTransfer(submittedJobInfoId, publicKey, loggedUser);
                 }
             }
             catch (Exception exc)
@@ -63,7 +63,7 @@ namespace HEAppE.ServiceTier.FileTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                     IList<JobFileContent> downloadedFileParts = fileTransferLogic.DownloadPartsOfJobFilesFromCluster(
                         submittedJobInfoId,
@@ -85,7 +85,7 @@ namespace HEAppE.ServiceTier.FileTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                     ICollection<FileInformation> result = fileTransferLogic.ListChangedFilesForJob(submittedJobInfoId, loggedUser);
                     return result?.Select(s => s.ConvertIntToExt()).ToArray();
@@ -104,7 +104,7 @@ namespace HEAppE.ServiceTier.FileTransfer
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                     return fileTransferLogic.DownloadFileFromCluster(submittedJobInfoId, relativeFilePath, loggedUser);
                 }

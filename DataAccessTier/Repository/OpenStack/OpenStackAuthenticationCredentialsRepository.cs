@@ -13,11 +13,5 @@ namespace HEAppE.DataAccessTier.Repository.OpenStack
         {
         }
         #endregion
-        #region Methods
-        public OpenStackAuthenticationCredential GetDefaultAccount()
-        {
-            return GetAll().Single();
-        }
-        #endregion
     }
 }

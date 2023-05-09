@@ -29,7 +29,7 @@
         /// <summary>
         /// HTTP requeues connection timeout in seconds
         /// </summary>
-        public static int HTTPRequestConnectionTimeoutInSeconds { get; set; } = 10000;
+        public static double HTTPRequestConnectionTimeoutInSeconds { get; set; } = 10;
         #endregion
     }
 }

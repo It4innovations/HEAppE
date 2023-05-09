@@ -4,16 +4,16 @@ using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.Notifications;
+using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.Utils;
+using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using log4net;
 using System.Reflection;
-using System;
-using HEAppE.DomainObjects.OpenStack;
-using HEAppE.ServiceTier.UserAndLimitationManagement.Roles;
 
 namespace HEAppE.DataAccessTier
 {
@@ -91,17 +91,21 @@ namespace HEAppE.DataAccessTier
         {
             base.OnModelCreating(modelBuilder);
 
-            //M:N relations for AdaptorUserUserGroup
-            modelBuilder.Entity<AdaptorUserUserGroup>()
-                .HasKey(ug => new { ug.AdaptorUserId, ug.AdaptorUserGroupId });
-            modelBuilder.Entity<AdaptorUserUserGroup>()
+            //M:N relations for AdaptorUserUserGroupRole
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
+                .HasKey(ug => new { ug.AdaptorUserId, ug.AdaptorUserGroupId, ug.AdaptorUserRoleId });
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
                 .HasOne(ug => ug.AdaptorUser)
-                .WithMany(u => u.AdaptorUserUserGroups)
+                .WithMany(u => u.AdaptorUserUserGroupRoles)
                 .HasForeignKey(ug => new { ug.AdaptorUserId });
-            modelBuilder.Entity<AdaptorUserUserGroup>()
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
                 .HasOne(ug => ug.AdaptorUserGroup)
-                .WithMany(g => g.AdaptorUserUserGroups)
+                .WithMany(g => g.AdaptorUserUserGroupRoles)
                 .HasForeignKey(ug => new { ug.AdaptorUserGroupId });
+            modelBuilder.Entity<AdaptorUserUserGroupRole>()
+               .HasOne(ug => ug.AdaptorUserRole)
+               .WithMany(g => g.AdaptorUserUserGroupRoles)
+               .HasForeignKey(ug => new { ug.AdaptorUserRoleId });
 
             modelBuilder.Entity<AdaptorUserRole>().HasAlternateKey(x => x.Name);
 
@@ -117,29 +121,17 @@ namespace HEAppE.DataAccessTier
                 .WithMany(g => g.OpenStackAuthenticationCredentialDomains)
                 .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
 
-            //M:N relations for OpenStackAuthenticationCredentialProjectDomain
-            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
-                .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackProjectDomainId });
-            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
-                .HasOne(ug => ug.OpenStackProjectDomain)
-                .WithMany(u => u.OpenStackAuthenticationCredentialProjectDomains)
-                .HasForeignKey(ug => new { ug.OpenStackProjectDomainId });
-            modelBuilder.Entity<OpenStackAuthenticationCredentialProjectDomain>()
+            //M:N relations for OpenStackAuthenticationCredentialProject
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
+                .HasKey(ug => new { ug.OpenStackAuthenticationCredentialId, ug.OpenStackProjectId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
+                .HasOne(ug => ug.OpenStackProject)
+                .WithMany(u => u.OpenStackAuthenticationCredentialProjects)
+                .HasForeignKey(ug => new { ug.OpenStackProjectId });
+            modelBuilder.Entity<OpenStackAuthenticationCredentialProject>()
                 .HasOne(ug => ug.OpenStackAuthenticationCredential)
-                .WithMany(g => g.OpenStackAuthenticationCredentialProjectDomains)
+                .WithMany(g => g.OpenStackAuthenticationCredentialProjects)
                 .HasForeignKey(ug => new { ug.OpenStackAuthenticationCredentialId });
-
-            // M:N relations for AdaptorUserUserRole
-            modelBuilder.Entity<AdaptorUserUserRole>()
-                .HasKey(userRole => new { userRole.AdaptorUserId, userRole.AdaptorUserRoleId });
-            modelBuilder.Entity<AdaptorUserUserRole>()
-                .HasOne(userRole => userRole.AdaptorUser)
-                .WithMany(userRole => userRole.AdaptorUserUserRoles)
-                .HasForeignKey(userRoles => new { userRoles.AdaptorUserId });
-            modelBuilder.Entity<AdaptorUserUserRole>()
-                .HasOne(userRole => userRole.AdaptorUserRole)
-                .WithMany(userRole => userRole.AdaptorUserUserRoles)
-                .HasForeignKey(userRoles => new { userRoles.AdaptorUserRoleId });
 
             //M:N relations for TaskDependency for same table TaskSpecification
             //Cascade delete or update are not allowed
@@ -155,6 +147,34 @@ namespace HEAppE.DataAccessTier
                 .WithMany(ts => ts.DependsOn)
                 .HasForeignKey(td => new { td.TaskSpecificationId })
                 .OnDelete(DeleteBehavior.Restrict);
+
+            //M:N relations for ClusterProject and unique constraint
+            modelBuilder.Entity<ClusterProject>()
+            .HasIndex(cp => new { cp.ClusterId, cp.ProjectId }).IsUnique();
+            modelBuilder.Entity<ClusterProject>()
+                .HasOne(cp => cp.Cluster)
+                .WithMany(c => c.ClusterProjects)
+                .HasForeignKey(cp => new { cp.ClusterId });
+            modelBuilder.Entity<ClusterProject>()
+                .HasOne(cp => cp.Project)
+                .WithMany(p => p.ClusterProjects)
+                .HasForeignKey(cp => new { cp.ProjectId });
+
+            //M:N relations for ClusterProjectCredentials
+            modelBuilder.Entity<ClusterProjectCredentials>()
+                .HasKey(cpc => new { cpc.ClusterProjectId, cpc.ClusterAuthenticationCredentialsId });
+            modelBuilder.Entity<ClusterProjectCredentials>()
+                .HasOne(cpc => cpc.ClusterProject)
+                .WithMany(c => c.ClusterProjectCredentials)
+                .HasForeignKey(cpc => new { cpc.ClusterProjectId });
+            modelBuilder.Entity<ClusterProjectCredentials>()
+                .HasOne(cp => cp.ClusterAuthenticationCredentials)
+                .WithMany(p => p.ClusterProjectCredentials)
+                .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
+
+            modelBuilder.Entity<Project>()
+                .HasIndex(p => p.AccountingString)
+                .IsUnique();
         }
         #endregion
         #region Seeding methods
@@ -165,16 +185,13 @@ namespace HEAppE.DataAccessTier
             _log.Info("Seed data into tha database started.");
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
+
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroups, false);
-            InsertOrUpdateSeedData(GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserRoles), false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProxyConnections);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Clusters?.Select(c => new Cluster
             {
-                AuthenticationCredentials = c.AuthenticationCredentials,
                 ConnectionProtocol = c.ConnectionProtocol,
                 Description = c.Description,
                 Id = c.Id,
@@ -184,7 +201,6 @@ namespace HEAppE.DataAccessTier
                 Name = c.Name,
                 NodeTypes = c.NodeTypes,
                 SchedulerType = c.SchedulerType,
-                LocalBasepath = c.LocalBasepath,
                 TimeZone = c.TimeZone,
                 UpdateJobStateByServiceAccount = c.UpdateJobStateByServiceAccount,
                 ProxyConnectionId = c.ProxyConnectionId
@@ -196,28 +212,32 @@ namespace HEAppE.DataAccessTier
                 Username = cc.Username,
                 Password = cc.Password,
                 PrivateKeyFile = cc.PrivateKeyFile,
-                PrivateKeyPassword = cc.PrivateKeyPassword,
-                ClusterId = cc.ClusterId
+                PrivateKeyPassword = cc.PrivateKeyPassword
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.JobTemplates);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.TaskTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
+
+            InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
+
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
+            InsertOrUpdateSeedData(UserRoleUtils.GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserGroupRoles), false);
+
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.PropertyChangeSpecifications);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackInstances);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackDomains);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjectDomains);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentials);
             InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialDomains, false);
-            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjectDomains, false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.OpenStackAuthenticationCredentialProjects, false);
 
-            //Update Cluster foreign keys which could not be added before
-            MiddlewareContextSettings.Clusters?.ForEach(c => Clusters.Find(c.Id).ServiceAccountCredentialsId = c.ServiceAccountCredentialsId);
+            ValidateSeed();
+
             SaveChanges();
 
             var entries = ChangeTracker.Entries();
@@ -225,10 +245,40 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
-            ClusterAuthenticationCredentials.ToList().ForEach(cc => cc.AuthenticationType = GetCredentialsAuthenticationType(cc));
+            ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
+                                    .ForEach(cpc => cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
+        }
+
+        private void ValidateSeed()
+        {
+            _log.Info("Seed validation has started.");
+            ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
+            _log.Info("Seed validation completed.");
+        }
+
+        /// <summary>
+        /// Validate CommandTemplate to Projectcross reference to ClusterProject mapping
+        /// </summary>
+        /// <param name="commandTemplates">All Command Templates</param>
+        /// <param name="clusterProjects">All ClusterProject</param>
+        /// <exception cref="ApplicationException"></exception>
+        private void ValidateCommandTemplateToProjectReference(List<CommandTemplate> commandTemplates, List<ClusterProject> clusterProjects)
+        {
+            //check if exists ClusterProject reference if CommandTemplate is referenced to some project
+            var commandTemplatesWithProjectReference = commandTemplates.Where(x => x.ProjectId.HasValue);
+            foreach (var commandTemplate in commandTemplatesWithProjectReference)
+            {
+                //if does not exist Cluster to Project reference, throw exception
+                if (!clusterProjects.Any(x => x.ClusterId == commandTemplate.ClusterNodeType.ClusterId && x.ProjectId == commandTemplate.ProjectId))
+                {
+                    string message = $"CommandTemplateId={commandTemplate.Id} is referenced to ProjectId={commandTemplate.ProjectId} but in system does not exist ClusterProject reference.";
+                    _log.Error(message);
+                    throw new ApplicationException(message);
+                }
+            }
         }
 
         //sqlserver specific because of identity
@@ -297,16 +347,15 @@ namespace HEAppE.DataAccessTier
                         break;
                     }
 
-                case AdaptorUserUserGroup userGroupItem:
+                case AdaptorUserUserGroupRole userGroupItem:
                     {
-                        var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId);
+                        var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId, userGroupItem.AdaptorUserRoleId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
-
-                case AdaptorUserUserRole userRoleItem:
+                case OpenStackAuthenticationCredentialProject openstackCredProject:
                     {
-                        var entity = Set<T>().Find(userRoleItem.AdaptorUserId, userRoleItem.AdaptorUserRoleId);
+                        var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId, openstackCredProject.OpenStackProjectId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
@@ -316,9 +365,9 @@ namespace HEAppE.DataAccessTier
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
-                case OpenStackAuthenticationCredentialProjectDomain openstackCredProjDomain:
+                case ClusterProjectCredentials clusterProjectCredentials:
                     {
-                        var entity = Set<T>().Find(openstackCredProjDomain.OpenStackAuthenticationCredentialId, openstackCredProjDomain.OpenStackProjectDomainId);
+                        var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
@@ -327,9 +376,9 @@ namespace HEAppE.DataAccessTier
             }
         }
 
-        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential)
+        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential, Cluster cluster)
         {
-            if (credential.Cluster.ProxyConnection is null)
+            if (cluster.ProxyConnection is null)
             {
                 if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
                 {
@@ -343,7 +392,7 @@ namespace HEAppE.DataAccessTier
 
                 if (!string.IsNullOrEmpty(credential.Password))
                 {
-                    switch (credential.Cluster.ConnectionProtocol)
+                    switch (cluster.ConnectionProtocol)
                     {
                         case ClusterConnectionProtocol.MicrosoftHpcApi:
                             return ClusterAuthenticationCredentialsAuthType.Password;
@@ -373,7 +422,7 @@ namespace HEAppE.DataAccessTier
 
                 if (!string.IsNullOrEmpty(credential.Password))
                 {
-                    switch (credential.Cluster.ConnectionProtocol)
+                    switch (cluster.ConnectionProtocol)
                     {
                         case ClusterConnectionProtocol.MicrosoftHpcApi:
                             return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
@@ -392,61 +441,6 @@ namespace HEAppE.DataAccessTier
 
             return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
-
-        /// <summary>
-        /// Returns all User to Role mappings and adds cascade roles for specific roles
-        /// </summary>
-        /// <param name="adaptorUserUserRoles"></param>
-        /// <returns></returns>
-        private static IEnumerable<AdaptorUserUserRole> GetAllUserRoles(List<AdaptorUserUserRole> adaptorUserUserRoles)
-        {
-            foreach (var userRoleGroup in adaptorUserUserRoles?.GroupBy(x => x.AdaptorUserId))
-            {
-                var userRoles = userRoleGroup.ToList();
-                if (IsRoleInCollection(userRoles, UserRoleType.Administrator))
-                {
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Maintainer, adaptorUserUserRoles);
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Submitter, adaptorUserUserRoles);
-                }
-
-                if (IsRoleInCollection(userRoles, UserRoleType.Submitter))
-                {
-                    CheckAndAddUserUserRole(userRoles, UserRoleType.Reporter, adaptorUserUserRoles);
-                }
-            }
-            return adaptorUserUserRoles;
-        }
-
-        /// <summary>
-        /// Checks if role is in collection by RoleID
-        /// </summary>
-        /// <param name="adaptorUserUserRoles"></param>
-        /// <param name="role"></param>
-        /// <returns></returns>
-        private static bool IsRoleInCollection(IEnumerable<AdaptorUserUserRole> adaptorUserUserRoles, UserRoleType role)
-        {
-            return adaptorUserUserRoles.Any(x => x.AdaptorUserRoleId.Equals((long)role));
-        }
-
-        /// <summary>
-        /// Checks and adds Role to collection when is not in collection grouped by User
-        /// </summary>
-        /// <param name="currentUserUserRoles">Collection of role to user mapping grouped by User</param>
-        /// <param name="roleType"></param>
-        /// <param name="adaptorUserUserRolesCollection">Global role to user collection mapping</param>
-        private static void CheckAndAddUserUserRole(IEnumerable<AdaptorUserUserRole> currentUserUserRoles, UserRoleType roleType, List<AdaptorUserUserRole> adaptorUserUserRolesCollection)
-        {
-            var userRole = currentUserUserRoles.FirstOrDefault();
-            if (!IsRoleInCollection(currentUserUserRoles, roleType))
-            {
-                adaptorUserUserRolesCollection.Add(new AdaptorUserUserRole()
-                {
-                    AdaptorUserId = userRole.AdaptorUserId,
-                    AdaptorUserRoleId = (long)roleType
-                });
-            }
-        }
         #endregion
         #region Entities
 
@@ -462,7 +456,6 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<OpenStackInstance> OpenStackInstances { get; set; }
         public virtual DbSet<OpenStackDomain> OpenStackDomains { get; set; }
         public virtual DbSet<OpenStackProject> OpenStackProjects { get; set; }
-        public virtual DbSet<OpenStackProjectDomain> OpenStackProjectDomains { get; set; }
         #endregion
 
         #region FileTransfer Entities
@@ -482,10 +475,9 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<CommandTemplateParameterValue> CommandTemplateParameterValues { get; set; }
         public virtual DbSet<EnvironmentVariable> EnvironmentVariables { get; set; }
         public virtual DbSet<JobSpecification> JobSpecifications { get; set; }
-        public virtual DbSet<JobTemplate> JobTemplates { get; set; }
-        public virtual DbSet<TaskTemplate> TaskTemplates { get; set; }
-        public virtual DbSet<PropertyChangeSpecification> PropertyChangeSpecifications { get; set; }
         public virtual DbSet<TaskSpecification> TaskSpecifications { get; set; }
+        public virtual DbSet<Project> Projects { get; set; }
+        public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
         #endregion
 
         #region Notifications Entities
@@ -499,9 +491,8 @@ namespace HEAppE.DataAccessTier
         #region UserAndLimitationManagement Entities
         public virtual DbSet<AdaptorUser> AdaptorUsers { get; set; }
         public virtual DbSet<AdaptorUserGroup> AdaptorUserGroups { get; set; }
-        public virtual DbSet<AdaptorUserUserGroup> AdaptorUserUserGroups { get; set; }
+        public virtual DbSet<AdaptorUserUserGroupRole> AdaptorUserUserGroups { get; set; }
         public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
-        public virtual DbSet<AdaptorUserUserRole> AdaptorUserUserRoles { get; set; }
         public virtual DbSet<ResourceLimitation> ResourceLimitations { get; set; }
         public virtual DbSet<SessionCode> SessionCodes { get; set; }
         public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }

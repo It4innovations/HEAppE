@@ -9,6 +9,8 @@ namespace HEAppE.RestApiModels.ClusterInformation
     {
         [DataMember(Name = "CommandTemplateId")]
         public long CommandTemplateId { get; set; }
+        [DataMember(Name = "ProjectId", IsRequired = true)]
+        public long ProjectId { get; set; }
 
         [DataMember(Name = "UserScriptPath", IsRequired = false), StringLength(250)]
         public string UserScriptPath { get; set; }

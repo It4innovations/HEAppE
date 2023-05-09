@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.Utils;
 using System.Collections.Generic;
 using System.IO;
@@ -19,7 +20,7 @@ namespace HEAppE.FileTransferFramework.NetworkShare
         }
         #endregion
         #region Local Methods
-        public ICollection<JobFileContent> SynchronizeFiles()
+        public ICollection<JobFileContent> SynchronizeFiles(Cluster cluster)
         {
             if (File.Exists(Path.Combine(SyncFileInfo.SourceDirectory, SyncFileInfo.RelativePath)))
             {

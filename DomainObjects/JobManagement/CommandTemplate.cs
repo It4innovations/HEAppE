@@ -15,9 +15,8 @@ namespace HEAppE.DomainObjects.JobManagement {
 		[StringLength(200)]
 		public string Description { get; set; }
 		
-		[Required]
 		[StringLength(50)]
-		public string Code { get; set; }
+		public string ExtendedAllocationCommand { get; set; }
 
 		[Required]
 		[StringLength(100)]
@@ -40,6 +39,10 @@ namespace HEAppE.DomainObjects.JobManagement {
         [ForeignKey("ClusterNodeType")]
         public long? ClusterNodeTypeId { get; set; }
         public virtual ClusterNodeType ClusterNodeType { get; set; }
+
+		[ForeignKey("Project")]
+		public long? ProjectId { get; set;}
+		public virtual Project Project { get; set; }
 
         public override string ToString() {
 			return String.Format("CommandTemplate: Id={0}, Name={1}, ExecutableFile={2}", Id, Name, ExecutableFile);

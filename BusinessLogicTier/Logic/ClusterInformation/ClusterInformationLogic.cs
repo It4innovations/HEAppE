@@ -40,19 +40,35 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
         public IEnumerable<Cluster> ListAvailableClusters()
         {
-            return _unitOfWork.ClusterRepository.GetAll();
+            return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
         }
 
         public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser)
         {
             ClusterNodeType nodeType = GetClusterNodeTypeById(clusterNodeId);
+            if (!nodeType.ClusterId.HasValue)
+            {
+                throw new InvalidRequestException("The specified cluster node has no reference to cluster.");
+            }
 
+            var clusterProjectIds = nodeType.Cluster.ClusterProjects.Select(x => x.ProjectId).ToList();
+            var availableProjectIds = loggedUser.Groups.Where(g => clusterProjectIds.Contains(g.ProjectId.Value)).Select(x => x.ProjectId.Value).ToList();
+            if (availableProjectIds.Count == 0)
+            {
+                throw new InvalidRequestException($"User {loggedUser} has no access to ClusterNodeId {clusterNodeId}.");
+            }
+            long projectId = availableProjectIds.FirstOrDefault();
+            var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(nodeType.ClusterId.Value, projectId);
+            if (serviceAccount is null)
+            {
+                throw new InvalidRequestException($"Project {projectId} has no refrence to Cluster {nodeType.ClusterId.Value}");
+            }
             return SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster)
-                                    .GetCurrentClusterNodeUsage(nodeType);
+                                    .GetCurrentClusterNodeUsage(nodeType, serviceAccount);
 
         }
 
-        public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, string userScriptPath, AdaptorUser loggedUser)
+        public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, AdaptorUser loggedUser)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate is null)
@@ -74,9 +90,22 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                     throw new RequestedObjectDoesNotExistException("The generic command template should contain script path!");
                 }
 
+                if (commandTemplate.ProjectId.HasValue)
+                {
+                    if (commandTemplate.ProjectId != projectId)
+                    {
+                        throw new RequestedObjectDoesNotExistException($"Specified CommandTemplateId \"{commandTemplate.Id}\" is not referenced to ProjectId \"{projectId}\".");
+                    }
+                }
                 Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
+                var serviceAccountCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
+                if (serviceAccountCredentials is null)
+                {
+                    throw new RequestedObjectDoesNotExistException("ServiceAccountCredentials is not defined in the system for this CommandTemplate.");
+                }
+
                 var commandTemplateParameters = new List<string>() { scriptPath };
-                commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, userScriptPath).ToList());
+                commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath).ToList());
                 return commandTemplateParameters;
             }
             else
@@ -86,7 +115,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             }
         }
 
-        public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId)
+        public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId)
         {
             Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
             if (cluster == null)
@@ -95,17 +124,28 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 throw new RequestedObjectDoesNotExistException("Requested cluster with Id=" + clusterId + " does not exist in the system.");
             }
 
-            var credentials = cluster.AuthenticationCredentials.Where(w => w != cluster.ServiceAccountCredentials)
-                                                                                              .OrderBy(o => o)
-                                                                                              .ToList();
+            //return all non service acccount for specific cluster and project
+            var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId);
+            if (credentials == null || credentials?.Count() == 0)
+            {
+                _log.Error($"Requested combination for cluster Id={clusterId} with Project Id={projectId} has no reference in the system.");
+                throw new RequestedObjectDoesNotExistException($"Requested combination for cluster Id={clusterId} with Project Id={projectId} has no reference in the system.");
+            }
+            var serviceCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId);
+            if (serviceCredentials == null)
+            {
+                _log.Error($"Requested combination for cluster Id={clusterId} with Project Id={projectId} has no Service Account Credentials reference in the system.");
+                throw new RequestedObjectDoesNotExistException($"Requested combination for cluster Id={clusterId} with Project Id={projectId} has no Service Account Credentials reference in the system.");
+            }
+            var firstCredentials = credentials.FirstOrDefault();
 
             var lastUsedId = ClusterUserCache.GetLastUserId(cluster);
             if (lastUsedId is null)
             {   // No user has been used from this cluster
                 // return first usable account
-                ClusterUserCache.SetLastUserId(cluster, credentials[0].Id);
-                _log.DebugFormat("Using initial cluster account: {0}", credentials[0].Username);
-                return credentials[0];
+                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, firstCredentials.Id);
+                _log.DebugFormat("Using initial cluster account: {0}", firstCredentials.Username);
+                return firstCredentials;
             }
             else
             {
@@ -115,10 +155,10 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 {
                     // No credentials with Id higher than last used found
                     // use first usable account
-                    creds = credentials[0];
+                    creds = firstCredentials;
                 }
 
-                ClusterUserCache.SetLastUserId(cluster, creds.Id);
+                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, firstCredentials.Id);
                 _log.DebugFormat("Using cluster account: {0}", creds.Username);
                 return creds;
             }

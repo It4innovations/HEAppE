@@ -3,9 +3,9 @@
     public class OpenStackProjectDomainDTO
     {
         #region Properties
-        public string Id { get; set; }
-
         public string Name { get; set; }
+
+        public string UID { get; set; }
         #endregion
     }
 }

@@ -9,8 +9,8 @@ using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobReporting
 {
-    [DataContract(Name = "GetUserResourceUsageReportModel")]
-    public class GetUserResourceUsageReportModel : SessionCodeModel
+    [DataContract(Name = "UserResourceUsageReportModel")]
+    public class UserResourceUsageReportModel : SessionCodeModel
     {
         [DataMember(Name = "UserId")]
         public long UserId { get; set; }
@@ -22,7 +22,7 @@ namespace HEAppE.RestApiModels.JobReporting
         public DateTime EndTime { get; set; }
         public override string ToString()
         {
-            return $"GetUserResourceUsageReportModel({base.ToString()}; UserId: {UserId}; StartTime: {StartTime}; EndTime: {EndTime})";
+            return $"UserResourceUsageReportModel({base.ToString()}; UserId: {UserId}; StartTime: {StartTime}; EndTime: {EndTime})";
         }
     }
 }

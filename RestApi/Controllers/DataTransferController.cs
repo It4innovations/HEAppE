@@ -44,61 +44,69 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("GetDataTransferMethod")]
+        [HttpPost("RequestDataTransfer")]
         [RequestSizeLimit(170)]
         [ProducesResponseType(typeof(DataTransferMethodExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult BeginDataTransfer(GetDataTransferMethodModel model)
+        public IActionResult RequestDataTransfer(GetDataTransferMethodModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"GetDataTransferMethod\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"RequestDataTransfer\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetDataTransferMethod(model.IpAddress, model.Port, model.SubmittedJobInfoId, model.SessionCode));
+                return Ok(_service.RequestDataTransfer(model.IpAddress, model.Port, model.SubmittedJobInfoId, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
         /// <summary>
-        /// End Data Transfer
+        /// CLose Data Transfer
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
-        [HttpPost("EndDataTransfer")]
-        [RequestSizeLimit(188)]
+        [HttpPost("CloseDataTransfer")]
+        [RequestSizeLimit(220)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        public IActionResult EndDataTransfer(EndDataTransferModel model)
+        public IActionResult CloseDataTransfer(EndDataTransferModel model)
         {
             try
             {
-                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"EndDataTransfer\" Parameters: \"{model}\"");
+                _logger.LogDebug($"Endpoint: \"DataTransfer\" Method: \"CloseDataTransfer\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new DataTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                _service.EndDataTransfer(model.UsedTransferMethod, model.SessionCode);
-                return Ok("EndDataTransfer");
+                _service.CloseDataTransfer(model.UsedTransferMethod, model.SessionCode);
+                return Ok("CloseDataTransfer");
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -109,11 +117,11 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("HttpGetToJobNode")]
         [RequestSizeLimit(50000)]
-        [ProducesResponseType(typeof(int?), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HttpGetToJobNodeAsync(HttpGetToJobNodeModel model)
         {
             try
@@ -127,9 +135,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(await _service.HttpGetToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.SubmittedJobInfoId, model.NodeIPAddress, model.NodePort, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
 
@@ -140,11 +152,11 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("HttpPostToJobNode")]
         [RequestSizeLimit(50000)]
-        [ProducesResponseType(typeof(int?), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> HttpPostToJobNodeAsync(HttpPostToJobNodeModel model)
         {
             try
@@ -158,9 +170,13 @@ namespace HEAppE.RestApi.Controllers
 
                 return Ok(await _service.HttpPostToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.HttpPayload, model.SubmittedJobInfoId, model.NodeIPAddress, model.NodePort, model.SessionCode));
             }
-            catch (Exception e)
+            catch (Exception exception)
             {
-                return BadRequest(e.Message);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion

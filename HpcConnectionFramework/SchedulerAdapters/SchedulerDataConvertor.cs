@@ -91,15 +91,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
             // Do not change!!! Task name on the cluster is set as ID of the used task specification to enable pairing of cluster task info with DB task info.
             taskAdapter.Name = taskSpecification.Id.ToString(CultureInfo.InvariantCulture);
-            taskAdapter.Project = taskSpecification.Project;
+            taskAdapter.Project = taskSpecification.Project.AccountingString;
 
             if (Convert.ToInt32(taskSpecification.WalltimeLimit) > 0)
             {
                 taskAdapter.Runtime = Convert.ToInt32(taskSpecification.WalltimeLimit);
             }
 
-            string jobClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(jobSpecification.FileTransferMethod.Cluster.LocalBasepath, jobSpecification);
-            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(jobClusterDirectory, taskSpecification);
+            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
 
             string stdErrFilePath = FileSystemUtils.ConcatenatePaths(workDirectory, taskSpecification.StandardErrorFile);
             taskAdapter.StdErrFilePath = workDirectory.Equals(stdErrFilePath) ? string.Empty : stdErrFilePath;
@@ -115,15 +114,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             taskAdapter.IsRerunnable = !string.IsNullOrEmpty(taskSpecification.JobArrays) || taskSpecification.IsRerunnable;
 
             taskAdapter.Queue = taskSpecification.ClusterNodeType.Queue;
+            taskAdapter.QualityOfService = taskSpecification.ClusterNodeType.QualityOfService;
             taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
             taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
-            CommandTemplate template = taskSpecification.CommandTemplate;
-            if (template is null)
-            {
-                throw new ApplicationException(@$"Command Template ""{taskSpecification.CommandTemplate.Name}"" for task 
-                                                  ""{taskSpecification.Name}"" does not exist in the adaptor configuration.");
-            }
+            CommandTemplate template = taskSpecification.CommandTemplate ?? throw new ApplicationException(@$"Command Template ""{taskSpecification.CommandTemplate.Name}"" for task ""{taskSpecification.Name}"" does not exist in the adaptor configuration.");
+
+            // Extended allocation parameters from command template
+            taskAdapter.ExtendedAllocationCommand = template.ExtendedAllocationCommand;
+
 
             Dictionary<string, string> templateParameters = CreateTemplateParameterValuesDictionary(jobSpecification, taskSpecification,
                                                             template.TemplateParameters, taskSpecification.CommandParameterValues);
@@ -230,8 +229,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
                     if (templateParameter.Query == "Task.Workdir")
                     {
-                        string taskClusterDirectory = FileSystemUtils.GetJobClusterDirectoryPath(jobSpecification.FileTransferMethod.Cluster.LocalBasepath, jobSpecification);
-                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskClusterDirectory, taskSpecification);
+                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
                     }
 
                     if (templateParameter.Query.StartsWith("Task."))

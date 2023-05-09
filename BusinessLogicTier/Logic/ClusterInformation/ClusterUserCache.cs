@@ -33,11 +33,11 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         /// </summary>
         /// <param name="cluster">Cluster</param>
         /// <param name="clusterUserId">Last used user id</param>
-        public static void SetLastUserId(Cluster cluster, long clusterUserId)
+        public static void SetLastUserId(Cluster cluster, ClusterAuthenticationCredentials serviceAccount, long clusterUserId)
         {
             lock (lastUserId)
             {
-                if (cluster.ServiceAccountCredentials.Id == clusterUserId)
+                if (serviceAccount.Id == clusterUserId)
                 {
                     // Do not user service account as regular account
                 }
