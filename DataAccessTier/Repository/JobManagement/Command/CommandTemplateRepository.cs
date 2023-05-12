@@ -1,5 +1,9 @@
 ﻿using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DomainObjects.JobManagement;
+using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement.Command
 {
@@ -12,5 +16,12 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.Command
 
         }
         #endregion
+
+        public IList<CommandTemplate> GetCommandTemplatesByProjectId(long projectId)
+        {
+            return _dbSet.Where(w=> w.ProjectId == projectId || w.ProjectId == null)
+                            .Include(i=>i.TemplateParameters)
+                            .ToList();
+        }
     }
 }
