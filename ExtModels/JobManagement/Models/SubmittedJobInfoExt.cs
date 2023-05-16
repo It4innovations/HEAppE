@@ -18,9 +18,6 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "State")]
         public JobStateExt? State { get; set; }
 
-        [DataMember(Name = "Project")]
-        public ProjectExt Project { get; set; }
-
         [DataMember(Name = "CreationTime")]
         public DateTime? CreationTime { get; set; }
 
@@ -41,7 +38,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
 
         public override string ToString()
         {
-            return $"SubmittedJobInfoExt(id={Id}; name={Name}; state={State}; project={Project}; creationTime={CreationTime}; submitTime={SubmitTime}; startTime={StartTime}; endTime={EndTime}; totalAllocatedTime={TotalAllocatedTime}; tasks={Tasks})";
+            return $"SubmittedJobInfoExt(id={Id}; name={Name}; state={State}; creationTime={CreationTime}; submitTime={SubmitTime}; startTime={StartTime}; endTime={EndTime}; totalAllocatedTime={TotalAllocatedTime}; tasks={Tasks})";
         }
     }
 }
