@@ -23,19 +23,13 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "AccountingString")]
         public string AccountingString { get; set; }
 
-        [DataMember(Name = "StartDate")]
-        public DateTime StartDate { get; set; }
-
-        [DataMember(Name = "EndDate")]
-        public DateTime EndDate { get; set; }
-
         [DataMember(Name = "CommandTemplates")]
         public CommandTemplateExt CommandTemplate { get; set; }
 
         #region Public methods
         public override string ToString()
         {
-            return $"Project: Id={Id}, Name={Name}, Description={Description}, AccountingString={AccountingString}, StartDate={StartDate}, EndDate={EndDate}, commandTemplate={CommandTemplate}";
+            return $"Project: Id={Id}, Name={Name}, Description={Description}, AccountingString={AccountingString}, commandTemplate={CommandTemplate}";
         }
         #endregion
     }
