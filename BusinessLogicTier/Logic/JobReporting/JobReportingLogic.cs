@@ -210,7 +210,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="endTime">EndTime</param>
         private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Cluster cluster, Project project,DateTime startTime, DateTime endTime)
         {
-            var nodeTypes = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes).Distinct().ToList();
+            var nodeTypes = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
+                                                    .Distinct()
+                                                        .OrderBy(x=>x.Id)
+                                                            .ToList();
 
             var nodeTypeReports = nodeTypes.Select(nodeType => new ClusterNodeTypeReport()
             {

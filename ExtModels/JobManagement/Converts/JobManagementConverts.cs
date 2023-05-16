@@ -191,9 +191,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 Name = project.Name,
                 Description = project.Description,
                 AccountingString = project.AccountingString,
-                CommandTemplate = commandTemplate.ConvertIntToExt(),
-                StartDate = project.StartDate,
-                EndDate = project.EndDate,
+                CommandTemplate = commandTemplate.ConvertIntToExt()
             };
             return convert;
         }
@@ -202,13 +200,9 @@ namespace HEAppE.ExtModels.JobManagement.Converts
         {
             ClusterNodeTypeForTaskExt convert = new()
             {
-                CoresPerNode = clusterNodeType.CoresPerNode,
                 Id = clusterNodeType.Id,
                 Name = clusterNodeType.Name,
                 Description = clusterNodeType.Description,
-                FileTransferMethodId = clusterNodeType.FileTransferMethodId,
-                MaxWalltime = clusterNodeType.MaxWalltime,
-                NumberOfNodes = clusterNodeType.NumberOfNodes,
                 Project = project.ConvertIntToExt(commandTemplate),
             };
             return convert;
