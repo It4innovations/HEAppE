@@ -219,7 +219,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     NodeTypes = new List<ClusterNodeTypeResourceUsage>()
                 };
 
-                var nodeTypes = project.CommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
+                var projectCommandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
+                var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
                 foreach (ClusterNodeType nodeType in nodeTypes)
                 {
                     var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType == nodeType);

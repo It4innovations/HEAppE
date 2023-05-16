@@ -32,7 +32,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
         public DateTime? EndTime { get; set; }
 
         [DataMember(Name = "NodeType")]
-        public ClusterNodeTypeExt NodeType { get; set; }
+        public ClusterNodeTypeForTaskExt NodeType { get; set; }
 
         [DataMember(Name = "ErrorMessage")]
         public string ErrorMessage { get; set; }
