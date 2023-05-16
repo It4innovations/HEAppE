@@ -219,10 +219,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     NodeTypes = new List<ClusterNodeTypeResourceUsage>()
                 };
 
-                var nodeTypes = project.CommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
+                var projectCommandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
+                var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
                 foreach (ClusterNodeType nodeType in nodeTypes)
                 {
-                    var tasksAtNode = allUserJobs.SelectMany(x=>x.Tasks).Where(x=>x.NodeType == nodeType);
+                    var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType == nodeType);
                     var clusterNodeUsedCoresAndLimitation = new NodeUsedCoresAndLimitation()
                     {
                         CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
@@ -232,14 +233,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     var clusterNodeTypeUsage = new ClusterNodeTypeResourceUsage()
                     {
                         Id = nodeType.Id,
-                        Name=nodeType.Name,
-                        Cluster=nodeType.Cluster,
-                        ClusterAllocationName=nodeType.ClusterAllocationName,
+                        Name = nodeType.Name,
+                        Cluster = nodeType.Cluster,
+                        ClusterAllocationName = nodeType.ClusterAllocationName,
                         CoresPerNode = nodeType.CoresPerNode,
                         Description = nodeType.Description,
-                        FileTransferMethod= nodeType.FileTransferMethod,
+                        FileTransferMethod = nodeType.FileTransferMethod,
                         MaxWalltime = nodeType.MaxWalltime,
-                        NumberOfNodes=nodeType.NumberOfNodes,
+                        NumberOfNodes = nodeType.NumberOfNodes,
                         Queue = nodeType.Queue,
                         NodeUsedCoresAndLimitation = clusterNodeUsedCoresAndLimitation
                     };
@@ -279,7 +280,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 Domain = new OpenStackDomainDTO()
                 {
                     UID = project.OpenStackDomain.UID,
-                    Name = project.OpenStackDomain.Name,               
+                    Name = project.OpenStackDomain.Name,
                     InstanceUrl = project.OpenStackDomain.OpenStackInstance.InstanceUrl
                 },
                 Credentials = new OpenStackCredentialsDTO()
@@ -540,17 +541,21 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         public IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser)
         {
             var projectReferences = new List<ProjectReference>();
-
-            foreach (var groupRole in loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First()))
+            var groupRoles = loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
+            foreach (var groupRole in groupRoles)
             {
                 var project = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject().FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
+                var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
+
+                project.CommandTemplates = commandTemplates.ToList();
+
                 projectReferences.Add(new()
                 {
                     Role = groupRole.AdaptorUserRole,
                     Project = project
                 });
             }
-            return projectReferences;
+            return projectReferences.Distinct();
         }
         #endregion
     }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -171,7 +172,6 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 Id = jobInfo.Id,
                 Name = jobInfo.Name,
                 State = jobInfo.State.ConvertIntToExt(),
-                Project = jobInfo.Project?.ConvertIntToExt(),
                 CreationTime = jobInfo.CreationTime,
                 SubmitTime = jobInfo.SubmitTime,
                 StartTime = jobInfo.StartTime,
@@ -179,6 +179,31 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 TotalAllocatedTime = jobInfo.TotalAllocatedTime,
                 Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt())
                                        .ToArray()
+            };
+            return convert;
+        }
+
+        private static ProjectForTaskExt ConvertIntToExt(this Project project, CommandTemplate commandTemplate)
+        {
+            ProjectForTaskExt convert = new()
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                AccountingString = project.AccountingString,
+                CommandTemplate = commandTemplate.ConvertIntToExt()
+            };
+            return convert;
+        }
+
+        private static ClusterNodeTypeForTaskExt ConvertIntToExt(this ClusterNodeType clusterNodeType, Project project, CommandTemplate commandTemplate)
+        {
+            ClusterNodeTypeForTaskExt convert = new()
+            {
+                Id = clusterNodeType.Id,
+                Name = clusterNodeType.Name,
+                Description = clusterNodeType.Description,
+                Project = project.ConvertIntToExt(commandTemplate),
             };
             return convert;
         }
@@ -198,7 +223,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 EndTime = task.EndTime,
                 CpuHyperThreading = task.CpuHyperThreading,
                 ErrorMessage = task.ErrorMessage,
-                NodeType = task.NodeType?.ConvertIntToExt()
+                NodeType = task.NodeType?.ConvertIntToExt(task.Project, task.Specification.CommandTemplate)
             };
             return convert;
         }
