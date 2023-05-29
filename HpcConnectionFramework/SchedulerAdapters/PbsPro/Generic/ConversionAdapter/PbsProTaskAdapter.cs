@@ -340,7 +340,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
                     ? string.Empty
                     : commandLine.Last().Equals(';') ? commandLine : $"{commandLine};");
 
-            taskSourceSb.Append($"1>> {stdOutFile} 2>> {stdErrFile}' | {_taskBuilder}");
+            taskSourceSb.Append($"' | {_taskBuilder}");
+            //taskSourceSb.Append($"1>> {stdOutFile} 2>> {stdErrFile}' | {_taskBuilder}");
             _taskBuilder = taskSourceSb;
         }
         #endregion
