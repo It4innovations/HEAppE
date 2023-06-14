@@ -44,7 +44,7 @@ namespace HEAppE.DomainObjects.ClusterInformation {
 		public virtual List<CommandTemplate> PossibleCommands { get; set; } = new List<CommandTemplate>();
 
         public override string ToString() {
-			return String.Format("ClusterNodeType: Id={0}, Name={1}, Queue={2}, RequestedNodeGroups={3}, Cluster={4}", Id, Name, Queue, RequestedNodeGroups, Cluster);
+			return $"ClusterNodeType: Id={Id}, Name={Name}, Queue={Queue}, RequestedNodeGroups={string.Join(",", RequestedNodeGroups)}, Cluster={Cluster}";
 		}
 	}
 }
