@@ -219,6 +219,108 @@ namespace HEAppE.RestApi.Controllers
                 return Problem(null, null, null, exception.Message);
             }
         }
+
+        /// <summary>
+        /// Generate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("CreateSecureShellKey")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult CreateSecureShellKey(CreateSecureShellKeyModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+                return Ok(_managementService.CreateSecureShellKey(model.Username, model.Projects, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Regenerate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("RecreateSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult RecreateSecureShellKey(RecreateSecureShellKeyModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.PublicKey, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Remove SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("RemoveSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult RemoveSecureShellKey(RemoveSecureShellKeyModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+                return Ok(_managementService.RemoveSecureShellKey(model.PublicKey, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
         #endregion
     }
 }

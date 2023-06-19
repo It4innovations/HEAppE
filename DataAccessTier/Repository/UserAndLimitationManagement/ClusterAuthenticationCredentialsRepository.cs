@@ -34,6 +34,13 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials);
             return credentials?.FirstOrDefault();
         }
+
+        public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint)
+        {
+            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.PublicKeyFingerprint == fingerprint &&
+                                                                                    x.AuthenticationType == ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncrypted);
+            return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
+        }
         #endregion
     }
 }

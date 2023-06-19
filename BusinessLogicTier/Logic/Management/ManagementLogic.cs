@@ -1,16 +1,24 @@
 ﻿using HEAppE.BusinessLogicTier.Logic.Management.Exceptions;
+using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.Management;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.Utils;
+using Org.BouncyCastle.Security;
+using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
     public class ManagementLogic : IManagementLogic
     {
         protected IUnitOfWork _unitOfWork;
+        protected string _sshKeysDirectory = "/opt/heappe/keys/";
         public ManagementLogic(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
@@ -152,5 +160,166 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
         }
 
+        /// <summary>
+        /// Creates encrypted SSH key for the specified user and saves it to the database.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="projects"></param>
+        /// <returns></returns>
+        public SecureShellKey CreateSecureShellKey(string username, long[] projects)
+        {
+            SSHGenerator sshGenerator = new();
+            string passphrase = StringUtils.GetRandomString();
+            SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
+            Guid guid = Guid.NewGuid();
+            string keyPath = Path.Combine(_sshKeysDirectory, guid.ToString());
+            //save private key to file
+            File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
+
+            foreach (long projectId in projects)
+            {
+                var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == projectId).ToList();
+                var serviceCredentials = new ClusterAuthenticationCredentials()
+                {
+                    Username = username,
+                    Password = null,
+                    PrivateKeyFile = keyPath,
+                    PrivateKeyPassword = passphrase,
+                    AuthenticationType = ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncrypted,
+                    PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint,
+                    ClusterProjectCredentials = new List<ClusterProjectCredentials>()
+                };
+
+                var nonServiceCredentials = new ClusterAuthenticationCredentials()
+                {
+                    Username = username,
+                    Password = null,
+                    PrivateKeyFile = keyPath,
+                    PrivateKeyPassword = passphrase,
+                    AuthenticationType = ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncrypted,
+                    PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint,
+                    ClusterProjectCredentials = new List<ClusterProjectCredentials>()
+                };
+
+                foreach (var clusterProject in clusterProjects)
+                {
+                    serviceCredentials.ClusterProjectCredentials.Add(new ClusterProjectCredentials()
+                    {
+                        ClusterProject = clusterProject,
+                        ClusterAuthenticationCredentials = serviceCredentials,
+                        CreatedAt = System.DateTime.Now,
+                        IsDeleted = false,
+                        IsServiceAccount = true
+                    });
+                    nonServiceCredentials.ClusterProjectCredentials.Add(new ClusterProjectCredentials()
+                    {
+                        ClusterProject = clusterProject,
+                        ClusterAuthenticationCredentials = nonServiceCredentials,
+                        CreatedAt = System.DateTime.Now,
+                        IsDeleted = false,
+                        IsServiceAccount = false
+                    });
+                }
+
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
+
+                _unitOfWork.Save();
+            }
+            return secureShellKey;
+        }
+
+        /// <summary>
+        /// Recreates encrypted SSH key for the specified user and saves it to the database.
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="publicKey"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        public SecureShellKey RecreateSecureShellKey(string username, string publicKey)
+        {
+            string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint)
+                                                                                                            .ToList();
+
+            if (clusterAuthenticationCredentials.Count == 0)
+            {
+                throw new InputValidationException("The specified public key is not defined in HEAppE!");
+            }
+
+            SSHGenerator sshGenerator = new SSHGenerator();
+            string passphrase = StringUtils.GetRandomString();
+            SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
+            Guid guid = Guid.NewGuid();
+
+            foreach (var credentials in clusterAuthenticationCredentials)
+            {
+                File.Delete(credentials.PrivateKeyFile);
+
+                string keyPath = Path.Combine(_sshKeysDirectory, guid.ToString());
+                File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
+
+                credentials.PrivateKeyFile = keyPath;
+                credentials.PrivateKeyPassword = passphrase;
+                credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
+
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
+            }
+
+            _unitOfWork.Save();
+
+            return secureShellKey;
+        }
+
+
+        /// <summary>
+        /// Removes encrypted SSH key
+        /// </summary>
+        /// <param name="publicKey"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        public string RemoveSecureShellKey(string publicKey)
+        {
+            string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint)
+                                                                                                             .ToList();
+
+            if (clusterAuthenticationCredentials.Count == 0)
+            {
+                throw new InputValidationException("The specified public key is not defined in HEAppE!");
+            }
+
+            foreach (var credentials in clusterAuthenticationCredentials)
+            {
+                File.Delete(credentials.PrivateKeyFile);
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(credentials);
+            }
+            _unitOfWork.Save();
+            return "SecureShellKey revoked";
+        }
+
+        /// <summary>
+        /// Computes the fingerprint of the specified public key in base64 format
+        /// </summary>
+        /// <param name="publicKey"></param>
+        /// <returns>SHA256 hash</returns>
+        /// <exception cref="InputValidationException"></exception>
+        private string ComputePublicKeyFingerprint(string publicKey)
+        {
+            Regex regex = new Regex(@"([A-Za-z0-9+\/=]+==)");
+            Match match = regex.Match(publicKey);
+            if (!match.Success)
+            {
+                throw new InputValidationException("The specified public key is not valid!");
+            }
+            else
+            {
+                var base64EncodedBytes = Convert.FromBase64String(match.Value);
+                byte[] fingerprintBytes;
+
+                fingerprintBytes = DigestUtilities.CalculateDigest("SHA256", base64EncodedBytes);
+                return BitConverter.ToString(fingerprintBytes).Replace("-", string.Empty).ToLower();
+            }
+        }
     }
 }

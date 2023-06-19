@@ -70,7 +70,7 @@ namespace HEAppE.Utils
             return sb.ToString();
         }
 
-        private static string GetRandomString()
+        public static string GetRandomString()
         {
             var random = new byte[16];
             var rng = new RNGCryptoServiceProvider();

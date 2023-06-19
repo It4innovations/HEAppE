@@ -1,9 +1,13 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.CertificateGenerator.Configuration;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using System;
+using System.IO;
+using System.Security.Cryptography;
+using System.Text;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
@@ -25,16 +29,16 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         {
             return credentials.AuthenticationType switch
             {
-                ClusterAuthenticationCredentialsAuthType.Password 
+                ClusterAuthenticationCredentialsAuthType.Password
                         => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, port),
 
-                ClusterAuthenticationCredentialsAuthType.PasswordInteractive 
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractive
                         => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, credentials.Username, credentials.Password),
 
-                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey 
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey
                         => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
 
-                ClusterAuthenticationCredentialsAuthType.PrivateKey 
+                ClusterAuthenticationCredentialsAuthType.PrivateKey
                         => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
 
                 ClusterAuthenticationCredentialsAuthType.PasswordViaProxy
@@ -43,7 +47,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                 ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy
                         => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractiveViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
 
-                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy 
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy
                         => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
@@ -51,6 +55,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username),
+
+                ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncrypted
+                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+
+                ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncryptedViaProxy
+                        => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
 
                 _ => throw new NotImplementedException("Cluster authentication credentials authentication type is not allowed!")
             };
@@ -227,6 +237,39 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             {
                 throw new SshCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
             }
+        }
+
+        private static MemoryStream DecryptPksc8PrivateKey(string masterNodeName, string privateKeyFile, string privateKeyPassword)
+        {
+            MemoryStream privateKeyMemoryStream = null;
+            switch (CipherGeneratorConfiguration.Type)
+            {
+                case DomainObjects.FileTransfer.FileTransferCipherType.Unknown:
+                    throw new SshCommandException($"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
+                case DomainObjects.FileTransfer.FileTransferCipherType.RSA3072:
+                case DomainObjects.FileTransfer.FileTransferCipherType.RSA4096:
+                    {
+                        RSA key = RSA.Create();
+                        string encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
+                        key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
+                        string pk = key.ExportRSAPrivateKeyPem();
+                        privateKeyMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(pk));
+                    }
+                    break;
+                case DomainObjects.FileTransfer.FileTransferCipherType.nistP256:
+                case DomainObjects.FileTransfer.FileTransferCipherType.nistP521:
+                    {
+                        ECDsa key = ECDsa.Create();
+                        string encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
+                        key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
+                        string pk = key.ExportECPrivateKeyPem();
+                        privateKeyMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(pk));
+                    }
+                    break;
+                default:
+                    throw new SshCommandException($"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
+            }
+            return privateKeyMemoryStream;
         }
 
         /// <summary>

@@ -10,6 +10,8 @@
         PasswordInteractiveViaProxy = 6,
         PasswordAndPrivateKeyViaProxy = 7,
         PrivateKeyViaProxy = 8,
-        PrivateKeyInSshAgent = 9
+        PrivateKeyInSshAgent = 9,
+        GeneratedKeyEncrypted = 10,
+        GeneratedKeyEncryptedViaProxy = 11
     }
 }

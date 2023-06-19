@@ -10,6 +10,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobReporting.Converts;
+using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
@@ -97,6 +98,60 @@ namespace HEAppE.ServiceTier.Management
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
                 }
 
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public PublicKeyExt CreateSecureShellKey(string username, long[] projects, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    return managementLogic.CreateSecureShellKey(username, projects).ConvertIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public PublicKeyExt RecreateSecureShellKey(string username, string publicKey, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    return managementLogic.RecreateSecureShellKey(username, publicKey).ConvertIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public string RemoveSecureShellKey(string publicKey, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    return managementLogic.RemoveSecureShellKey(publicKey);
+                }
+            }
+            catch (Exception exc)
+            {
                 ExceptionHandler.ThrowProperExternalException(exc);
                 return null;
             }

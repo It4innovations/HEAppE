@@ -27,6 +27,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [Required]
         public ClusterAuthenticationCredentialsAuthType AuthenticationType { get; set; }
 
+        [StringLength(200)]
+        public string PublicKeyFingerprint { get; set; }
+
         public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
         #endregion
 
