@@ -242,7 +242,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
-                return Ok(_managementService.CreateSecureShellKey(model.Username, model.Projects, model.SessionCode));
+                return Ok(_managementService.CreateSecureShellKey(model.Username, model.AccountingStrings, model.SessionCode));
             }
             catch (Exception exception)
             {

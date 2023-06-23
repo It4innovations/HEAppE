@@ -65,7 +65,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("Username can not be null or empty.");
             }
 
-            if (ext.Projects == null || ext.Projects.Length == 0)
+            if (ext.AccountingStrings == null || ext.AccountingStrings.Length == 0)
             {
                 _messageBuilder.AppendLine("Projects can not be null or empty.");
             }

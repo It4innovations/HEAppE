@@ -8,7 +8,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript);
         void RemoveCommandTemplate(long commandTemplateId);
         CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript);
-        SecureShellKey CreateSecureShellKey(string username, long[] projects);
+        SecureShellKey CreateSecureShellKey(string username, string[] projects);
         SecureShellKey RecreateSecureShellKey(string username, string publicKey);
         string RemoveSecureShellKey(string publicKey);
     }

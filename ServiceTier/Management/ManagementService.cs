@@ -103,7 +103,7 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt CreateSecureShellKey(string username, long[] projects, string sessionCode)
+        public PublicKeyExt CreateSecureShellKey(string username, string[] accountingStrings, string sessionCode)
         {
             try
             {
@@ -111,7 +111,7 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.CreateSecureShellKey(username, projects).ConvertIntToExt();
+                    return managementLogic.CreateSecureShellKey(username, accountingStrings).ConvertIntToExt();
                 }
             }
             catch (Exception exc)

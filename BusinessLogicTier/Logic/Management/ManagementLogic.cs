@@ -6,11 +6,13 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.Management;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
+using log4net;
 using Org.BouncyCastle.Security;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text.RegularExpressions;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
@@ -18,6 +20,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
     public class ManagementLogic : IManagementLogic
     {
         protected IUnitOfWork _unitOfWork;
+        protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         protected string _sshKeysDirectory = "/opt/heappe/keys/";
         public ManagementLogic(IUnitOfWork unitOfWork)
         {
@@ -29,16 +32,19 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
             if (commandTemplate is null)
             {
+                _logger.Error($"The specified command template with id {genericCommandTemplateId} is not defined in HEAppE!");
                 throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
             }
 
             if (!commandTemplate.IsGeneric)
             {
+                _logger.Error($"The specified command template with id {genericCommandTemplateId} is not generic.");
                 throw new InputValidationException("The specified command template is not generic.");
             }
 
             if (!commandTemplate.IsEnabled)
             {
+                _logger.Error($"The specified command template with id {genericCommandTemplateId} is disabled.");
                 throw new InputValidationException("The specified command template is deleted.");
             }
 
@@ -47,11 +53,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             if (string.IsNullOrEmpty(commandTemplateParameter?.Identifier))
             {
+                _logger.Error($"The user-script command parameter for the generic command template is not defined in HEAppE!");
                 throw new RequestedObjectDoesNotExistException("The user-script command parameter for the generic command template is not defined in HEAppE!");
             }
 
             if (string.IsNullOrEmpty(executableFile))
             {
+                _logger.Error($"The generic command template should contain script path!");
                 throw new InputValidationException("The generic command template should contain script path!");
             }
 
@@ -87,7 +95,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 TemplateParameters = templateParameters,
                 CommandParameters = string.Join(' ', commandTemplateParameters.Select(x => $"%%{"{"}{x}{"}"}"))
             };
-
+            _logger.Info($"Creating new command template: {newCommandTemplate.Name}");
             _unitOfWork.CommandTemplateRepository.Insert(newCommandTemplate);
             _unitOfWork.Save();
 
@@ -99,21 +107,25 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate is null)
             {
+                _logger.Error($"The specified command template with id {commandTemplateId} is not defined in HEAppE!");
                 throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
             }
 
             if (!commandTemplate.IsEnabled)
             {
+                _logger.Error($"The specified command template with id {commandTemplateId} is disabled.");
                 throw new InputValidationException("The specified command template is deleted.");
             }
 
             if (commandTemplate.IsGeneric)
             {
+                _logger.Error($"The specified command template with id {commandTemplateId} is generic.");
                 throw new InputValidationException("The specified command template is generic.");
             }
 
             if (executableFile is null)
             {
+                _logger.Error($"The specified command template must have specified executable file!");
                 throw new InputValidationException("The specified command template must have specified executable file!");
             }
 
@@ -134,7 +146,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     Query = string.Empty
                 });
             }
-
+            _logger.Info($"Modifying command template: {commandTemplate.Name}");
             commandTemplate.Name = name;
             commandTemplate.Description = description;
             commandTemplate.ExtendedAllocationCommand = extendedAllocationCommand;
@@ -153,9 +165,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate == null)
             {
+                _logger.Error($"The specified command template with id {commandTemplateId} is not defined in HEAppE!");
                 throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
             }
-
+            _logger.Info($"Removing command template: {commandTemplate.Name}");
             commandTemplate.IsEnabled = false;
             _unitOfWork.Save();
         }
@@ -164,20 +177,44 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// Creates encrypted SSH key for the specified user and saves it to the database.
         /// </summary>
         /// <param name="username"></param>
-        /// <param name="projects"></param>
+        /// <param name="accountingStrings"></param>
         /// <returns></returns>
-        public SecureShellKey CreateSecureShellKey(string username, long[] projects)
+        public SecureShellKey CreateSecureShellKey(string username, string[] accountingStrings)
         {
+            //Chech if all project defined by AccountingString exist in HEAppE
+            List<string> nonExistingProjects = new List<string>();
+            List<Project> existingProjects = new List<Project>();
+
+            foreach (string accountingString in accountingStrings)
+            {
+                var project = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
+                if (project is null)
+                {
+                    nonExistingProjects.Add(accountingString);
+                }
+                else
+                {
+                    existingProjects.Add(project);
+                }
+            }
+
+            if (nonExistingProjects.Any())
+            {
+                _logger.Error($"The specified project with accounting string {string.Join(", ", nonExistingProjects)} is not defined in HEAppE!");
+                throw new InputValidationException($"The specified project with accounting string {string.Join(", ", nonExistingProjects)} is not defined in HEAppE!");
+            }
+
             SSHGenerator sshGenerator = new();
             string passphrase = StringUtils.GetRandomString();
             SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
-            string keyPath = GetUniquePrivateKeyPath(projects);
+            string keyPath = GetUniquePrivateKeyPath(accountingStrings);
             //save private key to file
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
 
-            foreach (long projectId in projects)
+            foreach (var project in existingProjects)
             {
-                var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == projectId).ToList();
+                _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
+                var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
 
                 ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
                 ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
@@ -241,7 +278,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InputValidationException("The specified public key is not defined in HEAppE!");
             }
-
+            _logger.Info($"Recreating SSH key for user {username}.");
             SSHGenerator sshGenerator = new SSHGenerator();
             string passphrase = StringUtils.GetRandomString();
             SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
@@ -279,7 +316,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InputValidationException("The specified public key is not defined in HEAppE!");
             }
-
+            _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
             foreach (var credentials in clusterAuthenticationCredentials)
             {
                 File.Delete(credentials.PrivateKeyFile);
@@ -302,6 +339,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             Match match = regex.Match(publicKey);
             if (!match.Success)
             {
+                _logger.Error("The specified public key is not int the valid format!");
                 throw new InputValidationException("The specified public key is not valid!");
             }
             else
@@ -314,9 +352,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
         }
 
-        private string GetUniquePrivateKeyPath(long[] projectIds)
+        private string GetUniquePrivateKeyPath(string[] projectIds)
         {
-            string projectIdsString = string.Join("-", projectIds);
+            string projectIdsString = string.Join("_", projectIds);
             long netxId = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Max(x => x.Id) + 1;
             string keyPath = Path.Combine(_sshKeysDirectory, $"KEY_{projectIdsString}_{netxId}");
             return keyPath;
