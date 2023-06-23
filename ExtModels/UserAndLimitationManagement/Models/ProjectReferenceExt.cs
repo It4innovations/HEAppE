@@ -1,5 +1,4 @@
-﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.ExtModels.JobManagement.Models;
+﻿using HEAppE.ExtModels.JobManagement.Models;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 

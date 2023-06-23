@@ -5,7 +5,8 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.UserAndLimitationManagement
 {
     [Table("AdaptorUserUserGroupRole")]
-    public class AdaptorUserUserGroupRole {
+    public class AdaptorUserUserGroupRole
+    {
         public long AdaptorUserId { get; set; }
         public virtual AdaptorUser AdaptorUser { get; set; }
 

@@ -6,7 +6,6 @@ using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.DTO;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts

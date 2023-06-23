@@ -1,11 +1,5 @@
-﻿using HEAppE.ExtModels.FileTransfer.Models;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using HEAppE.RestApiModels.UserAndLimitationManagement;
+﻿using HEAppE.RestApiModels.UserAndLimitationManagement;
 using HEAppE.Utils.Validation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -83,7 +77,7 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateAuthenticateUserOpenIdOpenStackModel(AuthenticateUserOpenIdOpenStackModel validationObj)
         {
-            if (validationObj.ProjectId <=0)
+            if (validationObj.ProjectId <= 0)
             {
                 _messageBuilder.AppendLine("ProjectId must be greater than 0!");
             }

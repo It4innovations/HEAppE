@@ -1,7 +1,7 @@
-﻿using System;
-using HEAppE.ConnectionPool;
+﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using System;
 
 namespace HEAppE.FileTransferFramework.NetworkShare
 {

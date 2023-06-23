@@ -19,8 +19,8 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         #region Public methods
         public IEnumerable<ClusterNodeType> GetAllWithPossibleCommands()
         {
-            return _dbSet.Include(i=>i.PossibleCommands)
-                            .ThenInclude(i=>i.TemplateParameters)
+            return _dbSet.Include(i => i.PossibleCommands)
+                            .ThenInclude(i => i.TemplateParameters)
                             .ToList();
         }
         #endregion

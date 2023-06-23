@@ -63,7 +63,7 @@ namespace HEAppE.ServiceTier.DataTransfer
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId).Project.Id);
                     IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                    return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s=>s.ConvertExtToInt()), submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
+                    return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()), submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
                 }
             }
             catch (Exception exc)

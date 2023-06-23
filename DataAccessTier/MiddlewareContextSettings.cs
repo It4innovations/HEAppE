@@ -1,10 +1,10 @@
-﻿using System.Collections.Generic;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.Notifications;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Collections.Generic;
 
 namespace HEAppE.DataAccessTier
 {

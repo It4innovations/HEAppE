@@ -1,10 +1,10 @@
-﻿using System;
+﻿using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.ConversionAdapter
 {
@@ -83,7 +83,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
         public string ClusterAllocationName
         {
             set
-            { 
+            {
 
             }
         }
@@ -178,7 +178,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic.Convers
             set
             {
                 TimeSpan wallTime = TimeSpan.FromSeconds(value);
-                _taskBuilder.Append($" -l walltime={ wallTime:hh\\:mm\\:ss}");
+                _taskBuilder.Append($" -l walltime={wallTime:hh\\:mm\\:ss}");
             }
         }
 

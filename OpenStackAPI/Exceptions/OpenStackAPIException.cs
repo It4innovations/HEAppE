@@ -1,5 +1,5 @@
-﻿using System;
-using HEAppE.RestUtils.Interfaces;
+﻿using HEAppE.RestUtils.Interfaces;
+using System;
 
 namespace HEAppE.OpenStackAPI.Exceptions
 {

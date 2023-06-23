@@ -1,6 +1,4 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using System.Collections.Generic;
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement
 {

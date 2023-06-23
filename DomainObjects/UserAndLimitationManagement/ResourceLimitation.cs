@@ -1,5 +1,5 @@
-using System.ComponentModel.DataAnnotations.Schema;
 using HEAppE.DomainObjects.ClusterInformation;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace HEAppE.DomainObjects.UserAndLimitationManagement
 {

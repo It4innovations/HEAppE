@@ -1,7 +1,5 @@
 ﻿using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DomainObjects.OpenStack;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.OpenStack

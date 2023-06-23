@@ -5,9 +5,7 @@ using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.Management;
 using log4net;
 using System;
-using System.IO;
 using System.Reflection;
-using System.Security.Cryptography;
 
 namespace HEAppE.CertificateGenerator
 {
@@ -66,7 +64,7 @@ namespace HEAppE.CertificateGenerator
                 FileTransferCipherType.nistP256 => new ECDsaCertGeneratorV2(256),
                 FileTransferCipherType.nistP521 => new ECDsaCertGeneratorV2(521),
                 _ => new RSACertGeneratorV2(4096)
-            };  
+            };
         }
         #endregion
         #region Methods

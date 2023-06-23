@@ -30,9 +30,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// </summary>
         public object AllocationCmd
         {
-            get 
-            { 
-                return _jobCommandBuilder.ToString(); 
+            get
+            {
+                return _jobCommandBuilder.ToString();
             }
         }
 

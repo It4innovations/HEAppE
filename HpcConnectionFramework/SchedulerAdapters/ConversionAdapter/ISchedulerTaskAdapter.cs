@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
-using HEAppE.DomainObjects.JobManagement;
+﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
 {

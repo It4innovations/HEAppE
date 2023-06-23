@@ -2,7 +2,6 @@
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Utilities;
-using Org.BouncyCastle.OpenSsl;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities.IO.Pem;
 using System;
@@ -130,7 +129,7 @@ namespace HEAppE.CertificateGenerator.Generators.v2
         /// <returns>The public key in PEM format.</returns>
         public override string ToPublicKeyInPEM()
         {
-             byte[] publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(_keyPair.Public);
+            byte[] publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(_keyPair.Public);
             using (StringWriter stringWriter = new StringWriter())
             {
                 using (Org.BouncyCastle.OpenSsl.PemWriter w = new Org.BouncyCastle.OpenSsl.PemWriter(stringWriter))

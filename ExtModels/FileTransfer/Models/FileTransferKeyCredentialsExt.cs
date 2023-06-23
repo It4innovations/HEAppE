@@ -1,5 +1,4 @@
 ﻿using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using System;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.FileTransfer.Models

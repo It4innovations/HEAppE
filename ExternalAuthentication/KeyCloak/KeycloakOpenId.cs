@@ -4,7 +4,6 @@ using HEAppE.ExternalAuthentication.KeyCloak.Exceptions;
 using HEAppE.RestUtils;
 using RestSharp;
 using RestSharp.Authenticators;
-using RestSharp.Authenticators.OAuth2;
 using System;
 using System.Linq;
 using System.Net;

@@ -1,10 +1,10 @@
-﻿using System;
-using HEAppE.BusinessLogicTier.Logic;
+﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.BusinessLogicTier.Logic.DataTransfer.Exceptions;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
+using HEAppE.BusinessLogicTier.Logic.JobReporting.Exceptions;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using log4net;
-using HEAppE.BusinessLogicTier.Logic.JobReporting.Exceptions;
-using HEAppE.BusinessLogicTier.Logic.DataTransfer.Exceptions;
+using System;
 
 namespace HEAppE.RestApi
 {
@@ -53,7 +53,7 @@ namespace HEAppE.RestApi
                 {
                     throw new UnableToCreateConnectionException(exception.Message);
                 }
-                else if(exception is InvalidRequestException)
+                else if (exception is InvalidRequestException)
                 {
                     throw new InvalidRequestException(exception.Message);
                 }

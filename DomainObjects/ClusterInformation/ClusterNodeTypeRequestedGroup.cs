@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 
 namespace HEAppE.DomainObjects.ClusterInformation
 {
@@ -10,7 +7,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
     /// Specification of name specification group in queue 
     /// </summary>
     [Table("ClusterNodeTypeRequestedGroup")]
-    public class ClusterNodeTypeRequestedGroup: IdentifiableDbEntity
+    public class ClusterNodeTypeRequestedGroup : IdentifiableDbEntity
     {
         #region Properties
         [StringLength(100)]

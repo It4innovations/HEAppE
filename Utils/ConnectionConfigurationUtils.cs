@@ -1,15 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace HEAppE.Utils
+﻿namespace HEAppE.Utils
 {
     public class ConnectionConfiguration
     {
-        public string Host { get; set;}
-        public int Port { get; set;} = 22;
+        public string Host { get; set; }
+        public int Port { get; set; } = 22;
     }
     public class ConnectionConfigurationUtils
     {

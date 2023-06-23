@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace HEAppE.OpenStackAPI.Configuration
+﻿namespace HEAppE.OpenStackAPI.Configuration
 {
     public class OpenStackSettings
     {

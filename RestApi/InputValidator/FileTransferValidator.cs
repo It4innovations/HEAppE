@@ -2,9 +2,6 @@
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.Utils.Validation;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -83,7 +80,7 @@ namespace HEAppE.RestApi.InputValidator
 
             return _messageBuilder.ToString();
         }
-        
+
         private string ValidateEndFileTransferModel(EndFileTransferModel model)
         {
             ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));

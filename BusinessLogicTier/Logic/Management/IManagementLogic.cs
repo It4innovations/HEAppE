@@ -1,6 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.Management;
-using System.Security.Cryptography.X509Certificates;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {

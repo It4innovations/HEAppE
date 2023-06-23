@@ -1,10 +1,4 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
-using HEAppE.ExtModels.FileTransfer.Models;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using HEAppE.ExtModels.FileTransfer.Models;
 
 namespace HEAppE.ExtModels.Management.Models
 {

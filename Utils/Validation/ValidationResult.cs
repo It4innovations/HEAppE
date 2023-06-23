@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
-
-namespace HEAppE.Utils.Validation
+﻿namespace HEAppE.Utils.Validation
 {
     /// <summary>
     /// Result of validation
@@ -14,7 +10,7 @@ namespace HEAppE.Utils.Validation
         /// Is valid
         /// </summary>
         public bool IsValid { get; }
-        
+
         /// <summary>
         /// Validation Message
         /// </summary>

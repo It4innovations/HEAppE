@@ -1,18 +1,16 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.ServiceTier.UserAndLimitationManagement;
+﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using HEAppE.Utils.Validation;
-using HEAppE.RestApi.InputValidator;
-using HEAppE.BusinessLogicTier.Logic;
-using System.Threading.Tasks;
-using HEAppE.Utils;
 using Microsoft.Extensions.Caching.Memory;
-using HEAppE.OpenStackAPI.Configuration;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers
 {

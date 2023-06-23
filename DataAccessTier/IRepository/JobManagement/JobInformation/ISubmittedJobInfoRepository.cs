@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
+﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using System.Collections.Generic;
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
 {
