@@ -220,7 +220,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                         IsServiceAccount = false
                     });
                 }
-
+                
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
 

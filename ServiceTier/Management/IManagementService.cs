@@ -1,9 +1,5 @@
-﻿using HEAppE.DomainObjects.Management;
-using HEAppE.ExtModels.ClusterInformation.Models;
-using HEAppE.ExtModels.JobReporting.Models;
+﻿using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.Management.Models;
-using System.Collections.Generic;
-using System.Security.Cryptography.X509Certificates;
 
 namespace HEAppE.ServiceTier.Management
 {
