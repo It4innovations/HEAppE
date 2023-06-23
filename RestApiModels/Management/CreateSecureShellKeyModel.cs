@@ -8,7 +8,7 @@ namespace HEAppE.RestApiModels.Management
     {
         [DataMember(Name = "Name", IsRequired = true)]
         public string Username { get; set; }
-        [DataMember(Name = "Project", IsRequired = true)]
+        [DataMember(Name = "Projects", IsRequired = true)]
         public long[] Projects { get; set; }
     }
 }
