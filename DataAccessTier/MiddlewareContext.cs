@@ -385,11 +385,6 @@ namespace HEAppE.DataAccessTier
                     return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
                 }
 
-                if (!string.IsNullOrEmpty(credential.PrivateKeyFile) && !string.IsNullOrEmpty(credential.PublicKeyFingerprint))
-                {
-                    return ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncrypted;
-                }
-
                 if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
                 {
                     return ClusterAuthenticationCredentialsAuthType.PrivateKey;
@@ -418,11 +413,6 @@ namespace HEAppE.DataAccessTier
                 if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
                 {
                     return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
-                }
-
-                if (!string.IsNullOrEmpty(credential.PrivateKeyFile) && !string.IsNullOrEmpty(credential.PublicKeyFingerprint))
-                {
-                    return ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncryptedViaProxy;
                 }
 
                 if (!string.IsNullOrEmpty(credential.PrivateKeyFile))

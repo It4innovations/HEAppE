@@ -56,12 +56,6 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username),
 
-                ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncrypted
-                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
-
-                ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncryptedViaProxy
-                        => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
-
                 _ => throw new NotImplementedException("Cluster authentication credentials authentication type is not allowed!")
             };
         }

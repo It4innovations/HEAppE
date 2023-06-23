@@ -37,8 +37,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 
         public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint)
         {
-            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.PublicKeyFingerprint == fingerprint &&
-                                                                                    x.AuthenticationType == ClusterAuthenticationCredentialsAuthType.GeneratedKeyEncrypted);
+            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && x.PublicKeyFingerprint == fingerprint);
             return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
         }
         #endregion

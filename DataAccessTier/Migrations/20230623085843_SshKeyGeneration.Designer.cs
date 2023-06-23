@@ -10,7 +10,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20230613131414_SshKeyGeneration")]
+    [Migration("20230623085843_SshKeyGeneration")]
     partial class SshKeyGeneration
     {
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -83,6 +83,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int>("AuthenticationType")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsGenerated")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Password")
                         .HasMaxLength(50)

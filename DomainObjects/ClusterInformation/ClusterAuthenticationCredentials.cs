@@ -31,6 +31,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public string PublicKeyFingerprint { get; set; }
 
         public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
+
+        [Required]
+        public bool IsGenerated { get; set; } = false;
         #endregion
 
         #region Override Methods

@@ -82,6 +82,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<int>("AuthenticationType")
                         .HasColumnType("int");
 
+                    b.Property<bool>("IsGenerated")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Password")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");

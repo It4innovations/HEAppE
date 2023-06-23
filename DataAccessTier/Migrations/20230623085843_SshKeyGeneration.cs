@@ -16,6 +16,13 @@ namespace HEAppE.DataAccessTier.Migrations
                 oldType: "nvarchar(50)",
                 oldMaxLength: 50);
 
+            migrationBuilder.AddColumn<bool>(
+                name: "IsGenerated",
+                table: "ClusterAuthenticationCredentials",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
+
             migrationBuilder.AddColumn<string>(
                 name: "PublicKeyFingerprint",
                 table: "ClusterAuthenticationCredentials",
@@ -26,6 +33,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropColumn(
+                name: "IsGenerated",
+                table: "ClusterAuthenticationCredentials");
+
             migrationBuilder.DropColumn(
                 name: "PublicKeyFingerprint",
                 table: "ClusterAuthenticationCredentials");
