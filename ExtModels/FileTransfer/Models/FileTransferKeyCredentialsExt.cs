@@ -6,6 +6,12 @@ namespace HEAppE.ExtModels.FileTransfer.Models
     [DataContract(Name = "FileTransferKeyCredentialsExt")]
     public class FileTransferKeyCredentialsExt : AuthenticationCredentialsExt
     {
+        [DataMember(Name = "Password")]
+        public string Password { get; set; }
+
+        [DataMember(Name = "CipherType")]
+        public FileTransferCipherTypeExt? CipherType { get; set; }
+
         [DataMember(Name = "PrivateKey")]
         public string PrivateKey { get; set; }
 
@@ -14,7 +20,7 @@ namespace HEAppE.ExtModels.FileTransfer.Models
 
         public override string ToString()
         {
-            return $"AsymmetricKeyCredentialsExt({base.ToString()}; privateKey={PrivateKey}; publicKey={PublicKey})";
+            return $"""AsymmetricKeyCredentialsExt(Username="{Username}";CipherType="{CipherType}"; PublicKey="{PublicKey}")""";
         }
     }
 }

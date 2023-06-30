@@ -2,6 +2,7 @@
 using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Xml.Linq;
 
 namespace HEAppE.DomainObjects.JobManagement
 {
@@ -24,6 +25,10 @@ namespace HEAppE.DomainObjects.JobManagement
         [Required]
         public bool IsDeleted { get; set; } = false;
 
-        //TODO: override tostring
+
+        public override string ToString()
+        {
+            return $"""ClusterProjectCredentials: ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, IsServiceAccount={IsServiceAccount}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
+        }
     }
 }

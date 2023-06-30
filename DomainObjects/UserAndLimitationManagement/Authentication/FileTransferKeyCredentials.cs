@@ -1,7 +1,11 @@
-﻿namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication
+﻿using HEAppE.DomainObjects.FileTransfer;
+
+namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication
 {
     public class FileTransferKeyCredentials : AuthenticationCredentials
     {
+        public FileTransferCipherType FileTransferCipherType { get; set; }
+        public string Password { get; set; }
         public string PrivateKey { get; set; }
         public string PublicKey { get; set; }
     }

@@ -1,4 +1,6 @@
-﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
+﻿using HEAppE.BusinessLogicTier.Logic;
+using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
 using HEAppE.ExtModels.ClusterInformation.Converts;
@@ -70,9 +72,12 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             {
                 var convert = new FileTransferKeyCredentialsExt()
                 {
-                    Username = credentials.Username,
+                    Username = asymmetricKeyCredentials.Username,
+                    Password = asymmetricKeyCredentials.Password,
+                    CipherType = ConvertFileTransferMethodIntToExt(asymmetricKeyCredentials.FileTransferCipherType),
                     PrivateKey = asymmetricKeyCredentials.PrivateKey,
                     PublicKey = asymmetricKeyCredentials.PublicKey
+
                 };
                 return convert;
             }
@@ -82,12 +87,14 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             }
         }
 
-        public static FileTransferKeyCredentials ConvertExtToInt(this Models.AuthenticationCredentialsExt credentials)
+        public static FileTransferKeyCredentials ConvertExtToInt(this AuthenticationCredentialsExt credentials)
         {
             FileTransferKeyCredentialsExt asymmetricKeyCredentials = credentials as FileTransferKeyCredentialsExt;
             var convert = new FileTransferKeyCredentials
             {
-                Username = credentials.Username,
+                Username = asymmetricKeyCredentials.Username,
+                FileTransferCipherType = ConvertFileTransferMethodExtToInt(asymmetricKeyCredentials.CipherType),
+                Password = asymmetricKeyCredentials.Password,
                 PrivateKey = asymmetricKeyCredentials.PrivateKey,
                 PublicKey = asymmetricKeyCredentials.PublicKey
             };
@@ -129,6 +136,37 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 Limitation = usedCoresAndLimitations.Limitation.ConvertIntToExt()
             };
             return convert;
+        }
+
+        private static FileTransferCipherTypeExt ConvertFileTransferMethodIntToExt(FileTransferCipherType fileTransferMethod)
+        {
+            return fileTransferMethod switch
+            {
+                FileTransferCipherType.RSA3072 => FileTransferCipherTypeExt.RSA3072,
+                FileTransferCipherType.RSA4096 => FileTransferCipherTypeExt.RSA4096,
+                FileTransferCipherType.nistP256 => FileTransferCipherTypeExt.nistP256,
+                FileTransferCipherType.nistP521 => FileTransferCipherTypeExt.nistP521,
+                FileTransferCipherType.Ed25519 => FileTransferCipherTypeExt.Ed25519,
+                _ => FileTransferCipherTypeExt.RSA4096
+            };
+        }
+
+        private static FileTransferCipherType ConvertFileTransferMethodExtToInt(FileTransferCipherTypeExt? fileTransferMethod)
+        {
+            if (!fileTransferMethod.HasValue)
+            {
+                throw new InputValidationException("The file transfer method has to be set.");
+            }
+
+            return fileTransferMethod switch
+            {
+                FileTransferCipherTypeExt.RSA3072 => FileTransferCipherType.RSA3072,
+                FileTransferCipherTypeExt.RSA4096 => FileTransferCipherType.RSA4096,
+                FileTransferCipherTypeExt.nistP256 => FileTransferCipherType.nistP256,
+                FileTransferCipherTypeExt.nistP521 => FileTransferCipherType.nistP521,
+                FileTransferCipherTypeExt.Ed25519 => FileTransferCipherType.Ed25519,
+                _ => FileTransferCipherType.RSA4096
+            };
         }
     }
 }

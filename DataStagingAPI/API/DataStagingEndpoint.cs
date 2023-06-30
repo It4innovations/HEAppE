@@ -19,7 +19,7 @@ public class DataStagingEndpoint : IApiRoute
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
                 return Results.Ok(new FileTransferService().TrustfulRequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
 
-            }).Produces<CustomFileTransferMethodExt>()
+            }).Produces<FileTransferMethodExt>()
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
               .ProducesProblem(StatusCodes.Status500InternalServerError)

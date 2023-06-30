@@ -10,7 +10,7 @@ namespace HEAppE.RestApiModels.Management
         [DataMember(Name = "GenericCommandTemplateId", IsRequired = true)]
         public long GenericCommandTemplateId { get; set; }
 
-        [DataMember(Name = "Name", IsRequired = true), StringLength(30)]
+        [DataMember(Name = "Name", IsRequired = true), StringLength(80)]
         public string Name { get; set; }
 
         [DataMember(Name = "ProjectId", IsRequired = true)]
@@ -22,10 +22,10 @@ namespace HEAppE.RestApiModels.Management
         [DataMember(Name = "Code", IsRequired = true), StringLength(50)]
         public string Code { get; set; }
 
-        [DataMember(Name = "ExecutableFile", IsRequired = true), StringLength(100)]
+        [DataMember(Name = "ExecutableFile", IsRequired = true), StringLength(255)]
         public string ExecutableFile { get; set; }
 
-        [DataMember(Name = "PreparationScript", IsRequired = false), StringLength(1000)]
+        [DataMember(Name = "PreparationScript", IsRequired = false), StringLength(500)]
         public string PreparationScript { get; set; }
         public override string ToString()
         {

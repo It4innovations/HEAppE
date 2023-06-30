@@ -21,7 +21,7 @@ namespace HEAppE.ServiceTier.FileTransfer
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-        public CustomFileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
+        public FileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
         {
             try
             {
@@ -30,7 +30,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
                     IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                     FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
-                    return fileTransferMethod.ConvertCustomIntToExt();
+                    return fileTransferMethod.ConvertIntToExt();
                 }
             }
             catch (Exception exc)

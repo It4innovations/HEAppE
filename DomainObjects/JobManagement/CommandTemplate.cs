@@ -10,24 +10,24 @@ namespace HEAppE.DomainObjects.JobManagement
     public class CommandTemplate : IdentifiableDbEntity
     {
         [Required]
-        [StringLength(30)]
+        [StringLength(80)]
         public string Name { get; set; }
 
         [Required]
         [StringLength(200)]
         public string Description { get; set; }
 
-        [StringLength(50)]
+        [StringLength(100)]
         public string ExtendedAllocationCommand { get; set; }
 
         [Required]
-        [StringLength(100)]
+        [StringLength(255)]
         public string ExecutableFile { get; set; }
 
         [StringLength(200)]
         public string CommandParameters { get; set; }
 
-        [StringLength(1000)]
+        [StringLength(500)]
         public string PreparationScript { get; set; }
 
         [Required]

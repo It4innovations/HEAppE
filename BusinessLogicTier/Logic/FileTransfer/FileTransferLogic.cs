@@ -18,6 +18,7 @@ using log4net;
 using Renci.SshNet.Common;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 
@@ -80,23 +81,27 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
         {
             _log.Info($"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            Cluster cluster = jobInfo.Specification.Cluster;
 
-            var x = jobInfo.Specification.ClusterUser;
+            var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
+            if(!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
+            {
+                throw new Exception($"""Private key file located at "{clusterUserAuthCredentials.PrivateKeyFile}" does not exist""");
+            }
+
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
                 SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
-                FileTransferCipherType = FileTransferCipherType.RSA4096,
                 Credentials = new FileTransferKeyCredentials
                 {
-                    Username = jobInfo.Specification.ClusterUser.Username,
-                    PrivateKey = "private_key",
-                    PublicKey = "nemam!"
-                }
-            };
+                    Username = clusterUserAuthCredentials.Username,
+                    Password = clusterUserAuthCredentials.Password,
+                    FileTransferCipherType = clusterUserAuthCredentials.CipherType,
+                    PrivateKey = File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile)
+        }
+    };
             return transferMethod;
         }
 
@@ -126,10 +131,10 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
                 SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
-                FileTransferCipherType = certGenerator.CipherType,
                 Credentials = new FileTransferKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,
+                    FileTransferCipherType = certGenerator.CipherType,
                     PrivateKey = certGenerator.ToPrivateKey(),
                     PublicKey = publicKey
                 }
