@@ -11,7 +11,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 
         public override string ToString()
         {
-            return $"AuthenticationCredentialsExt(username={Username})";
+            return $"""AuthenticationCredentialsExt(Username="{Username}")""";
         }
     }
 }

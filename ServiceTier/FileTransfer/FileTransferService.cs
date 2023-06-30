@@ -21,6 +21,25 @@ namespace HEAppE.ServiceTier.FileTransfer
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
+        public CustomFileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
+                    IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+                    FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
+                    return fileTransferMethod.ConvertCustomIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return default;
+            }
+        }
+
         public FileTransferMethodExt RequestFileTransfer(long submittedJobInfoId, string sessionCode)
         {
             try

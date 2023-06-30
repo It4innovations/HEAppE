@@ -82,7 +82,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             }
         }
 
-        public static FileTransferKeyCredentials ConvertExtToInt(this AuthenticationCredentialsExt credentials)
+        public static FileTransferKeyCredentials ConvertExtToInt(this Models.AuthenticationCredentialsExt credentials)
         {
             FileTransferKeyCredentialsExt asymmetricKeyCredentials = credentials as FileTransferKeyCredentialsExt;
             var convert = new FileTransferKeyCredentials

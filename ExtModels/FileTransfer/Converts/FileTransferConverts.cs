@@ -10,6 +10,20 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
     public static class FileTransferConverts
     {
         #region Public Methods
+        public static CustomFileTransferMethodExt ConvertCustomIntToExt(this FileTransferMethod fileTransferMethod)
+        {
+            var convert = new CustomFileTransferMethodExt()
+            {
+                ServerHostname = fileTransferMethod.ServerHostname,
+                SharedBasepath = fileTransferMethod.SharedBasePath,
+                Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
+                ProxyConnection = fileTransferMethod.Cluster.ProxyConnection?.ConvertIntToExt(),
+                FileTransferCipherType = ConvertFileTransferMethodIntToExt(fileTransferMethod.FileTransferCipherType),
+                Credentials = fileTransferMethod.Credentials.ConvertIntToExt()
+            };
+            return convert;
+        }
+        
         public static FileTransferMethodExt ConvertIntToExt(this FileTransferMethod fileTransferMethod)
         {
             var convert = new FileTransferMethodExt()
@@ -109,6 +123,7 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
                 FileTransferCipherType.RSA4096 => FileTransferCipherTypeExt.RSA4096,
                 FileTransferCipherType.nistP256 => FileTransferCipherTypeExt.nistP256,
                 FileTransferCipherType.nistP521 => FileTransferCipherTypeExt.nistP521,
+                FileTransferCipherType.Ed25519 => FileTransferCipherTypeExt.Ed25519,
                 _ => FileTransferCipherTypeExt.RSA4096
             };
         }
@@ -126,6 +141,7 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
                 FileTransferCipherTypeExt.RSA4096 => FileTransferCipherType.RSA4096,
                 FileTransferCipherTypeExt.nistP256 => FileTransferCipherType.nistP256,
                 FileTransferCipherTypeExt.nistP521 => FileTransferCipherType.nistP521,
+                FileTransferCipherTypeExt.Ed25519 => FileTransferCipherType.Ed25519,
                 _ => FileTransferCipherType.RSA4096
             };
         }

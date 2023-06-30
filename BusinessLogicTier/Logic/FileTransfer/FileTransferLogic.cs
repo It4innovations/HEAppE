@@ -76,6 +76,30 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             }
         }
 
+        public FileTransferMethod TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser)
+        {
+            _log.Info($"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
+            SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            Cluster cluster = jobInfo.Specification.Cluster;
+
+            var x = jobInfo.Specification.ClusterUser;
+            var transferMethod = new FileTransferMethod
+            {
+                Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
+                Cluster = jobInfo.Specification.Cluster,
+                ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
+                FileTransferCipherType = FileTransferCipherType.RSA4096,
+                Credentials = new FileTransferKeyCredentials
+                {
+                    Username = jobInfo.Specification.ClusterUser.Username,
+                    PrivateKey = "private_key",
+                    PublicKey = "nemam!"
+                }
+            };
+            return transferMethod;
+        }
+
         public FileTransferMethod GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             _log.Info($"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
