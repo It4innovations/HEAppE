@@ -1,6 +1,6 @@
-﻿using HEAppE.BusinessLogicTier.Configuration;
+﻿using Exceptions.External;
+using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic.DataTransfer.Exceptions;
 using HEAppE.BusinessLogicTier.Logic.JobManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.DataTransfer;
@@ -10,7 +10,6 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using log4net;
 using RestSharp;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;

@@ -1,4 +1,4 @@
-﻿using HEAppE.BusinessLogicTier.Logic;
+﻿using Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.FileTransfer;
@@ -47,25 +47,14 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RequestFileTransfer(GetFileTransferMethodModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new FileTransferValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new FileTransferValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
         }
 
         /// <summary>
@@ -82,27 +71,16 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CloseFileTransfer(EndFileTransferModel model)
         {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"CloseFileTransfer\" Parameters: \"{model}\"");
+            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"CloseFileTransfer\" Parameters: \"{model}\"");
 
-                ValidationResult validationResult = new FileTransferValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
-                return Ok("CloseFileTransfer");
-            }
-            catch (Exception exception)
+            ValidationResult validationResult = new FileTransferValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
+                throw new InputValidationException(validationResult.Message);
             }
+
+            _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
+            return Ok("CloseFileTransfer");
         }
 
         /// <summary>
@@ -119,25 +97,14 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult DownloadPartsOfJobFilesFromCluster(DownloadPartsOfJobFilesFromClusterModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadPartsOfJobFilesFromCluster\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new FileTransferValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadPartsOfJobFilesFromCluster\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new FileTransferValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(_service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_service.DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode));
         }
 
         /// <summary>
@@ -155,30 +122,19 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult ListChangedFilesForJob(string sessionCode, long submittedJobInfoId)
         {
-            try
+            var model = new ListChangedFilesForJobModel()
             {
-                var model = new ListChangedFilesForJobModel()
-                {
-                    SessionCode = sessionCode,
-                    SubmittedJobInfoId = submittedJobInfoId
-                };
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new FileTransferValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                SessionCode = sessionCode,
+                SubmittedJobInfoId = submittedJobInfoId
+            };
+            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new FileTransferValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
         }
 
         /// <summary>
@@ -196,25 +152,14 @@ namespace HEAppE.RestApi.Controllers
         [Obsolete]
         public IActionResult Obsolete_ListChangedFilesForJob(ListChangedFilesForJobModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new FileTransferValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new FileTransferValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
         }
 
         /// <summary>
@@ -231,25 +176,14 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult DownloadFileFromCluster(DownloadFileFromClusterModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadFileFromCluster\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new FileTransferValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"DownloadFileFromCluster\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new FileTransferValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode));
         }
         #endregion
     }

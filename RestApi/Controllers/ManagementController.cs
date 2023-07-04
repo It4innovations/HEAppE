@@ -1,4 +1,6 @@
-﻿using HEAppE.BusinessLogicTier.Logic;
+﻿using Exceptions;
+using Exceptions.External;
+using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExtModels.ClusterInformation.Models;
@@ -59,28 +61,17 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CreateCommandTemplate(CreateCommandTemplateModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
-
-                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+            _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
+
+            return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
         }
 
         /// <summary>
@@ -97,29 +88,18 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(ModifyCommandTemplate));
-
-                return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
-                                                         model.ExecutableFile, model.PreparationScript, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+            _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(ModifyCommandTemplate));
+
+            return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
+                                                     model.ExecutableFile, model.PreparationScript, model.SessionCode));
         }
 
         /// <summary>
@@ -136,28 +116,17 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(RemoveCommandTemplate));
-
-                return Ok(_managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+            _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(RemoveCommandTemplate));
+
+            return Ok(_managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
         }
 
         /// <summary>
@@ -174,49 +143,38 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult InstanceInformations(string sessionCode)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformations\" Parameters: SessionCode: \"{sessionCode}\"");
+            ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformations\" Parameters: SessionCode: \"{sessionCode}\"");
-                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
-                if (result)
-                {
-                    List<ProjectExt> activeProjects = new();
-                    using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                    {
-                        activeProjects = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExt()).ToList();
-                    }
-                    return Ok(new InstanceInformationExt()
-                    {
-                        Name = DeploymentInformationsConfiguration.Name,
-                        Description = DeploymentInformationsConfiguration.Description,
-                        Version = DeploymentInformationsConfiguration.Version,
-                        DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
-                        Port = DeploymentInformationsConfiguration.Port,
-                        URL = DeploymentInformationsConfiguration.Host,
-                        URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
-                        DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
-                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
-                        Projects = activeProjects
-                    });
-                }
-                else
-                {
-                    return BadRequest(null);
-                }
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
+
+            var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
+            if (result)
             {
-                if (exception is InputValidationException)
+                List<ProjectExt> activeProjects = new();
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    BadRequest(exception.Message);
+                    activeProjects = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExt()).ToList();
                 }
-                return Problem(null, null, null, exception.Message);
+                return Ok(new InstanceInformationExt()
+                {
+                    Name = DeploymentInformationsConfiguration.Name,
+                    Description = DeploymentInformationsConfiguration.Description,
+                    Version = DeploymentInformationsConfiguration.Version,
+                    DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
+                    Port = DeploymentInformationsConfiguration.Port,
+                    URL = DeploymentInformationsConfiguration.Host,
+                    URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
+                    DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
+                    ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
+                    Projects = activeProjects
+                });
+            }
+            else
+            {
+                return BadRequest(null);
             }
         }
         #endregion

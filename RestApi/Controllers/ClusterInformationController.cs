@@ -1,4 +1,5 @@
-﻿using HEAppE.BusinessLogicTier.Logic;
+﻿using Exceptions;
+using Exceptions.External;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -89,7 +90,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                    throw new InputValidationException(validationResult.Message);
                 }
 
                 // check if user can access project
@@ -135,7 +136,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                    throw new InputValidationException(validationResult.Message);
                 }
 
                 return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
@@ -171,7 +172,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                    throw new InputValidationException(validationResult.Message);
                 }
 
                 return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));

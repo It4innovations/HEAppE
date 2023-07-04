@@ -1,4 +1,6 @@
-﻿using HEAppE.BusinessLogicTier.Factory;
+﻿using Exceptions;
+using Exceptions.External;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -55,32 +57,24 @@ namespace HEAppE.ServiceTier.ClusterInformation
 
         public IEnumerable<ClusterExt> ListAvailableClusters()
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    string memoryCacheKey = nameof(ListAvailableClusters);
+                string memoryCacheKey = nameof(ListAvailableClusters);
 
-                    if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] value))
-                    {
-                        _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
-                        return value;
-                    }
-                    else
-                    {
-                        _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                        IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                        var clusters = clusterLogic.ListAvailableClusters();
-                        var result = clusters.Select(s => s.ConvertIntToExt()).ToArray();
-                        _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
-                        return result;
-                    }
+                if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] value))
+                {
+                    _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    return value;
                 }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                else
+                {
+                    _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                    var clusters = clusterLogic.ListAvailableClusters();
+                    var result = clusters.Select(s => s.ConvertIntToExt()).ToArray();
+                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
+                    return result;
+                }
             }
         }
 
@@ -121,50 +115,41 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 //TODO Should be rewrite!
                 if (exc.Message.Contains("No such file or directory") || exc.Message.Contains("Is a directory"))
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
+                    throw new InputValidationException(exc.Message);
                 }
 
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                throw;
             }
         }
 
         public ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
 
-                    //Memory cache key with personal session code due security purpose of access to cluster reference to project
-                    string memoryCacheKey = StringUtils.CreateIdentifierHash(
-                    new List<string>()
-                        {    clusterNodeId.ToString(),
+                //Memory cache key with personal session code due security purpose of access to cluster reference to project
+                string memoryCacheKey = StringUtils.CreateIdentifierHash(
+                new List<string>()
+                    {    clusterNodeId.ToString(),
                              sessionCode,
                              nameof(GetCurrentClusterNodeUsage)
-                        }
-                    );
+                    }
+                );
 
-                    if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterNodeUsageExt value))
-                    {
-                        _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
-                        return value;
-                    }
-                    else
-                    {
-                        _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                        IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                        ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
-                        _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(), TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));
-                        return nodeUsage.ConvertIntToExt();
-                    }
+                if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterNodeUsageExt value))
+                {
+                    _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    return value;
                 }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                else
+                {
+                    _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                    IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                    ClusterNodeUsage nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser);
+                    _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(), TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));
+                    return nodeUsage.ConvertIntToExt();
+                }
             }
         }
     }

@@ -10,17 +10,14 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.FileTransferFramework;
 using log4net;
-using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using Renci.SshNet.Common;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
 using HEAppE.CertificateGenerator;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
-using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.BusinessLogicTier.Logic.FileTransfer.Exceptions;
 using HEAppE.BusinessLogicTier.Configuration;
-using System.IO;
+using Exceptions.External;
 
 namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {
@@ -235,7 +232,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             catch (SftpPathNotFoundException exception)
             {
                 _log.Warn($"{loggedUser} is requesting not existing file '{relativeFilePath}'");
-                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException(exception.Message));
+                throw new InvalidRequestException(exception.Message);
             }
 
             return null;

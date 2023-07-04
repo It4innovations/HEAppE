@@ -1,8 +1,11 @@
-﻿using Microsoft.AspNetCore.Diagnostics;
+﻿using Exceptions.External;
+using Exceptions.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
 using System;
 using System.Net;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 
 namespace HEAppE.RestApi
@@ -50,7 +53,7 @@ namespace HEAppE.RestApi
             }
             catch (Exception ex)
             {
-                HandleException(context, ex);
+                await HandleException(context, ex);
             }
         }
         #endregion
@@ -60,10 +63,23 @@ namespace HEAppE.RestApi
         /// </summary>
         /// <param name="context">HTTP context</param>
         /// <param name="exception"></param>
-        private void HandleException(HttpContext context, Exception exception)
+        private async Task HandleException(HttpContext context, Exception exception)
         {
+            string message = string.Empty;
+
             switch (exception)
             {
+                case InputValidationException:
+                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    break;
+                case InternalException:
+                    message = exception.Message;
+                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    break;
+                case ExternalException:
+                    message = exception.Message;
+                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    break;
                 case BadHttpRequestException:
                     {
                         var badReqException = (BadHttpRequestException)exception;
@@ -90,6 +106,8 @@ namespace HEAppE.RestApi
                                    $"\"Content-Length\": {context.Request.ContentLength} " +
                                    $"\"Error\": {exception})");
 
+            context.Response.ContentType = "application/json";
+            await context.Response.WriteAsync(JsonConvert.SerializeObject(new { error = message }));
         }
         #endregion
     }

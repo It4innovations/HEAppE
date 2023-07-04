@@ -1,6 +1,5 @@
-﻿using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
+﻿using Exceptions.External;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -10,7 +9,6 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobReporting.Converts;
-using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
 using System;
@@ -46,35 +44,26 @@ namespace HEAppE.ServiceTier.Management
             {
                 if (exc.Message.Contains("No such file or directory"))
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
+                    throw new InputValidationException(exc.Message);
                 }
 
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                throw;
             }
         }
 
         public string RemoveCommandTemplate(long commandTemplateId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
+                if (commandTemplate == null)
                 {
-                    CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-                    if (commandTemplate == null)
-                    {
-                        throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
-                    }
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, commandTemplate.ProjectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    managementLogic.RemoveCommandTemplate(commandTemplateId);
-                    return $"CommandTemplate with id {commandTemplateId} has been removed.";
+                    throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
                 }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, commandTemplate.ProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveCommandTemplate(commandTemplateId);
+                return $"CommandTemplate with id {commandTemplateId} has been removed.";
             }
         }
 
@@ -94,11 +83,10 @@ namespace HEAppE.ServiceTier.Management
             {
                 if (exc.Message.Contains("No such file or directory"))
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
+                    throw new InputValidationException(exc.Message);
                 }
 
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                throw;
             }
         }
         #endregion

@@ -37,6 +37,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestApiModels", "RestApiMod
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalAuthentication", "ExternalAuthentication\ExternalAuthentication.csproj", "{1AB62861-D48A-4CAB-AF6B-A678DC39C3BC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exceptions", "..\Exceptions\Exceptions.csproj", "{97DA6573-9FCA-45BD-A91C-6B1738021857}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -111,6 +113,10 @@ Global
 		{1AB62861-D48A-4CAB-AF6B-A678DC39C3BC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{1AB62861-D48A-4CAB-AF6B-A678DC39C3BC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{1AB62861-D48A-4CAB-AF6B-A678DC39C3BC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

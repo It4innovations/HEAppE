@@ -1,4 +1,4 @@
-﻿using HEAppE.BusinessLogicTier.Logic.Management.Exceptions;
+﻿using Exceptions.External;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
