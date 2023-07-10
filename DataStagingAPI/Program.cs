@@ -3,19 +3,22 @@ using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
+using HEAppE.ExtModels.General.Models;
 using Microsoft.OpenApi.Models;
+using System.Configuration;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 
 if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
 {
-    builder.Logging.AddLog4Net("log4netDocker.config");
+    //builder.Logging.AddLog4Net("log4netDocker.config");
+    builder.Configuration.AddJsonFile("/opt/heappe/confs/seed.njson");
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
 }
 else
 {
-    builder.Logging.AddLog4Net("log4net.config");
+    //builder.Logging.AddLog4Net("log4net.config");
 }
 
 // Configurations
@@ -23,7 +26,7 @@ builder.Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfigura
 
 
 //TODO Need to be rewritten into DI
-var MiddlewareContext = new MiddlewareContextSettings();
+builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
 
@@ -59,6 +62,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddValidatorsFromAssemblyContaining<Program>(ServiceLifetime.Singleton);
+builder.Services.AddTransient<IValidator<AuthorizedSubmittedJobIdModel>, AuthorizedSubmittedJobIdModelValidator>();
 
 var app = builder.Build();
 

@@ -8,8 +8,8 @@ namespace HEAppE.ExtModels.General
         {
             var options = ruleBuilder
                 .NotEmpty().WithMessage("SessionCode cannot be empty.")
-                .Matches(@"^[0-z]{8}-[0-z]{4}-[0-z]{4}-[0-z]{4}-[0-z]{12}$").WithMessage("SessionCode has wrong format.")
-                .Matches(@"[^a-zA-Z0-9_\-\ \.]+").WithMessage("SessionCode contains illegal characters.");
+                .Matches(@"^[0-z]{8}-[0-z]{4}-[0-z]{4}-[0-z]{4}-[0-z]{12}$").WithMessage("SessionCode has wrong format.");
+                //.Matches(@"[^a-zA-Z0-9_\-\ \.]+").WithMessage("SessionCode contains illegal characters.");
 
             return options;
         }
