@@ -34,10 +34,6 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine("SessionCode has wrong format.");
             }
-            else if (ContainsIllegalCharacters(sessionCode))
-            {
-                _messageBuilder.AppendLine("SessionCode contains illegal characters.");
-            }
             return _messageBuilder.ToString();
         }
     }

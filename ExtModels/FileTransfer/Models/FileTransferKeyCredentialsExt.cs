@@ -18,9 +18,11 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         [DataMember(Name = "PublicKey")]
         public string PublicKey { get; set; }
 
+        [DataMember(Name = "Passphrase")]
+        public string Passphrase { get; set; }
         public override string ToString()
         {
-            return $"""AsymmetricKeyCredentialsExt(Username="{Username}";CipherType="{CipherType}"; PublicKey="{PublicKey}")""";
+            return $"""AsymmetricKeyCredentialsExt(Username="{Username}";CipherType="{CipherType}"; PublicKey="{PublicKey}; Passphrase={Passphrase}")""";
         }
     }
 }

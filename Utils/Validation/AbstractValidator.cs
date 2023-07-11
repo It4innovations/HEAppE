@@ -46,7 +46,7 @@ namespace HEAppE.Utils.Validation
         /// <returns></returns>
         protected static bool ContainsIllegalCharacters(string text)
         {
-            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-\ \.]+", RegexOptions.Compiled);
+            return Regex.IsMatch(text, @"[^a-zA-Z0-9\-]+", RegexOptions.Compiled);
         }
 
         /// <summary>

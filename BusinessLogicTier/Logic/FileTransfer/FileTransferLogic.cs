@@ -21,6 +21,8 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {
@@ -83,7 +85,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
             var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
-            if(!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
+            if (!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
             {
                 throw new Exception($"""Private key file located at "{clusterUserAuthCredentials.PrivateKeyFile}" does not exist""");
             }
@@ -99,9 +101,10 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                     Username = clusterUserAuthCredentials.Username,
                     Password = clusterUserAuthCredentials.Password,
                     FileTransferCipherType = clusterUserAuthCredentials.CipherType,
-                    PrivateKey = File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile)
-        }
-    };
+                    PrivateKey = File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile),
+                    Passphrase = clusterUserAuthCredentials.PrivateKeyPassword
+                }
+            };
             return transferMethod;
         }
 
@@ -258,6 +261,17 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
             try
             {
+                //if the path does not start with job id and then task id
+                if (!Regex.Match(relativeFilePath, @"^\/?[0-9]+\/[0-9]+\/").Success)
+                {
+                    if (relativeFilePath.StartsWith("/"))
+                    {
+                        relativeFilePath = relativeFilePath[1..];
+                    }
+                    relativeFilePath = Path.Combine($"{jobInfo.Id}/", relativeFilePath);
+                }
+
+                relativeFilePath = Path.Combine("/", relativeFilePath);
                 return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
             }
             catch (SftpPathNotFoundException exception)

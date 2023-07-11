@@ -8,5 +8,6 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication
         public string Password { get; set; }
         public string PrivateKey { get; set; }
         public string PublicKey { get; set; }
+        public string Passphrase { get; set; }
     }
 }
