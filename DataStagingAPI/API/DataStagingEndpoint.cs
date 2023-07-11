@@ -9,18 +9,23 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HEAppE.DataStagingAPI.API
 {
-public class DataStagingEndpoint : IApiRoute
+    public class DataStagingEndpoint : IApiRoute
     {
         public void Register(RouteGroupBuilder group)
         {
-            group = group.MapGroup("Data-Staging").WithTags("Data-Staging");
-            group.MapPost("GetFileTransferMethod", ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger)  =>
+            group = group.AddEndpointFilter<AuthorizationKeyFilter>()
+                            .MapGroup("Data-Staging")
+                            .WithTags("Data-Staging");
+
+
+            group.MapPost("GetFileTransferMethod", ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
             {
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
                 return Results.Ok(new FileTransferService().TrustfulRequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
 
             }).Produces<FileTransferMethodExt>()
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+              .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
               .WithOpenApi(generatedOperation =>
@@ -30,13 +35,15 @@ public class DataStagingEndpoint : IApiRoute
                   return generatedOperation;
               });
 
-            group.MapPost("DownloadPartsOfJobFilesFromCluster", [RequestSizeLimit(50000)] ([Validate] DownloadPartsOfJobFilesFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+
+            group.MapPost("DownloadPartsOfJobFilesFromCluster", ([Validate] DownloadPartsOfJobFilesFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
             {
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
                 return Results.Ok(new FileTransferService().DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode));
 
             }).Produces<JobFileContentExt>()
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+              .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
               .WithOpenApi(generatedOperation =>
@@ -45,6 +52,7 @@ public class DataStagingEndpoint : IApiRoute
                   generatedOperation.Description = "Get specific part of FileType content.<br>FileType: LogFile - 0, ProgressFile - 1, StandardErrorFile - 2, StandardOutputFile - 3.";
                   return generatedOperation;
               });
+
 
             group.MapGet("ListChangedFilesForJob", ([FromQuery] string sessionCode, [FromQuery] long submittedJobInfoId, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator) =>
             {
@@ -56,6 +64,7 @@ public class DataStagingEndpoint : IApiRoute
 
             }).Produces<IEnumerable<FileInformationExt>>()
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+              .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
               .WithOpenApi(generatedOperation =>
@@ -76,6 +85,7 @@ public class DataStagingEndpoint : IApiRoute
 
             }).Produces<string>()
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
+              .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
               .WithOpenApi(generatedOperation =>
