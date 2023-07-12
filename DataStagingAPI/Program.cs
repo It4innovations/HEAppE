@@ -14,7 +14,6 @@ if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Doc
 {
     builder.Logging.AddLog4Net("log4netDocker.config");
     //TODO in different way
-    builder.Configuration.AddJsonFile("/opt/heappe/confs/seed.njson");
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
 }
 else
@@ -31,7 +30,6 @@ builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("Applicat
 var options = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(options);
 
-builder.Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
