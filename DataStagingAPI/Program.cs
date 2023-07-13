@@ -6,8 +6,6 @@ using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
 using HEAppE.ExtModels.General.Models;
 using HEAppE.FileTransferFramework;
-using log4net;
-using MicroKnights.Log4NetHelper;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text.Json.Serialization;
