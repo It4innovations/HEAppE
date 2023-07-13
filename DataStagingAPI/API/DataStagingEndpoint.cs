@@ -9,13 +9,16 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HEAppE.DataStagingAPI.API
 {
+    /// <summary>
+    /// Data Stagging Endpoint
+    /// </summary>
     public class DataStagingEndpoint : IApiRoute
     {
         public void Register(RouteGroupBuilder group)
         {
             group = group.AddEndpointFilter<AuthorizationKeyFilter>()
-                            .MapGroup("Data-Staging")
-                            .WithTags("Data-Staging");
+                            .MapGroup("DataStaging")
+                            .WithTags("DataStaging");
 
 
             group.MapPost("GetFileTransferMethod", ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
@@ -27,7 +30,9 @@ namespace HEAppE.DataStagingAPI.API
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
               .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+              .ProducesProblem(StatusCodes.Status429TooManyRequests)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
+              .RequestSizeLimit(98)
               .WithOpenApi(generatedOperation =>
               {
                   generatedOperation.Summary = "Obtain data transfer information for job.";
@@ -45,7 +50,9 @@ namespace HEAppE.DataStagingAPI.API
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
               .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+              .ProducesProblem(StatusCodes.Status429TooManyRequests)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
+              .RequestSizeLimit(480)
               .WithOpenApi(generatedOperation =>
               {
                   generatedOperation.Summary = "Get specific part of FileType content.";
@@ -66,7 +73,9 @@ namespace HEAppE.DataStagingAPI.API
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
               .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+              .ProducesProblem(StatusCodes.Status429TooManyRequests)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
+              .RequestSizeLimit(98)
               .WithOpenApi(generatedOperation =>
               {
                   generatedOperation.Summary = "Get all changed files during job execution.";
@@ -87,7 +96,9 @@ namespace HEAppE.DataStagingAPI.API
               .ProducesValidationProblem(StatusCodes.Status400BadRequest)
               .ProducesProblem(StatusCodes.Status401Unauthorized)
               .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+              .ProducesProblem(StatusCodes.Status429TooManyRequests)
               .ProducesProblem(StatusCodes.Status500InternalServerError)
+              .RequestSizeLimit(378)
               .WithOpenApi(generatedOperation =>
               {
                   generatedOperation.Summary = "Get content of file";

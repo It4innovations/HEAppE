@@ -4,6 +4,9 @@ using System.Reflection;
 
 namespace HEAppE.DataStagingAPI.Validations.AbstractTypes
 {
+    /// <summary>
+    /// Validation filter
+    /// </summary>
     public static class ValidationFilter
     {
         public static EndpointFilterDelegate ValidationFilterFactory(EndpointFilterFactoryContext context, EndpointFilterDelegate next)

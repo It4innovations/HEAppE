@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace HEAppE.DataStagingAPI
 {
+    /// <summary>
+    /// Exception middleware
+    /// </summary>
     public class ExceptionMiddleware
     {
         private readonly RequestDelegate _next;
@@ -12,9 +15,13 @@ namespace HEAppE.DataStagingAPI
             _next = next;
         }
 
+        /// <summary>
+        /// Invoke Middleware
+        /// </summary>
+        /// <param name="context">Context</param>
+        /// <returns></returns>
         public async Task InvokeAsync(HttpContext context)
         {
-
             try
             {
                 await _next(context);

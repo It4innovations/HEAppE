@@ -2,6 +2,9 @@
 
 namespace HEAppE.DataStagingAPI.Validations.AbstractTypes
 {
+    /// <summary>
+    /// Validator descriptor
+    /// </summary>
     internal class ValidationDescriptor
     {
         public required int ArgumentIndex { get; init; }

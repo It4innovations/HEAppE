@@ -20,8 +20,8 @@ namespace HEAppE.DataStagingAPI.API.AbstractTypes
 
             foreach (var routeType in types)
             {
-                var route = (IApiRoute)Activator.CreateInstance(routeType);
-                route.Register(group);
+                var route = (IApiRoute?)Activator.CreateInstance(routeType);
+                route?.Register(group);
             }
         }
     }

@@ -44,7 +44,7 @@
         public string Host
         {
             get => _host;
-            set => _host = Utils.RemoveCharacterFromBeginAndEnd(value, '/');
+            set => _host = Extensions.RemoveCharacterFromBeginAndEnd(value, '/');
         }
         /// <summary>
         /// Host postfix address
@@ -52,7 +52,7 @@
         public string HostPostfix
         {
             get => _hostPostfix;
-            set => _hostPostfix = Utils.RemoveCharacterFromBeginAndEnd(value, '/');
+            set => _hostPostfix = Extensions.RemoveCharacterFromBeginAndEnd(value, '/');
         }
         /// <summary>
         /// Swagger prefix
@@ -60,7 +60,7 @@
         public string PrefixDocPath
         {
             get => _prefixDocPath;
-            set => _prefixDocPath = Utils.RemoveCharacterFromBeginAndEnd(value, '/');
+            set => _prefixDocPath = Extensions.RemoveCharacterFromBeginAndEnd(value, '/');
         }
 
         /// <summary>

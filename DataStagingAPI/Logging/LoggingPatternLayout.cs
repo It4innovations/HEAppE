@@ -1,9 +1,8 @@
 ﻿using log4net.Core;
 using log4net.Layout;
 using log4net.Layout.Pattern;
-using System.IO;
 
-namespace HEAppE.DataStagingAPI
+namespace HEAppE.DataStagingAPI.Logging
 {
     /// <summary>
     /// Mapper text log level to Enum log value
