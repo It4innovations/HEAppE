@@ -6,12 +6,25 @@ using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
 using HEAppE.ExtModels.General.Models;
 using HEAppE.FileTransferFramework;
+using log4net;
+using MicroKnights.Log4NetHelper;
 using Microsoft.OpenApi.Models;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
+builder.Logging.ClearProviders();
+
+if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
+{
+    builder.Logging.AddLog4Net("Logging/log4netDocker.config");
+    builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
+}
+else
+{
+    builder.Logging.AddLog4Net("Logging/log4net.config");
+}
 
 //IPRateLimitation
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
@@ -37,16 +50,6 @@ var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
 GlobalContext.Properties["instanceName"] = APIAdoptions.DeploymentConfiguration.Name;
 GlobalContext.Properties["instanceVersion"] = APIAdoptions.DeploymentConfiguration.Version;
 GlobalContext.Properties["ip"] = APIAdoptions.DeploymentConfiguration.DeployedIPAddress;
-
-if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
-{
-    builder.Logging.AddLog4Net("logging/log4netDocker.config");
-    builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
-}
-else
-{
-    builder.Logging.AddLog4Net("logging/log4net.config");
-}
 
 AdoNetAppenderHelper.SetConnectionString(builder.Configuration.GetConnectionString("Logging"));
 
