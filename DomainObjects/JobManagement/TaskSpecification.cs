@@ -1,11 +1,10 @@
-using System;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Linq;
 using System.Text;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.FileTransfer;
 
 namespace HEAppE.DomainObjects.JobManagement
 {

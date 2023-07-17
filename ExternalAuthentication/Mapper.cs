@@ -41,7 +41,7 @@ namespace HEAppE.ExternalAuthentication
                         List<string> projectIds = (propertyInfo.GetValue(obj.Attributes) as IEnumerable<AccessRightsResult>)?.Select(s => s.ProjectId).ToList();
                         var projects = ExternalAuthConfiguration.Projects.Where(w => projectIds.Contains(w.UUID));
 
-                        if(projects is null)
+                        if (projects is null)
                         {
                             throw new Exception($"Open-Id: There are not defined project Ids \"{string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name))}\" in Open-Id server!");
                         }
@@ -69,7 +69,7 @@ namespace HEAppE.ExternalAuthentication
                         }
                     }
 
-                    if(!hasMappedGroup)
+                    if (!hasMappedGroup)
                     {
                         throw new Exception("Open-Id: Project-role mapping is not correctly defined!");
                     }

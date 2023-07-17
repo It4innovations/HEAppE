@@ -1,11 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using FluentValidation;
 using HEAppE.RestApiModels.AbstractModels;
+using System.ComponentModel.DataAnnotations;
+using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.FileTransfer
 {
@@ -19,5 +15,12 @@ namespace HEAppE.RestApiModels.FileTransfer
             return $"DownloadFileFromClusterModel({base.ToString()}; RelativeFilePath: {RelativeFilePath})";
         }
 
+    }
+    public class DownloadFileFromClusterModelValidator : AbstractValidator<DownloadFileFromClusterModel>
+    {
+        public DownloadFileFromClusterModelValidator()
+        {
+            Include(new SubmittedJobInfoModelValidator());
+        }
     }
 }

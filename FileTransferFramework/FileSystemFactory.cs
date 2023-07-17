@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.ConnectionPool;
+﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.FileTransferFramework.NetworkShare;
 using HEAppE.FileTransferFramework.Sftp;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.FileTransferFramework
 {
@@ -27,7 +27,7 @@ namespace HEAppE.FileTransferFramework
         {
 #warning TODO temp solution before DI
             using var serviceScope = ServiceActivator.GetScope();
-            ILoggerFactory loggerFactory = (ILoggerFactory) serviceScope.ServiceProvider.GetService(typeof(ILoggerFactory));
+            ILoggerFactory loggerFactory = (ILoggerFactory)serviceScope.ServiceProvider.GetService(typeof(ILoggerFactory));
             _logger = loggerFactory.CreateLogger("HEAppE.FileTransferFramework.FileSystemFactory");
         }
         #endregion

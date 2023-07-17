@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.BusinessLogicTier.Factory;
+﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.JobManagement;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -9,12 +6,15 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.ServiceTier.UserAndLimitationManagement;
-using System.Reflection;
-using HEAppE.ExtModels.JobManagement.Converts;
-using log4net;
-using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExtModels.JobManagement.Converts;
+using HEAppE.ExtModels.JobManagement.Models;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using log4net;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace HEAppE.ServiceTier.JobManagement
 {

@@ -24,9 +24,6 @@ namespace HEAppE.DomainObjects.FileTransfer
         public string SharedBasePath { get; set; }
 
         [NotMapped]
-        public FileTransferCipherType FileTransferCipherType { get; set; }
-
-        [NotMapped]
         public AuthenticationCredentials Credentials { get; set; }
 
         public override string ToString()

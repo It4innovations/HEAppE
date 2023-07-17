@@ -1,4 +1,6 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using FluentValidation;
+using HEAppE.ExtModels.General;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.AbstractModels
@@ -10,6 +12,14 @@ namespace HEAppE.RestApiModels.AbstractModels
         public override string ToString()
         {
             return $"SessionCodeModel(SessionCode: {SessionCode})";
+        }
+    }
+
+    public class SessionCodeModelValidator : AbstractValidator<SessionCodeModel>
+    {
+        public SessionCodeModelValidator()
+        {
+            RuleFor(x => x.SessionCode).IsSessionCode();
         }
     }
 }

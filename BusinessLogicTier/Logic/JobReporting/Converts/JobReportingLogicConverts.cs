@@ -1,7 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.JobReporting;
 using System;
-using System.Linq;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
 {

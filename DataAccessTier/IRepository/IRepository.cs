@@ -1,6 +1,5 @@
-﻿using System;
+﻿using HEAppE.DomainObjects;
 using System.Collections.Generic;
-using HEAppE.DomainObjects;
 
 namespace HEAppE.DataAccessTier.IRepository
 {

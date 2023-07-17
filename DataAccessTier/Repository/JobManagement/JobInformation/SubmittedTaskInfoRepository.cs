@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
+﻿using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
 {
@@ -19,7 +19,7 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
         {
             return GetAll().Where(w => w.State < TaskState.Finished && w.State > TaskState.Configuring)
                             .ToList();
-        } 
+        }
 
         public IEnumerable<SubmittedTaskInfo> GetAllFinished()
         {

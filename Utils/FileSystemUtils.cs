@@ -1,11 +1,11 @@
-﻿using System;
+﻿using HEAppE.DomainObjects.JobManagement;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.Utils
 {
@@ -15,12 +15,12 @@ namespace HEAppE.Utils
 
         public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification)
         {
-            string basePath = jobSpecification.Cluster.ClusterProjects.Find(cp=>cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
+            string basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
             return ConcatenatePaths(basePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
         }
 
         public static string GetTaskClusterDirectoryPath(TaskSpecification taskSpecification)
-        {        
+        {
             string basePath = GetJobClusterDirectoryPath(taskSpecification.JobSpecification);
             string taskSubdirectory = !string.IsNullOrEmpty(taskSpecification.ClusterTaskSubdirectory)
                                         ? $"{taskSpecification.Id}/{taskSpecification.ClusterTaskSubdirectory}"

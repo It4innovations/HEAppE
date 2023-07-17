@@ -1,7 +1,4 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.ExtModels.ClusterInformation.Models;
-using HEAppE.ExtModels.FileTransfer.Models;
-using System;
+﻿using System;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.JobManagement.Models

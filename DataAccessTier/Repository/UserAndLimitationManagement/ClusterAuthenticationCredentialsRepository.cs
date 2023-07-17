@@ -1,10 +1,7 @@
 ﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.ClusterInformation;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 {
@@ -33,6 +30,12 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount);
             var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials);
             return credentials?.FirstOrDefault();
+        }
+
+        public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint)
+        {
+            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && x.PublicKeyFingerprint == fingerprint);
+            return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
         }
         #endregion
     }

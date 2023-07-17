@@ -1,6 +1,5 @@
 ﻿using HEAppE.RestApiModels.JobReporting;
 using HEAppE.Utils.Validation;
-using System;
 
 namespace HEAppE.RestApi.InputValidator
 {

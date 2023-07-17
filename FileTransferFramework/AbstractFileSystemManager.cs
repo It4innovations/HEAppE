@@ -1,13 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
 
 namespace HEAppE.FileTransferFramework
 {
@@ -98,7 +98,7 @@ namespace HEAppE.FileTransferFramework
                     taskInfo.Specification.StandardOutputFile,
                     taskInfo.Specification.StandardErrorFile
                 };
-                CopyAll(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath, taskInfo.Specification.LocalDirectory, true, jobSubmitTime, excludedFiles, jobInfo.Specification.ClusterUser, 
+                CopyAll(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath, taskInfo.Specification.LocalDirectory, true, jobSubmitTime, excludedFiles, jobInfo.Specification.ClusterUser,
                     jobInfo.Specification.Cluster);
 
             }
@@ -140,7 +140,7 @@ namespace HEAppE.FileTransferFramework
                 string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification);
                 FullFileSpecification fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
                 string sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
-                
+
                 if (!_fileSynchronizers[fileType].ContainsKey(sourceFilePath))
                 {
                     _fileSynchronizers[fileType][sourceFilePath] = CreateFileSynchronizer(fileInfo, jobInfo.Specification.ClusterUser);

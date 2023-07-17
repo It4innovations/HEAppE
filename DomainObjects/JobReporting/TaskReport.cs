@@ -1,6 +1,4 @@
-﻿using System.Runtime.Serialization;
-using System;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
+﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.DomainObjects.JobReporting
 {

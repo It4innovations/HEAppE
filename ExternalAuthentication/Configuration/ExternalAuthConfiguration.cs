@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 
 namespace HEAppE.ExternalAuthentication.Configuration
 {
@@ -47,13 +46,13 @@ namespace HEAppE.ExternalAuthentication.Configuration
         /// <summary>
         /// Mapping role from OpenId to HEAppE internal roles
         /// </summary>
-        public static Dictionary<string,string> RoleMapping { get; set; }
+        public static Dictionary<string, string> RoleMapping { get; set; }
 
         /// <summary>
         /// Projects
         /// </summary>
         public static IEnumerable<ExternalAuthProjectConfiguration> Projects { get; set; }
-        
+
         /// <summary>
         /// User prefix in HEAppE DB
         /// </summary>

@@ -1,9 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.BusinessLogicTier.Configuration;
+﻿using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.BackgroundThread.Tasks
 {
@@ -12,7 +12,7 @@ namespace HEAppE.BackgroundThread.Tasks
     /// </summary>
     internal class ClusterAccountRotationJobTask : AbstractTask, IBackgroundTask
     {
-        public ClusterAccountRotationJobTask(TimeSpan interval) : base(interval) 
+        public ClusterAccountRotationJobTask(TimeSpan interval) : base(interval)
         {
         }
 
@@ -30,7 +30,7 @@ namespace HEAppE.BackgroundThread.Tasks
                 {
                     LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).SubmitJob(job.Id, job.Submitter);
                 }
-            } 
+            }
         }
     }
 }

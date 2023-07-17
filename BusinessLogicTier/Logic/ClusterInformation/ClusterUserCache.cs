@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using System.Collections.Generic;
 
 namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 {

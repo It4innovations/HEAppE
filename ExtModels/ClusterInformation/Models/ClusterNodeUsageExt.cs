@@ -1,11 +1,10 @@
-﻿using System;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models
 {
     [DataContract(Name = "ClusterNodeUsageExt")]
     public class ClusterNodeUsageExt
-    { 
+    {
         [DataMember(Name = "Id")]
         public long? Id { get; set; }
 

@@ -1,14 +1,14 @@
-﻿using System.Collections.Generic;
-using HEAppE.DomainObjects.DataTransfer;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
+﻿using HEAppE.DomainObjects.DataTransfer;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 
 namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
 {
     public interface IDataTransferLogic
     {
-        DataTransferMethod GetDataTransferMethod(string nodeIPAddress, int nodePort,long submittedTaskInfoId, AdaptorUser loggedUser);
+        DataTransferMethod GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId, AdaptorUser loggedUser);
 
         void EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser);
 

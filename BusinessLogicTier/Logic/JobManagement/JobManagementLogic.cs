@@ -16,7 +16,6 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils.Validation;
 using log4net;
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -314,14 +313,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     }
                 }
-                
+
                 if (cluster.UpdateJobStateByServiceAccount.Value)
                 {
                     actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks)).ToList();
                 }
                 else
                 {
-                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks))));
+                    userJobsGroup.ForEach(f => actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks))));
                 }
 
                 bool isNeedUpdateJobState = false;
@@ -511,7 +510,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             //Combination parameters from template
             taskSpecification.Priority ??= default(TaskPriority);
 
-            taskSpecification.Project??= taskSpecification.JobSpecification.Project;
+            taskSpecification.Project ??= taskSpecification.JobSpecification.Project;
         }
 
         /// <summary>

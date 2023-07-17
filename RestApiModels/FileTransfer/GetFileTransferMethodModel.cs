@@ -1,20 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
+﻿using FluentValidation;
 using HEAppE.RestApiModels.AbstractModels;
+using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.FileTransfer
 {
+
     [DataContract(Name = "GetFileTransferMethodModel")]
     public class GetFileTransferMethodModel : SubmittedJobInfoModel
     {
         public override string ToString()
         {
             return $"GetFileTransferMethodModel({base.ToString()})";
+        }
+
+        public class GetFileTransferMethodModelValidator : AbstractValidator<GetFileTransferMethodModel>
+        {
+            public GetFileTransferMethodModelValidator()
+            {
+                Include(new SubmittedJobInfoModelValidator());
+            }
         }
     }
 }

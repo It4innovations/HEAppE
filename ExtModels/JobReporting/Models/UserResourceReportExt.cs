@@ -1,9 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HEAppE.ExtModels.JobReporting.Models
 {
@@ -12,7 +8,7 @@ namespace HEAppE.ExtModels.JobReporting.Models
     {
         [DataMember]
         public double? TotalUsage { get; set; }
-        [DataMember] 
+        [DataMember]
         public UsageTypeExt UsageType { get; set; }
         [DataMember]
         public IEnumerable<ProjectReportExt> Projects { get; set; }

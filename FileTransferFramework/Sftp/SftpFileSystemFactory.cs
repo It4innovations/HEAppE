@@ -1,7 +1,7 @@
-﻿using System.Collections.Generic;
-using HEAppE.ConnectionPool;
+﻿using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using System.Collections.Generic;
 
 namespace HEAppE.FileTransferFramework.Sftp
 {
@@ -14,7 +14,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         #region Override Methods
         public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration)
         {
-            if(!_managerSingletons.TryGetValue(configuration.ServerHostname, out IRexFileSystemManager fileManager))
+            if (!_managerSingletons.TryGetValue(configuration.ServerHostname, out IRexFileSystemManager fileManager))
             {
                 fileManager = new SftpFileSystemManager(_logger, configuration, this, GetSchedulerConnectionPool(configuration));
                 _managerSingletons.Add(configuration.ServerHostname, fileManager);
@@ -34,7 +34,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         protected override IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration)
         {
             string hostname = configuration.ServerHostname;
-            if(!_connectorSingletons.TryGetValue(hostname, out IPoolableAdapter systemConnector))
+            if (!_connectorSingletons.TryGetValue(hostname, out IPoolableAdapter systemConnector))
             {
                 systemConnector = new SftpFileSystemConnector(_logger);
                 _connectorSingletons.Add(hostname, systemConnector);

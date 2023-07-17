@@ -9,7 +9,7 @@
         /// <summary>
         /// Path to adding file transfer key script
         /// </summary>
-        public string AddFiletransferKeyCmdPath { get; set; } 
+        public string AddFiletransferKeyCmdPath { get; set; }
 
         /// <summary>
         /// Path to remove file transfer key script

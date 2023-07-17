@@ -1,5 +1,7 @@
-﻿namespace HEAppE.BusinessLogicTier.Factory {
-	public enum BusinessLogicType {
-		Poco
-	}
+﻿namespace HEAppE.BusinessLogicTier.Factory
+{
+    public enum BusinessLogicType
+    {
+        Poco
+    }
 }

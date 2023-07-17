@@ -2,7 +2,6 @@
 using HEAppE.RestApiModels.JobManagement;
 using HEAppE.ServiceTier;
 using HEAppE.Utils.Validation;
-using System;
 using System.Linq;
 
 namespace HEAppE.RestApi.InputValidator
@@ -155,11 +154,11 @@ namespace HEAppE.RestApi.InputValidator
                     _messageBuilder.AppendLine($"ProjectId must be set to '{ServiceTierSettings.SingleProjectId.Value}' because this is single project HEAppE instance.");
                 }
             }
-            else if(!ServiceTierSettings.SingleProjectId.HasValue)
+            else if (!ServiceTierSettings.SingleProjectId.HasValue)
             {
                 _messageBuilder.AppendLine("ProjectId must be set, because this is non single project HEAppE instance.");
             }
-            
+
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
             if (!validationResult.IsValid)
             {
@@ -171,7 +170,7 @@ namespace HEAppE.RestApi.InputValidator
         private string ValidateCreateJobModel(CreateJobByAccountingStringModel validationObj)
         {
             _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
-            if(string.IsNullOrEmpty(validationObj.JobSpecification.AccountingString))
+            if (string.IsNullOrEmpty(validationObj.JobSpecification.AccountingString))
             {
                 _messageBuilder.AppendLine("AccountingString cannot be null or empty");
             }

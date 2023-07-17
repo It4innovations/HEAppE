@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
+﻿using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
 {
@@ -44,18 +44,18 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
         public IEnumerable<SubmittedJobInfo> GetAllWithSubmittedTaskAdaptorUserAndProject()
         {
             return _dbSet.Include(i => i.Submitter)
-                         .Include(i=>i.Specification)
+                         .Include(i => i.Specification)
                             .ThenInclude(i => i.Cluster)
-                         .Include(i=>i.Project)
-                            .ThenInclude(i=>i.CommandTemplates)
-                                .ThenInclude(i=>i.TemplateParameters)
+                         .Include(i => i.Project)
+                            .ThenInclude(i => i.CommandTemplates)
+                                .ThenInclude(i => i.TemplateParameters)
                          .Include(i => i.Tasks)
-                            .ThenInclude(i=>i.Specification)
-                                .ThenInclude(i=>i.CommandTemplate)
+                            .ThenInclude(i => i.Specification)
+                                .ThenInclude(i => i.CommandTemplate)
                          .Include(i => i.Tasks)
                             .ThenInclude(i => i.Specification)
                                 .ThenInclude(i => i.ClusterNodeType)
-                                    .ThenInclude(i=> i.Cluster)
+                                    .ThenInclude(i => i.Cluster)
                          .ToList();
         }
         #endregion

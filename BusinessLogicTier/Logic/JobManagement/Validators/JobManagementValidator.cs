@@ -1,13 +1,13 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+﻿using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils.Validation;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.DataAccessTier.UnitOfWork;
 using System.Text.RegularExpressions;
-using System;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 {
@@ -86,7 +86,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 {
                     _messageBuilder.AppendLine($"Command template \"{job.Tasks[i].CommandTemplate.Id}\" for task " +
                                                $"\"{job.Tasks[i].Name}\" has different file transfer method " +
-                                               $"\"{ job.Tasks[i].CommandTemplate.ClusterNodeType.FileTransferMethodId}\" " +
+                                               $"\"{job.Tasks[i].CommandTemplate.ClusterNodeType.FileTransferMethodId}\" " +
                                                $"than job file transfer method \"{job.FileTransferMethodId}\".");
                 }
 
@@ -161,7 +161,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             foreach (CommandTemplateParameter parameter in task.CommandTemplate.TemplateParameters)
             {
                 if (string.IsNullOrEmpty(parameter.Query) &&
-                    (task.CommandParameterValues == null || 
+                    (task.CommandParameterValues == null ||
                      !task.CommandParameterValues.Any(w => w.TemplateParameter == parameter)))
                 {
                     _messageBuilder.AppendLine($"Command Template parameter \"{parameter.Identifier}\" does not have a value.");
@@ -173,7 +173,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
             }
 
-            if(!task.CommandTemplate.IsEnabled)
+            if (!task.CommandTemplate.IsEnabled)
             {
                 _messageBuilder.AppendLine($"Task {task.Name} has specified deleted CommandTemplateId \"{task.CommandTemplate.Id}\"");
             }
@@ -185,7 +185,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 
             if (task.CommandTemplate.ProjectId.HasValue)
             {
-                if(task.CommandTemplate.ProjectId != task.JobSpecification.ProjectId)
+                if (task.CommandTemplate.ProjectId != task.JobSpecification.ProjectId)
                 {
                     _messageBuilder.AppendLine($"Task {task.Name} has specified CommandTemplateId \"{task.CommandTemplate.Id}\" which is not referenced to ProjectId \"{task.JobSpecification.ProjectId}\" at JobSpecification");
                 }
@@ -213,7 +213,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         private void ValidateRequestedProject(JobSpecification job)
         {
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(job.ClusterId, job.ProjectId);
-            if(clusterProject == null)
+            if (clusterProject == null)
             {
                 _messageBuilder.AppendLine($"Requested project with Id {job.ProjectId} has no reference to cluster with Id {job.ClusterId}.");
             }

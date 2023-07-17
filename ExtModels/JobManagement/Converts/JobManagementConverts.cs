@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.ExtModels.JobManagement.Converts
 {

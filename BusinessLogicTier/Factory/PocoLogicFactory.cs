@@ -8,7 +8,6 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.Notifications;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 
 namespace HEAppE.BusinessLogicTier.Factory

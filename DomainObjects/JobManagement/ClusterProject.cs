@@ -28,6 +28,9 @@ namespace HEAppE.DomainObjects.JobManagement
         public bool IsDeleted { get; set; } = false;
         public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
 
-        //TODO: override tostring
+        public override string ToString()
+        {
+            return $"""ClusterProject: Cluster={Cluster}, Project={Project}, LocalBasepath={LocalBasepath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
+        }
     }
 }

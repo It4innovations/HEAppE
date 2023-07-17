@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace HEAppE.BusinessLogicTier.Logic.DataTransfer.Exceptions
+﻿namespace HEAppE.BusinessLogicTier.Logic.DataTransfer.Exceptions
 {
     public class UnableToCreateConnectionException : ExternallyVisibleException
     {

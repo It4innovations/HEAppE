@@ -19,15 +19,12 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         [DataMember(Name = "ProxyConnection", IsRequired = false, EmitDefaultValue = false)]
         public ClusterProxyConnectionExt ProxyConnection { get; set; }
 
-        [DataMember(Name = "FileTransferCipherType")]
-        public FileTransferCipherTypeExt? FileTransferCipherType { get; set; }
-
         [DataMember(Name = "Credentials")]
         public FileTransferKeyCredentialsExt Credentials { get; set; }
 
         public override string ToString()
         {
-            return $"FileTransferMethodExt: ServerHostname={ServerHostname}, SharedBasepath={SharedBasepath}, Protocol={Protocol}, FileTransferCipherType={FileTransferCipherType}, Credentials={Credentials}, ProxyConnection={ProxyConnection}";
+            return $"FileTransferMethodExt: ServerHostname={ServerHostname}, SharedBasepath={SharedBasepath}, Protocol={Protocol}, Credentials={Credentials}, ProxyConnection={ProxyConnection}";
         }
     }
 }

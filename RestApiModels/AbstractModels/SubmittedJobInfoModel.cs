@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+﻿using FluentValidation;
+using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.AbstractModels
 {
@@ -6,9 +7,19 @@ namespace HEAppE.RestApiModels.AbstractModels
     {
         [DataMember(Name = "SubmittedJobInfoId")]
         public long SubmittedJobInfoId { get; set; }
+
         public override string ToString()
         {
             return $"SubmittedJobInfoModel({base.ToString()}; SubmittedJobInfoId: {SubmittedJobInfoId})";
+        }
+    }
+
+    public class SubmittedJobInfoModelValidator : AbstractValidator<SubmittedJobInfoModel>
+    {
+        public SubmittedJobInfoModelValidator()
+        {
+            Include(new SessionCodeModelValidator());
+            RuleFor(x => x.SubmittedJobInfoId).GreaterThan(0);
         }
     }
 }

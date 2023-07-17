@@ -1,5 +1,4 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
@@ -12,7 +11,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 
         public override string ToString()
         {
-            return $"AuthenticationCredentialsExt(username={Username})";
+            return $"""AuthenticationCredentialsExt(Username="{Username}")""";
         }
     }
 }
