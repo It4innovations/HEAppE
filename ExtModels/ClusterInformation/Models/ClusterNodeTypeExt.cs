@@ -1,5 +1,4 @@
 ﻿using HEAppE.ExtModels.JobManagement.Models;
-using System;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models
@@ -24,12 +23,12 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
 
         [DataMember(Name = "MaxWalltime")]
         public int? MaxWalltime { get; set; }
-        
+
         [DataMember(Name = "FileTransferMethodId")]
         public long? FileTransferMethodId { get; set; }
 
         [DataMember(Name = "Projects")]
-        public ProjectExt[] Projects { get;set;}
+        public ProjectExt[] Projects { get; set; }
 
         public override string ToString()
         {

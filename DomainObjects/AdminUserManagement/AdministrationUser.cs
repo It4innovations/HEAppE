@@ -9,7 +9,8 @@ using System.Linq;
 namespace HEAppE.DomainObjects.AdminUserManagement
 {
     [Table("AdministrationUser")]
-    public class AdministrationUser : IdentifiableDbEntity, ILogUserIdentification {
+    public class AdministrationUser : IdentifiableDbEntity, ILogUserIdentification
+    {
 
         //public virtual AdaptorUser User { get; set; }
 
@@ -34,7 +35,8 @@ namespace HEAppE.DomainObjects.AdminUserManagement
         [NotMapped]
         public List<AdministrationRole> AdministrationRoles => AdministrationUserRoles.Select(r => r.AdministrationRole).ToList();
 
-        public string GetLogIdentification() {
+        public string GetLogIdentification()
+        {
             return Email;
         }
     }

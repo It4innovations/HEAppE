@@ -271,3 +271,4 @@ __pycache__/
 
 RestApi/appsettings.json
 /RestApi/seed.njson
+/DataStagingAPI/appsettings.json

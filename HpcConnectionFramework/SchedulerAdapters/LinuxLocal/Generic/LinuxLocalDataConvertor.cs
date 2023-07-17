@@ -1,8 +1,8 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
 using System;
@@ -10,7 +10,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 {
@@ -133,7 +132,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 commands.Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(taskCommandLine.ToString())) + " ");
                 taskCommandLine.Clear();
             }
-             string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
+            string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
 
             //preparation script, prepares job info file to the job directory at local linux "cluster"
             return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {localBasePath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";

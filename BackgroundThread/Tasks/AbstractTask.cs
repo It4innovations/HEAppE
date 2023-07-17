@@ -1,7 +1,7 @@
-﻿using System;
+﻿using log4net;
+using System;
 using System.Threading;
 using System.Timers;
-using log4net;
 using Timer = System.Timers.Timer;
 
 namespace HEAppE.BackgroundThread.Tasks

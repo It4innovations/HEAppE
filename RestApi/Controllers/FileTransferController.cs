@@ -66,6 +66,38 @@ namespace HEAppE.RestApi.Controllers
                 }
                 return Problem(null, null, null, exception.Message);
             }
+
+        }
+        /// <summary>
+        /// Create file transfer tunnel
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("GetFileTransferMethod")]
+        [RequestSizeLimit(98)]
+        [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Obsolete]
+        public IActionResult GetFileTransferMethod(GetFileTransferMethodModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"GetFileTransferMethod\" Parameters: \"{model}\"");
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
         }
 
         /// <summary>
@@ -104,6 +136,41 @@ namespace HEAppE.RestApi.Controllers
                 return Problem(null, null, null, exception.Message);
             }
         }
+
+        /// <summary>
+        /// End file transfer tunnel
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("EndFileTransfer")]
+        [RequestSizeLimit(4700)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
+        [Obsolete]
+        public IActionResult EndFileTransfer(EndFileTransferModelOveral model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"EndFileTransfer\" Parameters: \"{model}\"");
+
+                ValidationResult validationResult = new FileTransferValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                _service.CloseFileTransfer(model.SubmittedJobInfoId, model.UsedTransferMethod.Credentials.PublicKey, model.SessionCode);
+                return Ok("EndFileTransfer");
+            }
+            catch (Exception e)
+            {
+                return BadRequest(e.Message);
+            }
+        }
+
 
         /// <summary>
         /// Download part of job files from Cluster

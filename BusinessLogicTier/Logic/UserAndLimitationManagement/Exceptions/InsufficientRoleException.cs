@@ -1,7 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System;
 using System.Collections.Generic;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
+using System.Linq;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions
 {
@@ -23,7 +23,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions
         /// <returns>New InsufficientRoleException.</returns>
         public static InsufficientRoleException CreateMissingRoleException(AdaptorUserRole requiredRole, IEnumerable<AdaptorUserRole> availableRoles, long projectId)
         {
-            string rolesForProjectText = (availableRoles is null || availableRoles.Count() == 0)? $"Current user does not have any permission/role for project '{projectId}'.": $"Current user roles for project { projectId}: '{string.Join(",", availableRoles.Select(role => role.Name))}'.";
+            string rolesForProjectText = (availableRoles is null || availableRoles.Count() == 0) ? $"Current user does not have any permission/role for project '{projectId}'." : $"Current user roles for project {projectId}: '{string.Join(",", availableRoles.Select(role => role.Name))}'.";
             string message = $"User doesn't have required role. Required role: '{requiredRole.Name}'. {rolesForProjectText}";
             return new InsufficientRoleException(message);
         }

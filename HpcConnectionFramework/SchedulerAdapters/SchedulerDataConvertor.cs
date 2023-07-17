@@ -329,7 +329,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                             {
                                 return null;
                             }
-                            
+
                             return int.TryParse(parsedText, out int value)
                                             ? Convert.ChangeType(value, type)
                                             : Convert.ChangeType(parsedText, type);

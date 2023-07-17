@@ -1,10 +1,14 @@
+include:
+  - template: Security/SAST.gitlab-ci.yml
+
 image: docker:latest
 
 services:
   - docker:dind
 
 stages:
-    - build     
+    - build 
+    - test    
 
 heappe_build:
     stage: build

@@ -1,12 +1,14 @@
-﻿using System;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using System;
 
-namespace HEAppE.ConnectionPool {
-	public class ConnectionInfo {
-		public object Connection { get; set; }
+namespace HEAppE.ConnectionPool
+{
+    public class ConnectionInfo
+    {
+        public object Connection { get; set; }
 
-		public DateTime LastUsed { get; set; }
+        public DateTime LastUsed { get; set; }
 
-		public ClusterAuthenticationCredentials AuthCredentials { get; set; }
-	}
+        public ClusterAuthenticationCredentials AuthCredentials { get; set; }
+    }
 }

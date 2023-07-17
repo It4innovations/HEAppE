@@ -1,8 +1,8 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 {
@@ -21,15 +21,15 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         #region Methods
         public AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id)
         {
-            return _dbSet.Where(w=> w.Id == id)
+            return _dbSet.Where(w => w.Id == id)
                           .Include(i => i.AdaptorUserUserGroupRoles)
-                          .ThenInclude(i=>i.AdaptorUser)
+                          .ThenInclude(i => i.AdaptorUser)
                           .FirstOrDefault();
         }
 
         public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndProject()
         {
-            return _dbSet.Include(p=> p.Project)
+            return _dbSet.Include(p => p.Project)
                             .ThenInclude(i => i.CommandTemplates)
                             .ThenInclude(i => i.TemplateParameters)
                             .Include(i => i.AdaptorUserUserGroupRoles)

@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-
-namespace HEAppE.RestApi.Configuration
+﻿namespace HEAppE.RestApi.Configuration
 {
     /// <summary>
     /// Application API configuration

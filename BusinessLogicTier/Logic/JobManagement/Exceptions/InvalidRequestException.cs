@@ -1,9 +1,7 @@
-﻿using System;
-
-namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions
+﻿namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions
 {
-	public class InvalidRequestException : ExternallyVisibleException
-	{
-		public InvalidRequestException(string message) : base(message) { }
-	}
+    public class InvalidRequestException : ExternallyVisibleException
+    {
+        public InvalidRequestException(string message) : base(message) { }
+    }
 }

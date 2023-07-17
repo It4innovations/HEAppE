@@ -1,6 +1,8 @@
 ﻿using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.CertificateGenerator.Generators;
+using HEAppE.CertificateGenerator.Generators.v2;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.Management;
 using log4net;
 using System;
 using System.Reflection;
@@ -17,6 +19,7 @@ namespace HEAppE.CertificateGenerator
         /// Cipher key
         /// </summary>
         private readonly GenericCertGenerator _key;
+        private readonly GenericCertGeneratorV2 _certGeneratorV2;
 
         /// <summary>
         /// _logger
@@ -27,7 +30,7 @@ namespace HEAppE.CertificateGenerator
         /// <summary>
         /// File transfer cipher type
         /// </summary>
-        public FileTransferCipherType CipherType {get; init;}
+        public FileTransferCipherType CipherType { get; init; }
         #endregion
         #region Constructors
         /// <summary>
@@ -53,9 +56,34 @@ namespace HEAppE.CertificateGenerator
                 FileTransferCipherType.nistP521 => new ECDsaCertGenerator("nistP521"),
                 _ => new RSACertGenerator(4096)
             };
+
+            _certGeneratorV2 = CipherGeneratorConfiguration.Type switch
+            {
+                FileTransferCipherType.RSA3072 => new RSACertGeneratorV2(3072),
+                FileTransferCipherType.RSA4096 => new RSACertGeneratorV2(4096),
+                FileTransferCipherType.nistP256 => new ECDsaCertGeneratorV2(256),
+                FileTransferCipherType.nistP521 => new ECDsaCertGeneratorV2(521),
+                _ => new RSACertGeneratorV2(4096)
+            };
         }
         #endregion
         #region Methods
+
+        public SecureShellKey GetEncryptedSecureShellKey(string username, string passphrase)
+        {
+            var key = new SecureShellKey()
+            {
+                Username = username,
+                Passphrase = passphrase,
+                CipherType = CipherGeneratorConfiguration.Type,
+                PrivateKeyPEM = _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase),
+                PublicKeyPEM = _certGeneratorV2.ToPublicKeyInPEM(),
+                PublicKeyInAuthorizedKeysFormat = _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(),
+                PublicKeyFingerprint = _certGeneratorV2.GetPublicKeyFingerprint()
+            };
+            return key;
+        }
+
         /// <summary>
         /// Re-Generate key
         /// </summary>

@@ -1,7 +1,7 @@
 ﻿
 using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.UserAndLimitationManagement.Models   
+namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 {
     [DataContract(Name = "OpenStackApplicationCredentialsExt")]
     public class OpenStackApplicationCredentialsExt

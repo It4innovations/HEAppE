@@ -1,5 +1,4 @@
-﻿using System;
-using Renci.SshNet;
+﻿using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {

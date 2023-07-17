@@ -16,11 +16,11 @@ namespace HEAppE.BusinessLogicTier.Logic
             // Throw proper externally visible exceptions
             if (exception is ExternallyVisibleException)
             {
-                if(exception is ProjectConfigurationException)
+                if (exception is ProjectConfigurationException)
                 {
                     throw new ProjectConfigurationException(exception.Message);
                 }
-                else if(exception is AdaptorUserNotReferencedForProjectException)
+                else if (exception is AdaptorUserNotReferencedForProjectException)
                 {
                     throw new AdaptorUserNotReferencedForProjectException(exception.Message);
                 }

@@ -11,7 +11,7 @@ namespace HEAppE.DomainObjects
         public IdentifiableDbEntity() { }
         public IdentifiableDbEntity(IdentifiableDbEntity identifiableDbEntity)
         {
-            
+
         }
 
         #region IComparable<IdentifiableDbEntity> Members

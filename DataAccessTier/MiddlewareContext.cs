@@ -284,7 +284,7 @@ namespace HEAppE.DataAccessTier
         //sqlserver specific because of identity
         private void InsertOrUpdateSeedData<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
         {
-            if (items == null)
+            if (items == null || items.Count() == 0)
             {
                 return;
             }

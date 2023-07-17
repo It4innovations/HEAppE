@@ -1,4 +1,4 @@
-﻿using System;
+﻿using FluentValidation;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.FileTransfer.Models
@@ -18,6 +18,15 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         public override string ToString()
         {
             return $"TaskFileOffsetExt(submittedTaskInfoId={SubmittedTaskInfoId}; fileType={FileType}; offset={Offset})";
+        }
+    }
+    public class TaskFileOffsetExtValidator : AbstractValidator<TaskFileOffsetExt>
+    {
+        public TaskFileOffsetExtValidator()
+        {
+            RuleFor(x => x.SubmittedTaskInfoId).NotNull().GreaterThan(0);
+            RuleFor(x => x.FileType).NotNull().IsInEnum();
+            RuleFor(x => x.Offset).NotNull().GreaterThan(0);
         }
     }
 }

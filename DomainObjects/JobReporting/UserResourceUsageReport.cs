@@ -1,7 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Runtime.Serialization;
-using HEAppE.DomainObjects.JobReporting.Enums;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
+﻿using HEAppE.DomainObjects.JobReporting.Enums;
+using System.Collections.Generic;
 
 namespace HEAppE.DomainObjects.JobReporting
 {

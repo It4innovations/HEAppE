@@ -160,7 +160,7 @@ namespace HEAppE.RestApi.InputValidator
 
         private void ValidatePort(int? port)
         {
-            if(port is null)
+            if (port is null)
             {
                 _messageBuilder.AppendLine("Port must have value");
             }

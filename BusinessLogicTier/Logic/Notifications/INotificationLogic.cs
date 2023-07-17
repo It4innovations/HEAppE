@@ -1,3 +1,4 @@
-﻿namespace HEAppE.BusinessLogicTier.Logic.Notifications {
-	public interface INotificationLogic {}
+﻿namespace HEAppE.BusinessLogicTier.Logic.Notifications
+{
+    public interface INotificationLogic { }
 }

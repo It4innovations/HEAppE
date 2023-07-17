@@ -10,7 +10,6 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using log4net;
 using RestSharp;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
@@ -205,7 +204,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = (int) (BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+                    MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
                 };
                 var basicRestClient = new RestClient(options);
 
@@ -251,7 +250,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = (int) (BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+                    MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
                 };
                 var basicRestClient = new RestClient(options);
 

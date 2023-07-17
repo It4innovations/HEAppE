@@ -1,6 +1,6 @@
-﻿using System;
+﻿using HEAppE.DataAccessTier.UnitOfWork;
+using System;
 using System.Collections.Generic;
-using HEAppE.DataAccessTier.UnitOfWork;
 
 namespace HEAppE.DataAccessTier.Factory.UnitOfWork
 {

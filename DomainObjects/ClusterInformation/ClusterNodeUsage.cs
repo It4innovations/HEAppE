@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace HEAppE.DomainObjects.ClusterInformation
+﻿namespace HEAppE.DomainObjects.ClusterInformation
 {
     public class ClusterNodeUsage
     {

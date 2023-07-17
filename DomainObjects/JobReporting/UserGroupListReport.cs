@@ -1,12 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobReporting.Enums;
+﻿using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Runtime.Serialization;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HEAppE.DomainObjects.JobReporting
 {

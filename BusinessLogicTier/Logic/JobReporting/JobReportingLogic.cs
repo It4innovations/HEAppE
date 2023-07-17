@@ -191,7 +191,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <returns></returns>
         private List<ClusterReport> GetClusterReports(Project project, DateTime startTime, DateTime endTime)
         {
-            var clusters = project.ClusterProjects.Where(cp=>cp.Project.Id == project.Id)
+            var clusters = project.ClusterProjects.Where(cp => cp.Project.Id == project.Id)
                                                     .Select(x => x.Cluster)
                                                         .Distinct().ToList();
             var clusterReports = clusters.Select(cluster => new ClusterReport()
@@ -208,11 +208,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="project">Project</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Cluster cluster, Project project,DateTime startTime, DateTime endTime)
+        private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Cluster cluster, Project project, DateTime startTime, DateTime endTime)
         {
             var nodeTypes = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
                                                     .Distinct()
-                                                        .OrderBy(x=>x.Id)
+                                                        .OrderBy(x => x.Id)
                                                             .ToList();
 
             var nodeTypeReports = nodeTypes.Select(nodeType => new ClusterNodeTypeReport()

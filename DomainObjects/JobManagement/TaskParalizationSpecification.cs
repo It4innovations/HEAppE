@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
 
 namespace HEAppE.DomainObjects.JobManagement
@@ -17,8 +14,8 @@ namespace HEAppE.DomainObjects.JobManagement
         public int? OpenMPThreads { get; set; }
 
         public TaskParalizationSpecification() : base() { }
-        public TaskParalizationSpecification(TaskParalizationSpecification taskParalizationSpecification) 
-            : base(taskParalizationSpecification) 
+        public TaskParalizationSpecification(TaskParalizationSpecification taskParalizationSpecification)
+            : base(taskParalizationSpecification)
         {
             this.MaxCores = taskParalizationSpecification.MaxCores;
             this.MPIProcesses = taskParalizationSpecification.MPIProcesses;

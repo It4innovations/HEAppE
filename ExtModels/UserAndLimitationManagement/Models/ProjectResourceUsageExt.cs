@@ -1,8 +1,5 @@
-﻿using System.Runtime.Serialization;
-using System.Xml.Linq;
-using System;
-using HEAppE.ExtModels.ClusterInformation.Models;
-using HEAppE.DomainObjects.JobManagement;
+﻿using System;
+using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 {
