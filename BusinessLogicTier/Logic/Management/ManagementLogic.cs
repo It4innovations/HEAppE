@@ -320,7 +320,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             foreach (var credentials in clusterAuthenticationCredentials)
             {
                 File.Delete(credentials.PrivateKeyFile);
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(credentials);
+                credentials.IsDeleted = true;
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
             _unitOfWork.Save();
             return "SecureShellKey revoked";

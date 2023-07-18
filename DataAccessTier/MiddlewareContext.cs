@@ -1,3 +1,4 @@
+using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DomainObjects;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -247,6 +248,9 @@ namespace HEAppE.DataAccessTier
             //Update Authentication type
             ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
                                     .ForEach(cpc => cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
+
+            //Update Cipher type
+            ClusterAuthenticationCredentials.Where(cac => !cac.IsGenerated).ToList().ForEach(cac => cac.CipherType = CipherGeneratorConfiguration.Type);
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");

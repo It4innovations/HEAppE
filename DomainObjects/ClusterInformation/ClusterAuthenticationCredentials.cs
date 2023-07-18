@@ -35,6 +35,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [Required]
         public bool IsGenerated { get; set; } = false;
 
+        [Required]
+        public bool IsDeleted { get; set; } = false;
+
         public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
         #endregion
         #region Override Methods

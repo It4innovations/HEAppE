@@ -9,6 +9,13 @@ namespace HEAppE.DataAccessTier.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<int>(
+                name: "UsageType",
+                table: "Project",
+                type: "int",
+                nullable: false,
+                defaultValue: 1);
+
             migrationBuilder.AlterColumn<string>(
                 name: "PreparationScript",
                 table: "CommandTemplate",
@@ -58,6 +65,13 @@ namespace HEAppE.DataAccessTier.Migrations
                 defaultValue: 0);
 
             migrationBuilder.AddColumn<bool>(
+                name: "IsDeleted",
+                table: "ClusterAuthenticationCredentials",
+                type: "bit",
+                nullable: false,
+                defaultValue: false);
+
+            migrationBuilder.AddColumn<bool>(
                 name: "IsGenerated",
                 table: "ClusterAuthenticationCredentials",
                 type: "bit",
@@ -76,7 +90,15 @@ namespace HEAppE.DataAccessTier.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropColumn(
+                name: "UsageType",
+                table: "Project");
+
+            migrationBuilder.DropColumn(
                 name: "CipherType",
+                table: "ClusterAuthenticationCredentials");
+
+            migrationBuilder.DropColumn(
+                name: "IsDeleted",
                 table: "ClusterAuthenticationCredentials");
 
             migrationBuilder.DropColumn(

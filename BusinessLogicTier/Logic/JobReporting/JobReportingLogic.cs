@@ -50,7 +50,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             {
                 AdaptorUserGroup = adaptorUserGroup,
                 Project = GetProjectReport(adaptorUserGroup.Project, DateTime.MinValue, DateTime.UtcNow),
-                UsageType = DomainObjects.JobReporting.Enums.UsageType.CoreHours
+                UsageType = adaptorUserGroup.Project.UsageType
             }).ToList();
             return userGroupReports;
         }

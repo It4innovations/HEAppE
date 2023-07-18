@@ -2,7 +2,7 @@
 {
     public enum UsageType
     {
-        CoreHours = 1,
-        NodeHours
+        NodeHours = 1,
+        CoreHours = 2
     }
 }
