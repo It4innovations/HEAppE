@@ -92,14 +92,16 @@
         "Username": "heappeclient",
         "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}"
+        "PrivateKeyPassword": "{PrivateKeyPassword}",
+        "CipherType": 1
       },
       {
         "Id": 2,
         "Username": "heappeclient",
         "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}"
+        "PrivateKeyPassword": "{PrivateKeyPassword}",
+        "CipherType": 1
       }
     ],
     "Projects": [

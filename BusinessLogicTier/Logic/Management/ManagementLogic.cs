@@ -1,5 +1,6 @@
 ﻿using HEAppE.BusinessLogicTier.Logic.Management.Exceptions;
 using HEAppE.CertificateGenerator;
+using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -243,6 +244,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 PrivateKeyFile = keyPath,
                 PrivateKeyPassword = passphrase,
                 AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey,
+                CipherType = CipherGeneratorConfiguration.Type,
                 PublicKeyFingerprint = publicKeyFingerprint,
                 ClusterProjectCredentials = new List<ClusterProjectCredentials>(),
                 IsGenerated = true
@@ -290,6 +292,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
                 credentials.PrivateKeyPassword = passphrase;
                 credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
+                credentials.CipherType = secureShellKey.CipherType;
 
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
@@ -320,7 +323,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             foreach (var credentials in clusterAuthenticationCredentials)
             {
                 File.Delete(credentials.PrivateKeyFile);
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(credentials);
+                credentials.IsDeleted = true;
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
             _unitOfWork.Save();
             return "SecureShellKey revoked";

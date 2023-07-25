@@ -52,8 +52,8 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             }
 
             var clusterProjectIds = nodeType.Cluster.ClusterProjects.Select(x => x.ProjectId).ToList();
-            var availableProjectIds = loggedUser.Groups.Where(g => clusterProjectIds.Contains(g.ProjectId.Value)).Select(x => x.ProjectId.Value).ToList();
-            if (availableProjectIds.Count == 0)
+            var availableProjectIds = loggedUser.Groups.Where(g => clusterProjectIds.Contains(g.ProjectId.Value)).Select(x => x.ProjectId.Value).Distinct().ToList();
+            if (availableProjectIds.Count() == 0)
             {
                 throw new InvalidRequestException($"User {loggedUser} has no access to ClusterNodeId {clusterNodeId}.");
             }
