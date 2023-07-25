@@ -27,13 +27,16 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public ClusterAuthenticationCredentialsAuthType AuthenticationType { get; set; }
 
         [Required]
-        public FileTransferCipherType CipherType { get; set; } = FileTransferCipherType.RSA4096;
+        public FileTransferCipherType CipherType { get; set; } = FileTransferCipherType.Unknown;
 
         [StringLength(200)]
         public string PublicKeyFingerprint { get; set; }
 
         [Required]
         public bool IsGenerated { get; set; } = false;
+
+        [Required]
+        public bool IsDeleted { get; set; } = false;
 
         public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
         #endregion

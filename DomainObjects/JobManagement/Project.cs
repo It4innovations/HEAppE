@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HEAppE.DomainObjects.JobReporting.Enums;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -32,6 +33,9 @@ namespace HEAppE.DomainObjects.JobManagement
 
         [Required]
         public bool IsDeleted { get; set; } = false;
+
+        [Required]
+        public UsageType UsageType { get; set; } = UsageType.NodeHours;
 
         public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
         public virtual List<CommandTemplate> CommandTemplates { get; set; } = new List<CommandTemplate>();

@@ -1,5 +1,7 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.JobReporting.Enums;
 using System;
+using System.Linq;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
 {
@@ -20,8 +22,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting.Converts
             {
                 double walltimeInSeconds = task.AllocatedTime ?? 0;
                 int ncpus = task.AllocatedCores ?? task.Specification.MaxCores ?? 0;
-
-                return Math.Round((walltimeInSeconds * ncpus) / 3600, 3);
+                double nNodes = Math.Ceiling((double)ncpus / task.Specification.ClusterNodeType.CoresPerNode);
+                return task.Project.UsageType switch
+                {
+                    UsageType.NodeHours => Math.Round(walltimeInSeconds * nNodes / 3600.0, 3),
+                    UsageType.CoreHours => Math.Round(walltimeInSeconds * ncpus / 3600.0, 3),
+                    _ => null,
+                };
             }
             else
             {
