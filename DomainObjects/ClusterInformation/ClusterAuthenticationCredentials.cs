@@ -27,7 +27,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public ClusterAuthenticationCredentialsAuthType AuthenticationType { get; set; }
 
         [Required]
-        public FileTransferCipherType CipherType { get; set; } = FileTransferCipherType.RSA4096;
+        public FileTransferCipherType CipherType { get; set; } = FileTransferCipherType.Unknown;
 
         [StringLength(200)]
         public string PublicKeyFingerprint { get; set; }

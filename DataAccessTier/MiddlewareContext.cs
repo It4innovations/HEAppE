@@ -213,7 +213,8 @@ namespace HEAppE.DataAccessTier
                 Username = cc.Username,
                 Password = cc.Password,
                 PrivateKeyFile = cc.PrivateKeyFile,
-                PrivateKeyPassword = cc.PrivateKeyPassword
+                PrivateKeyPassword = cc.PrivateKeyPassword,
+                CipherType = cc.CipherType
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
@@ -250,7 +251,7 @@ namespace HEAppE.DataAccessTier
                                     .ForEach(cpc => cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
 
             //Update Cipher type
-            ClusterAuthenticationCredentials.Where(cac => !cac.IsGenerated).ToList().ForEach(cac => cac.CipherType = CipherGeneratorConfiguration.Type);
+            ClusterAuthenticationCredentials.Where(cac => !cac.IsGenerated).ToList().ForEach(cac => cac.CipherType = GetCredentialsCipherType(cac));
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
@@ -444,6 +445,23 @@ namespace HEAppE.DataAccessTier
             }
 
             return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
+        }
+
+        /// <summary>
+        /// Returns cipher type for credentials. If credentials has cipher type set, then it is returned. Otherwise, cipher type from configuration is returned.
+        /// </summary>
+        /// <param name="cac"></param>
+        /// <returns></returns>
+        private static FileTransferCipherType GetCredentialsCipherType(ClusterAuthenticationCredentials cac)
+        {
+            if (cac.CipherType == FileTransferCipherType.Unknown)
+            {
+                return CipherGeneratorConfiguration.Type;
+            }
+            else
+            {
+                return cac.CipherType;
+            }
         }
         #endregion
         #region Entities
