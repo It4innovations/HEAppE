@@ -1,4 +1,3 @@
-using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DomainObjects;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -214,7 +213,8 @@ namespace HEAppE.DataAccessTier
                 Password = cc.Password,
                 PrivateKeyFile = cc.PrivateKeyFile,
                 PrivateKeyPassword = cc.PrivateKeyPassword,
-                CipherType = cc.CipherType
+                CipherType = cc.CipherType,
+                IsDeleted = cc.IsDeleted
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
@@ -247,14 +247,44 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
-            ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
-                                    .ForEach(cpc => cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
+            ClusterAuthenticationCredentials.ToList().ForEach(clusterAuthenticationCredential =>
+            {
+                var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
+                                                                .Select(x => x.ClusterProject.Cluster)
+                                                                .ToList();
 
-            //Update Cipher type
-            ClusterAuthenticationCredentials.Where(cac => !cac.IsGenerated).ToList().ForEach(cac => cac.CipherType = GetCredentialsCipherType(cac));
+                SetClusterAUthenticationCredentialAuthenticationType(clusterAuthenticationCredential, clusters);
+            });
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
+        }
+
+        /// <summary>
+        /// Sets AuthenticationType for ClusterAuthenticationCredential
+        /// </summary>
+        /// <param name="clusterAuthenticationCredential"></param>
+        /// <param name="clusters"></param>
+        /// <exception cref="ApplicationException"></exception>
+        private void SetClusterAUthenticationCredentialAuthenticationType(ClusterAuthenticationCredentials clusterAuthenticationCredential, List<Cluster> clusters)
+        {
+            if (clusters.All(c => c.ProxyConnection == clusters.First().ProxyConnection))
+            {
+                if (clusters.Count() >= 1)
+                {
+                    clusterAuthenticationCredential.AuthenticationType = GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
+                }
+                else
+                {
+                    return;
+                }
+            }
+            else
+            {
+                string message = $"ClusterAuthenticationCredential with id {clusterAuthenticationCredential.Id} has ClusterProjectCredentials with different ProxyConnection.";
+                _log.Error(message);
+                throw new ApplicationException(message);
+            }
         }
 
         private void ValidateSeed()
@@ -262,6 +292,20 @@ namespace HEAppE.DataAccessTier
             _log.Info("Seed validation has started.");
             ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
             _log.Info("Seed validation completed.");
+        }
+
+        private void ValidateClusterAuthenticationCredentialsClusterReference(DbSet<ClusterAuthenticationCredentials> clusterAuthenticationCredentials)
+        {
+            foreach (var clusterAuthenticationCredential in ClusterAuthenticationCredentials)
+            {
+                var clusters = clusterAuthenticationCredential.ClusterProjectCredentials.Select(x => x.ClusterProject.Cluster).ToList();
+                if (clusters.Count() >= 1 && clusters.Any(c => c.ProxyConnection != clusters.First().ProxyConnection))
+                {
+                    string message = $"ClusterAuthenticationCredential with id {clusterAuthenticationCredential.Id} has ClusterProjectCredentials with different ProxyConnection.";
+                    _log.Error(message);
+                    throw new ApplicationException(message);
+                }
+            }
         }
 
         /// <summary>
@@ -445,23 +489,6 @@ namespace HEAppE.DataAccessTier
             }
 
             return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
-        }
-
-        /// <summary>
-        /// Returns cipher type for credentials. If credentials has cipher type set, then it is returned. Otherwise, cipher type from configuration is returned.
-        /// </summary>
-        /// <param name="cac"></param>
-        /// <returns></returns>
-        private static FileTransferCipherType GetCredentialsCipherType(ClusterAuthenticationCredentials cac)
-        {
-            if (cac.CipherType == FileTransferCipherType.Unknown)
-            {
-                return CipherGeneratorConfiguration.Type;
-            }
-            else
-            {
-                return cac.CipherType;
-            }
         }
         #endregion
         #region Entities
