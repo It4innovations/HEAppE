@@ -212,7 +212,9 @@ namespace HEAppE.DataAccessTier
                 Username = cc.Username,
                 Password = cc.Password,
                 PrivateKeyFile = cc.PrivateKeyFile,
-                PrivateKeyPassword = cc.PrivateKeyPassword
+                PrivateKeyPassword = cc.PrivateKeyPassword,
+                CipherType = cc.CipherType,
+                IsDeleted = cc.IsDeleted
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
@@ -245,8 +247,16 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
-            ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
-                                    .ForEach(cpc => cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
+            ClusterAuthenticationCredentials.ToList().ForEach(clusterAuthenticationCredential =>
+            {
+                var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
+                                                                .Select(x => x.ClusterProject.Cluster)
+                                                                .ToList();
+                if (clusters.Count() >= 1)
+                {
+                    clusterAuthenticationCredential.AuthenticationType = GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
+                }
+            });
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
@@ -256,7 +266,27 @@ namespace HEAppE.DataAccessTier
         {
             _log.Info("Seed validation has started.");
             ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
+            ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings.ClusterAuthenticationCredentials);
             _log.Info("Seed validation completed.");
+        }
+
+        /// <summary>
+        /// Validate ClusterAuthenticationCredentials to used clusters same proxy connection
+        /// </summary>
+        /// <param name="clusterAuthenticationCredentials"></param>
+        /// <exception cref="ApplicationException"></exception>
+        private void ValidateClusterAuthenticationCredentialsClusterReference(List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials)
+        {
+            foreach (var clusterAuthenticationCredential in clusterAuthenticationCredentials)
+            {
+                var clusters = clusterAuthenticationCredential.ClusterProjectCredentials.Select(x => x.ClusterProject.Cluster).ToList();
+                if (clusters.Count() >= 1 && clusters.Any(c => c.ProxyConnection != clusters.First().ProxyConnection))
+                {
+                    string message = $"ClusterAuthenticationCredential with id {clusterAuthenticationCredential.Id} has ClusterProjectCredentials with different ProxyConnection.";
+                    _log.Error(message);
+                    throw new ApplicationException(message);
+                }
+            }
         }
 
         /// <summary>

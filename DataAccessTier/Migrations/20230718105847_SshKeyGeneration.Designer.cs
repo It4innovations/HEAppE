@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20230630110823_SshKeyGeneration")]
+    [Migration("20230718105847_SshKeyGeneration")]
     partial class SshKeyGeneration
     {
         /// <inheritdoc />
@@ -94,6 +94,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<int>("CipherType")
                         .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsGenerated")
                         .HasColumnType("bit");
@@ -778,6 +781,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int>("UsageType")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 
