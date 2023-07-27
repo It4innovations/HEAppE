@@ -210,6 +210,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
             string keyPath = GetUniquePrivateKeyPath(accountingStrings);
             //save private key to file
+            FileInfo file = new FileInfo(keyPath);
+            file.Directory.Create();
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
 
             foreach (var project in existingProjects)
@@ -324,6 +326,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 File.Delete(credentials.PrivateKeyFile);
                 credentials.IsDeleted = true;
+                credentials.ClusterProjectCredentials.ForEach(cpc => cpc.IsDeleted = true);
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
             _unitOfWork.Save();
@@ -339,7 +342,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         private string ComputePublicKeyFingerprint(string publicKey)
         {
             publicKey = publicKey.Replace("\n", "");
-            Regex regex = new Regex(@"([A-Za-z0-9+\/=]+==)");
+            Regex regex = new Regex(@"([A-Za-z0-9+\/=]+=)");
             Match match = regex.Match(publicKey);
             if (!match.Success)
             {
@@ -360,7 +363,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             string projectIdsString = string.Join("_", projectIds);
             long netxId = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Max(x => x.Id) + 1;
-            string keyPath = Path.Combine(_sshKeysDirectory, $"KEY_{projectIdsString}_{netxId}");
+            string directoryPath = Path.Combine(_sshKeysDirectory, projectIdsString.ToUpper());
+            string keyPath = Path.Combine(directoryPath, $"KEY_{projectIdsString}_{netxId}");
             return keyPath;
         }
     }
