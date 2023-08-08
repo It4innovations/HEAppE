@@ -4,7 +4,7 @@ using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
-using HEAppE.ExtModels.General.Models;
+using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using log4net;
 using MicroKnights.Log4NetHelper;
@@ -117,8 +117,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>(ServiceLifetime.Singleton);
-builder.Services.AddTransient<IValidator<AuthorizedSubmittedJobIdModel>, AuthorizedSubmittedJobIdModelValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLifetime.Singleton);
 
 var app = builder.Build();
 
