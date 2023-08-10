@@ -241,6 +241,23 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             return convert;
         }
 
+        public static ExtendedProjectInfoExt ConvertIntToExtendedInfoExt(this Project project)
+        {
+            ExtendedProjectInfoExt convert = new()
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                AccountingString = project.AccountingString,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                PrimaryInvestigatorContact = project.ProjectContacts.FirstOrDefault(x => x.IsPI)?.Contact.Email,
+                Contacts = project.ProjectContacts.OrderByDescending(x => x.IsPI).Select(x => x.Contact.Email).ToArray(),
+                CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
+            };
+            return convert;
+        }
+
         public static ProjectResourceUsageExt ConvertIntToExt(this ProjectResourceUsage project)
         {
             ProjectResourceUsageExt convert = new()

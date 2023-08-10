@@ -172,6 +172,19 @@ namespace HEAppE.DataAccessTier
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+            //M:N relations for ProjectContact
+            modelBuilder.Entity<ProjectContact>()
+                .HasKey(pc => new { pc.ProjectId, pc.ContactId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Project)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ProjectId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Contact)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ContactId });
+
+
             modelBuilder.Entity<Project>()
                 .HasIndex(p => p.AccountingString)
                 .IsUnique();
@@ -221,6 +234,8 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectContacts, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
@@ -267,7 +282,27 @@ namespace HEAppE.DataAccessTier
             _log.Info("Seed validation has started.");
             ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
             ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings.ClusterAuthenticationCredentials);
+            ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
             _log.Info("Seed validation completed.");
+        }
+
+        /// <summary>
+        /// Validate CommandTemplate to Project reference
+        /// </summary>
+        /// <param name="projectContacts"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void ValidateProjectContactReferences(List<ProjectContact> projectContacts)
+        {
+            foreach(var projectContact in projectContacts.GroupBy(x => x.ProjectId))
+            {
+                //if project contact has more than one PI throw exception
+                if (projectContact.Count(x => x.IsPI) > 1)
+                {
+                    string message = $"Project with id='{projectContact.Key}' has more than one PI.";
+                    _log.Error(message);
+                    throw new ApplicationException(message);
+                }
+            }
         }
 
         /// <summary>
@@ -398,6 +433,12 @@ namespace HEAppE.DataAccessTier
                 case ClusterProjectCredentials clusterProjectCredentials:
                     {
                         var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+                case ProjectContact projectContact:
+                    {
+                        var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }

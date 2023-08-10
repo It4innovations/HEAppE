@@ -1,5 +1,7 @@
 ﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
+using Microsoft.EntityFrameworkCore;
+using Org.BouncyCastle.Math.EC.Rfc7748;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -18,7 +20,10 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement
         #region Methods
         public IEnumerable<Project> GetAllActiveProjects()
         {
-            return _context.Projects.Where(p => !p.IsDeleted && p.EndDate >= DateTime.UtcNow);
+            return _dbSet.Where(p => !p.IsDeleted && p.EndDate >= DateTime.UtcNow)
+                            .Include(x=>x.ProjectContacts)
+                            .ThenInclude(x=>x.Contact)
+                            .ToList();
         }
 
         public Project GetByAccountingString(string accountingString)

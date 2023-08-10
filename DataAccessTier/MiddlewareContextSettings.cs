@@ -48,7 +48,11 @@ namespace HEAppE.DataAccessTier
 
         public static List<FileTransferMethod> FileTransferMethods { get; set; } = new List<FileTransferMethod>();
 
+        public static List<Contact> Contacts { get; set; } = new List<Contact>();
+
         public static List<Project> Projects { get; set; } = new List<Project>();
+
+        public static List<ProjectContact> ProjectContacts { get; set; } = new List<ProjectContact>();
 
         public static List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
 

@@ -186,10 +186,10 @@ namespace HEAppE.RestApi.Controllers
                 var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
                 if (result)
                 {
-                    List<ProjectExt> activeProjects = new();
+                    List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
                     using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                     {
-                        activeProjects = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExt()).ToList();
+                        activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
                     }
                     return Ok(new InstanceInformationExt()
                     {
@@ -202,7 +202,7 @@ namespace HEAppE.RestApi.Controllers
                         URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
                         DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
                         ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
-                        Projects = activeProjects
+                        Projects = activeProjectsExtendedInfo
                     });
                 }
                 else
