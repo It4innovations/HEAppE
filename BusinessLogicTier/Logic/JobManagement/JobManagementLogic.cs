@@ -64,12 +64,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     _logger.Error(message);
                     throw new NotImplementedException(message);
                 }
-                else if (!CheckRequestedResourcesAgainstLimitations(task, currentUsage))
-                {
-                    var message = $"Requested resources for job {task.Name} exceeded user limitations.";
-                    _logger.Error(message);
-                    throw new RequestedJobResourcesExceededUserLimitationsException(message);
-                }
 
                 if (isExtraLong)
                 {
@@ -395,30 +389,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             {
                 throw new InputValidationException("Allocated nodes IP addresses are provided only for running task.");
             }
-        }
-
-        protected static bool CheckRequestedResourcesAgainstLimitations(TaskSpecification specification, ResourceUsage currentUsage)
-        {
-
-            if (currentUsage.Limitation == null || !currentUsage.Limitation.TotalMaxCores.HasValue)
-            {
-                return true;
-            }
-
-            int availableCores = currentUsage.Limitation.TotalMaxCores.Value - currentUsage.CoresUsed;
-            if (currentUsage.Limitation.MaxCoresPerJob.HasValue && availableCores > currentUsage.Limitation.MaxCoresPerJob.Value)
-            {
-                _ = currentUsage.Limitation.MaxCoresPerJob.Value;
-            }
-            else if (availableCores < specification.MinCores)
-            {
-                return false;
-            }
-            else if (availableCores < specification.MaxCores)
-            {
-                specification.MaxCores = availableCores;
-            }
-            return true;
         }
 
         protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser, IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)

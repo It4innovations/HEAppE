@@ -188,8 +188,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 var usage = new ResourceUsage
                 {
                     NodeType = nodeType,
-                    CoresUsed = notFinishedJobs.Sum(s => s.Tasks.Sum(taskSum => taskSum.Specification.MaxCores)) ?? 0,
-                    Limitation = loggedUser.Limitations.Where(w => w.NodeType == nodeType).FirstOrDefault()
+                    CoresUsed = notFinishedJobs.Sum(s => s.Tasks.Sum(taskSum => taskSum.Specification.MaxCores)) ?? 0
                 };
                 result.Add(usage);
             }
@@ -227,7 +226,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     var clusterNodeUsedCoresAndLimitation = new NodeUsedCoresAndLimitation()
                     {
                         CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
-                        Limitation = loggedUser.Limitations.Where(w => w.NodeType == nodeType).FirstOrDefault(),
                         NodeType = nodeType
                     };
                     var clusterNodeTypeUsage = new ClusterNodeTypeResourceUsage()
@@ -340,7 +338,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         Username = openIdUser.UserName,
                         Deleted = false,
                         Synchronize = false,
-                        LanguageId = 1,
+                        LanguageIsoCode = null,
                         Email = openIdUser.Email,
                         CreatedAt = DateTime.UtcNow,
                         ModifiedAt = null

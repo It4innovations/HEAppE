@@ -3,7 +3,6 @@ using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
-using HEAppE.DataAccessTier.IRepository.Notifications;
 using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Repository.ClusterInformation;
@@ -11,7 +10,6 @@ using HEAppE.DataAccessTier.Repository.FileTransfer;
 using HEAppE.DataAccessTier.Repository.JobManagement;
 using HEAppE.DataAccessTier.Repository.JobManagement.Command;
 using HEAppE.DataAccessTier.Repository.JobManagement.JobInformation;
-using HEAppE.DataAccessTier.Repository.Notifications;
 using HEAppE.DataAccessTier.Repository.OpenStack;
 using HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 using System;
@@ -46,12 +44,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private ICommandTemplateParameterRepository _commandTemplateParameterRepository;
         private ICommandTemplateParameterValueRepository _commandTemplateParameterValueRepository;
         private IJobSpecificationRepository _jobSpecificationRepository;
-        private ILanguageRepository _languageRepository;
-        private IMessageLocalizationRepository _messagLocalizationRepository;
-        private IMessageTemplateRepository _messageTemplateRepository;
-        private IMessageTemplateParameterRepository _messageTemplateParameterRepository;
-        private INotificationRepository _notificationRepository;
-        private IResourceLimitationRepository _resourceLimitationRepository;
         private ISessionCodeRepository _sessionCodeRepository;
         private ISubmittedJobInfoRepository _submittedJobInfoRepository;
         private ISubmittedTaskInfoRepository _submittedTaskInfoRepository;
@@ -282,46 +274,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             }
         }
 
-        public ILanguageRepository LanguageRepository
-        {
-            get
-            {
-                return _languageRepository = _languageRepository ?? new LanguageRepository(_context);
-            }
-        }
-
-        public IMessageLocalizationRepository MessageLocalizationRepository
-        {
-            get
-            {
-                return _messagLocalizationRepository = _messagLocalizationRepository ?? new MessageLocalizationRepository(_context);
-            }
-        }
-
-        public IMessageTemplateRepository MessageTemplateRepository
-        {
-            get
-            {
-                return _messageTemplateRepository = _messageTemplateRepository ?? new MessageTemplateRepository(_context);
-            }
-        }
-
-        public IMessageTemplateParameterRepository MessageTemplateParameterRepository
-        {
-            get
-            {
-                return _messageTemplateParameterRepository = _messageTemplateParameterRepository ?? new MessageTemplateParameterRepository(_context);
-            }
-        }
-
-        public INotificationRepository NotificationRepository
-        {
-            get
-            {
-                return _notificationRepository = _notificationRepository ?? new NotificationRepository(_context);
-            }
-        }
-
         public IAdaptorUserRepository AdaptorUserRepository
         {
             get
@@ -343,14 +295,6 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _adaptorUserRoleRepository = _adaptorUserRoleRepository ?? new AdaptorUserRoleRepository(_context);
-            }
-        }
-
-        public IResourceLimitationRepository ResourceLimitationRepository
-        {
-            get
-            {
-                return _resourceLimitationRepository = _resourceLimitationRepository ?? new ResourceLimitationRepository(_context);
             }
         }
 

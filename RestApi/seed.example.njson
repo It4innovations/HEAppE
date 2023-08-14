@@ -5,7 +5,7 @@
         "Id": 1,
         "Username": "{UserName}",
         "Password": "{Password}",
-        "LanguageId": 1,
+        "LanguageIsoCode": null,
         "CreatedAt": "2015-01-01 00:00:00",
         "ModifiedAt": null
       }
@@ -237,13 +237,6 @@
         "ServerHostname": "{ServerHostNameDNS}",
         "Protocol": 2,
         "ClusterId": 1
-      }
-    ],
-    "Languages": [
-      {
-        "Id": 1,
-        "IsoCode": "en-GB",
-        "Name": "English"
       }
     ],
     "OpenStackInstances": [

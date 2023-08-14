@@ -216,7 +216,7 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get current resource usage
         /// </summary>
-        /// <param name="model">Session code</param>
+        /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("CurrentUsageAndLimitationsForCurrentUser")]
         [RequestSizeLimit(60)]

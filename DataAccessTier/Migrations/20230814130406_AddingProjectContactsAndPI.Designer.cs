@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20230810130603_AddingProjectContactsAndPI")]
+    [Migration("20230814130406_AddingProjectContactsAndPI")]
     partial class AddingProjectContactsAndPI
     {
         /// <inheritdoc />
@@ -1000,161 +1000,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("TaskSpecificationRequiredNode");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.Language", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("IsoCode")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Language");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageLocalization", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<long?>("LanguageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("LocalizedHeader")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("LocalizedText")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long?>("MessageTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LanguageId");
-
-                    b.HasIndex("MessageTemplateId");
-
-                    b.ToTable("MessageLocalization");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplate", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("Event")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MessageTemplate");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplateParameter", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Identifier")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<long?>("MessageTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Query")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MessageTemplateId");
-
-                    b.ToTable("MessageTemplateParameter");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.Notification", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Header")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<long?>("LanguageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("MessageTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("OccurrenceTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("SentTime")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LanguageId");
-
-                    b.HasIndex("MessageTemplateId");
-
-                    b.ToTable("Notification");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", b =>
                 {
                     b.Property<long>("Id")
@@ -1340,8 +1185,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<long?>("LanguageId")
-                        .HasColumnType("bigint");
+                    b.Property<string>("LanguageIsoCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -1362,8 +1208,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("LanguageId");
 
                     b.ToTable("AdaptorUser");
                 });
@@ -1480,35 +1324,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("UserId");
 
                     b.ToTable("OpenStackSession");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.ResourceLimitation", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<long?>("AdaptorUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int?>("MaxCoresPerJob")
-                        .HasColumnType("int");
-
-                    b.Property<long?>("NodeTypeId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int?>("TotalMaxCores")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdaptorUserId");
-
-                    b.HasIndex("NodeTypeId");
-
-                    b.ToTable("ResourceLimitation");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.SessionCode", b =>
@@ -1874,41 +1689,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasForeignKey("TaskSpecificationId");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageLocalization", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId");
-
-                    b.HasOne("HEAppE.DomainObjects.Notifications.MessageTemplate", null)
-                        .WithMany("Localizations")
-                        .HasForeignKey("MessageTemplateId");
-
-                    b.Navigation("Language");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplateParameter", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.MessageTemplate", null)
-                        .WithMany("Parameters")
-                        .HasForeignKey("MessageTemplateId");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.Notification", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId");
-
-                    b.HasOne("HEAppE.DomainObjects.Notifications.MessageTemplate", "MessageTemplate")
-                        .WithMany()
-                        .HasForeignKey("MessageTemplateId");
-
-                    b.Navigation("Language");
-
-                    b.Navigation("MessageTemplate");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialDomain", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", "OpenStackAuthenticationCredential")
@@ -1985,15 +1765,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("OpenStackProjectDomain");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId");
-
-                    b.Navigation("Language");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
@@ -2039,19 +1810,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.Navigation("User");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.ResourceLimitation", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", null)
-                        .WithMany("Limitations")
-                        .HasForeignKey("AdaptorUserId");
-
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", "NodeType")
-                        .WithMany()
-                        .HasForeignKey("NodeTypeId");
-
-                    b.Navigation("NodeType");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.SessionCode", b =>
@@ -2142,13 +1900,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("TaskParalizationSpecifications");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplate", b =>
-                {
-                    b.Navigation("Localizations");
-
-                    b.Navigation("Parameters");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", b =>
                 {
                     b.Navigation("OpenStackAuthenticationCredentialDomains");
@@ -2176,8 +1927,6 @@ namespace HEAppE.DataAccessTier.Migrations
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
                 {
                     b.Navigation("AdaptorUserUserGroupRoles");
-
-                    b.Navigation("Limitations");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>

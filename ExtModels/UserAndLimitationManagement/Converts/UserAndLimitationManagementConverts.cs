@@ -43,27 +43,9 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             var convert = new ResourceUsageExt()
             {
                 NodeType = usage.NodeType.ConvertIntToExt(),
-                CoresUsed = usage.CoresUsed,
-                Limitation = usage.Limitation.ConvertIntToExt()
+                CoresUsed = usage.CoresUsed
             };
             return convert;
-        }
-
-        public static ResourceLimitationExt ConvertIntToExt(this ResourceLimitation resourceLimitation)
-        {
-            if (resourceLimitation != null)
-            {
-                return new ResourceLimitationExt()
-                {
-                    TotalMaxCores = resourceLimitation.TotalMaxCores,
-                    MaxCoresPerJob = resourceLimitation.MaxCoresPerJob
-                };
-            }
-            else
-            {
-                return new ResourceLimitationExt();
-            }
-
         }
 
         public static FileTransferKeyCredentialsExt ConvertIntToExt(this AuthenticationCredentials credentials)
@@ -133,8 +115,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
         {
             var convert = new NodeUsedCoresAndLimitationExt()
             {
-                CoresUsed = usedCoresAndLimitations.CoresUsed,
-                Limitation = usedCoresAndLimitations.Limitation.ConvertIntToExt()
+                CoresUsed = usedCoresAndLimitations.CoresUsed
             };
             return convert;
         }

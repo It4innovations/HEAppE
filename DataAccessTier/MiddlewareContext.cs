@@ -3,7 +3,6 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.Notifications;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Utils;
@@ -197,8 +196,6 @@ namespace HEAppE.DataAccessTier
         {
             _log.Info("Seed data into tha database started.");
 
-            InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
-
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
 
@@ -293,7 +290,7 @@ namespace HEAppE.DataAccessTier
         /// <exception cref="NotImplementedException"></exception>
         private void ValidateProjectContactReferences(List<ProjectContact> projectContacts)
         {
-            foreach(var projectContact in projectContacts.GroupBy(x => x.ProjectId))
+            foreach (var projectContact in projectContacts.GroupBy(x => x.ProjectId))
             {
                 //if project contact has more than one PI throw exception
                 if (projectContact.Count(x => x.IsPI) > 1)
@@ -551,20 +548,11 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
         #endregion
 
-        #region Notifications Entities
-        public virtual DbSet<Language> Languages { get; set; }
-        public virtual DbSet<MessageLocalization> MessageLocalizations { get; set; }
-        public virtual DbSet<MessageTemplate> MessageTemplates { get; set; }
-        public virtual DbSet<MessageTemplateParameter> MessageTemplateParameters { get; set; }
-        public virtual DbSet<Notification> Notifications { get; set; }
-        #endregion
-
         #region UserAndLimitationManagement Entities
         public virtual DbSet<AdaptorUser> AdaptorUsers { get; set; }
         public virtual DbSet<AdaptorUserGroup> AdaptorUserGroups { get; set; }
         public virtual DbSet<AdaptorUserUserGroupRole> AdaptorUserUserGroups { get; set; }
         public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
-        public virtual DbSet<ResourceLimitation> ResourceLimitations { get; set; }
         public virtual DbSet<SessionCode> SessionCodes { get; set; }
         public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }
         #endregion
