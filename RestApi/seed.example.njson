@@ -123,7 +123,8 @@
         "Email": "{Email}",
         "IsDeleted": false,
         "CreatedAt": "{CreatedAt}",
-        "ModifiedAt": null
+        "ModifiedAt": null,
+        "PublicKey":  null
       }
     ],
     "ProjectContacts": [

@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20230814130406_AddingProjectContactsAndPI")]
+    [Migration("20230818070611_AddingProjectContactsAndPI")]
     partial class AddingProjectContactsAndPI
     {
         /// <inheritdoc />
@@ -520,6 +520,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("PublicKey")
+                        .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
 

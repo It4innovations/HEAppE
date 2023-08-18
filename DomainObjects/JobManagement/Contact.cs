@@ -20,6 +20,8 @@ namespace HEAppE.DomainObjects.JobManagement
 
         public DateTime? ModifiedAt { get; set; }
 
+        public string PublicKey { get; set; } = null;
+
         public virtual List<ProjectContact> ProjectContacts { get; set; } = new List<ProjectContact>();
 
         #region Public methods
