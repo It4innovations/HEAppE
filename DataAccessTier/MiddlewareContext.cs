@@ -3,7 +3,6 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.Notifications;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Utils;
@@ -172,6 +171,19 @@ namespace HEAppE.DataAccessTier
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+            //M:N relations for ProjectContact
+            modelBuilder.Entity<ProjectContact>()
+                .HasKey(pc => new { pc.ProjectId, pc.ContactId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Project)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ProjectId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Contact)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ContactId });
+
+
             modelBuilder.Entity<Project>()
                 .HasIndex(p => p.AccountingString)
                 .IsUnique();
@@ -183,8 +195,6 @@ namespace HEAppE.DataAccessTier
         private void EnsureDatabaseSeeded()
         {
             _log.Info("Seed data into tha database started.");
-
-            InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
@@ -221,6 +231,8 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectContacts, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
@@ -267,7 +279,27 @@ namespace HEAppE.DataAccessTier
             _log.Info("Seed validation has started.");
             ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
             ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings.ClusterAuthenticationCredentials);
+            ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
             _log.Info("Seed validation completed.");
+        }
+
+        /// <summary>
+        /// Validate CommandTemplate to Project reference
+        /// </summary>
+        /// <param name="projectContacts"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void ValidateProjectContactReferences(List<ProjectContact> projectContacts)
+        {
+            foreach (var projectContact in projectContacts.GroupBy(x => x.ProjectId))
+            {
+                //if project contact has more than one PI throw exception
+                if (projectContact.Count(x => x.IsPI) > 1)
+                {
+                    string message = $"Project with id='{projectContact.Key}' has more than one PI.";
+                    _log.Error(message);
+                    throw new ApplicationException(message);
+                }
+            }
         }
 
         /// <summary>
@@ -401,6 +433,12 @@ namespace HEAppE.DataAccessTier
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
+                case ProjectContact projectContact:
+                    {
+                        var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
                 default:
                     throw new ApplicationException("Seed entity is not supported.");
             }
@@ -510,20 +548,11 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
         #endregion
 
-        #region Notifications Entities
-        public virtual DbSet<Language> Languages { get; set; }
-        public virtual DbSet<MessageLocalization> MessageLocalizations { get; set; }
-        public virtual DbSet<MessageTemplate> MessageTemplates { get; set; }
-        public virtual DbSet<MessageTemplateParameter> MessageTemplateParameters { get; set; }
-        public virtual DbSet<Notification> Notifications { get; set; }
-        #endregion
-
         #region UserAndLimitationManagement Entities
         public virtual DbSet<AdaptorUser> AdaptorUsers { get; set; }
         public virtual DbSet<AdaptorUserGroup> AdaptorUserGroups { get; set; }
         public virtual DbSet<AdaptorUserUserGroupRole> AdaptorUserUserGroups { get; set; }
         public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
-        public virtual DbSet<ResourceLimitation> ResourceLimitations { get; set; }
         public virtual DbSet<SessionCode> SessionCodes { get; set; }
         public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }
         #endregion

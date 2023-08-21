@@ -39,6 +39,7 @@ namespace HEAppE.DomainObjects.JobManagement
 
         public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
         public virtual List<CommandTemplate> CommandTemplates { get; set; } = new List<CommandTemplate>();
+        public virtual List<ProjectContact> ProjectContacts { get; set; } = new List<ProjectContact>();
 
         #region Public methods
         public override string ToString()

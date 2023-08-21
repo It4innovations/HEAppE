@@ -5,5 +5,4 @@
     <AssemblyName>DomainObjects</AssemblyName>
     <RootNamespace>HEAppE.DomainObjects</RootNamespace>
   </PropertyGroup>
-
 </Project>

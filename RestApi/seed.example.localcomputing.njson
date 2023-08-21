@@ -5,7 +5,7 @@
         "Id": 1,
         "Username": "{UserName}",
         "Password": "{Password}",
-        "LanguageId": 1,
+        "LanguageIsoCode": null,
         "CreatedAt": "2015-01-01 00:00:00",
         "ModifiedAt": null
       }
@@ -117,6 +117,23 @@
         "IsDeleted": false
       }
     ],
+    "Contacts": [
+      {
+        "Id": 1,
+        "Email": "{Email}",
+        "IsDeleted": false,
+        "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
+        "PublicKey": null
+      }
+    ],
+    "ProjectContacts": [
+      {
+        "ProjectId": 1,
+        "ContactId": 1,
+        "IsPI": true
+      }
+    ],
     "ClusterProjects": [
       {
         "Id": 1,
@@ -221,13 +238,6 @@
         "ServerHostname": "{ServerHostNameDNS}",
         "Protocol": 2,
         "ClusterId": 1
-      }
-    ],
-    "Languages": [
-      {
-        "Id": 1,
-        "IsoCode": "en-GB",
-        "Name": "English"
       }
     ],
     "OpenStackInstances": [

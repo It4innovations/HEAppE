@@ -69,7 +69,7 @@ namespace HEAppE.ExtModels.Management.Models
         /// Instance reference to HPC Projects
         /// </summary>
         [DataMember(Name = "Projects")]
-        public IEnumerable<ProjectExt> Projects { get; set; }
+        public IEnumerable<ExtendedProjectInfoExt> Projects { get; set; }
         #endregion
         #region Override methods
         /// <summary>
