@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net.Http;
+using System.Net.Http.Json;
 using System.Reflection;
 using System.Security.Authentication;
 using System.Security.Cryptography;
@@ -20,7 +22,9 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
 using HEAppE.ExternalAuthentication;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO;
+using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.ExternalAuthentication.KeyCloak.Exceptions;
 using HEAppE.OpenStackAPI;
@@ -29,6 +33,8 @@ using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.Utils;
 
 using log4net;
+
+using Microsoft.Extensions.Options;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
@@ -39,11 +45,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     /// Unit of work
     /// </summary>
     private readonly IUnitOfWork _unitOfWork;
+    private readonly LexisAuthenticationConfiguration _lexisAuthConfiguration;
 
     /// <summary>
     /// Logger
     /// </summary>
     private readonly ILog _log;
+    private readonly HttpClient _userOrgHttpClient;
 
     /// <summary>
     /// Lock for creating user
@@ -56,10 +64,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
     #endregion
     #region Constructors
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IOptions<LexisAuthenticationConfiguration> lexisAuthOptions, IHttpClientFactory httpClientFactory)
     {
       _unitOfWork = unitOfWork;
+      _lexisAuthConfiguration = lexisAuthOptions.Value;
       _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+      _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
     }
     #endregion
     #region Methods
@@ -329,16 +339,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       {
 
         //get userorg/userinfo
-        //map to UserOpenId
-        var lexisUserInfo = new LexisUserInfo();
-        var userInfo = new UserOpenId
-        {
-          UserName = lexisUserInfo.UserName,
-          Email = lexisUserInfo.Email,
+        // accounting_string == ProjectResource Name
+        // map roles
+        // find by accounting string if (!TryGetUserGroupByName(project.HEAppEGroupName, out AdaptorUserGroup openIdGroup))
+        //GetOrRegisterNewOpenIdUser
 
-        };
+        var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(LexisAuthenticationConfiguration.extendedUserInfoEndpoint);
 
-        return GetOrRegisterNewOpenIdUser(userInfo);
+        return GetOrRegisterLexisCredentials(result);
       }
       catch (KeycloakOpenIdException keycloakException)
       {
@@ -349,6 +357,149 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       {
         _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{lexisCredentials.OpenIdAccessToken}'", OpenIdException);
         throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", OpenIdException);
+      }
+    }
+    /// <summary>
+    /// Get existing or create new HEAppE user, from the OpenId credentials.
+    /// </summary>
+    /// <param name="decodedAccessToken">Decoded OpenId access token.</param>
+    /// <returns>Newly created or existing HEAppE account.</returns>
+    private AdaptorUser GetOrRegisterLexisCredentials(UserInfoExtendedModel openIdUser)
+    {
+      //{ProjectShortName: ProjectResourceNames: PermissionTypes}
+      var lexisProjects = openIdUser.SystemRoles
+        .Select(x => new { x.ProjectShortName, ProjectResourceNames = x.ProjectResources.Select(r => r.Name), Permissions = x.SystemPermissionTypes });
+
+      var heappeActiveProjects = _unitOfWork.ProjectRepository.GetAllActiveProjects();
+      //.Where(p => lexisProjects.Any(x => x.ProjectResourceNames.Contains(p.AccountingString)));
+
+      var userGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject();
+
+      var maintainerRole = ExternalAuthConfiguration.RoleMapping.First(x => x.Value == "Maintainer");
+      var reporterRole = ExternalAuthConfiguration.RoleMapping.First(x => x.Value == "Reporter");
+      var submitterRole = ExternalAuthConfiguration.RoleMapping.First(x => x.Value == "Submitter");
+
+      lock (_lockCreateUserObj)
+      {
+        var changedTime = DateTime.UtcNow;
+        AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+        if (user is null)
+        {
+          user = new AdaptorUser
+          {
+            Username = openIdUser.UserName,
+            Deleted = false,
+            Synchronize = false,
+            LanguageIsoCode = null,
+            Email = openIdUser.Email,
+            CreatedAt = DateTime.UtcNow,
+            ModifiedAt = null
+          };
+
+          _unitOfWork.AdaptorUserRepository.Insert(user);
+          _unitOfWork.Save();
+          _log.Info($"OpenId: Created new HEAppE account for user: \"{user}\"");
+        }
+
+        var userGroupRoles = new List<AdaptorUserUserGroupRole>();
+        bool hasUserGroup = false;
+
+        // soft delete all user roles
+        user.AdaptorUserUserGroupRoles.ForEach(x =>
+        {
+          x.IsDeleted = true;
+          x.ModifiedAt = changedTime;
+        });
+
+        foreach (var proj in lexisProjects)
+        {
+          var project = heappeActiveProjects.FirstOrDefault(x => proj.ProjectResourceNames.Contains(x.AccountingString));
+          if (project is null)
+          {
+            continue;
+          }
+          var prefixedGroup = userGroups.FirstOrDefault(g => g.Project.Id == project.Id && g.Name.StartsWith(_lexisAuthConfiguration.HEAppEGroupNamePrefix));
+          if (prefixedGroup is null)
+          {
+            _log.Error($"LexisCredentials: User group with prefix \"{_lexisAuthConfiguration.HEAppEGroupNamePrefix}\" for project short name \"{proj.ProjectShortName}\" does not exist in HEAppE database!");
+            continue;
+          }
+          var existingProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserGroupId == prefixedGroup.Id);
+          var existingUserProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserId == user.Id && x.AdaptorUserGroupId == prefixedGroup.Id);
+          // map to role
+          var tmpPermissionAsRole = new PermissionAsRole(
+              proj.Permissions.Any(p => p == maintainerRole.Key),
+              proj.Permissions.Any(p => p == submitterRole.Key),
+              proj.Permissions.Any(p => p == reporterRole.Key),
+              existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == "Maintainer")?.AdaptorUserRole,
+              existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == "Submitter")?.AdaptorUserRole,
+              existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == "Reporter")?.AdaptorUserRole
+          );
+
+          if (!tmpPermissionAsRole.IsMaintainer && !tmpPermissionAsRole.IsSubmitter && !tmpPermissionAsRole.IsReporter)
+          {
+            // no role
+            continue;
+          }
+
+          var usrPermissionRole = tmpPermissionAsRole.GetRole;
+          var existingUserProjectRole = existingUserProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRoleId == usrPermissionRole.Id);
+
+          if (!existingUserProjectGroupRoles.Any() || existingUserProjectRole is null) // non -> create
+          {
+            CreateRole(tmpPermissionAsRole, user, prefixedGroup, changedTime);
+          }
+          else
+          {
+            existingUserProjectRole.IsDeleted = false;
+            existingUserProjectRole.ModifiedAt = changedTime;
+          }
+          hasUserGroup = true;
+          _log.Info($"LexisCredentials: User \"{user.Username}\" was added to group: \"{prefixedGroup.Name}\"");
+        }
+        if (!hasUserGroup)
+        {
+          _unitOfWork.Save();
+          throw new OpenIdAuthenticationException($"Open-d: User(\"{user.Username}\") has not User group!");
+        }
+
+        _unitOfWork.Save();
+        return user;
+      }
+      void CreateRole(PermissionAsRole tmpPermissionAsRole, AdaptorUser user, AdaptorUserGroup prefixedGroup, DateTime changedTime)
+      {
+        var newRole = tmpPermissionAsRole switch
+        {
+          { IsMaintainer: true } => new AdaptorUserUserGroupRole()
+          {
+            AdaptorUser = user,
+            AdaptorUserGroup = prefixedGroup,
+            AdaptorUserRole = tmpPermissionAsRole.MaintainerRole,
+            IsDeleted = false,
+            CreatedAt = changedTime
+          },
+
+          { IsSubmitter: true } => new AdaptorUserUserGroupRole()
+          {
+            AdaptorUser = user,
+            AdaptorUserGroup = prefixedGroup,
+            AdaptorUserRole = tmpPermissionAsRole.SubmitterRole,
+            IsDeleted = false,
+            CreatedAt = changedTime
+          },
+
+          { IsReporter: true } => new AdaptorUserUserGroupRole()
+          {
+            AdaptorUser = user,
+            AdaptorUserGroup = prefixedGroup,
+            AdaptorUserRole = tmpPermissionAsRole.ReporterRole,
+            IsDeleted = false,
+            CreatedAt = changedTime
+          },
+
+          _ => throw new InvalidOperationException("GetOrRegisterLexisCredentials - HOW ?!")
+        };
+        user.AdaptorUserUserGroupRoles.Add(newRole);
       }
     }
 
@@ -588,5 +739,16 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       return projectReferences.Distinct();
     }
     #endregion
+  }
+
+  file record PermissionAsRole(bool IsMaintainer, bool IsSubmitter, bool IsReporter, AdaptorUserRole MaintainerRole, AdaptorUserRole SubmitterRole, AdaptorUserRole ReporterRole)
+  {
+    public AdaptorUserRole GetRole => this switch
+    {
+      { IsMaintainer: true } => MaintainerRole,
+      { IsSubmitter: true } => SubmitterRole,
+      { IsReporter: true } => ReporterRole,
+      _ => throw new InvalidOperationException("GetOrRegisterLexisCredentials - HOW *2?!")
+    };
   }
 }
