@@ -37,7 +37,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RestApiModels", "RestApiMod
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalAuthentication", "ExternalAuthentication\ExternalAuthentication.csproj", "{1AB62861-D48A-4CAB-AF6B-A678DC39C3BC}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Exceptions", "..\Exceptions\Exceptions.csproj", "{97DA6573-9FCA-45BD-A91C-6B1738021857}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exceptions", "Exceptions\Exceptions.csproj", "{97DA6573-9FCA-45BD-A91C-6B1738021857}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

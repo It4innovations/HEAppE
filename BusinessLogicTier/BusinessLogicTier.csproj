@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
@@ -13,7 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\Exceptions\Exceptions.csproj" />
+    <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
     <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
     <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />

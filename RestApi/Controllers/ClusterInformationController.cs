@@ -67,7 +67,8 @@ namespace HEAppE.RestApi.Controllers
                 {
                     BadRequest(exception.Message);
                 }
-                return Problem(null, null, null, exception.Message);
+
+                throw;
             }
         }
 
@@ -106,7 +107,8 @@ namespace HEAppE.RestApi.Controllers
                 {
                     BadRequest(exception.Message);
                 }
-                return Problem(null, null, null, exception.Message);
+
+                throw;
             }
         }
 
@@ -147,7 +149,8 @@ namespace HEAppE.RestApi.Controllers
                 {
                     BadRequest(exception.Message);
                 }
-                return Problem(null, null, null, exception.Message);
+
+                throw;
             }
         }
 
@@ -183,7 +186,8 @@ namespace HEAppE.RestApi.Controllers
                 {
                     BadRequest(exception.Message);
                 }
-                return Problem(null, null, null, exception.Message);
+
+                throw;
             }
         }
         #endregion

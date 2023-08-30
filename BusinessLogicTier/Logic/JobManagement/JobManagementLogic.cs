@@ -1,5 +1,4 @@
-﻿using Exceptions;
-using Exceptions.External;
+﻿using Exceptions.External;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;

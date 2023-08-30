@@ -17,6 +17,7 @@
     <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj" />
     <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+    <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
     <ProjectReference Include="..\ExtModels\ExtModels.csproj" />
   </ItemGroup>
 

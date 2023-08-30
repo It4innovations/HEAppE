@@ -5,8 +5,9 @@ using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
 using System.Net;
-using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Localization;
+using Exceptions.Resources;
 
 namespace HEAppE.RestApi
 {
@@ -26,6 +27,11 @@ namespace HEAppE.RestApi
         /// </summary>
         private readonly ILogger<ExceptionMiddleware> _logger;
 
+        /// <summary>
+        /// Resource localizer
+        /// </summary>
+        private readonly IStringLocalizer<ExceptionsMessages> _exceptionsLocalizer;
+
         #endregion
         #region Constructor
         /// <summary>
@@ -33,10 +39,12 @@ namespace HEAppE.RestApi
         /// </summary>
         /// <param name="next">Request delegate</param>
         /// <param name="logger">Logger</param>
-        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger)
+        /// <param name="exceptionsLocalizer"></param>
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IStringLocalizer<ExceptionsMessages> exceptionsLocalizer)
         {
             _next = next;
             _logger = logger;
+            _exceptionsLocalizer = exceptionsLocalizer;
         }
         #endregion
         #region Methods
@@ -73,11 +81,11 @@ namespace HEAppE.RestApi
                     context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                     break;
                 case InternalException:
-                    message = exception.Message;
+                    message = GetExceptionMessage(exception);
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     break;
                 case ExternalException:
-                    message = exception.Message;
+                    message = GetExceptionMessage(exception);
                     context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
                     break;
                 case BadHttpRequestException:
@@ -108,6 +116,24 @@ namespace HEAppE.RestApi
 
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsync(JsonConvert.SerializeObject(new { error = message }));
+        }
+
+        /// <summary>
+        /// Get exception message from database based on user language and exception type
+        /// </summary>
+        /// <param name="exception"></param>
+        /// <returns></returns>
+        private string GetExceptionMessage(Exception exception)
+        {
+            string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
+            string localizedMessage = _exceptionsLocalizer.GetString(exceptionName);
+
+            if (localizedMessage == exceptionName)
+            {
+                return exception.Message;
+            }
+            
+            return localizedMessage;
         }
         #endregion
     }

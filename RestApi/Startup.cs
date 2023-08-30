@@ -14,6 +14,7 @@ using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
@@ -23,6 +24,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -131,6 +133,21 @@ namespace HEAppE.RestApi
                 gen.IncludeXmlComments(xmlPath);
             });
 
+            //Localization and resources
+            services.AddLocalization();
+
+            services.Configure<RequestLocalizationOptions>(options =>
+            {
+                var supportedCultures = new List<CultureInfo>
+                {
+                    new CultureInfo("en"),
+                    new CultureInfo("cs")
+                };
+
+                options.DefaultRequestCulture = new RequestCulture("en");
+                options.SupportedCultures = supportedCultures;
+            });
+
             //Set Single Project HEAppE Instance
             if (MiddlewareContextSettings.Projects.Count == 1)
             {
@@ -194,6 +211,8 @@ namespace HEAppE.RestApi
                 swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/{SwaggerConfiguration.Version}/swagger.json", SwaggerConfiguration.Title);
                 swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
             });
+
+            app.UseRequestLocalization();
 
             app.UseRouting();
             app.UseMiddleware<ExceptionMiddleware>();
