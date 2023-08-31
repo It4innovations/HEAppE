@@ -44,7 +44,7 @@ namespace HEAppE.ServiceTier.Management
             {
                 if (exc.Message.Contains("No such file or directory"))
                 {
-                    throw new InputValidationException(exc.Message);
+                    throw new InputValidationException("NoFileOrDirectory");
                 }
 
                 throw;
@@ -58,7 +58,7 @@ namespace HEAppE.ServiceTier.Management
                 CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
                 if (commandTemplate == null)
                 {
-                    throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+                    throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
                 }
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, commandTemplate.ProjectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
@@ -83,7 +83,7 @@ namespace HEAppE.ServiceTier.Management
             {
                 if (exc.Message.Contains("No such file or directory"))
                 {
-                    throw new InputValidationException(exc.Message);
+                    throw new InputValidationException("NoFileOrDirectory");
                 }
 
                 throw;

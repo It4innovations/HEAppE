@@ -93,7 +93,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             if (!jobValidation.IsValid)
             {
                 _logger.ErrorFormat("Validation error: {0}", jobValidation.Message);
-                new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message);
+                throw new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message);
             }
 
             lock (_lockCreateJobObj)
@@ -115,7 +115,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
                     if (clusterProject == null)
                     {
-                        new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                        throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
                     }
                     //Create job directory
                     SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath);
@@ -211,7 +211,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
-                new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
             }
             if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
             {
@@ -359,7 +359,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
-                new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
             }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
@@ -374,7 +374,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
-                new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
             }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)

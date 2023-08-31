@@ -21,17 +21,17 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
             if (commandTemplate is null)
             {
-                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             if (!commandTemplate.IsGeneric)
             {
-                throw new InputValidationException("The specified command template is not generic.");
+                throw new InputValidationException("CommandTemplateNotGeneric");
             }
 
             if (!commandTemplate.IsEnabled)
             {
-                throw new InputValidationException("The specified command template is deleted.");
+                throw new InputValidationException("CommandTemplateDeleted");
             }
 
             var commandTemplateParameter = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
@@ -39,12 +39,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             if (string.IsNullOrEmpty(commandTemplateParameter?.Identifier))
             {
-                throw new RequestedObjectDoesNotExistException("The user-script command parameter for the generic command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("UserScriptNotDefined");
             }
 
             if (string.IsNullOrEmpty(executableFile))
             {
-                throw new InputValidationException("The generic command template should contain script path!");
+                throw new InputValidationException("NoScriptPath");
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
@@ -65,7 +65,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 });
             }
 
-            CommandTemplate newCommandTemplate = new CommandTemplate()
+            CommandTemplate newCommandTemplate = new()
             {
                 Name = name,
                 Description = description,
@@ -91,22 +91,22 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate is null)
             {
-                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             if (!commandTemplate.IsEnabled)
             {
-                throw new InputValidationException("The specified command template is deleted.");
+                throw new InputValidationException("CommandTemplateDeleted");
             }
 
             if (commandTemplate.IsGeneric)
             {
-                throw new InputValidationException("The specified command template is generic.");
+                throw new InputValidationException("CommandTemplateIsGeneric");
             }
 
             if (executableFile is null)
             {
-                throw new InputValidationException("The specified command template must have specified executable file!");
+                throw new InputValidationException("CommandTemplateNoExecutableFile");
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
@@ -145,7 +145,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             if (commandTemplate == null)
             {
-                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             commandTemplate.IsEnabled = false;

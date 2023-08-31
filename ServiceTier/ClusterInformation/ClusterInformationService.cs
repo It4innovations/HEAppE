@@ -113,7 +113,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                 //TODO Should be rewrite!
                 if (exc.Message.Contains("No such file or directory") || exc.Message.Contains("Is a directory"))
                 {
-                    throw new InputValidationException(exc.Message);
+                    throw new InputValidationException("NoFileOrDirectory");
                 }
 
                 throw;

@@ -117,7 +117,55 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="InternalException_NotValid" xml:space="preserve">
-    <value>Not valid!</value>
+  <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
+    <value>The specified command template is deleted.</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateIsGeneric" xml:space="preserve">
+    <value>The specified command template is generic.</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateNoExecutableFile" xml:space="preserve">
+    <value>The specified command template must have specified executable file!</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateNotGeneric" xml:space="preserve">
+    <value>The specified command template is not generic.</value>
+  </data>
+  <data name="InputValidationException_NoFileOrDirectory" xml:space="preserve">
+    <value>No such file or directory.</value>
+  </data>
+  <data name="InputValidationException_NoScriptPath" xml:space="preserve">
+    <value>The generic command template should contain script path!</value>
+  </data>
+  <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
+    <value>The specified cluster node has no reference to cluster.</value>
+  </data>
+  <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
+    <value>Project {0} has no refrence to Cluster {1}.</value>
+  </data>
+  <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
+    <value>User {0} has no access to ClusterNodeId {1}.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
+    <value>Requested cluster node type with Id='{0}' does not exist in the system.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNotExists" xml:space="preserve">
+    <value>Requested cluster with Id='{0}' does not exist in the system.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNoServiceAccount" xml:space="preserve">
+    <value>Requested combination for cluster Id={0} with Project Id={1} has no Service Account Credentials reference in the system.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
+    <value>Requested combination for cluster Id={0} with Project Id={1} has no reference in the system.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
+    <value>The specified command template is not defined in HEAppE!</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
+    <value>Specified CommandTemplateId '{0}' is not referenced to ProjectId '{1}'.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
+    <value>ServiceAccountCredentials is not defined in the system for this CommandTemplate.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_UserScriptNotDefined" xml:space="preserve">
+    <value>The user-script command parameter for the generic command template is not defined in HEAppE!</value>
   </data>
 </root>

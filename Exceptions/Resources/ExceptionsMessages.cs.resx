@@ -117,7 +117,55 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
-  <data name="InternalException_NotValid" xml:space="preserve">
-    <value>Není validná!</value>
+  <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
+    <value>Špecifikovaná šablóna byla vymazána.</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateIsGeneric" xml:space="preserve">
+    <value>Špecifikovaná šablóna je generická.</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateNoExecutableFile" xml:space="preserve">
+    <value>Špecifikovaná šablóna musí mít špecifikovaný spustitelný soubor!</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateNotGeneric" xml:space="preserve">
+    <value>Špecifikovaná šablóna není generická.</value>
+  </data>
+  <data name="InputValidationException_NoFileOrDirectory" xml:space="preserve">
+    <value>Soubor nebo zlozka nebyla nalezena.</value>
+  </data>
+  <data name="InputValidationException_NoScriptPath" xml:space="preserve">
+    <value>Generická šablóna musí obsahovat cestu k scriptu!</value>
+  </data>
+  <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
+    <value>Špecifikovaný cluster node nema referenci na žádný cluster.</value>
+  </data>
+  <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
+    <value>Project {0} nemá žádnou referenci na Cluster {1}.</value>
+  </data>
+  <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
+    <value>Uživatel {0} nemá přístup na ClusterNodeId {1}.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
+    <value>Požadovaný cluster node type s Id='{0}' nebyl nalezen.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNotExists" xml:space="preserve">
+    <value>Požadovaný cluster s Id='{0}' nebyl nalezen.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNoServiceAccount" xml:space="preserve">
+    <value>Požadovaná kombinace pro cluster Id={0} s Project Id={1} nemá Service Account Credentials referenci v systému.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
+    <value>Požadovaná kombinace pro cluster Id={0} s Project Id={1} nemá referenci v systému.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
+    <value>Špecifikovaná šablóna není definovaná v HEAppE!</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
+    <value>Špecifikovaná šablóna CommandTemplateId '{0}' nema referenci na ProjectId '{1}'.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
+    <value>ServiceAccountCredentials nejsou definovány v systému pro danou CommandTemplate.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_UserScriptNotDefined" xml:space="preserve">
+    <value>User-script command parameter pro generickou šablónu nebyl nalezen v HEAppE!</value>
   </data>
 </root>

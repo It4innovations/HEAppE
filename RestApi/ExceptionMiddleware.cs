@@ -8,6 +8,7 @@ using System.Net;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Localization;
 using Exceptions.Resources;
+using Exceptions.Base;
 
 namespace HEAppE.RestApi
 {
@@ -78,6 +79,7 @@ namespace HEAppE.RestApi
             switch (exception)
             {
                 case InputValidationException:
+                    message = GetExceptionMessage(exception);
                     context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
                     break;
                 case InternalException:
@@ -119,15 +121,25 @@ namespace HEAppE.RestApi
         }
 
         /// <summary>
-        /// Get exception message from database based on user language and exception type
+        /// Get exception message from resources based on exception type and message
         /// </summary>
         /// <param name="exception"></param>
         /// <returns></returns>
         private string GetExceptionMessage(Exception exception)
         {
             string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
-            string localizedMessage = _exceptionsLocalizer.GetString(exceptionName);
+            string localizedMessage;
 
+            if (exception is BaseException baseException && baseException.Args is not null)
+            {
+                localizedMessage = _exceptionsLocalizer.GetString(exceptionName, baseException.Args);
+            }
+            else
+            {
+                localizedMessage = _exceptionsLocalizer.GetString(exceptionName);
+            }
+
+            //If resource file doesn't contains message for exception type return exception message
             if (localizedMessage == exceptionName)
             {
                 return exception.Message;
