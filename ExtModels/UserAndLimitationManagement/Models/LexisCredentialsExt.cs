@@ -1,10 +1,10 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 {
-  [DataContract(Name = "OpenIdCredentialsExt")]
-  public class OpenIdCredentialsExt : AuthenticationCredentialsExt
+  [DataContract(Name = "LexisCredentialsExt")]
+  public class LexisCredentialsExt : AuthenticationCredentialsExt
   {
     /// <summary>
     /// OpenId access token.
@@ -15,7 +15,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 
     public override string ToString()
     {
-      return $"OpenIdCredentialsExt({base.ToString()}; access_token='{OpenIdAccessToken}')";
+      return $"LexisCredentialsExt({base.ToString()}; access_token='{OpenIdAccessToken}')";
     }
   }
 }
