@@ -1,6 +1,6 @@
-﻿using HEAppE.HpcConnectionFramework.Configuration;
+﻿using Exceptions.Internal;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using Renci.SshNet;
 using System.Collections.Generic;
 using System.Linq;

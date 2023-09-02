@@ -7,7 +7,6 @@ using HEAppE.DomainObjects.DataTransfer;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using log4net;
 using RestSharp;
 using System.Collections.Generic;
@@ -74,51 +73,44 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
         /// <exception cref="UnableToCreateConnectionException"></exception>
         public DataTransferMethod GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId, AdaptorUser loggedUser)
         {
-            try
+            var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+            _logger.Info($"Getting data transfer method for submitted task id: \"{submittedTaskInfoId}\" with user: \"{loggedUser.GetLogIdentification()}\"");
+
+            if (taskInfo.State == TaskState.Running)
             {
-                var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
-                _logger.Info($"Getting data transfer method for submitted task id: \"{submittedTaskInfoId}\" with user: \"{loggedUser.GetLogIdentification()}\"");
-
-                if (taskInfo.State == TaskState.Running)
+                lock (_lockTunnelObj)
                 {
-                    lock (_lockTunnelObj)
+                    var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
+
+                    var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
+                    if (getTunnelsInfos.Any(f => f.RemotePort == nodePort))
                     {
-                        var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-                        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
-
-                        var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
-                        if (getTunnelsInfos.Any(f => f.RemotePort == nodePort))
-                        {
-                            throw new UnableToCreateConnectionException($"Task id: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" already has ssh tunnel for port: \"{nodePort}\".");
-                        }
-
-                        scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort);
-                        _taskWithExistingTunnel.Add(submittedTaskInfoId);
-                        var tunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).Where(w => w.RemotePort == nodePort)
-                                                                                                     .FirstOrDefault();
-
-                        if (tunnelInfo is null)
-                        {
-                            throw new UnableToCreateConnectionException($"Task id: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" already has ssh tunnel for port: \"{nodePort}\".");
-                        }
-
-                        return new DataTransferMethod
-                        {
-                            SubmittedTaskId = taskInfo.Id,
-                            Port = tunnelInfo.LocalPort,
-                            NodeIPAddress = tunnelInfo.NodeHost,
-                            NodePort = tunnelInfo.RemotePort
-                        };
+                        throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress, nodePort);
                     }
-                }
-                else
-                {
-                    throw new UnableToCreateConnectionException($"Task id: \"{taskInfo.Id}\" is not a currently running task.");
+
+                    scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort);
+                    _taskWithExistingTunnel.Add(submittedTaskInfoId);
+                    var tunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).Where(w => w.RemotePort == nodePort)
+                                                                                                 .FirstOrDefault();
+
+                    if (tunnelInfo is null)
+                    {
+                        throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress, nodePort);
+                    }
+
+                    return new DataTransferMethod
+                    {
+                        SubmittedTaskId = taskInfo.Id,
+                        Port = tunnelInfo.LocalPort,
+                        NodeIPAddress = tunnelInfo.NodeHost,
+                        NodePort = tunnelInfo.RemotePort
+                    };
                 }
             }
-            catch (UnableToCreateTunnelException tunExc)
+            else
             {
-                throw new UnableToCreateConnectionException(tunExc.Message);
+                throw new UnableToCreateConnectionException("NotRunningTask", taskInfo.Id);
             }
         }
 
@@ -129,21 +121,14 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
         /// <param name="loggedUser">Logged user</param>
         public void EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser)
         {
-            try
-            {
-                var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser);
-                _logger.Info($"Removing data transfer method for submitted task id: \"{taskInfo.Id}\" with user: \"{loggedUser.GetLogIdentification()}\"");
+            var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser);
+            _logger.Info($"Removing data transfer method for submitted task id: \"{taskInfo.Id}\" with user: \"{loggedUser.GetLogIdentification()}\"");
 
-                var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-                lock (_lockTunnelObj)
-                {
-                    SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveTunnel(taskInfo);
-                    _taskWithExistingTunnel.Remove(taskInfo.Id);
-                }
-            }
-            catch (UnableToCreateTunnelException tunExc)
+            var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+            lock (_lockTunnelObj)
             {
-                throw new UnableToCreateConnectionException(tunExc.Message);
+                SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveTunnel(taskInfo);
+                _taskWithExistingTunnel.Remove(taskInfo.Id);
             }
         }
 
@@ -162,120 +147,99 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
         /// <param name="taskInfo">Task Info</param>
         public void CloseAllTunnelsForTask(SubmittedTaskInfo taskInfo)
         {
-            try
-            {
-                _logger.Info($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
+            _logger.Info($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
 
-                var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType).CreateScheduler(taskInfo.Specification.JobSpecification.Cluster);
-                lock (_lockTunnelObj)
-                {
-                    scheduler.RemoveTunnel(taskInfo);
-                    _taskWithExistingTunnel.Remove(taskInfo.Id);
-                }
-            }
-            catch (UnableToCreateTunnelException tunExc)
+            var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType).CreateScheduler(taskInfo.Specification.JobSpecification.Cluster);
+            lock (_lockTunnelObj)
             {
-                throw new UnableToCreateConnectionException(tunExc.Message);
+                scheduler.RemoveTunnel(taskInfo);
+                _taskWithExistingTunnel.Remove(taskInfo.Id);
             }
         }
 
         public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
         {
-            try
+            var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+            _logger.Info($"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\"");
+
+            var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
+            var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
+
+            if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
             {
-                var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
-                _logger.Info($"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\"");
-
-                var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
-                var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
-
-                if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
-                {
-                    throw new UnableToCreateConnectionException($"Task \"{submittedTaskInfoId}\" with node IP address: \"{nodeIPAddress}\" does not have an active connection");
-                }
-
-                var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
-                var options = new RestClientOptions($"http://localhost:{allocatedPort}")
-                {
-                    Encoding = Encoding.UTF8,
-                    CachePolicy = new CacheControlHeaderValue()
-                    {
-                        NoCache = true,
-                        NoStore = true
-                    },
-                    MaxTimeout = (int) (BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
-                };
-                var basicRestClient = new RestClient(options);
-
-                var request = new RestRequest(httpRequest, Method.Get);
-                headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
-
-                var response = await basicRestClient.ExecuteAsync(request);
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    throw new UnableToCreateConnectionException($"Response code for HttpGet is not 200. Check your application.");
-                }
-
-                return response.Content;
+                throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
             }
-            catch (UnableToCreateTunnelException tunExc)
+
+            var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
+            var options = new RestClientOptions($"http://localhost:{allocatedPort}")
             {
-                throw new UnableToCreateConnectionException(tunExc.Message);
+                Encoding = Encoding.UTF8,
+                CachePolicy = new CacheControlHeaderValue()
+                {
+                    NoCache = true,
+                    NoStore = true
+                },
+                MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+            };
+            var basicRestClient = new RestClient(options);
+
+            var request = new RestRequest(httpRequest, Method.Get);
+            headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
+
+            var response = await basicRestClient.ExecuteAsync(request);
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new UnableToCreateConnectionException("ResponseNotOk");
             }
+
+            return response.Content;
         }
 
         public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
         {
-            try
+            var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+            _logger.Info($"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\" HTTP Payload: \"{httpPayload}\"");
+
+            var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
+            var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
+
+            if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
             {
-                var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
-                _logger.Info($"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\" HTTP Payload: \"{httpPayload}\"");
-
-                var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
-                var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
-
-                if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
-                {
-                    throw new UnableToCreateConnectionException($"Task \"{submittedTaskInfoId}\" with node IP address: \"{nodeIPAddress}\" does not have an active connection");
-                }
-
-                var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
-                var options = new RestClientOptions($"http://localhost:{allocatedPort}")
-                {
-                    Encoding = Encoding.UTF8,
-                    CachePolicy = new CacheControlHeaderValue()
-                    {
-                        NoCache = true,
-                        NoStore = true
-                    },
-                    MaxTimeout = (int) (BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
-                };
-                var basicRestClient = new RestClient(options);
-
-                var request = new RestRequest(httpRequest, Method.Post);
-                headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
-
-                //Body part
-                byte[] payload = Encoding.UTF8.GetBytes(httpPayload);
-                request.AddHeader("content-type", "raw")
-                       .AddHeader("contentLength", payload.Length)
-                       .AddBody(payload);
-
-                var response = await basicRestClient.ExecuteAsync(request);
-
-                if (response.StatusCode != HttpStatusCode.OK)
-                {
-                    throw new UnableToCreateConnectionException($"Response code for HttpPost is not 200. Check your application.");
-                }
-
-                return response.Content;
+                throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
             }
-            catch (UnableToCreateTunnelException tunExc)
+
+            var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
+            var options = new RestClientOptions($"http://localhost:{allocatedPort}")
             {
-                throw new UnableToCreateConnectionException(tunExc.Message);
+                Encoding = Encoding.UTF8,
+                CachePolicy = new CacheControlHeaderValue()
+                {
+                    NoCache = true,
+                    NoStore = true
+                },
+                MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+            };
+            var basicRestClient = new RestClient(options);
+
+            var request = new RestRequest(httpRequest, Method.Post);
+            headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
+
+            //Body part
+            byte[] payload = Encoding.UTF8.GetBytes(httpPayload);
+            request.AddHeader("content-type", "raw")
+                   .AddHeader("contentLength", payload.Length)
+                   .AddBody(payload);
+
+            var response = await basicRestClient.ExecuteAsync(request);
+
+            if (response.StatusCode != HttpStatusCode.OK)
+            {
+                throw new UnableToCreateConnectionException("ResponseNotOk");
             }
+
+            return response.Content;
         }
         #endregion
     }

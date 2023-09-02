@@ -56,7 +56,5 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             _sshCommand = sshCommand;
         }
         #endregion
-
-
     }
 }

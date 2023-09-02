@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+﻿using Exceptions.Internal;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using System;
@@ -92,7 +93,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
                     "Q" or "T" or "H" => TaskState.Queued,
                     "R" or "U" or "S" or "E" or "B" => TaskState.Running,
                     "F" or "X" => TaskState.Failed,
-                    _ => throw new ApplicationException(@$"Task state: ""{value}"" could not be converted to any known task state."),
+                    _ => throw new PbsException("TaskStateConvertException", value),
                 };
             }
         }

@@ -1,11 +1,11 @@
-﻿using HEAppE.ConnectionPool;
+﻿using Exceptions.Internal;
+using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
-using System;
 using System.Collections.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
@@ -26,7 +26,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// </summary>
         /// <param name="type">Instance type</param>
         /// <returns></returns>
-        /// <exception cref="ApplicationException"></exception>
+        /// <exception cref="SchedulerException"></exception>
         public static SchedulerFactory GetInstance(SchedulerType type)
         {
             if (_schedulerFactoryPoolSingletons.ContainsKey(type))
@@ -40,7 +40,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                     SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                     SchedulerType.Slurm => new SlurmSchedulerFactory(),
                     SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
-                    _ => throw new ApplicationException("Scheduler factory with type \"" + type + "\" does not exist."),
+                    _ => throw new SchedulerException("NotValidType", type),
                 };
                 _schedulerFactoryPoolSingletons.Add(type, factoryInstance);
                 return factoryInstance;

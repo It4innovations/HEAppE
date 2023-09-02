@@ -1,4 +1,4 @@
-﻿using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+﻿using Exceptions.Internal;
 using log4net;
 using Renci.SshNet;
 using System;

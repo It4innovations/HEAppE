@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
@@ -74,7 +75,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="taskSpecification">Task specification</param>
         /// <param name="schedulerAllocationCmd">Scheduler allocation cmd</param>
         /// <returns></returns>
-        /// <exception cref="ApplicationException"></exception>
+        /// <exception cref="SchedulerException"></exception>
         public virtual object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
         {
             ISchedulerTaskAdapter taskAdapter = _conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
@@ -118,7 +119,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
             taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
-            CommandTemplate template = taskSpecification.CommandTemplate ?? throw new ApplicationException(@$"Command Template ""{taskSpecification.CommandTemplate.Name}"" for task ""{taskSpecification.Name}"" does not exist in the adaptor configuration.");
+            CommandTemplate template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate", taskSpecification.CommandTemplate.Name, taskSpecification.Name);
 
             // Extended allocation parameters from command template
             taskAdapter.ExtendedAllocationCommand = template.ExtendedAllocationCommand;
@@ -248,7 +249,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="commandLine">Command line</param>
         /// <param name="templateParameters">Template parameters</param>
         /// <returns></returns>
-        /// <exception cref="ApplicationException"></exception>
+        /// <exception cref="SchedulerException"></exception>
         protected static string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
         {
             if (string.IsNullOrEmpty(commandLine))
@@ -263,8 +264,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 {
                     return templateParameters[parameterIdentifier];
                 }
-                throw new ApplicationException(@$"Parameter ""{parameterIdentifier}"" in the command template ""{commandLine}"" 
-                                                could not be found either as a property of the task, nor as an additional parameter.");
+                throw new SchedulerException("NotValidCommandTemplateParameter", parameterIdentifier, commandLine);
             });
             return replacedCommandLine;
         }
@@ -374,10 +374,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                         }
                 }
             }
-            catch (Exception)
+            catch
             {
                 _log.Error($"Error occurred when object was converting property type: \"{type}\" for input data: \"{obj}\" with format: \"{format}\"");
-                throw;
+                throw new SchedulerException("ConvertingError", type, obj, format);
             }
         }
         #endregion

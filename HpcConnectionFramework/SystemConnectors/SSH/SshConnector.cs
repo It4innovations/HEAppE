@@ -1,5 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+﻿using Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;

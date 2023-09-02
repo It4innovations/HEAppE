@@ -1,3 +1,4 @@
+using Exceptions.Internal;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -12,8 +13,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 {
@@ -270,7 +269,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="nodePort">Cluster node port</param>
         public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
         {
-            throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
+            throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
         }
 
 
@@ -281,7 +280,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="taskInfo">Task info</param>
         public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
         {
-            throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
+            throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
         }
 
         /// <summary>
@@ -292,7 +291,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <returns></returns>
         public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
-            throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
+            throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
         }
         #endregion
         #endregion

@@ -1,5 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.FileTransferFramework.Exceptions;
+﻿using Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;

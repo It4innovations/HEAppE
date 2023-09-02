@@ -117,6 +117,9 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="AuthenticationTypeException_NotAllowed" xml:space="preserve">
+    <value>Cluster authentication credentials authentication type is not allowed!</value>
+  </data>
   <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
     <value>The specified command template is deleted.</value>
   </data>
@@ -144,6 +147,24 @@
   <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
     <value>User {0} has no access to ClusterNodeId {1}.</value>
   </data>
+  <data name="PbsException_ClusterUsageException" xml:space="preserve">
+    <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+  </data>
+  <data name="PbsException_GetActualTasksInfo" xml:space="preserve">
+    <value>Exception thrown when retrieving parameters of jobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+  </data>
+  <data name="PbsException_GetAllocatedNodesException" xml:space="preserve">
+    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+  </data>
+  <data name="PbsException_SubmitJobException" xml:space="preserve">
+    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'. Command line for job submission: '{4}'.</value>
+  </data>
+  <data name="PbsException_TaskStateConvertException" xml:space="preserve">
+    <value>Task state: '{0}' could not be converted to any known task state.</value>
+  </data>
+  <data name="PbsException_UnableToParseResponse" xml:space="preserve">
+    <value>Unable to parse response from PBS Professional HPC scheduler!</value>
+  </data>
   <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
     <value>Requested cluster node type with Id='{0}' does not exist in the system.</value>
   </data>
@@ -167,5 +188,56 @@
   </data>
   <data name="RequestedObjectDoesNotExistException_UserScriptNotDefined" xml:space="preserve">
     <value>The user-script command parameter for the generic command template is not defined in HEAppE!</value>
+  </data>
+  <data name="SchedulerException_ConvertingError" xml:space="preserve">
+    <value>Error occurred when object was converting property type: '{0}' for input data: '{1}' with format: '{2}'.</value>
+  </data>
+  <data name="SchedulerException_NotExistingCommandTemplate" xml:space="preserve">
+    <value>Command Template '{0}' for task '{1}' does not exist in the adaptor configuration.</value>
+  </data>
+  <data name="SchedulerException_NotSupportedEndpoint" xml:space="preserve">
+    <value>{0} Scheduler does not suport this endpoint.</value>
+  </data>
+  <data name="SchedulerException_NotValidCommandTemplateParameter" xml:space="preserve">
+    <value>Parameter '{0}' in the command template '{1}' could not be found either as a property of the task, nor as an additional parameter.</value>
+  </data>
+  <data name="SchedulerException_NotValidType" xml:space="preserve">
+    <value>Scheduler factory with type '{0}' does not exist.</value>
+  </data>
+  <data name="SlurmException_ClusterUsageException" xml:space="preserve">
+    <value>Exception thrown when retrieving usage of Cluster node: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for queue usage: '{3}'.</value>
+  </data>
+  <data name="SlurmException_GetActualTasksInfo" xml:space="preserve">
+    <value>Exception thrown when retrieving parameters of jobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+  </data>
+  <data name="SlurmException_GetAllocatedNodesException" xml:space="preserve">
+    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+  </data>
+  <data name="SlurmException_SubmitJobException" xml:space="preserve">
+    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'. Command line for job submission: '{4}'.</value>
+  </data>
+  <data name="SlurmException_UnableToParseNodeUsage" xml:space="preserve">
+    <value>Unable to parse cluster node usage from HPC scheduler!</value>
+  </data>
+  <data name="SlurmException_UnableToParseResponse" xml:space="preserve">
+    <value>Unable to parse response from HPC scheduler!</value>
+  </data>
+  <data name="UnableToCreateConnectionException_NoActiveConnection" xml:space="preserve">
+    <value>Task '{0}'  with node IP address: '{1}' does not have an active connection.</value>
+  </data>
+  <data name="UnableToCreateConnectionException_NotRunningTask" xml:space="preserve">
+    <value>Task id: '{0}' is not a currently running task.</value>
+  </data>
+  <data name="UnableToCreateConnectionException_PortAlreadyInUse" xml:space="preserve">
+    <value>Task id: '{0}' with remote node IP address: '{1}' already has ssh tunnel for port: '{2}'.</value>
+  </data>
+  <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
+    <value>Response code for HttpGet is not 200. Check your application.</value>
+  </data>
+  <data name="UnableToCreateTunnelException_NoActiveTunnel" xml:space="preserve">
+    <value>Task '{0}' does not have an active ssh tunnel.</value>
+  </data>
+  <data name="UnableToCreateTunnelException_TunnelAlreadyExistsForPort" xml:space="preserve">
+    <value>Task id: '{0}' with node IP address: '{1}' already has ssh tunnel for port: '{2}'.</value>
   </data>
 </root>
