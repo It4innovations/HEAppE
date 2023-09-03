@@ -14,6 +14,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
       <ProjectReference Include="..\RestUtils\RestUtils.csproj" />
       <ProjectReference Include="..\Utils\Utils.csproj" />
     </ItemGroup>

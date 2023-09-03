@@ -9,6 +9,7 @@ using System.Threading.Tasks;
 using Microsoft.Extensions.Localization;
 using Exceptions.Resources;
 using Exceptions.Base;
+using System.Text;
 
 namespace HEAppE.RestApi
 {
@@ -128,24 +129,47 @@ namespace HEAppE.RestApi
         private string GetExceptionMessage(Exception exception)
         {
             string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
-            string localizedMessage;
+            StringBuilder localizedMessage = new();
 
-            if (exception is BaseException baseException && baseException.Args is not null)
-            {
-                localizedMessage = _exceptionsLocalizer.GetString(exceptionName, baseException.Args);
-            }
-            else
-            {
-                localizedMessage = _exceptionsLocalizer.GetString(exceptionName);
-            }
+            FormatExceptionMessage(exception, localizedMessage);
 
             //If resource file doesn't contains message for exception type return exception message
-            if (localizedMessage == exceptionName)
+            string resultMessage = localizedMessage.ToString();
+
+            if (resultMessage == exceptionName)
             {
                 return exception.Message;
             }
-            
-            return localizedMessage;
+
+            return resultMessage;
+        }
+
+        /// <summary>
+        /// Recursively format localized exception messages
+        /// </summary>
+        /// <param name="exception"></param>
+        /// <param name="builder"></param>
+        private void FormatExceptionMessage(Exception exception, StringBuilder builder)
+        {
+            string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
+
+            if (exception is BaseException baseException && baseException.Args is not null)
+            {
+                builder.AppendLine(_exceptionsLocalizer.GetString(exceptionName, baseException.Args));
+            }
+            else
+            {
+                builder.AppendLine(_exceptionsLocalizer.GetString(exceptionName));
+            }
+
+            if (exception.InnerException is not null)
+            {
+                FormatExceptionMessage(exception.InnerException, builder);
+            }
+            else
+            {
+                return;
+            }
         }
         #endregion
     }

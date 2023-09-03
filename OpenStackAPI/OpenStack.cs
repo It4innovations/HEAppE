@@ -1,7 +1,7 @@
-﻿using HEAppE.OpenStackAPI.Configuration;
+﻿using Exceptions.External;
+using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
-using HEAppE.OpenStackAPI.Exceptions;
 using HEAppE.RestUtils;
 using log4net;
 using Newtonsoft.Json;
@@ -44,7 +44,7 @@ namespace HEAppE.OpenStackAPI
 
             if (string.IsNullOrEmpty(openStackAddress))
             {
-                throw new OpenStackAPIException("Not specify URL address for OpenStack");
+                throw new OpenStackAPIException("NotSpeficiedUrl");
             }
 
             var options = new RestClientOptions($"{openStackAddress}:{OpenStackSettings.IdentityPort}/")

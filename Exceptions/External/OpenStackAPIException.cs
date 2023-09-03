@@ -1,9 +1,8 @@
 ﻿using System;
-using HEAppE.RestUtils.Interfaces;
 
-namespace HEAppE.OpenStackAPI.Exceptions
+namespace Exceptions.External
 {
-    public class OpenStackAPIException : ExceptionWithMessageAndInnerException
+    public class OpenStackAPIException : ExternalException
     {
         public OpenStackAPIException(string message) : base(message)
         {

@@ -1,4 +1,4 @@
-﻿using HEAppE.RestUtils.Interfaces;
+﻿using Exceptions.External;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
@@ -16,9 +16,9 @@ namespace HEAppE.RestUtils
         /// <typeparam name="TParseResult">Type of the response object.</typeparam>
         /// <typeparam name="TExceptionType">Type of the exception to be thrown.</typeparam>
         /// <returns>Parsed object.</returns>
-        /// <exception cref="ExceptionWithMessageAndInnerException">Is thrown when response is failed or JsonConvert.DeserializeObject fails.</exception>
+        /// <exception cref="ExternalException">Is thrown when response is failed or JsonConvert.DeserializeObject fails.</exception>
         public static TParseResult ParseJsonOrThrow<TParseResult, TExceptionType>(RestResponse response, HttpStatusCode successStatusCode)
-            where TExceptionType : ExceptionWithMessageAndInnerException
+            where TExceptionType : ExternalException
         {
             if ((response.StatusCode == successStatusCode) && (response.ErrorException == null))
             {
@@ -28,13 +28,13 @@ namespace HEAppE.RestUtils
                 }
                 catch (JsonSerializationException serializationException)
                 {
-                    throw (ExceptionWithMessageAndInnerException)Activator.CreateInstance(typeof(TExceptionType),
-                                                                                           "Failed to deserialize json response from REST request.",
+                    throw (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
+                                                                                           "JsonDeserializationException",
                                                                                            serializationException);
                 }
             }
 
-            throw (ExceptionWithMessageAndInnerException)Activator.CreateInstance(typeof(TExceptionType),
+            throw (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
                                                                                    response.ErrorException?.Message,
                                                                                    response.ErrorException);
         }

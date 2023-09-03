@@ -1,4 +1,6 @@
-﻿namespace Exceptions.External
+﻿using System;
+
+namespace Exceptions.External
 {
 	public class InvalidRequestException : ExternalException
 	{

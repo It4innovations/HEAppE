@@ -120,6 +120,9 @@
   <data name="AuthenticationTypeException_NotAllowed" xml:space="preserve">
     <value>Cluster authentication credentials authentication type is not allowed!</value>
   </data>
+  <data name="ExternalException_JsonDeserializationException" xml:space="preserve">
+    <value>Failed to deserialize json response from REST request.</value>
+  </data>
   <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
     <value>The specified command template is deleted.</value>
   </data>
@@ -146,6 +149,36 @@
   </data>
   <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
     <value>User {0} has no access to ClusterNodeId {1}.</value>
+  </data>
+  <data name="JwtDecodeException_BadAccessTokenFormat" xml:space="preserve">
+    <value>Provided access_token is not well formed JWT.</value>
+  </data>
+  <data name="JwtDecodeException_NotReadableAccessToken" xml:space="preserve">
+    <value>Unable to read provided access_token as JWT token.</value>
+  </data>
+  <data name="KeycloakOpenIdException_BadProtocol" xml:space="preserve">
+    <value>Other client protocol than 'open-id' connect is not implemented. Please switch the client to 'openid-connect'.</value>
+  </data>
+  <data name="KeycloakOpenIdException_BadURLForUser" xml:space="preserve">
+    <value>Not specify URL address for authentication user by '{0}'.</value>
+  </data>
+  <data name="KeycloakOpenIdException_IncorrectProjectRoleMapping" xml:space="preserve">
+    <value>Open-Id: Project-role mapping is not correctly defined!</value>
+  </data>
+  <data name="KeycloakOpenIdException_NotDefinedProject" xml:space="preserve">
+    <value>Open-Id: There are not defined project Ids '{0}' in Open-Id server!</value>
+  </data>
+  <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
+    <value>Open-Id: User is not in allowed clientIds!</value>
+  </data>
+  <data name="KeycloakOpenIdException_NotVerifiedEmail" xml:space="preserve">
+    <value>Open-Id: User does not verified email!</value>
+  </data>
+  <data name="KeycloakOpenIdException_UserNotActive" xml:space="preserve">
+    <value>Open-Id: User is not active!</value>
+  </data>
+  <data name="OpenStackAPIException_NotSpeficiedUrl" xml:space="preserve">
+    <value>Not specify URL address for OpenStack.</value>
   </data>
   <data name="PbsException_ClusterUsageException" xml:space="preserve">
     <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>

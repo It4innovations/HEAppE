@@ -16,6 +16,11 @@ namespace Exceptions.Base
             Args = args;
         }
 
+        public BaseException(string message, Exception innerException, params object[] args) : base(message, innerException)
+        {
+            Args = args;
+        }
+
         public BaseException(string message, Exception innerException) : base(message, innerException) { }
     }
 }

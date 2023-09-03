@@ -1,4 +1,5 @@
-﻿using HEAppE.ExternalAuthentication.Configuration;
+﻿using Exceptions.External;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO;
 using HEAppE.ExternalAuthentication.DTO.JsonTypes;
 using Newtonsoft.Json;
@@ -43,7 +44,7 @@ namespace HEAppE.ExternalAuthentication
 
                         if(projects is null)
                         {
-                            throw new Exception($"Open-Id: There are not defined project Ids \"{string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name))}\" in Open-Id server!");
+                            throw new KeycloakOpenIdException("NotDefinedProject", string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name)));
                         }
                         hasMappedGroup = true;
                         foreach (ExternalAuthProjectConfiguration project in projects)
@@ -71,7 +72,7 @@ namespace HEAppE.ExternalAuthentication
 
                     if(!hasMappedGroup)
                     {
-                        throw new Exception("Open-Id: Project-role mapping is not correctly defined!");
+                        throw new KeycloakOpenIdException("IncorrectProjectRoleMapping");
                     }
                 }
                 return projectRoleMapping.Values;
