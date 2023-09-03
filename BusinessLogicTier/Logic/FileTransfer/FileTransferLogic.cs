@@ -82,7 +82,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 
             if (jobInfo.FileTransferTemporaryKeys.Count(c => !c.IsDeleted) > BusinessLogicConfiguration.GeneratedFileTransferKeyLimitPerJob)
             {
-                throw new FileTransferTemporaryKeyException("It was reached the limit of generated ssh keys for job used by direct transfer!");
+                throw new FileTransferTemporaryKeyException("SshKeyGenerationLimit");
             }
 
             var certGenerator = new SSHGenerator();
@@ -131,7 +131,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == publicKey);
             if (temporaryKey is null)
             {
-                throw new FileTransferTemporaryKeyException("The direct transfer could not be finished due to a public key mismatch!");
+                throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
             }
 
             SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUser(
@@ -232,7 +232,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             catch (SftpPathNotFoundException exception)
             {
                 _log.Warn($"{loggedUser} is requesting not existing file '{relativeFilePath}'");
-                throw new InvalidRequestException(exception.Message);
+                throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
             }
 
             return null;
@@ -244,7 +244,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             if (fileTransferMethod == null)
             {
                 _log.Error("Requested FileTransferMethod with Id=" + fileTransferMethodById + " does not exist in the system.");
-                throw new RequestedObjectDoesNotExistException("Requested FileTransferMethod with Id=" + fileTransferMethodById + " does not exist in the system.");
+                throw new RequestedObjectDoesNotExistException("NotExistingFileTransferMethod", fileTransferMethodById);
             }
             return fileTransferMethod;
         }

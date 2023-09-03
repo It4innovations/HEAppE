@@ -123,6 +123,12 @@
   <data name="ExternalException_JsonDeserializationException" xml:space="preserve">
     <value>Failed to deserialize json response from REST request.</value>
   </data>
+  <data name="FileTransferTemporaryKeyException_PublicKeyMismatch" xml:space="preserve">
+    <value>The direct transfer could not be finished due to a public key mismatch!</value>
+  </data>
+  <data name="FileTransferTemporaryKeyException_SshKeyGenerationLimit" xml:space="preserve">
+    <value>It was reached the limit of generated ssh keys for job used by direct transfer!</value>
+  </data>
   <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
     <value>The specified command template is deleted.</value>
   </data>
@@ -143,6 +149,9 @@
   </data>
   <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
     <value>The specified cluster node has no reference to cluster.</value>
+  </data>
+  <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
+    <value>Requested path {0} was not found. Exception message: {1}</value>
   </data>
   <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
     <value>Project {0} has no refrence to Cluster {1}.</value>
@@ -215,6 +224,9 @@
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
     <value>Specified CommandTemplateId '{0}' is not referenced to ProjectId '{1}'.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_NotExistingFileTransferMethod" xml:space="preserve">
+    <value>Requested FileTransferMethod with Id='{0}' does not exist in the system.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
     <value>ServiceAccountCredentials is not defined in the system for this CommandTemplate.</value>
