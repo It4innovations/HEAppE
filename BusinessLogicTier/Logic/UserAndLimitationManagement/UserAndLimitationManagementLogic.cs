@@ -338,7 +338,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         Username = openIdUser.UserName,
                         Deleted = false,
                         Synchronize = false,
-                        LanguageIsoCode = null,
                         Email = openIdUser.Email,
                         CreatedAt = DateTime.UtcNow,
                         ModifiedAt = null

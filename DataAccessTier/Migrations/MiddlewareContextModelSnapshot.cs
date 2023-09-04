@@ -1185,10 +1185,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
-                    b.Property<string>("LanguageIsoCode")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)");
-
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 

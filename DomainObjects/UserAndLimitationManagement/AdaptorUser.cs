@@ -31,9 +31,6 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public DateTime? ModifiedAt { get; set; }
 
-        [StringLength(2)]
-        public string LanguageIsoCode { get; set; } = null;
-
         public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
 
         [NotMapped]
