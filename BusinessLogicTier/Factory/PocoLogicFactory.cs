@@ -6,7 +6,6 @@ using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.BusinessLogicTier.Logic.JobManagement;
 using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
-using HEAppE.BusinessLogicTier.Logic.Notifications;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
 
@@ -43,11 +42,6 @@ namespace HEAppE.BusinessLogicTier.Factory
         {
             return new JobReportingLogic(unitOfWork);
 
-        }
-
-        public override INotificationLogic CreateNotificationLogic(IUnitOfWork unitOfWork)
-        {
-            return new NotificationLogic(unitOfWork);
         }
 
         public override IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork)

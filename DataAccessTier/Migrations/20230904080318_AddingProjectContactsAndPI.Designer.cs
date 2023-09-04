@@ -11,7 +11,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20230818070611_AddingProjectContactsAndPI")]
+    [Migration("20230904080318_AddingProjectContactsAndPI")]
     partial class AddingProjectContactsAndPI
     {
         /// <inheritdoc />
@@ -1187,10 +1187,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("LanguageIsoCode")
-                        .HasMaxLength(2)
-                        .HasColumnType("nvarchar(2)");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");

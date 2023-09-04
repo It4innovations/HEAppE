@@ -1,7 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-
 namespace HEAppE.DataAccessTier.Migrations
 {
     /// <inheritdoc />
@@ -39,13 +38,6 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropColumn(
                 name: "LanguageId",
                 table: "AdaptorUser");
-
-            migrationBuilder.AddColumn<string>(
-                name: "LanguageIsoCode",
-                table: "AdaptorUser",
-                type: "nvarchar(2)",
-                maxLength: 2,
-                nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "Contact",
@@ -103,10 +95,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
             migrationBuilder.DropTable(
                 name: "Contact");
-
-            migrationBuilder.DropColumn(
-                name: "LanguageIsoCode",
-                table: "AdaptorUser");
 
             migrationBuilder.AddColumn<long>(
                 name: "LanguageId",
