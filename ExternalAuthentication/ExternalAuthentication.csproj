@@ -9,7 +9,7 @@
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="RestSharp" Version="110.2.0" />
-    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.32.0" />
+    <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="6.32.2" />
   </ItemGroup>
 
   <ItemGroup>
