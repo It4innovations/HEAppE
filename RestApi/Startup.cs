@@ -1,39 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-
-using AspNetCoreRateLimit;
-
-using HEAppE.BackgroundThread.Configuration;
-using HEAppE.BusinessLogicTier.Configuration;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.CertificateGenerator.Configuration;
-using HEAppE.DataAccessTier;
-using HEAppE.ExternalAuthentication.Configuration;
-using HEAppE.FileTransferFramework;
-using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.OpenStackAPI.Configuration;
-using HEAppE.RestApi.Configuration;
-using HEAppE.ServiceTier;
-
-using log4net;
-
-using MicroKnights.Log4NetHelper;
-
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Rewrite;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
-using Microsoft.OpenApi.Models;
-
-namespace HEAppE.RestApi
+﻿namespace HEAppE.RestApi
 {
   /// <summary>
   /// Startup

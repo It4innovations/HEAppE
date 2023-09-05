@@ -1,41 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Net.Http;
-using System.Net.Http.Json;
-using System.Reflection;
-using System.Security.Authentication;
-using System.Security.Cryptography;
-using System.Text;
-using System.Threading.Tasks;
-
-using HEAppE.BusinessLogicTier.Configuration;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
-using HEAppE.ExternalAuthentication;
-using HEAppE.ExternalAuthentication.DTO;
-using HEAppE.ExternalAuthentication.DTO.LexisAuth;
-using HEAppE.ExternalAuthentication.KeyCloak;
-using HEAppE.ExternalAuthentication.KeyCloak.Exceptions;
-using HEAppE.OpenStackAPI;
-using HEAppE.OpenStackAPI.DTO;
-using HEAppE.OpenStackAPI.Exceptions;
-using HEAppE.Utils;
-
-using log4net;
-
-using Microsoft.Extensions.Options;
-
-namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
+﻿namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
   internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogic
   {
