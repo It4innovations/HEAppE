@@ -8,6 +8,7 @@ using AspNetCoreRateLimit;
 
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.ExternalAuthentication.Configuration;
@@ -50,6 +51,7 @@ namespace HEAppE.RestApi
     /// Configuration property
     /// </summary>
     public IConfiguration Configuration { get; }
+
     #endregion
     #region Constructors
     /// <summary>
@@ -68,6 +70,7 @@ namespace HEAppE.RestApi
     /// <param name="services">Collection services</param>
     public void ConfigureServices(IServiceCollection services)
     {
+
       services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Latest);
 
       services.AddMemoryCache();
@@ -161,6 +164,7 @@ namespace HEAppE.RestApi
     /// <param name="loggerFactory">Logger factory</param>
     public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
     {
+      LogicFactory.ServiceProvider = app.ApplicationServices;
       var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
       GlobalContext.Properties["instanceName"] = DeploymentInformationsConfiguration.Name;
       GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version;
