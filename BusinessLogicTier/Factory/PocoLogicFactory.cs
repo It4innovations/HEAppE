@@ -57,8 +57,9 @@ namespace HEAppE.BusinessLogicTier.Factory
       using var scope = LogicFactory.ServiceProvider.CreateScope();
       var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
       var options = scope.ServiceProvider.GetRequiredService<IOptions<LexisAuthenticationConfiguration>>();
-      return new UserAndLimitationManagementLogic(unitOfWork, options, httpFac);
+      var rtn = new UserAndLimitationManagementLogic(unitOfWork, options, httpFac);
 
+      return rtn;
     }
 
     public override IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork)
