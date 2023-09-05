@@ -5,7 +5,7 @@
     /// <summary>
     /// OpenId access token.
     /// </summary>
-    public string OpenIdAccessToken { get; set; }
+    public string OpenIdLexisAccessToken { get; set; }
 
   }
 }

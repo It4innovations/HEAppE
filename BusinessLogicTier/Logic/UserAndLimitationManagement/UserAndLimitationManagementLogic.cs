@@ -342,12 +342,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       }
       catch (KeycloakOpenIdException keycloakException)
       {
-        _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{lexisCredentials.OpenIdAccessToken}'", keycloakException);
+        _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{lexisCredentials.OpenIdLexisAccessToken}'", keycloakException);
         throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", keycloakException);
       }
       catch (OpenIdAuthenticationException OpenIdException) // new Exception
       {
-        _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{lexisCredentials.OpenIdAccessToken}'", OpenIdException);
+        _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{lexisCredentials.OpenIdLexisAccessToken}'", OpenIdException);
         throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", OpenIdException);
       }
     }
