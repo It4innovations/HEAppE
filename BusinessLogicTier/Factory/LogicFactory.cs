@@ -1,4 +1,17 @@
-﻿namespace HEAppE.BusinessLogicTier.Factory
+﻿using System;
+using System.Collections.Generic;
+
+using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
+using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
+using HEAppE.BusinessLogicTier.Logic.DataTransfer;
+using HEAppE.BusinessLogicTier.Logic.FileTransfer;
+using HEAppE.BusinessLogicTier.Logic.JobManagement;
+using HEAppE.BusinessLogicTier.Logic.JobReporting;
+using HEAppE.BusinessLogicTier.Logic.Management;
+using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
+using HEAppE.DataAccessTier.UnitOfWork;
+
+namespace HEAppE.BusinessLogicTier.Factory
 {
   public abstract class LogicFactory
   {
@@ -47,7 +60,6 @@
     public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork);
     public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork);
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);
-    public abstract INotificationLogic CreateNotificationLogic(IUnitOfWork unitOfWork);
     public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork);
     public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork);
     #endregion

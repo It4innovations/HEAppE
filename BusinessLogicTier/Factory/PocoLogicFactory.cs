@@ -1,4 +1,21 @@
-﻿namespace HEAppE.BusinessLogicTier.Factory
+﻿using System.Net.Http;
+
+using HEAppE.BusinesslogicTier.logic.FileTransfer;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
+using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
+using HEAppE.BusinessLogicTier.Logic.DataTransfer;
+using HEAppE.BusinessLogicTier.Logic.FileTransfer;
+using HEAppE.BusinessLogicTier.Logic.JobManagement;
+using HEAppE.BusinessLogicTier.Logic.JobReporting;
+using HEAppE.BusinessLogicTier.Logic.Management;
+using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
+using HEAppE.DataAccessTier.UnitOfWork;
+
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+
+namespace HEAppE.BusinessLogicTier.Factory
 {
   public class PocoLogicFactory : LogicFactory
   {
@@ -33,10 +50,6 @@
 
     }
 
-    public override INotificationLogic CreateNotificationLogic(IUnitOfWork unitOfWork)
-    {
-      return new NotificationLogic(unitOfWork);
-    }
 
     public override IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork)
     {
