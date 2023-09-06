@@ -58,7 +58,7 @@ namespace HEAppE.ExternalAuthentication.Configuration
     /// </summary>
     public static string HEAppEUserPrefix { get; set; }
 
-    public static LexisAuthenticationConfiguration LexisAuthenticationConfiguration { get; set; }
+    public static LexisAuthenticationConfiguration LexisAuthenticationConfiguration { get; set; } = new();
     #endregion
   }
 }
