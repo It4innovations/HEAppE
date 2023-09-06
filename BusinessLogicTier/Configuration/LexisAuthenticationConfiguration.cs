@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace HEAppE.BusinessLogicTier.Configuration;
+﻿namespace HEAppE.BusinessLogicTier.Configuration;
 
 public class LexisAuthenticationConfiguration
 {
@@ -14,6 +12,6 @@ public class LexisAuthenticationConfiguration
   public static string HEAppEUserPrefix { get; set; }
 
 
-  public static Uri BaseAddressUri => new Uri(LexisAuthenticationConfiguration.BaseAddress);
-  public static Uri ExtendedUserInfoEndpointUri => new Uri($"{EndpointPrefix}/{ExtendedUserInfoEndpoint}");
+  //public static Uri BaseAddressUri => new Uri(LexisAuthenticationConfiguration.BaseAddress);
+  //public static Uri ExtendedUserInfoEndpointUri => new Uri($"{EndpointPrefix}/{ExtendedUserInfoEndpoint}");
 }

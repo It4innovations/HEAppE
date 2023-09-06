@@ -332,7 +332,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     {
       try
       {
-        var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(LexisAuthenticationConfiguration.ExtendedUserInfoEndpointUri);
+
+        var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(new Uri($"{LexisAuthenticationConfiguration.EndpointPrefix}/{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}"));
 
         return GetOrRegisterLexisCredentials(result);
       }
