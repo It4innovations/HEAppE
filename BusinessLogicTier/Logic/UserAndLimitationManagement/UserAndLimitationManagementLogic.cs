@@ -33,8 +33,6 @@ using HEAppE.Utils;
 
 using log4net;
 
-using Microsoft.Extensions.Options;
-
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 {
   internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogic
@@ -44,7 +42,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     /// Unit of work
     /// </summary>
     private readonly IUnitOfWork _unitOfWork;
-    private readonly LexisAuthenticationConfiguration _lexisAuthConfiguration;
 
     /// <summary>
     /// Logger
@@ -63,10 +60,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
     #endregion
     #region Constructors
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IOptions<LexisAuthenticationConfiguration> lexisAuthOptions, IHttpClientFactory httpClientFactory)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory)
     {
       _unitOfWork = unitOfWork;
-      _lexisAuthConfiguration = lexisAuthOptions.Value;
       _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
       _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
     }
@@ -403,21 +399,20 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
           {
             continue;
           }
-          var prefixedGroup = userGroups.FirstOrDefault(g => g.Project.Id == project.Id && g.Name.StartsWith(_lexisAuthConfiguration.HEAppEGroupNamePrefix));
+          var prefixedGroup = userGroups.FirstOrDefault(g => g.Project.Id == project.Id && g.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
           if (prefixedGroup is null)
           {
-            _log.Error($"LexisCredentials: User group with prefix \"{_lexisAuthConfiguration.HEAppEGroupNamePrefix}\" for project short name \"{proj.ProjectShortName}\" does not exist in HEAppE database!");
+            _log.Error($"LexisCredentials: User group with prefix \"{LexisAuthenticationConfiguration.HEAppEGroupNamePrefix}\" for project short name \"{proj.ProjectShortName}\" does not exist in HEAppE database!");
             continue;
           }
           var existingProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserGroupId == prefixedGroup.Id);
           var existingUserProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserId == user.Id && x.AdaptorUserGroupId == prefixedGroup.Id);
           // map to role
           var tmpPermissionAsRole = new PermissionAsRole(
-              proj.Permissions.Any(p => p == _lexisAuthConfiguration.RoleMapping.Maintainer),
-              proj.Permissions.Any(p => p == _lexisAuthConfiguration.RoleMapping.Submitter),
-              proj.Permissions.Any(p => p == _lexisAuthConfiguration.RoleMapping.Reporter),
-              existingProjectGroupRoles,
-              _lexisAuthConfiguration);
+              proj.Permissions.Any(p => p == LexisRoleMapping.Maintainer),
+              proj.Permissions.Any(p => p == LexisRoleMapping.Submitter),
+              proj.Permissions.Any(p => p == LexisRoleMapping.Reporter),
+              existingProjectGroupRoles);
 
           if (tmpPermissionAsRole is { IsMaintainer: false, IsReporter: false, IsSubmitter: false })
           {
@@ -700,25 +695,25 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
   file record PermissionAsRole()
   {
-    public PermissionAsRole(bool IsMaintainer, bool IsSubmitter, bool IsReporter, IEnumerable<AdaptorUserUserGroupRole> existingProjectGroupRoles, LexisAuthenticationConfiguration configuration) : this()
+    public PermissionAsRole(bool IsMaintainer, bool IsSubmitter, bool IsReporter, IEnumerable<AdaptorUserUserGroupRole> existingProjectGroupRoles) : this()
     {
       IsMaintainer = IsMaintainer;
       IsSubmitter = IsSubmitter;
       IsReporter = IsReporter;
       if (IsMaintainer)
       {
-        MaintainerRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(configuration.RoleMapping.Maintainer))?.AdaptorUserRole;
+        MaintainerRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(LexisRoleMapping.Maintainer))?.AdaptorUserRole;
       }
 
       if (IsSubmitter)
       {
-        SubmitterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(configuration.RoleMapping.Submitter))?.AdaptorUserRole;
+        SubmitterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(LexisRoleMapping.Submitter))?.AdaptorUserRole;
 
       }
       if (IsReporter)
       {
 
-        ReporterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(configuration.RoleMapping.Reporter))?.AdaptorUserRole;
+        ReporterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(LexisRoleMapping.Reporter))?.AdaptorUserRole;
       }
     }
     public AdaptorUserRole MaintainerRole { get; set; } = null;

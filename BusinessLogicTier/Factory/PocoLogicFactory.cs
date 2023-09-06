@@ -1,7 +1,6 @@
 ﻿using System.Net.Http;
 
 using HEAppE.BusinesslogicTier.logic.FileTransfer;
-using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
@@ -13,7 +12,6 @@ using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
 
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace HEAppE.BusinessLogicTier.Factory
 {
@@ -56,8 +54,7 @@ namespace HEAppE.BusinessLogicTier.Factory
 
       using var scope = LogicFactory.ServiceProvider.CreateScope();
       var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-      var options = scope.ServiceProvider.GetRequiredService<IOptions<LexisAuthenticationConfiguration>>();
-      var rtn = new UserAndLimitationManagementLogic(unitOfWork, options, httpFac);
+      var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac);
 
       return rtn;
     }
