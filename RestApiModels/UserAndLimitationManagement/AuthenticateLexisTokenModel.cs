@@ -8,7 +8,7 @@ namespace HEAppE.RestApiModels.UserAndLimitationManagement
   public class AuthenticateLexisTokenModel
   {
     [DataMember(Name = "Credentials")]
-    public OpenIdCredentialsExt Credentials { get; set; }
+    public LexisCredentialsExt Credentials { get; set; }
 
     public override string ToString()
     {
