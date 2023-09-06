@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -37,6 +38,7 @@ namespace HEAppE.DomainObjects.JobManagement
         [Required]
         public UsageType UsageType { get; set; } = UsageType.NodeHours;
 
+        public virtual List<AdaptorUserGroup> AdaptorUserGroups { get; set; } = new List<AdaptorUserGroup>();
         public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
         public virtual List<CommandTemplate> CommandTemplates { get; set; } = new List<CommandTemplate>();
         public virtual List<ProjectContact> ProjectContacts { get; set; } = new List<ProjectContact>();

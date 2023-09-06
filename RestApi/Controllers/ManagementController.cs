@@ -1,6 +1,8 @@
 ﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
@@ -8,6 +10,7 @@ using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
+using HEAppE.RestApiModels.JobManagement;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
@@ -221,6 +224,75 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
+        /// Create project
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("CreateProject")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(ProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult CreateProject(CreateProjectModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+
+                return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        [HttpPost("AssignProjectToCluster")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(IEnumerable<ClusterProject>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult AssignProjectToCluster(AssignProjectToClusterModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"AssignProjectToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+
+                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(AssignProjectToCluster));
+
+                return Ok(_managementService.AssignProjectToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
         /// Generate SSH key
         /// </summary>
         /// <param name="model"></param>
@@ -242,7 +314,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
-                return Ok(_managementService.CreateSecureShellKey(model.Username, model.AccountingStrings, model.SessionCode));
+                return Ok(_managementService.CreateSecureShellKey(model.Username, model.Projects, model.SessionCode));
             }
             catch (Exception exception)
             {

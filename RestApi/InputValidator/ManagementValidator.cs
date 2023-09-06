@@ -1,5 +1,8 @@
-﻿using HEAppE.RestApiModels.Management;
+﻿using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
+using System;
+using System.Linq;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -19,10 +22,62 @@ namespace HEAppE.RestApi.InputValidator
                 CreateSecureShellKeyModel ext => ValidateCreateSecureShellKeyModel(ext),
                 RecreateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModel ext => ValidateRemoveSecureShellKeyModel(ext),
+                CreateProjectModel ext => ValidateCreateProjectModel(ext),
+                AssignProjectToClusterModel ext => ValidateAssignProjectToClusterModel(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateAssignProjectToClusterModel(AssignProjectToClusterModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            var validationResult = new PathValidator(ext.LocalBasepath).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
+            ValidateId(ext.ClusterId, "ClusterId");
+
+            return _messageBuilder.ToString();
+
+        }
+
+        private string ValidateCreateProjectModel(CreateProjectModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (string.IsNullOrEmpty(ext.AccountingString))
+            {
+                _messageBuilder.AppendLine("AccountingString can not be null or empty.");
+            }
+
+            if (ext.StartDate > ext.EndDate)
+            {
+                _messageBuilder.AppendLine("StartDate can not be after EndDate.");
+            }
+
+            if (!ext.UsageType.HasValue)
+            {
+                var validValues = Enum.GetValues(typeof(UsageType)).Cast<UsageType>();
+                string validValueString = string.Join(", ", validValues.Select(e => $"{(int)e} ({e})"));
+                _messageBuilder.AppendLine($"UsageType must be set, please choose between {validValueString}.");
+            }
+
+            return _messageBuilder.ToString();
         }
 
         private string ValidateRemoveSecureShellKeyModel(RemoveSecureShellKeyModel ext)
@@ -65,7 +120,7 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("Username can not be null or empty.");
             }
 
-            if (ext.AccountingStrings == null || ext.AccountingStrings.Length == 0)
+            if (ext.Projects == null || ext.Projects.Length == 0)
             {
                 _messageBuilder.AppendLine("Projects can not be null or empty.");
             }

@@ -5,16 +5,24 @@ using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.JobManagement.Converts;
+using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.JobReporting.Converts;
+using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
+using HEAppE.Utils;
 using log4net;
+using Microsoft.Extensions.Caching.Memory;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace HEAppE.ServiceTier.Management
@@ -103,7 +111,7 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt CreateSecureShellKey(string username, string[] accountingStrings, string sessionCode)
+        public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, string sessionCode)
         {
             try
             {
@@ -111,7 +119,47 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.CreateSecureShellKey(username, accountingStrings).ConvertIntToExt();
+                    Project project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate, endDate, loggedUser);
+                    return project.ConvertIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+
+            }
+        }
+
+        public ClusterProjectExt AssignProjectToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    ClusterProject clusterProject = managementLogic.AssignProjectToCluster(projectId, clusterId, localBasepath);
+                    return clusterProject.ConvertIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+
+            }
+        }
+
+        public PublicKeyExt CreateSecureShellKey(string username, long[] projects, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    return managementLogic.CreateSecureShellKey(username, projects).ConvertIntToExt();
                 }
             }
             catch (Exception exc)
