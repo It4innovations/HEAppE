@@ -103,7 +103,7 @@ namespace HEAppE.RestApi
 
       services.AddHttpClient("userOrgApi", conf =>
       {
-        conf.BaseAddress = new Uri(ExternalAuthConfiguration.LexisAuthenticationConfiguration.BaseAddress);
+        conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
       });
 
       //CORS
