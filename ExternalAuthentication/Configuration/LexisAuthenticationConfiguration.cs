@@ -9,8 +9,5 @@
     public string HEAppEGroupNamePrefix { get; set; }
     public string HEAppEUserPrefix { get; set; }
 
-
-    //public static Uri BaseAddressUri => new Uri(LexisAuthenticationConfiguration.BaseAddress);
-    //public static Uri ExtendedUserInfoEndpointUri => new Uri($"{EndpointPrefix}/{ExtendedUserInfoEndpoint}");
   }
 }
