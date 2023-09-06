@@ -2,9 +2,9 @@
 
 namespace HEAppE.BusinessLogicTier.Configuration;
 
-public sealed class LexisAuthenticationConfiguration
+public class LexisAuthenticationConfiguration
 {
-  public const string configurationPath = "ExternalAuthenticationSettings:LexisAuthenticationConfiguration";
+  public const string configurationPath = "LexisAuthenticationConfiguration";
 
   public static string ExtendedUserInfoEndpoint { get; set; }
   public static string BaseAddress { get; set; }
