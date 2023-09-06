@@ -80,7 +80,7 @@ namespace HEAppE.RestApi
       services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
       //Other configuration
-      var externalAuthConfiguration = new ExternalAuthConfiguration();
+
       Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
       Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
       Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
@@ -88,7 +88,7 @@ namespace HEAppE.RestApi
       MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
       Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
       Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
-      Configuration.Bind("ExternalAuthenticationSettings", externalAuthConfiguration);
+      Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
       Configuration.Bind("OpenStackSettings", new OpenStackSettings());
 
       services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
@@ -98,7 +98,7 @@ namespace HEAppE.RestApi
       services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
 
       //UserOrgHttpClient
-      services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
+      //services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
 
 
       services.AddHttpClient("userOrgApi", conf =>
