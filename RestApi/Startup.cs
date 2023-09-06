@@ -99,11 +99,10 @@ namespace HEAppE.RestApi
       //UserOrgHttpClient
       services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
       services.AddOptions<LexisAuthenticationConfiguration>().BindConfiguration(LexisAuthenticationConfiguration.configurationPath);
-      var lexisAuthConf = new LexisAuthenticationConfiguration();
-      Configuration.GetSection(LexisAuthenticationConfiguration.configurationPath).Bind(lexisAuthConf);
+
       services.AddHttpClient("userOrgApi", conf =>
       {
-        conf.BaseAddress = lexisAuthConf.BaseAddressUri;
+        conf.BaseAddress = LexisAuthenticationConfiguration.BaseAddressUri;
       });
 
       //CORS

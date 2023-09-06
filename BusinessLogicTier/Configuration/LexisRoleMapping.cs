@@ -2,7 +2,7 @@
 
 public sealed class LexisRoleMapping
 {
-    public string Maintainer { get; set; }
-    public string Reporter { get; set; }
-    public string Submitter { get; set; }
+  public static string Maintainer { get; set; }
+  public static string Reporter { get; set; }
+  public static string Submitter { get; set; }
 }

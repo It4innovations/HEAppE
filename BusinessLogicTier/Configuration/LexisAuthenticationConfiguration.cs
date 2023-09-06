@@ -5,12 +5,15 @@ namespace HEAppE.BusinessLogicTier.Configuration;
 public sealed class LexisAuthenticationConfiguration
 {
   public const string configurationPath = "ExternalAuthenticationSettings:LexisAuthenticationConfiguration";
-  public const string extendedUserInfoEndpoint = "userorg/api/UserInfo/Extended";
-  public string BaseAddress { get; set; } = "http://api.dev.msad.it4i.lexis.tech/userorg";
-  public LexisRoleMapping RoleMapping { get; set; } = new LexisRoleMapping() { Maintainer = "prj_list", Reporter = "prj_read", Submitter = "prj_write" };
-  public string HEAppEGroupNamePrefix { get; set; } = "Lexis_";
-  public string HEAppEUserPrefix { get; set; } = "Lexis_";
+
+  public static string ExtendedUserInfoEndpoint { get; set; }
+  public static string BaseAddress { get; set; }
+  public static string EndpointPrefix { get; set; }
+  public static LexisRoleMapping RoleMapping { get; set; }
+  public static string HEAppEGroupNamePrefix { get; set; }
+  public static string HEAppEUserPrefix { get; set; }
 
 
-  public Uri BaseAddressUri => new Uri(BaseAddress);
+  public static Uri BaseAddressUri => new Uri(BaseAddress);
+  public static Uri ExtendedUserInfoEndpointUri => new Uri($"{EndpointPrefix}/{ExtendedUserInfoEndpoint}");
 }
