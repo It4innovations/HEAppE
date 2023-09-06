@@ -411,9 +411,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
           var existingUserProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserId == user.Id && x.AdaptorUserGroupId == prefixedGroup.Id);
           // map to role
           var tmpPermissionAsRole = new PermissionAsRole(
-              proj.Permissions.Any(p => p == "prj_list"),
-              proj.Permissions.Any(p => p == "prj_list"),
-              proj.Permissions.Any(p => p == "prj_list"),
+              proj.Permissions.Any(p => p == ExternalAuthConfiguration.LexisAuthenticationConfiguration.RoleMapping.Maintainer),
+              proj.Permissions.Any(p => p == ExternalAuthConfiguration.LexisAuthenticationConfiguration.RoleMapping.Submitter),
+              proj.Permissions.Any(p => p == ExternalAuthConfiguration.LexisAuthenticationConfiguration.RoleMapping.Reporter),
               existingProjectGroupRoles);
 
           if (tmpPermissionAsRole is { IsMaintainer: false, IsReporter: false, IsSubmitter: false })
@@ -704,18 +704,18 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       IsReporter = IsReporter;
       if (IsMaintainer)
       {
-        MaintainerRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == "Maintainer")?.AdaptorUserRole;
+        MaintainerRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(ExternalAuthConfiguration.LexisAuthenticationConfiguration.RoleMapping.Maintainer))?.AdaptorUserRole;
       }
 
       if (IsSubmitter)
       {
-        SubmitterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == "Submitter")?.AdaptorUserRole;
+        SubmitterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(ExternalAuthConfiguration.LexisAuthenticationConfiguration.RoleMapping.Submitter))?.AdaptorUserRole;
 
       }
       if (IsReporter)
       {
 
-        ReporterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == "Reporter")?.AdaptorUserRole;
+        ReporterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(ExternalAuthConfiguration.LexisAuthenticationConfiguration.RoleMapping.Reporter))?.AdaptorUserRole;
       }
     }
     public AdaptorUserRole MaintainerRole { get; set; } = null;
