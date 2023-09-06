@@ -99,7 +99,8 @@ namespace HEAppE.RestApi
       //UserOrgHttpClient
       services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
       Configuration.Bind(LexisAuthenticationConfiguration.configurationPath, new LexisAuthenticationConfiguration());
-      //services.AddOptions<LexisAuthenticationConfiguration>().BindConfiguration(LexisAuthenticationConfiguration.configurationPath);
+      Configuration.GetSection(LexisAuthenticationConfiguration.configurationPath).Bind(new LexisAuthenticationConfiguration());
+      services.AddOptions<LexisAuthenticationConfiguration>().BindConfiguration(LexisAuthenticationConfiguration.configurationPath);
 
       services.AddHttpClient("userOrgApi", conf =>
       {
