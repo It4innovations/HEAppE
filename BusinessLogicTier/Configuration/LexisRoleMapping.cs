@@ -1,8 +1,8 @@
 ﻿namespace HEAppE.BusinessLogicTier.Configuration;
 
-public sealed class LexisRoleMapping
+public class LexisRoleMapping
 {
-  public static string Maintainer { get; set; }
-  public static string Reporter { get; set; }
-  public static string Submitter { get; set; }
+  public string Maintainer { get; set; }
+  public string Reporter { get; set; }
+  public string Submitter { get; set; }
 }

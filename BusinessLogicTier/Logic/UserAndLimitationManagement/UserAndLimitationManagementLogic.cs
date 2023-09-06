@@ -409,9 +409,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
           var existingUserProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserId == user.Id && x.AdaptorUserGroupId == prefixedGroup.Id);
           // map to role
           var tmpPermissionAsRole = new PermissionAsRole(
-              proj.Permissions.Any(p => p == LexisRoleMapping.Maintainer),
-              proj.Permissions.Any(p => p == LexisRoleMapping.Submitter),
-              proj.Permissions.Any(p => p == LexisRoleMapping.Reporter),
+              proj.Permissions.Any(p => p == LexisAuthenticationConfiguration.RoleMapping.Maintainer),
+              proj.Permissions.Any(p => p == LexisAuthenticationConfiguration.RoleMapping.Submitter),
+              proj.Permissions.Any(p => p == LexisAuthenticationConfiguration.RoleMapping.Reporter),
               existingProjectGroupRoles);
 
           if (tmpPermissionAsRole is { IsMaintainer: false, IsReporter: false, IsSubmitter: false })

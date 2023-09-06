@@ -14,6 +14,6 @@ public class LexisAuthenticationConfiguration
   public static string HEAppEUserPrefix { get; set; }
 
 
-  public static Uri BaseAddressUri => new Uri(BaseAddress);
+  public static Uri BaseAddressUri => new Uri(LexisAuthenticationConfiguration.BaseAddress);
   public static Uri ExtendedUserInfoEndpointUri => new Uri($"{EndpointPrefix}/{ExtendedUserInfoEndpoint}");
 }
