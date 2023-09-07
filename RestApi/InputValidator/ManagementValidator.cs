@@ -23,14 +23,14 @@ namespace HEAppE.RestApi.InputValidator
                 RecreateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModel ext => ValidateRemoveSecureShellKeyModel(ext),
                 CreateProjectModel ext => ValidateCreateProjectModel(ext),
-                AssignProjectToClusterModel ext => ValidateAssignProjectToClusterModel(ext),
+                CreateProjectAssignmentToClusterModel ext => ValidateAssignProjectToClusterModel(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
         }
 
-        private string ValidateAssignProjectToClusterModel(AssignProjectToClusterModel ext)
+        private string ValidateAssignProjectToClusterModel(CreateProjectAssignmentToClusterModel ext)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)

@@ -6,8 +6,8 @@ using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.Management
 {
-    [DataContract(Name = "AssignProjectToClusterModel")]
-    public class AssignProjectToClusterModel : SessionCodeModel
+    [DataContract(Name = "CreateProjectAssignmentToClusterModel")]
+    public class CreateProjectAssignmentToClusterModel : SessionCodeModel
     {
         [DataMember(Name = "ProjectId", IsRequired = true)]
         public long ProjectId { get; set; }

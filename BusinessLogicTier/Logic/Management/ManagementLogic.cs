@@ -257,7 +257,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="localBasepath"></param>
         /// <returns></returns>
         /// <exception cref="Exception"></exception>
-        public ClusterProject AssignProjectToCluster(long projectId, long clusterId, string localBasepath)
+        public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
             if (project == null)

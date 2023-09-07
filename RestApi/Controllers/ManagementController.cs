@@ -259,14 +259,14 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-        [HttpPost("AssignProjectToCluster")]
+        [HttpPost("CreateProjectAssignmentToCluster")]
         [RequestSizeLimit(1000)]
         [ProducesResponseType(typeof(IEnumerable<ClusterProject>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult AssignProjectToCluster(AssignProjectToClusterModel model)
+        public IActionResult CreateProjectAssignmentToCluster(CreateProjectAssignmentToClusterModel model)
         {
             try
             {
@@ -278,9 +278,9 @@ namespace HEAppE.RestApi.Controllers
                 }
 
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(AssignProjectToCluster));
+                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
 
-                return Ok(_managementService.AssignProjectToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
+                return Ok(_managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
             }
             catch (Exception exception)
             {

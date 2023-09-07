@@ -16,6 +16,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         SecureShellKey RecreateSecureShellKey(string username, string publicKey);
         string RemoveSecureShellKey(string publicKey);
         Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, AdaptorUser loggedUser);
-        ClusterProject AssignProjectToCluster(long projectId, long clusterId, string localBasepath);
+        ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     }
 }

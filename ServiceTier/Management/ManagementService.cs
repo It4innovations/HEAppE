@@ -131,7 +131,7 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public ClusterProjectExt AssignProjectToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
+        public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
         {
             try
             {
@@ -139,7 +139,7 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    ClusterProject clusterProject = managementLogic.AssignProjectToCluster(projectId, clusterId, localBasepath);
+                    ClusterProject clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, localBasepath);
                     return clusterProject.ConvertIntToExt();
                 }
             }
