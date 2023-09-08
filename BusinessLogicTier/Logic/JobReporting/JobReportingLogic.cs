@@ -43,9 +43,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns list of all UserGroups and all Projects in groups
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<UserGroupListReport> UserGroupListReport()
+        public IEnumerable<UserGroupListReport> UserGroupListReport(Project[] projects)
         {
-            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject();
+
+            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject().Where(x => projects.Any(y => y.Id == x.ProjectId));
             var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport()
             {
                 AdaptorUserGroup = adaptorUserGroup,
@@ -88,14 +89,16 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns aggregated job reports by state
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport()
+        public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(Project[] projects)
         {
-            return _unitOfWork.SubmittedJobInfoRepository.GetAll().GroupBy(g => g.State)
-                                                                  .Select(s => new JobStateAggregationReport
-                                                                  {
-                                                                      State = s.Key,
-                                                                      Count = s.Count()
-                                                                  }).ToList();
+            return _unitOfWork.SubmittedJobInfoRepository.GetAll()
+                                                            .Where(x=>projects.Any(y=> y.Id == x.Id))
+                                                            .GroupBy(g => g.State)
+                                                            .Select(s => new JobStateAggregationReport
+                                                            {
+                                                                State = s.Key,
+                                                                Count = s.Count()
+                                                            }).ToList();
         }
 
         /// <summary>

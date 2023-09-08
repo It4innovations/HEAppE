@@ -53,7 +53,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
             foreach (var task in specification.Tasks)
             {
-                ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser)
+                ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser, new Project[] { task.Project })
                                                             .Where(w => w.NodeType.Id == task.ClusterNodeType.Id)
                                                             .FirstOrDefault();
 

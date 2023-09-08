@@ -6,17 +6,14 @@ using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.Management
 {
-    [DataContract(Name = "CreateProjectModel")]
-    public class CreateProjectModel : SessionCodeModel
+    [DataContract(Name = "ModifyProjectModel")]
+    public class ModifyProjectModel : SessionCodeModel
     {
-        [DataMember(Name = "Name", IsRequired = true), StringLength(50)]
-        public string Name { get; set; }
+        [DataMember(Name = "Id", IsRequired = true)]
+        public long Id { get; set; }
 
         [DataMember(Name = "Description", IsRequired = false), StringLength(100)]
         public string Description { get; set; }
-
-        [DataMember(Name = "AccountingString", IsRequired = true), StringLength(20)]
-        public string AccountingString { get; set; }
 
         [DataMember(Name = "StartDate", IsRequired = true)]
         public DateTime StartDate { get; set; }

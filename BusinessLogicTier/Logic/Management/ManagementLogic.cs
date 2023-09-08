@@ -9,6 +9,7 @@ using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
 using log4net;
@@ -209,6 +210,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="Exception"></exception>
         public Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, AdaptorUser loggedUser)
         {
+            // Check if a project with the same accounting string already exists
             var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
             if (existingProject != null)
             {
@@ -219,25 +221,50 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             var project = InitializeProject(accountingString, usageType, name, description, startDate, endDate);
 
-            var adaptorUserGroup = CreateAdaptorUserGroup(project, name, description);
+            // Create user groups for different purposes
+            var defaultAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, string.Empty);
+            var lexisAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
+            var openIdAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, ExternalAuthConfiguration.HEAppEUserPrefix);
 
             try
             {
-                _unitOfWork.AdaptorUserGroupRepository.Insert(adaptorUserGroup);
+                _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
+                _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
+                _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
                 _unitOfWork.Save();
 
-                var adminUserRole = new AdaptorUserUserGroupRole
+                // Check if an admin user exists and is not the logged-in user
+                var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
+                if (heappeAdminUser != null && heappeAdminUser.Id != loggedUser.Id)
                 {
-                    AdaptorUserId = loggedUser.Id,
-                    AdaptorUserGroupId = adaptorUserGroup.Id,
-                    AdaptorUserRoleId = (long)UserRoleType.Administrator
-                };
-                var allRoles = UserRoleUtils.GetAllUserRoles(new List<AdaptorUserUserGroupRole> { adminUserRole }).ToList();
+                    var adminUserRole = CreateAdminUserRole(heappeAdminUser, defaultAdaptorUserGroup);
+                    loggedUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
 
-                loggedUser.AdaptorUserUserGroupRoles.AddRange(allRoles);
+                    _unitOfWork.AdaptorUserRepository.Update(heappeAdminUser);
+                    _unitOfWork.Save();
+                }
+
+                // Check if the logged-in user has a password
+                if (string.IsNullOrEmpty(loggedUser.Password))
+                {
+                    var adminUserRole = CreateAdminUserRole(loggedUser, defaultAdaptorUserGroup);
+                    loggedUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
+                }
+                else
+                {
+                    // For externally authenticated users, create admin roles in respective user groups
+                    var lexisAdminUserRole = CreateAdminUserRole(loggedUser, lexisAdaptorUserGroup);
+                    var openIdAdminUserRole = CreateAdminUserRole(loggedUser, openIdAdaptorUserGroup);
+
+                    loggedUser.AdaptorUserUserGroupRoles.AddRange(lexisAdminUserRole);
+                    loggedUser.AdaptorUserUserGroupRoles.AddRange(openIdAdminUserRole);
+                }
+
+                // Update the logged-in user
                 _unitOfWork.AdaptorUserRepository.Update(loggedUser);
-
                 _unitOfWork.Save();
+
+                _logger.Info($"Created project with id {project.Id}.");
             }
             catch (Exception e)
             {
@@ -247,6 +274,98 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             return project;
+        }
+
+        private List<AdaptorUserUserGroupRole> CreateAdminUserRole(AdaptorUser user, AdaptorUserGroup group)
+        {
+            var role = new AdaptorUserUserGroupRole
+            {
+                AdaptorUserId = user.Id,
+                AdaptorUserGroupId = group.Id,
+                AdaptorUserRoleId = (long)UserRoleType.Administrator
+            };
+            return UserRoleUtils.GetAllUserRoles(new List<AdaptorUserUserGroupRole> { role }).ToList();
+        }
+
+
+        /// <summary>
+        /// Modifies an existing project in the database and returns it
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="accountingString"></param>
+        /// <param name="usageType"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <param name="startDate"></param>
+        /// <param name="endDate"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        /// <exception cref="Exception"></exception>
+        public Project ModifyProject(long id, UsageType usageType, string description, DateTime startDate, DateTime endDate)
+        {
+            var project = _unitOfWork.ProjectRepository.GetById(id);
+            if (project == null)
+            {
+                var errorMessage = $"Project with id {id} does not exist!";
+                _logger.Error(errorMessage);
+                throw new RequestedObjectDoesNotExistException(errorMessage);
+            }
+
+            project.UsageType = usageType;
+            project.Description = description ?? project.Description;
+            project.StartDate = startDate;
+            project.EndDate = endDate;
+            project.ModifiedAt = DateTime.UtcNow;
+
+            try
+            {
+                _unitOfWork.ProjectRepository.Update(project);
+                _unitOfWork.Save();
+                _logger.Info($"Project id '{project.IsDeleted}' has been modified.");
+            }
+            catch (Exception e)
+            {
+                var errorMessage = $"Error while updating project: {e.Message}";
+                _logger.Error(errorMessage);
+                throw new Exception(errorMessage);
+            }
+
+            return project;
+        }
+
+        /// <summary>
+        /// Removes project from the database
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        /// <exception cref="Exception"></exception>
+        public string RemoveProject(long id)
+        {
+            var project = _unitOfWork.ProjectRepository.GetById(id);
+            if (project == null)
+            {
+                var errorMessage = $"Project with id {id} does not exist!";
+                _logger.Error(errorMessage);
+                throw new RequestedObjectDoesNotExistException(errorMessage);
+            }
+
+            try
+            {
+                project.IsDeleted = true;
+                _unitOfWork.ProjectRepository.Update(project);
+                _logger.Info($"Project id '{project.IsDeleted}' has been deleted.");
+                _unitOfWork.Save();
+            }
+            catch (Exception e)
+            {
+                var errorMessage = $"Error while deleting project: {e.Message}";
+                _logger.Error(errorMessage);
+                throw new Exception(errorMessage);
+            }
+
+            return $"Project id '{project.IsDeleted}' has been deleted";
         }
 
         /// <summary>
@@ -264,30 +383,50 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 var errorMessage = $"Project with id {projectId} does not exist!";
                 _logger.Error(errorMessage);
-                throw new Exception(errorMessage);
+                throw new InputValidationException(errorMessage);
             }
             var clusters = _unitOfWork.ClusterRepository.GetById(clusterId);
             if (clusters == null)
             {
                 var errorMessage = $"Cluster with id {clusterId} does not exist!";
                 _logger.Error(errorMessage);
-                throw new Exception(errorMessage);
+                throw new InputValidationException(errorMessage);
             }
-
-            //Create cluster to project mapping
-            var clusterProject = new ClusterProject
-            {
-                ClusterId = clusterId,
-                ProjectId = projectId,
-                LocalBasepath = localBasepath,
-                CreatedAt = DateTime.Now,
-                IsDeleted = false,
-            };
 
             try
             {
-                _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
-                _unitOfWork.Save();
+                var cp = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+                if (cp != null)
+                {
+                    //Cluster to project is marked as deleted, update it
+                    if (cp.IsDeleted)
+                    {
+                        return ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                    }
+                    else
+                    {
+                        var errorMessage = $"Project with id {projectId} is already assigned to cluster with id {clusterId}!";
+                        _logger.Error(errorMessage);
+                        throw new InputValidationException(errorMessage);
+                    }
+
+                }
+                else
+                {
+                    //Create cluster to project mapping
+                    var clusterProject = new ClusterProject
+                    {
+                        ClusterId = clusterId,
+                        ProjectId = projectId,
+                        LocalBasepath = localBasepath,
+                        CreatedAt = DateTime.Now,
+                        IsDeleted = false,
+                    };
+                    _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
+                    _unitOfWork.Save();
+                    _logger.Info($"Created Project ID '{projectId} assignment to Cluster ID '{clusterId}'.");
+                    return clusterProject;
+                }
             }
             catch (Exception e)
             {
@@ -295,7 +434,80 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 _logger.Error(errorMessage);
                 throw new Exception(errorMessage);
             }
-            return clusterProject;
+        }
+
+        /// <summary>
+        /// Modifies a project assignment to a clusters
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterId"></param>
+        /// <param name="localBasepath"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
+        {
+            try
+            {
+                var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+                if (clusterProject == null)
+                {
+                    var errorMessage = $"Project with id {projectId} is not assigned to cluster with id {clusterId}!";
+                    _logger.Error(errorMessage);
+                    throw new InputValidationException(errorMessage);
+                }
+                else
+                {
+                    clusterProject.LocalBasepath = localBasepath;
+                    clusterProject.ModifiedAt = DateTime.Now;
+                    clusterProject.IsDeleted = false;
+                    _unitOfWork.ClusterProjectRepository.Update(clusterProject);
+                    _unitOfWork.Save();
+                    _logger.Info($"Project ID '{projectId}' assignment to Cluster ID '{clusterId}' was modified.");
+                    return clusterProject;
+                }
+            }
+            catch (Exception e)
+            {
+                var errorMessage = $"Error while modifying assignment project to cluster: {e.Message}";
+                _logger.Error(errorMessage);
+                throw new Exception(errorMessage);
+            }
+        }
+
+        /// <summary>
+        /// Removes a project assignment to a cluster
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterId"></param>
+        /// <returns></returns>
+        /// <exception cref="Exception"></exception>
+        public string RemoveProjectAssignmentToCluster(long projectId, long clusterId)
+        {
+            try
+            {
+                var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+                if (clusterProject == null)
+                {
+                    var errorMessage = $"Project with id {projectId} is not assigned to cluster with id {clusterId}!";
+                    _logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
+                else
+                {
+                    clusterProject.IsDeleted = true;
+                    clusterProject.ModifiedAt = DateTime.Now;
+                    _unitOfWork.ClusterProjectRepository.Update(clusterProject);
+                    _unitOfWork.Save();
+                    _logger.Info($"Removed assignment of the Project with ID '{projectId}' to the Cluster ID '{clusterId}'");
+                    return $"Removed assignment of the Project with ID '{projectId}' to the Cluster ID '{clusterId}'";
+                }
+            }
+            catch (Exception e)
+            {
+                var errorMessage = $"Error while removing assignment project to cluster: {e.Message}";
+                _logger.Error(errorMessage);
+                throw new Exception(errorMessage);
+            }
         }
 
         /// <summary>
@@ -320,61 +532,44 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// Creates encrypted SSH key for the specified user and saves it to the database.
         /// </summary>
         /// <param name="username"></param>
-        /// <param name="projects"></param>
+        /// <param name="projectId"></param>
         /// <returns></returns>
-        public SecureShellKey CreateSecureShellKey(string username, long[] projects)
+        public SecureShellKey CreateSecureShellKey(string username, long projectId)
         {
-            //Chech if all project defined by AccountingString exist in HEAppE
-            List<long> nonExistingProjects = new List<long>();
-            List<Project> existingProjects = new List<Project>();
-
-            foreach (long projectId in projects)
+            var project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null)
             {
-                var project = _unitOfWork.ProjectRepository.GetById(projectId);
-                if (project is null)
-                {
-                    nonExistingProjects.Add(projectId);
-                }
-                else
-                {
-                    existingProjects.Add(project);
-                }
-            }
-
-            if (nonExistingProjects.Any())
-            {
-                _logger.Error($"The specified project with accounting string {string.Join(", ", nonExistingProjects)} is not defined in HEAppE!");
-                throw new InputValidationException($"The specified project with accounting string {string.Join(", ", nonExistingProjects)} is not defined in HEAppE!");
+                var errorMessage = $"Project with id {projectId} does not exist!";
+                _logger.Error(errorMessage);
+                throw new InputValidationException(errorMessage);
             }
 
             SSHGenerator sshGenerator = new();
             string passphrase = StringUtils.GetRandomString();
             SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
-            string keyPath = GetUniquePrivateKeyPath(projects);
+            string keyPath = GetUniquePrivateKeyPath(project.AccountingString);
             //save private key to file
             FileInfo file = new FileInfo(keyPath);
             file.Directory.Create();
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
 
-            foreach (var project in existingProjects)
+            _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
+            var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
+
+            ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
+            ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
+
+            foreach (var clusterProject in clusterProjects)
             {
-                _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
-                var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
-
-                ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
-                ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
-
-                foreach (var clusterProject in clusterProjects)
-                {
-                    serviceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
-                    nonServiceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
-                }
-
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
-
-                _unitOfWork.Save();
+                serviceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
+                nonServiceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
             }
+
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
+
+            _unitOfWork.Save();
+
 
             return secureShellKey;
         }
@@ -386,12 +581,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="publicKey"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
-        public SecureShellKey RecreateSecureShellKey(string username, string publicKey)
+        public SecureShellKey RecreateSecureShellKey(string username, string publicKey, long projectId)
         {
             string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
-            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint)
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
                                                                                                             .ToList();
-
             if (clusterAuthenticationCredentials.Count == 0)
             {
                 throw new InputValidationException("The specified public key is not defined in HEAppE!");
@@ -425,10 +619,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="publicKey"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
-        public string RemoveSecureShellKey(string publicKey)
+        public string RemoveSecureShellKey(string publicKey, long projectId)
         {
             string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
-            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint)
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
                                                                                                              .ToList();
 
             if (clusterAuthenticationCredentials.Count == 0)
@@ -478,13 +672,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// Returns the path to the private key file for the specified project
         /// </summary>
         /// <param name="projectIds"></param>
+        /// <param name="accountingString"></param>
         /// <returns></returns>
-        private string GetUniquePrivateKeyPath(long[] projectIds)
+        private string GetUniquePrivateKeyPath(string accountingString)
         {
-            string projectIdsString = string.Join("_", projectIds);
             long netxId = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Max(x => x.Id) + 1;
-            string directoryPath = Path.Combine(_sshKeysDirectory, projectIdsString.ToUpper());
-            string keyPath = Path.Combine(directoryPath, $"KEY_{projectIdsString}_{netxId}");
+            string directoryPath = Path.Combine(_sshKeysDirectory, accountingString);
+            string keyPath = Path.Combine(directoryPath, $"KEY_{accountingString}_{netxId}");
             return keyPath;
         }
 
@@ -505,7 +699,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return new Project
             {
                 AccountingString = accountingString,
-                Name = name ?? accountingString,
+                Name = name,
                 Description = description,
                 CreatedAt = DateTime.Now,
                 StartDate = startDate,
@@ -550,12 +744,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="project"></param>
         /// <param name="name"></param>
         /// <param name="description"></param>
+        /// <param name="prefix"></param>"
         /// <returns></returns>
-        private AdaptorUserGroup CreateAdaptorUserGroup(Project project, string name, string description)
+        private AdaptorUserGroup CreateAdaptorUserGroup(Project project, string name, string description, string prefix)
         {
             return new AdaptorUserGroup
             {
-                Name = name,
+                Name = string.Concat(prefix, name),
                 AdaptorUserUserGroupRoles = new List<AdaptorUserUserGroupRole>(),
                 Description = description,
                 Project = project

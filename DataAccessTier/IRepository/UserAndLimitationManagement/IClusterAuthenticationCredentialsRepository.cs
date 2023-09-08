@@ -7,6 +7,6 @@ namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement
     {
         IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForClusterAndProject(long clusterId, long projectId);
         ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId);
-        IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint);
+        IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint, long projectId);
     }
 }

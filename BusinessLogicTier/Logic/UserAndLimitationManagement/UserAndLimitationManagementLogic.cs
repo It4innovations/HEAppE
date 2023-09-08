@@ -182,13 +182,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       return taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
     }
 
-    public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser)
+    public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser, Project[] projects)
     {
-      var notFinishedJobs = LogicFactory.GetLogicFactory()
-                                                                .CreateJobManagementLogic(_unitOfWork)
+      var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
                                                                 .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-      var nodeTypes = LogicFactory.GetLogicFactory()
-                                                          .CreateClusterInformationLogic(_unitOfWork)
+      var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
                                                           .ListClusterNodeTypes();
 
       IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
@@ -205,10 +203,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       return result;
     }
 
-    public IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser)
+    public IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser, Project[] projects)
     {
       var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
-      var projects = _unitOfWork.ProjectRepository.GetAll();
 
       IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
       foreach (var project in projects)
@@ -673,13 +670,18 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       return session.LastAccessTime < DateTime.UtcNow.AddSeconds(-_sessionExpirationSeconds);
     }
 
-    public IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser)
+    public IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser, Project[] projects)
     {
       var projectReferences = new List<ProjectReference>();
       var groupRoles = loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
       foreach (var groupRole in groupRoles)
       {
         var project = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject().FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
+        //if project.Id is present in projects array, then it is a project that user has access to
+        if (project is null || !projects.Any(x => x.Id == project.Id))
+        {
+            continue;
+        }
         var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
 
         project.CommandTemplates = commandTemplates.ToList();

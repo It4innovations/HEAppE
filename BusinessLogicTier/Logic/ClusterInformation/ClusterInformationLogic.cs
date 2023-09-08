@@ -43,7 +43,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
         }
 
-        public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser)
+        public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, Project[] projects)
         {
             ClusterNodeType nodeType = GetClusterNodeTypeById(clusterNodeId);
             if (!nodeType.ClusterId.HasValue)
@@ -58,6 +58,11 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 throw new InvalidRequestException($"User {loggedUser} has no access to ClusterNodeId {clusterNodeId}.");
             }
             long projectId = availableProjectIds.FirstOrDefault();
+            if(projects.Any(p => p.Id == projectId))
+            {
+                _log.Debug($"User {loggedUser} has access to ClusterNodeId {clusterNodeId}.");
+                throw new InvalidRequestException($"User {loggedUser} has access to ClusterNodeId {clusterNodeId}.");
+            }
             var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(nodeType.ClusterId.Value, projectId);
             if (serviceAccount is null)
             {
