@@ -333,8 +333,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
     {
       try
       {
-
-        var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(new Uri($"{LexisAuthenticationConfiguration.EndpointPrefix}/{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}"));
+        var requestUri = $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
+        _userOrgHttpClient.DefaultRequestHeaders.Clear();
+        _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
+        var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
 
         return GetOrRegisterLexisCredentials(result);
       }
@@ -347,6 +349,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       {
         _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{lexisCredentials.OpenIdLexisAccessToken}'", OpenIdException);
         throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", OpenIdException);
+      }
+      catch (HttpRequestException ex)
+      {
+        if (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+        {
+          throw new UnauthorizedAccessException("Unauthorized", ex);
+        }
+        throw;
       }
     }
     /// <summary>
