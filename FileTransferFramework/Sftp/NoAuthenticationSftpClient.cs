@@ -1,4 +1,5 @@
-﻿using HEAppE.FileTransferFramework.Sftp.Commands;
+﻿using Exceptions.Internal;
+using HEAppE.FileTransferFramework.Sftp.Commands;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using System;
@@ -44,7 +45,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             string batchName = "/sftp/" + Guid.NewGuid().ToString();
             File.WriteAllText(batchName, command);
 
-            if (string.IsNullOrWhiteSpace(batchName)) { throw new ArgumentException($"Argument 'commandText' cannot be null or empty"); }
+            if (string.IsNullOrWhiteSpace(batchName)) { throw new SftpClientArgumentException("NullArgument", "commandText"); }
 
             var sshCommand = new SftpCommandResult
             {
@@ -87,12 +88,12 @@ namespace HEAppE.FileTransferFramework.Sftp
         {
             if (string.IsNullOrWhiteSpace(_masterNodeName))
             {
-                throw new ArgumentException($"Argument 'masterNodeName' cannot be null or empty");
+                throw new SftpClientArgumentException("NullArgument", "masterNodeName");
             }
 
             if (string.IsNullOrWhiteSpace(_userName))
             {
-                throw new ArgumentException($"Argument 'userName' cannot be null or empty");
+                throw new SftpClientArgumentException("NullArgument", "userName");
             }
         }
         #endregion

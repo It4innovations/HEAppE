@@ -1,4 +1,5 @@
-﻿using HEAppE.FileTransferFramework.Sftp.Commands;
+﻿using Exceptions.Internal;
+using HEAppE.FileTransferFramework.Sftp.Commands;
 using HEAppE.Utils;
 using Renci.SshNet;
 using System;
@@ -160,7 +161,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         {
             if (_sftpClient is NoAuthenticationSftpClient)
             {
-                throw new Exception("NoAuthenticationSftpClient has not implemented download file method!");
+                throw new SftpClientException("NoAuthenticationSftpClientMethod", "download file");
             }
             else
             {
@@ -172,7 +173,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         {
             if (_sftpClient is NoAuthenticationSftpClient)
             {
-                throw new Exception("NoAuthenticationSftpClient has not implemented created directory method!");
+                throw new SftpClientException("NoAuthenticationSftpClientMethod", "create directory");
             }
             else
             {
@@ -184,7 +185,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         {
             if (_sftpClient is NoAuthenticationSftpClient)
             {
-                throw new Exception("NoAuthenticationSftpClient has not implemented upload file method!");
+                throw new SftpClientException("NoAuthenticationSftpClientMethod", "upload file");
             }
             else
             {

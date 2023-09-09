@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Exceptions.Internal;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -45,7 +46,7 @@ namespace HEAppE.FileTransferFramework
                 FileTransferProtocol ftp when
                     ftp == FileTransferProtocol.SftpScp ||
                     ftp == FileTransferProtocol.LocalSftpScp => _sftpFactorySingleton ??= new SftpFileSystemFactory(),
-                _ => throw new ApplicationException("File system manager factory with type \"" + type + "\" does not exist."),
+                _ => throw new SftpClientArgumentException("FactoryManagerTypeNotExists", type),
             };
         }
 

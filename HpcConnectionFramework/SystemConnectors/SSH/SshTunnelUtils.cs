@@ -52,7 +52,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                     var allocatedPortsForJob = allocatedAddressWithPorts[nodeHost];
                     if (allocatedPortsForJob.FirstOrDefault(f => f.RemotePort == nodePort).LocalPort is null)
                     {
-                        throw new UnableToCreateTunnelException($"Task id: \"{taskId}\" with node IP address: \"{nodeHost}\" already has ssh tunnel for port: \"{nodePort}\".");
+                        throw new UnableToCreateTunnelException("PortAlreadyInUse", taskId, nodeHost, nodePort);
                     }
                     else
                     {
@@ -96,8 +96,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             }
             else
             {
-                throw new UnableToCreateTunnelException($"Task \"{taskId}\" does not have an active ssh tunnel.");
-
+                throw new UnableToCreateTunnelException("NoActiveTunnel", taskId);
             }
         }
 
@@ -131,7 +130,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 
             var forwPort = new ForwardedPortLocal(localHost, (uint)localPort, nodeHost, (uint)nodePort);
             sshClient.AddForwardedPort(forwPort);
-            forwPort.Exception += (sender, e) => throw new UnableToCreateTunnelException("Exception occuers during creation SSH tunnel", e.Exception);
+            forwPort.Exception += (sender, e) => throw new UnableToCreateTunnelException("ExceptionOccurs", e.Exception);
 
             forwPort.Start();
             _usedLocalPorts.Add(localPort);
@@ -165,7 +164,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                             }
                             else
                             {
-                                throw new UnableToCreateTunnelException("There is not free local port for creation ssh tunnel.");
+                                throw new UnableToCreateTunnelException("NoFreeLocalPortForSsh");
                             }
                         }
                     }

@@ -169,7 +169,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (SshCommandException ce)
             {
-                if (!Regex.Match(ce.Message, "qdel: Job has finished", RegexOptions.Compiled).Success)
+                if (!ce.Contains("qdel: Job has finished"))
                 {
                     throw ce;
                 }
