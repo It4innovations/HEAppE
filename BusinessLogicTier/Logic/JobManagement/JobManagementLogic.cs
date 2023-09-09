@@ -58,16 +58,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 if (currentUsage == null)
                 {
-                    var message = $"Current usage for user {loggedUser.GetLogIdentification()} and node type " +
-                                  $"{task.ClusterNodeType} was not created by the GetCurrentUsageAndLimitationsForUser method.";
-                    _logger.Error(message);
-                    throw new NotImplementedException(message);
+                    _logger.Error($"Current usage for user {loggedUser.GetLogIdentification()} and node type {task.ClusterNodeType} was not created by the GetCurrentUsageAndLimitationsForUser method.");
+                    throw new CurrentUsageAndLimitationsException("UsageNotCreated", loggedUser.GetLogIdentification(), task.ClusterNodeType);
                 }
                 else if (!CheckRequestedResourcesAgainstLimitations(task, currentUsage))
                 {
-                    var message = $"Requested resources for job {task.Name} exceeded user limitations.";
-                    _logger.Error(message);
-                    throw new RequestedJobResourcesExceededUserLimitationsException(message);
+                    _logger.Error($"Requested resources for job {task.Name} exceeded user limitations.");
+                    throw new RequestedJobResourcesExceededUserLimitationsException("ExceededUsageLimitations", task.Name);
                 }
 
                 if (isExtraLong)
@@ -93,7 +90,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             if (!jobValidation.IsValid)
             {
                 _logger.ErrorFormat("Validation error: {0}", jobValidation.Message);
-                throw new InputValidationException("Submitted job specification is not valid: \r\n" + jobValidation.Message);
+                throw new InputValidationException("NotValidJobSpecification", jobValidation.Message);
             }
 
             lock (_lockCreateJobObj)
@@ -115,7 +112,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
                     if (clusterProject == null)
                     {
-                        throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                        throw new InvalidRequestException("NotExistingProject");
                     }
                     //Create job directory
                     SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath);
@@ -125,7 +122,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 {
                     _unitOfWork.Dispose();
                     _logger.Error(e);
-                    throw new Exception("Transaction failed when job was creating!");
+                    throw;
                 }
             }
         }
@@ -167,7 +164,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
             else
             {
-                throw new InputValidationException("Submitting Job is provided only for job in state Configuring.");
+                throw new InputValidationException("SubmittingJobNotInConfiguringState");
             }
         }
 
@@ -211,7 +208,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
-                throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                throw new InvalidRequestException("NotExistingProject");
             }
             if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
             {
@@ -220,7 +217,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             else
             {
                 _logger.Error($"Cannot delete job with Id {submittedJobInfoId}, this job is in state {jobInfo.State}.");
-                throw new InvalidRequestException($"Cannot delete job with Id {submittedJobInfoId}, this job is in state {jobInfo.State}.");
+                throw new InvalidRequestException("CannotDeleteJob", submittedJobInfoId, jobInfo.State);
             }
         }
 
@@ -229,14 +226,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             SubmittedJobInfo jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
             if (jobInfo is null)
             {
-                var message = $"Requested job info with Id: \"{submittedJobInfoId}\" does not exist in the system.";
-                _logger.Error(message);
-                throw new RequestedObjectDoesNotExistException(message);
+                _logger.Error($"Requested job info with Id: \"{submittedJobInfoId}\" does not exist in the system.");
+                throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
             }
             if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork).AuthorizeUserForJobInfo(loggedUser, jobInfo))
             {
                 _logger.Error($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with job info with id: \"{submittedJobInfoId}\". This job was submitted by user: \"{jobInfo.Submitter.GetLogIdentification()}\" for group \"{jobInfo.Specification.SubmitterGroup.Name}\"");
-                throw new AdaptorUserNotAuthorizedForJobException($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with job info with id: \"{submittedJobInfoId}\"");
+                throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob", loggedUser.GetLogIdentification(), submittedJobInfoId);
             }
             return jobInfo;
         }
@@ -247,14 +243,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             SubmittedTaskInfo taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
             if (taskInfo == null)
             {
-                var message = $"Requested task info with Id: \"{submittedTaskInfoId}\" does not exist in the system.";
-                _logger.Error(message);
-                throw new RequestedObjectDoesNotExistException(message);
+                _logger.Error($"Requested task info with Id: \"{submittedTaskInfoId}\" does not exist in the system.");
+                throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
             }
             if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork).AuthorizeUserForTaskInfo(loggedUser, taskInfo))
             {
                 _logger.Error($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with task info with id: \"{submittedTaskInfoId}\". This task was submitted by user: \"{taskInfo.Specification.JobSpecification.Submitter.GetLogIdentification()}\" for group \"{taskInfo.Specification.JobSpecification.SubmitterGroup.Name}\"");
-                throw new AdaptorUserNotAuthorizedForJobException($"Logged user: \"{loggedUser.GetLogIdentification()}\" is not authorized to work with task info with id: \"{submittedTaskInfoId}\"");
+                throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithTask", loggedUser.GetLogIdentification(), submittedTaskInfoId);
             }
             return taskInfo;
         }
@@ -359,7 +354,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
-                throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                throw new InvalidRequestException("NotExistingProject");
             }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
@@ -374,7 +369,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id);
             if (clusterProject == null)
             {
-                throw new InvalidRequestException($"Cluster with this project does not exist in the system.");
+                throw new InvalidRequestException("NotExistingProject");
             }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                     .CreateScheduler(jobInfo.Specification.Cluster)
@@ -392,7 +387,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
             else
             {
-                throw new InputValidationException("Allocated nodes IP addresses are provided only for running task.");
+                throw new InputValidationException("IPAddressesProvidedOnlyForRunningTask");
             }
         }
 
@@ -481,7 +476,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 var parameter = templateParameters[i];
                 if (parameter.Value.Contains("\""))//todo move to validator?
                 {
-                    throw new ApplicationException($"Parameter '{parameter.CommandParameterIdentifier}': '{parameter.Value}' contains illegal characters.");
+                    throw new InvalidRequestException("ParameterIllegalCharacters", parameter.CommandParameterIdentifier, parameter.Value);
                 }
                 var parameterPair = $"{parameter.CommandParameterIdentifier}=\\\"{parameter.Value}\\\"";
                 commandParametersSb.Append(parameterPair);
@@ -521,7 +516,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             if (!(task.WalltimeLimit.HasValue))
             {
                 _logger.Error($"WalltimeLimit attribute in the task {task.Name} cannot be empty.");
-                throw new ArgumentNullException($"WalltimeLimit attribute in the task {task.Name} cannot be empty.");
+                throw new InvalidRequestException("TaskEmptyAttribute", "WalltimeLimit", task.Name);
             }
 
             int remainingWalltime = (int)task.WalltimeLimit;
