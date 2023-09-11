@@ -36,13 +36,14 @@ namespace HEAppE.ServiceTier.JobManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId.HasValue ? specification.ProjectId.Value : ServiceTierSettings.SingleProjectId.Value);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    if (ServiceTierSettings.SingleProjectId.HasValue && specification.ProjectId != ServiceTierSettings.SingleProjectId.Value)
-                    {
-                        throw new InputValidationException($"This is single project HEAppE instance. Please specify ProjectId '{ServiceTierSettings.SingleProjectId}'.");
-                    }
-                    JobSpecification js = specification.ConvertExtToInt(specification.ProjectId);
+                    JobSpecification js = specification.ConvertExtToInt(
+                                                            specification.ProjectId.HasValue ? specification.ProjectId.Value :
+                                                                (ServiceTierSettings.SingleProjectId.HasValue ? ServiceTierSettings.SingleProjectId.Value :
+                                                                    throw new InputValidationException($"This is not single project HEAppE instance. Please specify ProjectId.")
+                                                                )
+                                                            );
                     SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
                     return jobInfo.ConvertIntToExt();
                 }

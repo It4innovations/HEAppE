@@ -150,10 +150,10 @@ namespace HEAppE.RestApi
       });
 
       //Set Single Project HEAppE Instance
-      if (MiddlewareContextSettings.Projects.Count == 1)
+/*      if (MiddlewareContextSettings.Projects.Count == 1)
       {
         ServiceTierSettings.SingleProjectId = MiddlewareContextSettings.Projects.FirstOrDefault()?.Id;
-      }
+      }*/
     }
 
     /// <summary>

@@ -20,6 +20,7 @@ using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
 
@@ -212,7 +213,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             // Check if a project with the same accounting string already exists
             var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
-            if (existingProject != null)
+            if (existingProject != null && existingProject.IsDeleted)
+            {
+                var errorMessage = $"Project with accounting string {accountingString} was previously present in the system and was deleted!";
+                _logger.Error(errorMessage);
+                throw new InputValidationException(errorMessage);
+            }
+            else if(existingProject != null && !existingProject.IsDeleted)
             {
                 var errorMessage = $"Project with accounting string {accountingString} already exists!";
                 _logger.Error(errorMessage);
@@ -322,7 +329,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 _unitOfWork.ProjectRepository.Update(project);
                 _unitOfWork.Save();
-                _logger.Info($"Project id '{project.IsDeleted}' has been modified.");
+                _logger.Info($"Project ID '{project.Id}' has been modified.");
             }
             catch (Exception e)
             {
@@ -354,8 +361,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             try
             {
                 project.IsDeleted = true;
+                project.ModifiedAt = DateTime.UtcNow;
+                project.ClusterProjects.ForEach(x => { x.IsDeleted = true; x.ModifiedAt = DateTime.UtcNow; });
                 _unitOfWork.ProjectRepository.Update(project);
-                _logger.Info($"Project id '{project.IsDeleted}' has been deleted.");
+                _logger.Info($"Project id '{project.Id}' has been deleted.");
                 _unitOfWork.Save();
             }
             catch (Exception e)
@@ -365,7 +374,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new Exception(errorMessage);
             }
 
-            return $"Project id '{project.IsDeleted}' has been deleted";
+            return $"Project id '{project.Id}' has been deleted";
         }
 
         /// <summary>

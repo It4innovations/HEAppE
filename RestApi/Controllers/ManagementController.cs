@@ -48,7 +48,7 @@ namespace HEAppE.RestApi.Controllers
         }
         #endregion
         #region Methods
-                #region InstanceInformation
+        #region InstanceInformation
         /// <summary>
         /// Get HEAppE Infromation
         /// </summary>

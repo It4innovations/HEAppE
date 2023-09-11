@@ -27,5 +27,16 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions
             string message = $"User doesn't have required role. Required role: '{requiredRole.Name}'. {rolesForProjectText}";
             return new InsufficientRoleException(message);
         }
+
+        /// <summary>
+        /// Create InsufficientRoleException with prepared message.
+        /// </summary>
+        /// <param name="requiredRole">Required (missing) user role.</param>
+        /// <returns>New InsufficientRoleException.</returns>
+        public static InsufficientRoleException CreateMissingRoleException(AdaptorUserRole requiredRole)
+        {
+            string message = $"User doesn't have required role. Required role: '{requiredRole.Name}'.";
+            return new InsufficientRoleException(message);
+        }
     }
 }

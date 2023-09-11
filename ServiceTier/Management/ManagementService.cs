@@ -122,8 +122,7 @@ namespace HEAppE.ServiceTier.Management
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    #error BLOCKING ADMINISTRATOR ACCESS TO THE SYSTEM
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedHpcProjectAdminUserForSessionCode(sessionCode, unitOfWork);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
                     Project project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate, endDate, loggedUser);
                     return project.ConvertIntToExt();

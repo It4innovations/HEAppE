@@ -209,7 +209,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    AdaptorUser loggedUser = GetValidatedHpcProjectAdminUserForSessionCode(sessionCode, unitOfWork);
                     return loggedUser is not null;
                 }
             }
@@ -234,17 +234,40 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            if (ServiceTierSettings.SingleProjectId.HasValue)
+            if (ServiceTierSettings.SingleProjectId.HasValue && projectId == ServiceTierSettings.SingleProjectId.Value)
             {
                 CheckUserRoleForProject(loggedUser, requiredUserRole, ServiceTierSettings.SingleProjectId.Value);
             }
+            else if (ServiceTierSettings.SingleProjectId.HasValue && projectId != ServiceTierSettings.SingleProjectId.Value)
+            {
+                throw new ArgumentException($"Project ID {projectId} is not allowed. Only project ID {ServiceTierSettings.SingleProjectId.Value} is allowed.");
+            }
             else
             {
-
                 CheckUserRoleForProject(loggedUser, requiredUserRole, projectId);
-
             }
 
+            return loggedUser;
+        }
+
+        /// <summary>
+        /// Get user for given <paramref name="sessionCode"/> and check if the user has HpcProjectAdmin role
+        /// </summary>
+        /// <param name="sessionCode"></param>
+        /// <param name="unitOfWork"></param>
+        /// <returns></returns>
+        public static AdaptorUser GetValidatedHpcProjectAdminUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork)
+        {
+            IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+
+            bool hasRequiredRole = loggedUser.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == UserRoleType.HpcProjectAdmin);
+
+            if (!hasRequiredRole)
+            {
+                var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)UserRoleType.HpcProjectAdmin);
+                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel);
+            }
             return loggedUser;
         }
 
@@ -288,8 +311,13 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+                var project = unitOfWork.ProjectRepository.GetById(projectId);
+                if (project is null || project.IsDeleted)
+                {
+                    throw new InsufficientRoleException($"Project with ID {projectId} does not exist or was deleted.");
+                }
                 var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)requiredUserRole);
-                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.GetRolesForProject(projectId), projectId);
+                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.GetRolesForProject(projectId).Distinct(), projectId);
             }
         }
     }
