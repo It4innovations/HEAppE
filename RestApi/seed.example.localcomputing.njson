@@ -5,7 +5,6 @@
         "Id": 1,
         "Username": "{UserName}",
         "Password": "{Password}",
-        "LanguageId": 1,
         "CreatedAt": "2015-01-01 00:00:00",
         "ModifiedAt": null
       }
@@ -92,14 +91,16 @@
         "Username": "heappeclient",
         "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}"
+        "PrivateKeyPassword": "{PrivateKeyPassword}",
+        "CipherType": 1
       },
       {
         "Id": 2,
         "Username": "heappeclient",
         "Password": "pass",
         "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}"
+        "PrivateKeyPassword": "{PrivateKeyPassword}",
+        "CipherType": 1
       }
     ],
     "Projects": [
@@ -112,7 +113,25 @@
         "EndDate": "{EndDate}",
         "CreatedAt": "{CreatedAt}",
         "ModifiedAt": null,
-        "IsDeleted": false
+        "IsDeleted": false,
+        "UseAccountingStringForScheduler":  true
+      }
+    ],
+    "Contacts": [
+      {
+        "Id": 1,
+        "Email": "{Email}",
+        "IsDeleted": false,
+        "CreatedAt": "{CreatedAt}",
+        "ModifiedAt": null,
+        "PublicKey": null
+      }
+    ],
+    "ProjectContacts": [
+      {
+        "ProjectId": 1,
+        "ContactId": 1,
+        "IsPI": true
       }
     ],
     "ClusterProjects": [
@@ -219,13 +238,6 @@
         "ServerHostname": "{ServerHostNameDNS}",
         "Protocol": 2,
         "ClusterId": 1
-      }
-    ],
-    "Languages": [
-      {
-        "Id": 1,
-        "IsoCode": "en-GB",
-        "Name": "English"
       }
     ],
     "OpenStackInstances": [

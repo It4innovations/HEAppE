@@ -2,9 +2,6 @@
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.Utils.Validation;
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -22,6 +19,7 @@ namespace HEAppE.RestApi.InputValidator
                 TaskFileOffsetExt ext => ValidateTaskFileOffset(ext),
                 GetFileTransferMethodModel methodModel => ValidateGetFileTransferMethodModel(methodModel),
                 EndFileTransferModel transferModel => ValidateEndFileTransferModel(transferModel),
+                EndFileTransferModelOveral transferModel => ValidateEndFileTransferModelOveral(transferModel),
                 DownloadPartsOfJobFilesFromClusterModel clusterModel => ValidateDownloadPartsOfJobFilesFromClusterModel(clusterModel),
                 ListChangedFilesForJobModel jobModel => ValidateListChangedFilesForJobModel(jobModel),
                 DownloadFileFromClusterModel clusterModel => ValidateDownloadFileFromClusterModel(clusterModel),
@@ -70,6 +68,19 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
+        [Obsolete]
+        private string ValidateEndFileTransferModelOveral(EndFileTransferModelOveral model)
+        {
+            ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
+            ValidateSessionCode(model.SessionCode);
+            if (string.IsNullOrEmpty(model.UsedTransferMethod.Credentials.PublicKey))
+            {
+                _messageBuilder.AppendLine("PublicKey must be set");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
         private string ValidateEndFileTransferModel(EndFileTransferModel model)
         {
             ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
@@ -95,7 +106,7 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(taskFileOffset.SubmittedTaskInfoId)));
             }
-            if(taskFileOffset.Offset.HasValue && taskFileOffset.Offset.Value < 0)
+            if (taskFileOffset.Offset.HasValue && taskFileOffset.Offset.Value < 0)
             {
                 _messageBuilder.AppendLine("Offset must be positive number");
             }

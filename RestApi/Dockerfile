@@ -1,6 +1,6 @@
 #See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-FROM mcr.microsoft.com/dotnet/aspnet:5.0-buster-slim AS base
+FROM mcr.microsoft.com/dotnet/aspnet:7.0-bullseye-slim AS base
 WORKDIR /app
 RUN mkdir /sftp
 RUN chmod 700 /sftp
@@ -12,7 +12,7 @@ RUN apt-get install -y --no-install-recommends openssh-client
 EXPOSE 80
 
 
-FROM mcr.microsoft.com/dotnet/sdk:5.0-buster-slim AS build
+FROM mcr.microsoft.com/dotnet/sdk:7.0-bullseye-slim AS build
 WORKDIR /src
 
 COPY ["RestApi/RestApi.csproj", "RestApi/"]
@@ -28,7 +28,7 @@ COPY ["FileTransferFramework/FileTransferFramework.csproj", "FileTransferFramewo
 COPY ["RestApiModels/RestApiModels.csproj", "RestApiModels/"]
 COPY ["BackgroundThread/BackgroundThread.csproj", "BackgroundThread/"]
 COPY ["Utils/Utils.csproj", "Utils/"]
-COPY ["ExternalAuthentication/ExternalAuthentication.csproj", "KeycloakOpenIdAuthentication/"]
+COPY ["ExternalAuthentication/ExternalAuthentication.csproj", "ExternalAuthentication/"]
 COPY ["OpenStackAPI/OpenStackAPI.csproj", "OpenStackAPI/"]
 COPY ["RestUtils/RestUtils.csproj", "RestUtils/"]
 

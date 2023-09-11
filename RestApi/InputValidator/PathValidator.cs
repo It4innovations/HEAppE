@@ -1,8 +1,4 @@
 ﻿using HEAppE.Utils.Validation;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -15,9 +11,9 @@ namespace HEAppE.RestApi.InputValidator
         public override ValidationResult Validate()
         {
             string message = string.Empty;
-            if(_validationObject is string validationObject)
+            if (_validationObject is string validationObject)
             {
-                if(ContainsIllegalCharactersForPath(validationObject))
+                if (ContainsIllegalCharactersForPath(validationObject))
                 {
                     message = "Path contains some illegal characters";
                 }

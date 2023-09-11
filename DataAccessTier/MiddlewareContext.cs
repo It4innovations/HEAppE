@@ -3,7 +3,6 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.Notifications;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Utils;
@@ -172,9 +171,26 @@ namespace HEAppE.DataAccessTier
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+            //M:N relations for ProjectContact
+            modelBuilder.Entity<ProjectContact>()
+                .HasKey(pc => new { pc.ProjectId, pc.ContactId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Project)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ProjectId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Contact)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ContactId });
+
+
             modelBuilder.Entity<Project>()
                 .HasIndex(p => p.AccountingString)
                 .IsUnique();
+
+            modelBuilder.Entity<Project>()
+                .Property(p => p.UseAccountingStringForScheduler)
+                .HasDefaultValue(true);
         }
         #endregion
         #region Seeding methods
@@ -183,8 +199,6 @@ namespace HEAppE.DataAccessTier
         private void EnsureDatabaseSeeded()
         {
             _log.Info("Seed data into tha database started.");
-
-            InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
@@ -212,13 +226,17 @@ namespace HEAppE.DataAccessTier
                 Username = cc.Username,
                 Password = cc.Password,
                 PrivateKeyFile = cc.PrivateKeyFile,
-                PrivateKeyPassword = cc.PrivateKeyPassword
+                PrivateKeyPassword = cc.PrivateKeyPassword,
+                CipherType = cc.CipherType,
+                IsDeleted = cc.IsDeleted
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectContacts, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
@@ -245,8 +263,16 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
-            ClusterProjects.ToList().ForEach(cp => cp.ClusterProjectCredentials
-                                    .ForEach(cpc => cpc.ClusterAuthenticationCredentials.AuthenticationType = GetCredentialsAuthenticationType(cpc.ClusterAuthenticationCredentials, cp.Cluster)));
+            ClusterAuthenticationCredentials.ToList().ForEach(clusterAuthenticationCredential =>
+            {
+                var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
+                                                                .Select(x => x.ClusterProject.Cluster)
+                                                                .ToList();
+                if (clusters.Count() >= 1)
+                {
+                    clusterAuthenticationCredential.AuthenticationType = GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
+                }
+            });
 
             SaveChanges();
             _log.Info("Seed data into the database completed.");
@@ -256,7 +282,47 @@ namespace HEAppE.DataAccessTier
         {
             _log.Info("Seed validation has started.");
             ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
+            ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings.ClusterAuthenticationCredentials);
+            ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
             _log.Info("Seed validation completed.");
+        }
+
+        /// <summary>
+        /// Validate CommandTemplate to Project reference
+        /// </summary>
+        /// <param name="projectContacts"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void ValidateProjectContactReferences(List<ProjectContact> projectContacts)
+        {
+            foreach (var projectContact in projectContacts.GroupBy(x => x.ProjectId))
+            {
+                //if project contact has more than one PI throw exception
+                if (projectContact.Count(x => x.IsPI) > 1)
+                {
+                    string message = $"Project with id='{projectContact.Key}' has more than one PI.";
+                    _log.Error(message);
+                    throw new ApplicationException(message);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Validate ClusterAuthenticationCredentials to used clusters same proxy connection
+        /// </summary>
+        /// <param name="clusterAuthenticationCredentials"></param>
+        /// <exception cref="ApplicationException"></exception>
+        private void ValidateClusterAuthenticationCredentialsClusterReference(List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials)
+        {
+            foreach (var clusterAuthenticationCredential in clusterAuthenticationCredentials)
+            {
+                var clusters = clusterAuthenticationCredential.ClusterProjectCredentials.Select(x => x.ClusterProject.Cluster).ToList();
+                if (clusters.Count() >= 1 && clusters.Any(c => c.ProxyConnection != clusters.First().ProxyConnection))
+                {
+                    string message = $"ClusterAuthenticationCredential with id {clusterAuthenticationCredential.Id} has ClusterProjectCredentials with different ProxyConnection.";
+                    _log.Error(message);
+                    throw new ApplicationException(message);
+                }
+            }
         }
 
         /// <summary>
@@ -284,7 +350,7 @@ namespace HEAppE.DataAccessTier
         //sqlserver specific because of identity
         private void InsertOrUpdateSeedData<T>(IEnumerable<T> items, bool useSetIdentity = true) where T : class
         {
-            if (items == null)
+            if (items == null || items.Count() == 0)
             {
                 return;
             }
@@ -368,6 +434,12 @@ namespace HEAppE.DataAccessTier
                 case ClusterProjectCredentials clusterProjectCredentials:
                     {
                         var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+                case ProjectContact projectContact:
+                    {
+                        var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
@@ -480,20 +552,11 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
         #endregion
 
-        #region Notifications Entities
-        public virtual DbSet<Language> Languages { get; set; }
-        public virtual DbSet<MessageLocalization> MessageLocalizations { get; set; }
-        public virtual DbSet<MessageTemplate> MessageTemplates { get; set; }
-        public virtual DbSet<MessageTemplateParameter> MessageTemplateParameters { get; set; }
-        public virtual DbSet<Notification> Notifications { get; set; }
-        #endregion
-
         #region UserAndLimitationManagement Entities
         public virtual DbSet<AdaptorUser> AdaptorUsers { get; set; }
         public virtual DbSet<AdaptorUserGroup> AdaptorUserGroups { get; set; }
         public virtual DbSet<AdaptorUserUserGroupRole> AdaptorUserUserGroups { get; set; }
         public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
-        public virtual DbSet<ResourceLimitation> ResourceLimitations { get; set; }
         public virtual DbSet<SessionCode> SessionCodes { get; set; }
         public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }
         #endregion

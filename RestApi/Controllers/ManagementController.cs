@@ -150,31 +150,142 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
-            if (result)
-            {
-                List<ProjectExt> activeProjects = new();
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
+                if (result)
                 {
-                    activeProjects = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExt()).ToList();
+                    List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
+                    using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                    {
+                        activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
+                    }
+                    return Ok(new InstanceInformationExt()
+                    {
+                        Name = DeploymentInformationsConfiguration.Name,
+                        Description = DeploymentInformationsConfiguration.Description,
+                        Version = DeploymentInformationsConfiguration.Version,
+                        DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
+                        Port = DeploymentInformationsConfiguration.Port,
+                        URL = DeploymentInformationsConfiguration.Host,
+                        URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
+                        DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
+                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
+                        Projects = activeProjectsExtendedInfo
+                    });
                 }
-                return Ok(new InstanceInformationExt()
+                else
                 {
-                    Name = DeploymentInformationsConfiguration.Name,
-                    Description = DeploymentInformationsConfiguration.Description,
-                    Version = DeploymentInformationsConfiguration.Version,
-                    DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
-                    Port = DeploymentInformationsConfiguration.Port,
-                    URL = DeploymentInformationsConfiguration.Host,
-                    URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
-                    DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
-                    ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
-                    Projects = activeProjects
-                });
+                    return BadRequest(null);
+                }
             }
-            else
+            catch (Exception exception)
             {
-                return BadRequest(null);
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Generate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("CreateSecureShellKey")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult CreateSecureShellKey(CreateSecureShellKeyModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+                return Ok(_managementService.CreateSecureShellKey(model.Username, model.AccountingStrings, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Regenerate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("RecreateSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult RecreateSecureShellKey(RecreateSecureShellKeyModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.PublicKey, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
+            }
+        }
+
+        /// <summary>
+        /// Remove SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("RemoveSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult RemoveSecureShellKey(RemoveSecureShellKeyModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                }
+                return Ok(_managementService.RemoveSecureShellKey(model.PublicKey, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                if (exception is InputValidationException)
+                {
+                    BadRequest(exception.Message);
+                }
+                return Problem(null, null, null, exception.Message);
             }
         }
         #endregion

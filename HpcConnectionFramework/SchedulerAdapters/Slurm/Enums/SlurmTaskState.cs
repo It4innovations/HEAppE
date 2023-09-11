@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums
+﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums
 {
     /// <summary>
     /// Slurm states

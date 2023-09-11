@@ -131,7 +131,7 @@ namespace HEAppE.RestApi.Controllers
             {
                 var model = new CurrentClusterNodeUsageModel()
                 {
-                    SessionCode= sessionCode,
+                    SessionCode = sessionCode,
                     ClusterNodeId = clusterNodeId
                 };
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");

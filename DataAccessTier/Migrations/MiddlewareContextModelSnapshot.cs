@@ -15,16 +15,21 @@ namespace HEAppE.DataAccessTier.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("Relational:MaxIdentifierLength", 128)
-                .HasAnnotation("ProductVersion", "5.0.17")
-                .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                .HasAnnotation("ProductVersion", "7.0.10")
+                .HasAnnotation("Proxies:ChangeTracking", false)
+                .HasAnnotation("Proxies:CheckEquality", false)
+                .HasAnnotation("Proxies:LazyLoading", true)
+                .HasAnnotation("Relational:MaxIdentifierLength", 128);
+
+            SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.Cluster", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<int>("ConnectionProtocol")
                         .HasColumnType("int");
@@ -76,11 +81,21 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<int>("AuthenticationType")
                         .HasColumnType("int");
+
+                    b.Property<int>("CipherType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsGenerated")
+                        .HasColumnType("bit");
 
                     b.Property<string>("Password")
                         .HasMaxLength(50)
@@ -93,6 +108,10 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("PrivateKeyPassword")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("PublicKeyFingerprint")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<string>("Username")
                         .IsRequired()
@@ -108,8 +127,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("ClusterAllocationName")
                         .HasMaxLength(40)
@@ -161,8 +181,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("ClusterNodeTypeId")
                         .HasColumnType("bigint");
@@ -182,8 +203,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Host")
                         .IsRequired()
@@ -213,8 +235,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<int>("NameSpecification")
                         .HasColumnType("int");
@@ -236,8 +259,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("ClusterId")
                         .HasColumnType("bigint");
@@ -261,8 +285,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("AddedAt")
                         .HasColumnType("datetime2");
@@ -289,8 +314,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("ClusterId")
                         .HasColumnType("bigint");
@@ -353,8 +379,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("ClusterNodeTypeId")
                         .HasColumnType("bigint");
@@ -370,13 +397,12 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<string>("ExecutableFile")
                         .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ExtendedAllocationCommand")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
@@ -386,12 +412,12 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
 
                     b.Property<string>("PreparationScript")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<long?>("ProjectId")
                         .HasColumnType("bigint");
@@ -409,8 +435,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("CommandTemplateId")
                         .HasColumnType("bigint");
@@ -444,8 +471,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("TaskSpecificationId")
                         .HasColumnType("bigint");
@@ -467,12 +495,43 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("CommandTemplateParameterValue");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Contact", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("PublicKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Contact");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.EnvironmentVariable", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long?>("JobSpecificationId")
                         .HasColumnType("bigint");
@@ -502,8 +561,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreationTime")
                         .HasColumnType("datetime2");
@@ -552,8 +612,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("AllocationNodeId")
                         .IsRequired()
@@ -574,8 +635,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("AllParameters")
                         .HasColumnType("text");
@@ -642,8 +704,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("ClusterId")
                         .HasColumnType("bigint");
@@ -712,8 +775,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("AccountingString")
                         .IsRequired()
@@ -744,12 +808,38 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int>("UsageType")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("UseAccountingStringForScheduler")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
                     b.HasKey("Id");
 
                     b.HasIndex("AccountingString")
                         .IsUnique();
 
                     b.ToTable("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ProjectContact", b =>
+                {
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ContactId")
+                        .HasColumnType("bigint");
+
+                    b.Property<bool>("IsPI")
+                        .HasColumnType("bit");
+
+                    b.HasKey("ProjectId", "ContactId");
+
+                    b.HasIndex("ContactId");
+
+                    b.ToTable("ProjectContact");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskDependency", b =>
@@ -771,8 +861,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<int?>("MPIProcesses")
                         .HasColumnType("int");
@@ -797,8 +888,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("ClusterNodeTypeId")
                         .HasColumnType("bigint");
@@ -893,8 +985,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("NodeName")
                         .IsRequired()
@@ -911,162 +1004,13 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("TaskSpecificationRequiredNode");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.Language", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("IsoCode")
-                        .IsRequired()
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Language");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageLocalization", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<long?>("LanguageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("LocalizedHeader")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("LocalizedText")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<long?>("MessageTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LanguageId");
-
-                    b.HasIndex("MessageTemplateId");
-
-                    b.ToTable("MessageLocalization");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplate", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Description")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<int>("Event")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("MessageTemplate");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplateParameter", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Identifier")
-                        .IsRequired()
-                        .HasMaxLength(30)
-                        .HasColumnType("nvarchar(30)");
-
-                    b.Property<long?>("MessageTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("Query")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("MessageTemplateId");
-
-                    b.ToTable("MessageTemplateParameter");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.Notification", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<string>("Content")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("Header")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<long?>("LanguageId")
-                        .HasColumnType("bigint");
-
-                    b.Property<long?>("MessageTemplateId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("OccurrenceTime")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PhoneNumber")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)");
-
-                    b.Property<DateTime?>("SentTime")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("LanguageId");
-
-                    b.HasIndex("MessageTemplateId");
-
-                    b.ToTable("Notification");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Password")
                         .IsRequired()
@@ -1125,8 +1069,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Name")
                         .HasMaxLength(40)
@@ -1150,8 +1095,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("InstanceUrl")
                         .IsRequired()
@@ -1172,8 +1118,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<long>("AdaptorUserGroupId")
                         .HasColumnType("bigint");
@@ -1207,8 +1154,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Name")
                         .HasMaxLength(40)
@@ -1227,8 +1175,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -1239,9 +1188,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
-
-                    b.Property<long?>("LanguageId")
-                        .HasColumnType("bigint");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
@@ -1263,8 +1209,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("LanguageId");
-
                     b.ToTable("AdaptorUser");
                 });
 
@@ -1272,8 +1216,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1299,8 +1244,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("Description")
                         .IsRequired()
@@ -1352,8 +1298,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<string>("ApplicationCredentialsId")
                         .IsRequired()
@@ -1379,40 +1326,13 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("OpenStackSession");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.ResourceLimitation", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
-
-                    b.Property<long?>("AdaptorUserId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int?>("MaxCoresPerJob")
-                        .HasColumnType("int");
-
-                    b.Property<long?>("NodeTypeId")
-                        .HasColumnType("bigint");
-
-                    b.Property<int?>("TotalMaxCores")
-                        .HasColumnType("int");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("AdaptorUserId");
-
-                    b.HasIndex("NodeTypeId");
-
-                    b.ToTable("ResourceLimitation");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.SessionCode", b =>
                 {
                     b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint")
-                        .HasAnnotation("SqlServer:ValueGenerationStrategy", SqlServerValueGenerationStrategy.IdentityColumn);
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
 
                     b.Property<DateTime>("AuthenticationTime")
                         .HasColumnType("datetime2");
@@ -1674,6 +1594,25 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("SubmitterGroup");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ProjectContact", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Contact", "Contact")
+                        .WithMany("ProjectContacts")
+                        .HasForeignKey("ContactId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("ProjectContacts")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Contact");
+
+                    b.Navigation("Project");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskDependency", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.JobManagement.TaskSpecification", "ParentTaskSpecification")
@@ -1748,41 +1687,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasOne("HEAppE.DomainObjects.JobManagement.TaskSpecification", null)
                         .WithMany("RequiredNodes")
                         .HasForeignKey("TaskSpecificationId");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageLocalization", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId");
-
-                    b.HasOne("HEAppE.DomainObjects.Notifications.MessageTemplate", null)
-                        .WithMany("Localizations")
-                        .HasForeignKey("MessageTemplateId");
-
-                    b.Navigation("Language");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplateParameter", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.MessageTemplate", null)
-                        .WithMany("Parameters")
-                        .HasForeignKey("MessageTemplateId");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.Notification", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId");
-
-                    b.HasOne("HEAppE.DomainObjects.Notifications.MessageTemplate", "MessageTemplate")
-                        .WithMany()
-                        .HasForeignKey("MessageTemplateId");
-
-                    b.Navigation("Language");
-
-                    b.Navigation("MessageTemplate");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredentialDomain", b =>
@@ -1861,15 +1765,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("OpenStackProjectDomain");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.Notifications.Language", "Language")
-                        .WithMany()
-                        .HasForeignKey("LanguageId");
-
-                    b.Navigation("Language");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
@@ -1917,19 +1812,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("User");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.ResourceLimitation", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", null)
-                        .WithMany("Limitations")
-                        .HasForeignKey("AdaptorUserId");
-
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", "NodeType")
-                        .WithMany()
-                        .HasForeignKey("NodeTypeId");
-
-                    b.Navigation("NodeType");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.SessionCode", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "User")
@@ -1970,6 +1852,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("TemplateParameters");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Contact", b =>
+                {
+                    b.Navigation("ProjectContacts");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedJobInfo", b =>
                 {
                     b.Navigation("FileTransferTemporaryKeys");
@@ -1994,6 +1881,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("ClusterProjects");
 
                     b.Navigation("CommandTemplates");
+
+                    b.Navigation("ProjectContacts");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskSpecification", b =>
@@ -2009,13 +1898,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("RequiredNodes");
 
                     b.Navigation("TaskParalizationSpecifications");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.Notifications.MessageTemplate", b =>
-                {
-                    b.Navigation("Localizations");
-
-                    b.Navigation("Parameters");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.OpenStack.OpenStackAuthenticationCredential", b =>
@@ -2045,8 +1927,6 @@ namespace HEAppE.DataAccessTier.Migrations
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", b =>
                 {
                     b.Navigation("AdaptorUserUserGroupRoles");
-
-                    b.Navigation("Limitations");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>

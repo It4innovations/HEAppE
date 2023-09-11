@@ -1,5 +1,4 @@
-﻿using HEAppE.ExtModels.JobReporting.Models.ListReport;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Runtime.Serialization;
 

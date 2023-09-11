@@ -85,7 +85,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
         /// <summary>
         /// Job scheduler response raw data
         /// </summary>
-        string SchedulerResponseParameters { get;}
+        string SchedulerResponseParameters { get; }
         #endregion
     }
 }

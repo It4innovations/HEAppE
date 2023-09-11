@@ -12,7 +12,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
         [Required]
         [DataMember(Name = nameof(OpenIdAccessToken))]
         public string OpenIdAccessToken { get; set; }
-        
+
         public override string ToString()
         {
             return $"OpenIdCredentialsExt({base.ToString()}; access_token='{OpenIdAccessToken}')";

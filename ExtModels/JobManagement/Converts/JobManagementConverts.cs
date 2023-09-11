@@ -1,17 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.ExtModels.JobManagement.Converts
 {
@@ -238,6 +236,23 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 AccountingString = project.AccountingString,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
+                CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
+            };
+            return convert;
+        }
+
+        public static ExtendedProjectInfoExt ConvertIntToExtendedInfoExt(this Project project)
+        {
+            ExtendedProjectInfoExt convert = new()
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                AccountingString = project.AccountingString,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                PrimaryInvestigatorContact = project.ProjectContacts.FirstOrDefault(x => x.IsPI)?.Contact.Email,
+                Contacts = project.ProjectContacts.OrderByDescending(x => x.IsPI).Select(x => x.Contact.Email).ToArray(),
                 CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
             };
             return convert;

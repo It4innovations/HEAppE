@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.DomainObjects.FileTransfer;
+﻿using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.FileTransferFramework
 {

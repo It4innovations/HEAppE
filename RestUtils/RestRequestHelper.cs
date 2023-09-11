@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using RestSharp;
+using System;
 using System.Text;
-using RestSharp;
 
 namespace HEAppE.RestUtils
 {

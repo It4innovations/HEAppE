@@ -44,7 +44,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                                     : response.Replace($"CLUSTER: {nodeType.ClusterAllocationName}\n", string.Empty);
 
             parsedNodeUsedLine = Regex.Replace(parsedNodeUsedLine, @"[ ]|[\n]{2}", string.Empty);
-            if(!string.IsNullOrEmpty(parsedNodeUsedLine))
+            if (!string.IsNullOrEmpty(parsedNodeUsedLine))
             {
                 if (!int.TryParse(parsedNodeUsedLine, out nodesUsed))
                 {

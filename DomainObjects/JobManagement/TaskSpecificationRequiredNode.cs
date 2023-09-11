@@ -1,8 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Text;
 
 namespace HEAppE.DomainObjects.JobManagement
 {
@@ -18,7 +15,7 @@ namespace HEAppE.DomainObjects.JobManagement
         public TaskSpecificationRequiredNode() : base() { }
         public TaskSpecificationRequiredNode(TaskSpecificationRequiredNode taskSpecificationRequiredNode) : base(taskSpecificationRequiredNode)
         {
-            this.NodeName = taskSpecificationRequiredNode.NodeName;
+            NodeName = taskSpecificationRequiredNode.NodeName;
         }
 
         #region Override Methods

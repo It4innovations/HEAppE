@@ -300,7 +300,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="hash">Hash</param>
         public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
         {
-            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath,hash);
+            _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
         }
         #region SSH tunnel methods
         /// <summary>

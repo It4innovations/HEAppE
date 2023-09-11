@@ -28,7 +28,7 @@ namespace HEAppE.FileTransferFramework
         {
 #warning TODO temp solution before DI
             using var serviceScope = ServiceActivator.GetScope();
-            ILoggerFactory loggerFactory = (ILoggerFactory) serviceScope.ServiceProvider.GetService(typeof(ILoggerFactory));
+            ILoggerFactory loggerFactory = (ILoggerFactory)serviceScope.ServiceProvider.GetService(typeof(ILoggerFactory));
             _logger = loggerFactory.CreateLogger("HEAppE.FileTransferFramework.FileSystemFactory");
         }
         #endregion

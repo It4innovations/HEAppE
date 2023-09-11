@@ -1,5 +1,4 @@
 using HEAppE.DomainObjects.Logging;
-using HEAppE.DomainObjects.Notifications;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -32,13 +31,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public DateTime? ModifiedAt { get; set; }
 
-        [ForeignKey("Language")]
-        public long? LanguageId { get; set; }
-        public virtual Language Language { get; set; }
-
         public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
-
-        public virtual List<ResourceLimitation> Limitations { get; set; } = new List<ResourceLimitation>();
 
         [NotMapped]
         public List<AdaptorUserGroup> Groups => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUserGroup).ToList();

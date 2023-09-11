@@ -1,6 +1,6 @@
-﻿using System.Linq;
-using HEAppE.DataAccessTier.IRepository.OpenStack;
+﻿using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DomainObjects.OpenStack;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.OpenStack
 {

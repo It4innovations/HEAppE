@@ -88,7 +88,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// <exception cref="KeycloakOpenIdException">When fails to get user information from token</exception>
         public async Task<KeycloakUserInfoResult> GetUserInfoAsync(string offlineToken)
         {
-            _basicRestClient.Authenticator = new JwtAuthenticator(offlineToken);
+            _basicRestClient.UseAuthenticator(new JwtAuthenticator(offlineToken));
             RestRequest restRequest = new RestRequest($"realms/{ExternalAuthConfiguration.RealmName}/protocol/{ExternalAuthConfiguration.Protocol}/userinfo", Method.Post)
                                             .AddHeader("content-type", "application/x-www-form-urlencoded")
                                             .AddParameter("audience", ExternalAuthConfiguration.ClientId, ParameterType.GetOrPost)
@@ -129,7 +129,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// <exception cref="KeycloakOpenIdException">When fails to introspect token</exception>
         public async Task<KeycloakTokenIntrospectionResult> TokenIntrospectionAsync(string accessToken)
         {
-            _basicRestClient.Authenticator = new HttpBasicAuthenticator(ExternalAuthConfiguration.ClientId, ExternalAuthConfiguration.SecretId);
+            _basicRestClient.UseAuthenticator(new HttpBasicAuthenticator(ExternalAuthConfiguration.ClientId, ExternalAuthConfiguration.SecretId));
             RestRequest restRequest = new RestRequest($"realms/{ExternalAuthConfiguration.RealmName}/protocol/{ExternalAuthConfiguration.Protocol}/token/introspect", Method.Post)
                                             .AddHeader("content-type", "application/x-www-form-urlencoded")
                                             .AddParameter("token", accessToken, ParameterType.GetOrPost);
@@ -146,7 +146,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// <exception cref="KeycloakOpenIdException">When fails to refresh the token</exception>
         public async Task<OpenIdUserAuthenticationResult> RefreshAccessTokenAsync(string refreshToken)
         {
-            _basicRestClient.Authenticator = new HttpBasicAuthenticator(ExternalAuthConfiguration.ClientId, ExternalAuthConfiguration.SecretId);
+            _basicRestClient.UseAuthenticator(new HttpBasicAuthenticator(ExternalAuthConfiguration.ClientId, ExternalAuthConfiguration.SecretId));
             RestRequest restRequest = new RestRequest($"realms/{ExternalAuthConfiguration.RealmName}/protocol/{ExternalAuthConfiguration.Protocol}/token", Method.Post)
                                             .AddHeader("content-type", "application/x-www-form-urlencoded")
                                             .AddParameter("refresh_token", refreshToken, ParameterType.GetOrPost)

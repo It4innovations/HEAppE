@@ -1,5 +1,4 @@
 ﻿using HEAppE.ExtModels.ClusterInformation.Models;
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
@@ -15,12 +14,9 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
         [DataMember(Name = "CoresUsed")]
         public int? CoresUsed { get; set; }
 
-        [DataMember(Name = "Limitation")]
-        public ResourceLimitationExt Limitation { get; set; }
-
         public override string ToString()
         {
-            return $"ResourceUsageExt(nodeType={NodeType}; coresUsed={CoresUsed}; limitation={Limitation})";
+            return $"ResourceUsageExt(nodeType={NodeType}; coresUsed={CoresUsed};)";
         }
     }
 }

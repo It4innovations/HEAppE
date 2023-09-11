@@ -1,9 +1,8 @@
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
-using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
 
 namespace HEAppE.DomainObjects.ClusterInformation
 {
@@ -27,13 +26,24 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [Required]
         public ClusterAuthenticationCredentialsAuthType AuthenticationType { get; set; }
 
+        [Required]
+        public FileTransferCipherType CipherType { get; set; } = FileTransferCipherType.Unknown;
+
+        [StringLength(200)]
+        public string PublicKeyFingerprint { get; set; }
+
+        [Required]
+        public bool IsGenerated { get; set; } = false;
+
+        [Required]
+        public bool IsDeleted { get; set; } = false;
+
         public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
         #endregion
-
         #region Override Methods
         public override string ToString()
         {
-            return $"ClusterAuthenticationCredentials: Username={Username}, AuthenticationType={nameof(AuthenticationType)}";
+            return $"ClusterAuthenticationCredentials: Username={Username}, AuthenticationType={nameof(AuthenticationType)}, CipherType={CipherType}";
         }
         #endregion
     }

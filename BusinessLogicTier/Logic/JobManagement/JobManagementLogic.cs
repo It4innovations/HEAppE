@@ -61,11 +61,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                     _logger.Error($"Current usage for user {loggedUser.GetLogIdentification()} and node type {task.ClusterNodeType} was not created by the GetCurrentUsageAndLimitationsForUser method.");
                     throw new CurrentUsageAndLimitationsException("UsageNotCreated", loggedUser.GetLogIdentification(), task.ClusterNodeType);
                 }
-                else if (!CheckRequestedResourcesAgainstLimitations(task, currentUsage))
-                {
-                    _logger.Error($"Requested resources for job {task.Name} exceeded user limitations.");
-                    throw new RequestedJobResourcesExceededUserLimitationsException("ExceededUsageLimitations", task.Name);
-                }
 
                 if (isExtraLong)
                 {
@@ -307,14 +302,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     }
                 }
-                
+
                 if (cluster.UpdateJobStateByServiceAccount.Value)
                 {
                     actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks)).ToList();
                 }
                 else
                 {
-                    userJobsGroup.ForEach(f=> actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks))));
+                    userJobsGroup.ForEach(f => actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks))));
                 }
 
                 bool isNeedUpdateJobState = false;
@@ -389,30 +384,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             {
                 throw new InputValidationException("IPAddressesProvidedOnlyForRunningTask");
             }
-        }
-
-        protected static bool CheckRequestedResourcesAgainstLimitations(TaskSpecification specification, ResourceUsage currentUsage)
-        {
-
-            if (currentUsage.Limitation == null || !currentUsage.Limitation.TotalMaxCores.HasValue)
-            {
-                return true;
-            }
-
-            int availableCores = currentUsage.Limitation.TotalMaxCores.Value - currentUsage.CoresUsed;
-            if (currentUsage.Limitation.MaxCoresPerJob.HasValue && availableCores > currentUsage.Limitation.MaxCoresPerJob.Value)
-            {
-                _ = currentUsage.Limitation.MaxCoresPerJob.Value;
-            }
-            else if (availableCores < specification.MinCores)
-            {
-                return false;
-            }
-            else if (availableCores < specification.MaxCores)
-            {
-                specification.MaxCores = availableCores;
-            }
-            return true;
         }
 
         protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser, IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
@@ -504,7 +475,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             //Combination parameters from template
             taskSpecification.Priority ??= default(TaskPriority);
 
-            taskSpecification.Project??= taskSpecification.JobSpecification.Project;
+            taskSpecification.Project ??= taskSpecification.JobSpecification.Project;
         }
 
         /// <summary>

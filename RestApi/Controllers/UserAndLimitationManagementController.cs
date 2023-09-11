@@ -1,8 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using HEAppE.ServiceTier.UserAndLimitationManagement;
+﻿using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
@@ -165,7 +166,7 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get current resource usage
         /// </summary>
-        /// <param name="model">Session code</param>
+        /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("CurrentUsageAndLimitationsForCurrentUser")]
         [RequestSizeLimit(60)]

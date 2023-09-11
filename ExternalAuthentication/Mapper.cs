@@ -42,7 +42,7 @@ namespace HEAppE.ExternalAuthentication
                         List<string> projectIds = (propertyInfo.GetValue(obj.Attributes) as IEnumerable<AccessRightsResult>)?.Select(s => s.ProjectId).ToList();
                         var projects = ExternalAuthConfiguration.Projects.Where(w => projectIds.Contains(w.UUID));
 
-                        if(projects is null)
+                        if (projects is null)
                         {
                             throw new KeycloakOpenIdException("NotDefinedProject", string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name)));
                         }
@@ -70,7 +70,7 @@ namespace HEAppE.ExternalAuthentication
                         }
                     }
 
-                    if(!hasMappedGroup)
+                    if (!hasMappedGroup)
                     {
                         throw new KeycloakOpenIdException("IncorrectProjectRoleMapping");
                     }

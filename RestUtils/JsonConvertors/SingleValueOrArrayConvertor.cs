@@ -1,7 +1,7 @@
-﻿using System;
-using System.Collections.Generic;
-using Newtonsoft.Json;
+﻿using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.RestUtils.JsonConvertors
 {
@@ -19,7 +19,7 @@ namespace HEAppE.RestUtils.JsonConvertors
             }
 
             // Otherwise return list with single object.
-            return new List<T> {token.ToObject<T>()};
+            return new List<T> { token.ToObject<T>() };
         }
 
         public override bool CanConvert(Type objectType) => (objectType == typeof(List<T>));

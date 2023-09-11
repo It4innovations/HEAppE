@@ -1,10 +1,7 @@
 ﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.ClusterInformation;
-using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 {
@@ -23,7 +20,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         {
             var clusterProject = _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
             var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount);
-            var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials);
+            var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).Where(x => !x.IsDeleted);
             return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
         }
 
@@ -31,8 +28,14 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         {
             var clusterProject = _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
             var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount);
-            var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials);
+            var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).Where(x => !x.IsDeleted);
             return credentials?.FirstOrDefault();
+        }
+
+        public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint)
+        {
+            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && !x.IsDeleted && x.PublicKeyFingerprint == fingerprint);
+            return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
         }
         #endregion
     }

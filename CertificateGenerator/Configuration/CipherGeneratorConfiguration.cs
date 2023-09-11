@@ -1,5 +1,4 @@
 ﻿using HEAppE.DomainObjects.FileTransfer;
-using System;
 
 namespace HEAppE.CertificateGenerator.Configuration
 {
@@ -38,7 +37,7 @@ namespace HEAppE.CertificateGenerator.Configuration
         /// <summary>
         /// SSH cipher size
         /// </summary>
-        public static int Size { get;  set; }
+        public static int Size { get; set; }
 
         /// <summary>
         /// SSH cipher type

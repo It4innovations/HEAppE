@@ -11,7 +11,7 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
 {
     public static class FileTransferConverts
     {
-        #region Public Methods
+        #region Public Methods      
         public static FileTransferMethodExt ConvertIntToExt(this FileTransferMethod fileTransferMethod)
         {
             var convert = new FileTransferMethodExt()
@@ -20,7 +20,6 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
                 SharedBasepath = fileTransferMethod.SharedBasePath,
                 Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
                 ProxyConnection = fileTransferMethod.Cluster.ProxyConnection?.ConvertIntToExt(),
-                FileTransferCipherType = ConvertFileTransferMethodIntToExt(fileTransferMethod.FileTransferCipherType),
                 Credentials = fileTransferMethod.Credentials.ConvertIntToExt()
             };
             return convert;
@@ -42,7 +41,6 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
             {
                 Credentials = usedTransferMethod.Credentials.ConvertExtToInt(),
                 Protocol = ConvertFileTransferProtocolExtToInt(usedTransferMethod.Protocol),
-                FileTransferCipherType = ConvertFileTransferMethodExtToInt(usedTransferMethod.FileTransferCipherType),
                 ServerHostname = usedTransferMethod.ServerHostname,
                 SharedBasePath = usedTransferMethod.SharedBasepath
             };
@@ -102,36 +100,6 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
             }
             return convert;
         }
-
-        private static FileTransferCipherTypeExt ConvertFileTransferMethodIntToExt(FileTransferCipherType fileTransferMethod)
-        {
-            return fileTransferMethod switch
-            {
-                FileTransferCipherType.RSA3072 => FileTransferCipherTypeExt.RSA3072,
-                FileTransferCipherType.RSA4096 => FileTransferCipherTypeExt.RSA4096,
-                FileTransferCipherType.nistP256 => FileTransferCipherTypeExt.nistP256,
-                FileTransferCipherType.nistP521 => FileTransferCipherTypeExt.nistP521,
-                _ => FileTransferCipherTypeExt.RSA4096
-            };
-        }
-
-        private static FileTransferCipherType ConvertFileTransferMethodExtToInt(FileTransferCipherTypeExt? fileTransferMethod)
-        {
-            if (!fileTransferMethod.HasValue)
-            {
-                throw new InputValidationException("The file transfer method has to be set.");
-            }
-
-            return fileTransferMethod switch
-            {
-                FileTransferCipherTypeExt.RSA3072 => FileTransferCipherType.RSA3072,
-                FileTransferCipherTypeExt.RSA4096 => FileTransferCipherType.RSA4096,
-                FileTransferCipherTypeExt.nistP256 => FileTransferCipherType.nistP256,
-                FileTransferCipherTypeExt.nistP521 => FileTransferCipherType.nistP521,
-                _ => FileTransferCipherType.RSA4096
-            };
-        }
-
         private static SynchronizableFilesExt? ConvertSynchronizableFilesToExt(SynchronizableFiles? fileType)
         {
             if (!fileType.HasValue)

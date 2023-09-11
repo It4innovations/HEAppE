@@ -147,7 +147,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO
                 };
             }
         }
-#endregion
+        #endregion
         #region Methods
         /// <summary>
         /// Mapping Task state

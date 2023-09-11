@@ -1,6 +1,4 @@
-﻿using HEAppE.ExtModels.JobManagement.Models;
-using System;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models
 {

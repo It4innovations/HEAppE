@@ -1,25 +1,45 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.BusinessLogicTier.Factory;
+﻿using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExtModels.FileTransfer.Converts;
+using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
-using HEAppE.ExtModels.FileTransfer.Models;
-using HEAppE.ExtModels.FileTransfer.Converts;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 
 namespace HEAppE.ServiceTier.FileTransfer
 {
     public class FileTransferService : IFileTransferService
     {
         private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        
+
+        public FileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
+                    IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+                    FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
+                    return fileTransferMethod.ConvertIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return default;
+            }
+        }
+
         public FileTransferMethodExt RequestFileTransfer(long submittedJobInfoId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())

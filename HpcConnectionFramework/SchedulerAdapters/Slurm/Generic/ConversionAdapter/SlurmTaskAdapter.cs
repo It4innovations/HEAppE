@@ -181,7 +181,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
             set
             {
                 TimeSpan wallTime = TimeSpan.FromSeconds(value);
-                _taskBuilder.Append($" -t { wallTime:dd\\-hh\\:mm\\:ss}");
+                _taskBuilder.Append($" -t {wallTime:dd\\-hh\\:mm\\:ss}");
             }
         }
 

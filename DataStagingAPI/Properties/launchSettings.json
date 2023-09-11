@@ -1,0 +1,47 @@
+﻿{
+  "$schema": "http://json.schemastore.org/launchsettings.json",
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:5001",
+      "sslPort": 0,
+      "environmentVariables": {
+        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "IISExpress",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  },
+  "profiles": {
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5001",
+      "environmentVariables": {
+        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "IISExpress",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "DataStagingAPI": {
+      "commandName": "Project",
+      "dotnetRunMessages": true,
+      "launchBrowser": true,
+      "launchUrl": "swagger",
+      "applicationUrl": "http://localhost:5001",
+      "environmentVariables": {
+        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "DataStagingAPI",
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    },
+    "Docker": {
+      "commandName": "Docker",
+      "launchBrowser": true,
+      "launchUrl": "{Scheme}://localhost:{ServicePort}",
+      "environmentVariables": {
+        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "Docker"
+      }
+
+    }
+  }
+}

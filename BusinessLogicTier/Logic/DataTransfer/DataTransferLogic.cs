@@ -171,18 +171,18 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                 throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
             }
 
-            var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
-            var options = new RestClientOptions($"http://localhost:{allocatedPort}")
-            {
-                Encoding = Encoding.UTF8,
-                CachePolicy = new CacheControlHeaderValue()
+                var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
+                var options = new RestClientOptions($"http://localhost:{allocatedPort}")
                 {
-                    NoCache = true,
-                    NoStore = true
-                },
-                MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
-            };
-            var basicRestClient = new RestClient(options);
+                    Encoding = Encoding.UTF8,
+                    CachePolicy = new CacheControlHeaderValue()
+                    {
+                        NoCache = true,
+                        NoStore = true
+                    },
+                    MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+                };
+                var basicRestClient = new RestClient(options);
 
             var request = new RestRequest(httpRequest, Method.Get);
             headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
@@ -210,18 +210,18 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                 throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
             }
 
-            var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
-            var options = new RestClientOptions($"http://localhost:{allocatedPort}")
-            {
-                Encoding = Encoding.UTF8,
-                CachePolicy = new CacheControlHeaderValue()
+                var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
+                var options = new RestClientOptions($"http://localhost:{allocatedPort}")
                 {
-                    NoCache = true,
-                    NoStore = true
-                },
-                MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
-            };
-            var basicRestClient = new RestClient(options);
+                    Encoding = Encoding.UTF8,
+                    CachePolicy = new CacheControlHeaderValue()
+                    {
+                        NoCache = true,
+                        NoStore = true
+                    },
+                    MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+                };
+                var basicRestClient = new RestClient(options);
 
             var request = new RestRequest(httpRequest, Method.Post);
             headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));

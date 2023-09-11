@@ -1,9 +1,7 @@
 ﻿using HEAppE.ExtModels.ClusterInformation.Models;
-using System;
-using System.Collections.Generic;
+using HEAppE.Utils;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
-using HEAppE.Utils;
 
 namespace HEAppE.ExtModels.JobManagement.Models
 {
@@ -25,7 +23,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "PlacementPolicy"), StringLength(40)]
         public string PlacementPolicy { get; set; }
 
-	    [DataMember(Name = "Priority")]
+        [DataMember(Name = "Priority")]
         public TaskPriorityExt? Priority { get; set; }
 
         [DataMember(Name = "JobArrays")]

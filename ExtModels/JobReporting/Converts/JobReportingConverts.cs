@@ -1,17 +1,13 @@
-﻿using System;
-using System.Linq;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.JobReporting;
+﻿using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.JobManagement.Converts;
-using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
+using System;
+using System.Linq;
 
 namespace HEAppE.ExtModels.JobReporting.Converts
 {

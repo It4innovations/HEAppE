@@ -1,6 +1,6 @@
-﻿using Newtonsoft.Json;
+﻿using HEAppE.RestUtils.JsonConvertors;
+using Newtonsoft.Json;
 using System.Collections.Generic;
-using HEAppE.RestUtils.JsonConvertors;
 
 namespace HEAppE.ExternalAuthentication.DTO.JsonTypes
 {

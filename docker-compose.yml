@@ -28,6 +28,24 @@ services:
       - db_internal_network
       - external_network
 
+  datastagingapi:
+    image: ${DOCKER_REGISTRY-}datastagingapi
+    build:
+      context: .
+      dockerfile: DataStagingAPI/Dockerfile
+    depends_on:
+      - mssql
+    restart: unless-stopped
+    volumes:
+      - app_sftp_temp_volume:/sftp
+      - app_volume:/app/shared
+    environment:
+      ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
+      TZ: "Europe/Prague" 
+    networks:
+      - db_internal_network
+      - external_network
+
   heappe:
     image: ${DOCKER_REGISTRY-}heappe
     build:
