@@ -28,7 +28,7 @@ COPY ["FileTransferFramework/FileTransferFramework.csproj", "FileTransferFramewo
 COPY ["RestApiModels/RestApiModels.csproj", "RestApiModels/"]
 COPY ["BackgroundThread/BackgroundThread.csproj", "BackgroundThread/"]
 COPY ["Utils/Utils.csproj", "Utils/"]
-COPY ["ExternalAuthentication/ExternalAuthentication.csproj", "KeycloakOpenIdAuthentication/"]
+COPY ["ExternalAuthentication/ExternalAuthentication.csproj", "ExternalAuthentication/"]
 COPY ["OpenStackAPI/OpenStackAPI.csproj", "OpenStackAPI/"]
 COPY ["RestUtils/RestUtils.csproj", "RestUtils/"]
 

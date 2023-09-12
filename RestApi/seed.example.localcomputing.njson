@@ -118,7 +118,8 @@
         "EndDate": "{EndDate}",
         "CreatedAt": "{CreatedAt}",
         "ModifiedAt": null,
-        "IsDeleted": false
+        "IsDeleted": false,
+        "UseAccountingStringForScheduler":  true
       }
     ],
     "Contacts": [

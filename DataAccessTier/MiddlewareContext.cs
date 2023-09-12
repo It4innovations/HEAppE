@@ -186,6 +186,10 @@ namespace HEAppE.DataAccessTier
             modelBuilder.Entity<Project>()
                 .HasIndex(p => p.AccountingString)
                 .IsUnique();
+
+            modelBuilder.Entity<Project>()
+                .Property(p => p.UseAccountingStringForScheduler)
+                .HasDefaultValue(true);
         }
         #endregion
         #region Seeding methods
