@@ -727,7 +727,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 StartDate = startDate,
                 EndDate = endDate,
                 UsageType = usageType,
-                IsDeleted = false
+                IsDeleted = false,
+                UseAccountingStringForScheduler = true
             };
         }
 
