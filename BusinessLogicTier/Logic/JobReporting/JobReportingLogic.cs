@@ -4,6 +4,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -43,10 +44,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns list of all UserGroups and all Projects in groups
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<UserGroupListReport> UserGroupListReport(Project[] projects)
+        public IEnumerable<UserGroupListReport> UserGroupListReport(Project[] projects, long userId)
         {
 
-            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject().Where(x => projects.Any(y => y.Id == x.ProjectId));
+            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject().Where(x => projects.Any(y => y.Id == x.ProjectId) && x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId && !y.IsDeleted && y.AdaptorUserRoleId == (long)UserRoleType.GroupReporter));
             var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport()
             {
                 AdaptorUserGroup = adaptorUserGroup,
@@ -70,7 +71,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                 throw new ApplicationException($"Specified Job Id: \"{jobId}\" is not specified in system!");
             }
 
-            if (reporterGroupIds.Any(x => x == job.Project.Id))
+            if (reporterGroupIds.Intersect(job.Project.AdaptorUserGroups.Select(x => x.Id)).Any())
             {
                 var projectReport = new ProjectReport
                 {
@@ -92,7 +93,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(Project[] projects)
         {
             return _unitOfWork.SubmittedJobInfoRepository.GetAll()
-                                                            .Where(x=>projects.Any(y=> y.Id == x.Id))
+                                                            .Where(x => projects.Any(y => y.Id == x.Id))
                                                             .GroupBy(g => g.State)
                                                             .Select(s => new JobStateAggregationReport
                                                             {

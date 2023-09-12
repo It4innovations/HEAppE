@@ -240,7 +240,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
             else if (ServiceTierSettings.SingleProjectId.HasValue && projectId != ServiceTierSettings.SingleProjectId.Value)
             {
-                throw new ArgumentException($"Project ID {projectId} is not allowed. Only project ID {ServiceTierSettings.SingleProjectId.Value} is allowed.");
+                throw new InputValidationException($"Project ID {projectId} is not allowed. Only project ID {ServiceTierSettings.SingleProjectId.Value} is allowed.");
             }
             else
             {

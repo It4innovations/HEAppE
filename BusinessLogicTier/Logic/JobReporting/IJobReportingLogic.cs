@@ -7,7 +7,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
 {
     public interface IJobReportingLogic
     {
-        IEnumerable<UserGroupListReport> UserGroupListReport(Project[] projects);
+        IEnumerable<UserGroupListReport> UserGroupListReport(Project[] projects, long userId);
         IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(Project[] projects);
         IEnumerable<UserGroupReport> JobsDetailedReport(IEnumerable<long> groupIds);
         ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds);

@@ -167,9 +167,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
       }
     }
 
-    public AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser)
+    public AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser, long projectId)
     {
-      return loggedUser.Groups.FirstOrDefault() ?? _unitOfWork.AdaptorUserGroupRepository.GetDefaultSubmitterGroup();
+      return loggedUser.Groups.Where(x=>x.ProjectId == projectId).FirstOrDefault() ?? loggedUser.Groups.FirstOrDefault() ??_unitOfWork.AdaptorUserGroupRepository.GetDefaultSubmitterGroup();
     }
 
     public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo)

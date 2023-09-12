@@ -11,8 +11,8 @@ namespace HEAppE.ServiceTier.Management
     public interface IManagementService
     {
         CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript, string sessionCode);
-        PublicKeyExt CreateSecureShellKey(string username, long projectId, string sessionCode);
-        PublicKeyExt RecreateSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
+        PublicKeyExt CreateSecureShellKey(string username, string password, long projectId, string sessionCode);
+        PublicKeyExt RecreateSecureShellKey(string username, string password, string publicKey, long projectId, string sessionCode);
         string RemoveSecureShellKey(string publicKey, long projectId, string sessionCode);
         CommandTemplateExt ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript, string sessionCode);
         string RemoveCommandTemplate(long commandTemplateId, string sessionCode);

@@ -75,7 +75,7 @@ namespace HEAppE.ServiceTier.Management
                         throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
                     }
 
-                    if(commandTemplate.ProjectId == null)
+                    if (commandTemplate.ProjectId == null)
                     {
                         throw new InputValidationException("The specified command template cannot be removed!");
                     }
@@ -229,7 +229,7 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt CreateSecureShellKey(string username, long projectId, string sessionCode)
+        public PublicKeyExt CreateSecureShellKey(string username, string password, long projectId, string sessionCode)
         {
             try
             {
@@ -238,7 +238,7 @@ namespace HEAppE.ServiceTier.Management
 
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.CreateSecureShellKey(username, projectId).ConvertIntToExt();
+                    return managementLogic.CreateSecureShellKey(username, password, projectId).ConvertIntToExt();
                 }
             }
             catch (Exception exc)
@@ -248,7 +248,7 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt RecreateSecureShellKey(string username, string publicKey, long projectId, string sessionCode)
+        public PublicKeyExt RecreateSecureShellKey(string username, string password, string publicKey, long projectId, string sessionCode)
         {
             try
             {
@@ -256,7 +256,7 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RecreateSecureShellKey(username, publicKey, projectId).ConvertIntToExt();
+                    return managementLogic.RecreateSecureShellKey(username, password, publicKey, projectId).ConvertIntToExt();
                 }
             }
             catch (Exception exc)

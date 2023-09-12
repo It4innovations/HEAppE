@@ -20,7 +20,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser, DomainObjects.JobManagement.Project[] projects);
         bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo);
         bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo);
-        AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser);
+        AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser, long projectId);
         IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser, DomainObjects.JobManagement.Project[] projects);
     }
 }
