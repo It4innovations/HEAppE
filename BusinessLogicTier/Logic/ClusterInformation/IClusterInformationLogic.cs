@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System.Collections.Generic;
 
@@ -7,7 +8,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
     public interface IClusterInformationLogic
     {
         IEnumerable<Cluster> ListAvailableClusters();
-        ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser);
+        ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, Project[] projects);
         IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, AdaptorUser loggedUser);
         ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId);
         ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId);

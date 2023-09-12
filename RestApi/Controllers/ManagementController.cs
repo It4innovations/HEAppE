@@ -48,7 +48,7 @@ namespace HEAppE.RestApi.Controllers
         }
         #endregion
         #region Methods
-                #region InstanceInformation
+        #region InstanceInformation
         /// <summary>
         /// Get HEAppE Infromation
         /// </summary>
@@ -476,7 +476,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
-                return Ok(_managementService.CreateSecureShellKey(model.Username, model.ProjectId, model.SessionCode));
+                return Ok(_managementService.CreateSecureShellKey(model.Username, model.Projects, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -510,7 +510,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
-                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.PublicKey, model.ProjectId, model.SessionCode));
+                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.PublicKey, model.SessionCode));
             }
             catch (Exception exception)
             {

@@ -20,8 +20,10 @@ using System.Diagnostics.Metrics;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
 using System.Text.RegularExpressions;
+using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -212,7 +214,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             // Check if a project with the same accounting string already exists
             var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
-            if (existingProject != null)
+            if (existingProject != null && existingProject.IsDeleted)
+            {
+                var errorMessage = $"Project with accounting string {accountingString} was previously present in the system and was deleted!";
+                _logger.Error(errorMessage);
+                throw new InputValidationException(errorMessage);
+            }
+            else if (existingProject != null && !existingProject.IsDeleted)
             {
                 var errorMessage = $"Project with accounting string {accountingString} already exists!";
                 _logger.Error(errorMessage);
@@ -223,48 +231,54 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             // Create user groups for different purposes
             var defaultAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, string.Empty);
-            var lexisAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, "LexisAuthenticationConfiguration.HEAppEGroupNamePrefix");
+            var lexisAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
             var openIdAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, ExternalAuthConfiguration.HEAppEUserPrefix);
 
             try
             {
-                _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
-                _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
-                _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
-                _unitOfWork.Save();
-
-                // Check if an admin user exists and is not the logged-in user
-                var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
-                if (heappeAdminUser != null && heappeAdminUser.Id != loggedUser.Id)
+                using (var transactionScope = new TransactionScope(
+                            TransactionScopeOption.Required,
+                            new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
                 {
-                    var adminUserRole = CreateAdminUserRole(heappeAdminUser, defaultAdaptorUserGroup);
-                    loggedUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
-
-                    _unitOfWork.AdaptorUserRepository.Update(heappeAdminUser);
+                    _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
+                    _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
+                    _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
                     _unitOfWork.Save();
+
+                    // Check if an admin user exists and is not the logged-in user
+                    var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
+                    if (heappeAdminUser != null && heappeAdminUser.Id != loggedUser.Id)
+                    {
+                        var adminUserRole = CreateAdminUserRole(heappeAdminUser, defaultAdaptorUserGroup);
+                        heappeAdminUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
+
+                        _unitOfWork.AdaptorUserRepository.Update(heappeAdminUser);
+                        _unitOfWork.Save();
+                    }
+
+                    // Check if the logged-in user has a password
+                    if (string.IsNullOrEmpty(loggedUser.Password))
+                    {
+                        // For externally authenticated users, create admin roles in respective user groups
+                        var lexisAdminUserRole = CreateAdminUserRole(loggedUser, lexisAdaptorUserGroup);
+                        var openIdAdminUserRole = CreateAdminUserRole(loggedUser, openIdAdaptorUserGroup);
+
+                        loggedUser.AdaptorUserUserGroupRoles.AddRange(lexisAdminUserRole);
+                        loggedUser.AdaptorUserUserGroupRoles.AddRange(openIdAdminUserRole);
+                    }
+                    else
+                    {
+                        var adminUserRole = CreateAdminUserRole(loggedUser, defaultAdaptorUserGroup);
+                        loggedUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
+                    }
+
+                    // Update the logged-in user
+                    _unitOfWork.AdaptorUserRepository.Update(loggedUser);
+                    _unitOfWork.Save();
+
+                    _logger.Info($"Created project with id {project.Id}.");
+                    transactionScope.Complete();
                 }
-
-                // Check if the logged-in user has a password
-                if (string.IsNullOrEmpty(loggedUser.Password))
-                {
-                    var adminUserRole = CreateAdminUserRole(loggedUser, defaultAdaptorUserGroup);
-                    loggedUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
-                }
-                else
-                {
-                    // For externally authenticated users, create admin roles in respective user groups
-                    var lexisAdminUserRole = CreateAdminUserRole(loggedUser, lexisAdaptorUserGroup);
-                    var openIdAdminUserRole = CreateAdminUserRole(loggedUser, openIdAdaptorUserGroup);
-
-                    loggedUser.AdaptorUserUserGroupRoles.AddRange(lexisAdminUserRole);
-                    loggedUser.AdaptorUserUserGroupRoles.AddRange(openIdAdminUserRole);
-                }
-
-                // Update the logged-in user
-                _unitOfWork.AdaptorUserRepository.Update(loggedUser);
-                _unitOfWork.Save();
-
-                _logger.Info($"Created project with id {project.Id}.");
             }
             catch (Exception e)
             {
@@ -322,7 +336,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 _unitOfWork.ProjectRepository.Update(project);
                 _unitOfWork.Save();
-                _logger.Info($"Project id '{project.IsDeleted}' has been modified.");
+                _logger.Info($"Project ID '{project.Id}' has been modified.");
             }
             catch (Exception e)
             {
@@ -354,8 +368,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             try
             {
                 project.IsDeleted = true;
+                project.ModifiedAt = DateTime.UtcNow;
+                project.ClusterProjects.ForEach(x => RemoveProjectAssignmentToCluster(x.ProjectId, x.ClusterId));
                 _unitOfWork.ProjectRepository.Update(project);
-                _logger.Info($"Project id '{project.IsDeleted}' has been deleted.");
+                _logger.Info($"Project id '{project.Id}' has been deleted.");
                 _unitOfWork.Save();
             }
             catch (Exception e)
@@ -365,7 +381,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new Exception(errorMessage);
             }
 
-            return $"Project id '{project.IsDeleted}' has been deleted";
+            return $"Project id '{project.Id}' has been deleted";
         }
 
         /// <summary>
@@ -409,7 +425,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                         _logger.Error(errorMessage);
                         throw new InputValidationException(errorMessage);
                     }
-
                 }
                 else
                 {
@@ -496,6 +511,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 {
                     clusterProject.IsDeleted = true;
                     clusterProject.ModifiedAt = DateTime.Now;
+                    clusterProject.ClusterProjectCredentials.ForEach(x =>
+                    {
+                        x.IsDeleted = true;
+                        x.ModifiedAt = DateTime.UtcNow;
+                        x.ClusterAuthenticationCredentials.IsDeleted = true;
+                    });
                     _unitOfWork.ClusterProjectRepository.Update(clusterProject);
                     _unitOfWork.Save();
                     _logger.Info($"Removed assignment of the Project with ID '{projectId}' to the Cluster ID '{clusterId}'");
@@ -534,7 +555,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="username"></param>
         /// <param name="projectId"></param>
         /// <returns></returns>
-        public SecureShellKey CreateSecureShellKey(string username, long projectId)
+        public SecureShellKey CreateSecureShellKey(string username, string password, long projectId)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
             if (project is null)
@@ -556,8 +577,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
             var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
 
-            ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
-            ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
+            ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
+            ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
 
             foreach (var clusterProject in clusterProjects)
             {
@@ -571,6 +592,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
 
 
+
             return secureShellKey;
         }
 
@@ -581,7 +603,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="publicKey"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
-        public SecureShellKey RecreateSecureShellKey(string username, string publicKey, long projectId)
+        public SecureShellKey RecreateSecureShellKey(string username, string password, string publicKey, long projectId)
         {
             string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
             var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
@@ -765,12 +787,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="passphrase"></param>
         /// <param name="publicKeyFingerprint"></param>
         /// <returns></returns>
-        private ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(string username, string keyPath, string passphrase, string publicKeyFingerprint)
+        private ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(string username, string password, string keyPath, string passphrase, string publicKeyFingerprint)
         {
             return new ClusterAuthenticationCredentials
             {
                 Username = username,
-                Password = null,
+                Password = password,
                 PrivateKeyFile = keyPath,
                 PrivateKeyPassword = passphrase,
                 AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey,

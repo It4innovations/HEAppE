@@ -75,7 +75,7 @@ namespace HEAppE.ServiceTier.Management
                         throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
                     }
 
-                    if(commandTemplate.ProjectId == null)
+                    if (commandTemplate.ProjectId == null)
                     {
                         throw new InputValidationException("The specified command template cannot be removed!");
                     }
@@ -122,8 +122,7 @@ namespace HEAppE.ServiceTier.Management
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    #error BLOCKING ADMINISTRATOR ACCESS TO THE SYSTEM
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedHpcProjectAdminUserForSessionCode(sessionCode, unitOfWork);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
                     Project project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate, endDate, loggedUser);
                     return project.ConvertIntToExt();
@@ -230,16 +229,16 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt CreateSecureShellKey(string username, long projectId, string sessionCode)
+        public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
         {
             try
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.CreateSecureShellKey(username, projectId).ConvertIntToExt();
+                    ClusterProject clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                    return clusterProject.ConvertIntToExt();
                 }
             }
             catch (Exception exc)
@@ -249,7 +248,44 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt RecreateSecureShellKey(string username, string publicKey, long projectId, string sessionCode)
+        public string RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+                    UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    return managementLogic.RemoveProjectAssignmentToCluster(projectId, clusterId);
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public PublicKeyExt CreateSecureShellKey(string username, string password, long projectId, string sessionCode)
+        {
+            try
+            {
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                {
+
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    return managementLogic.CreateSecureShellKey(username, password, projectId).ConvertIntToExt();
+                }
+            }
+            catch (Exception exc)
+            {
+                ExceptionHandler.ThrowProperExternalException(exc);
+                return null;
+            }
+        }
+
+        public PublicKeyExt RecreateSecureShellKey(string username, string password, string publicKey, long projectId, string sessionCode)
         {
             try
             {
@@ -257,7 +293,7 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RecreateSecureShellKey(username, publicKey, projectId).ConvertIntToExt();
+                    return managementLogic.RecreateSecureShellKey(username, password, publicKey, projectId).ConvertIntToExt();
                 }
             }
             catch (Exception exc)

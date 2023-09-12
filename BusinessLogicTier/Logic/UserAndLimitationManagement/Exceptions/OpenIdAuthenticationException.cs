@@ -2,7 +2,7 @@
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions
 {
-    public class OpenIdAuthenticationException : ExternallyVisibleException
+  public class OpenIdAuthenticationException : ExternallyVisibleException
     {
         public OpenIdAuthenticationException(string message) : base(message)
         {
