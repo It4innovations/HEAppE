@@ -210,44 +210,7 @@ namespace HEAppE.ServiceTier.Management
                 return null;
             }
         }
-
-        public string RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
-        {
-            try
-            {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RemoveProjectAssignmentToCluster(projectId, clusterId);
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
-            }
-        }
-
-        public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
-        {
-            try
-            {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    ClusterProject clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
-                    return clusterProject.ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
-            }
-        }
-
+        
         public string RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
         {
             try

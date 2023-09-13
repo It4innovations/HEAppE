@@ -476,7 +476,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
-                return Ok(_managementService.CreateSecureShellKey(model.Username, model.Projects, model.SessionCode));
+                return Ok(_managementService.CreateSecureShellKey(model.Username, model.Password, model.ProjectId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -510,7 +510,7 @@ namespace HEAppE.RestApi.Controllers
                 {
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
-                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.PublicKey, model.SessionCode));
+                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
             }
             catch (Exception exception)
             {
