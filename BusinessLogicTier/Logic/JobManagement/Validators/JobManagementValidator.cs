@@ -278,8 +278,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         {
             try
             {
+                Project project = _unitOfWork.ProjectRepository.GetById(projectId);
+                if (project is null || !project.IsDeleted)
+                {
+                    throw new InputValidationException($"Project with ID '{projectId}' is not present in the system");
+                }
                 var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
-                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
+                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
             }
             catch (Exception)
             {

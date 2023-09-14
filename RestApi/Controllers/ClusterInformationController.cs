@@ -114,22 +114,24 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="sessionCode">Session code</param>
         /// <param name="clusterNodeId">ClusterNode ID</param>
+        /// <param name="projectId">Project ID</param>
         /// <returns></returns>
         [HttpGet("CurrentClusterNodeUsage")]
-        [RequestSizeLimit(94)]
+        [RequestSizeLimit(154)]
         [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult CurrentClusterNodeUsage(string sessionCode, long clusterNodeId)
+        public IActionResult CurrentClusterNodeUsage(string sessionCode, long clusterNodeId, long projectId)
         {
             try
             {
                 var model = new CurrentClusterNodeUsageModel()
                 {
                     SessionCode = sessionCode,
-                    ClusterNodeId = clusterNodeId
+                    ClusterNodeId = clusterNodeId,
+                    ProjectId = projectId
                 };
                 _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
                 ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
@@ -138,7 +140,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
+                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.ProjectId, model.SessionCode));
             }
             catch (Exception exception)
             {
@@ -174,7 +176,7 @@ namespace HEAppE.RestApi.Controllers
                     ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
                 }
 
-                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
+                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.ProjectId, model.SessionCode));
             }
             catch (Exception exception)
             {

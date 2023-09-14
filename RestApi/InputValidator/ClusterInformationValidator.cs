@@ -23,10 +23,8 @@ namespace HEAppE.RestApi.InputValidator
 
         private string ValidateCurrentClusterNodeUsageModel(CurrentClusterNodeUsageModel model)
         {
-            if (model.ClusterNodeId <= 0)
-            {
-                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("ClusterNodeId"));
-            }
+            ValidateId(model.ClusterNodeId, "ClusterNodeId");
+            ValidateId(model.ProjectId, "ProjectId");
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)
             {

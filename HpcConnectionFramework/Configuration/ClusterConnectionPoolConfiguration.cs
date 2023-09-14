@@ -7,16 +7,6 @@
     {
         #region Properties
         /// <summary>
-        /// Connection pool min size
-        /// </summary>
-        public int ConnectionPoolMinSize { get; set; }
-
-        /// <summary>
-        /// Connection pool max size
-        /// </summary>
-        public int ConnectionPoolMaxSize { get; set; }
-
-        /// <summary>
         /// Connection pool cleanning interval in seconds
         /// </summary>
         public int ConnectionPoolCleaningInterval { get; set; }

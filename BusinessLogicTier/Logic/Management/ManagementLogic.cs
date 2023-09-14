@@ -53,11 +53,20 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null || !project.IsDeleted)
+            {
+                _logger.Error($"The specified project with ID '{projectId}' is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException($"The specified project with ID '{projectId}' is not defined in HEAppE!");
+            }
+            
             if (commandTemplate is null)
             {
                 _logger.Error($"The specified command template with id {genericCommandTemplateId} is not defined in HEAppE!");
                 throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
             }
+
+
 
             if (!commandTemplate.IsGeneric)
             {
@@ -89,7 +98,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                                                             .CreateScheduler(cluster)
+                                                             .CreateScheduler(cluster, project)
                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
 
@@ -141,6 +150,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null || !project.IsDeleted)
+            {
+                _logger.Error($"The specified project with ID '{projectId}' is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException($"The specified project with ID '{projectId}' is not defined in HEAppE!");
+            }
+            
             if (commandTemplate is null)
             {
                 _logger.Error($"The specified command template with id {commandTemplateId} is not defined in HEAppE!");
@@ -168,7 +184,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
             var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                                                             .CreateScheduler(cluster)
+                                                             .CreateScheduler(cluster, project)
                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
 
@@ -437,6 +453,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                         CreatedAt = DateTime.Now,
                         IsDeleted = false,
                     };
+                    project.ModifiedAt = DateTime.UtcNow;
+                    _unitOfWork.ProjectRepository.Update(project);
                     _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
                     _unitOfWork.Save();
                     _logger.Info($"Created Project ID '{projectId} assignment to Cluster ID '{clusterId}'.");
@@ -475,6 +493,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     clusterProject.LocalBasepath = localBasepath;
                     clusterProject.ModifiedAt = DateTime.Now;
                     clusterProject.IsDeleted = false;
+                    clusterProject.Project.ModifiedAt = DateTime.UtcNow;
+                    _unitOfWork.ProjectRepository.Update(clusterProject.Project);
                     _unitOfWork.ClusterProjectRepository.Update(clusterProject);
                     _unitOfWork.Save();
                     _logger.Info($"Project ID '{projectId}' assignment to Cluster ID '{clusterId}' was modified.");
@@ -517,6 +537,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                         x.ModifiedAt = DateTime.UtcNow;
                         x.ClusterAuthenticationCredentials.IsDeleted = true;
                     });
+                    clusterProject.Project.ModifiedAt = DateTime.UtcNow;
+                    _unitOfWork.ProjectRepository.Update(clusterProject.Project);
                     _unitOfWork.ClusterProjectRepository.Update(clusterProject);
                     _unitOfWork.Save();
                     _logger.Info($"Removed assignment of the Project with ID '{projectId}' to the Cluster ID '{clusterId}'");
@@ -558,7 +580,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public SecureShellKey CreateSecureShellKey(string username, string password, long projectId)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null)
+            if (project is null || !project.IsDeleted)
             {
                 var errorMessage = $"Project with id {projectId} does not exist!";
                 _logger.Error(errorMessage);
@@ -585,7 +607,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 serviceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
                 nonServiceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
             }
-
+            
+            project.ModifiedAt = DateTime.UtcNow;
+            _unitOfWork.ProjectRepository.Update(project);
             _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
             _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
 
@@ -625,7 +649,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 credentials.PrivateKeyPassword = passphrase;
                 credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
                 credentials.CipherType = secureShellKey.CipherType;
-
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
 
@@ -656,7 +679,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 File.Delete(credentials.PrivateKeyFile);
                 credentials.IsDeleted = true;
-                credentials.ClusterProjectCredentials.ForEach(cpc => cpc.IsDeleted = true);
+                credentials.ClusterProjectCredentials.ForEach(cpc =>
+                {
+                     cpc.IsDeleted = true;
+                     cpc.ModifiedAt = DateTime.UtcNow;
+                     cpc.ClusterProject.Project.ModifiedAt = DateTime.UtcNow;
+                });
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
             _unitOfWork.Save();

@@ -1,9 +1,11 @@
-﻿using HEAppE.ConnectionPool;
+﻿using System;
+using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
 {
@@ -21,7 +23,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <summary>
         /// Scheduler singeltons
         /// </summary>
-        private readonly Dictionary<string, IRexScheduler> _schedulerSingletons = new();
+        private readonly Dictionary<(string, long projectId, DateTime?), IRexScheduler> _schedulerSingletons = new();
 
         /// <summary>
         /// Convertor
@@ -34,23 +36,26 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         private ISchedulerAdapter _schedulerAdapterInstance;
         #endregion
         #region SchedulerFactory Members
+
         /// <summary>
         /// Create scheduler
         /// </summary>
         /// <param name="configuration">Cluster configuration data</param>
+        /// <param name="jobInfoProject"></param>
+        /// <param name="project"></param>
         /// <returns></returns>
-        public override IRexScheduler CreateScheduler(Cluster configuration)
+        public override IRexScheduler CreateScheduler(Cluster configuration, Project project)
         {
-            var masterNodeName = configuration.MasterNodeName;
-            if (!_schedulerSingletons.ContainsKey(masterNodeName))
+            var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt);
+            if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             {
-                _schedulerSingletons[masterNodeName] = new RexSchedulerWrapper
-                                                       (
-                                                            GetSchedulerConnectionPool(configuration),
-                                                            CreateSchedulerAdapter()
-                                                       );
+                _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
+                (
+                    GetSchedulerConnectionPool(configuration, project),
+                    CreateSchedulerAdapter()
+                );
             }
-            return _schedulerSingletons[masterNodeName];
+            return _schedulerSingletons[uniqueIdentifier];
         }
 
         /// <summary>

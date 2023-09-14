@@ -7,6 +7,8 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
 using System;
 using System.Collections.Generic;
+using System.Linq;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -18,7 +20,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         #region Instances
         private readonly Dictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
         private readonly static Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new();
-        private static readonly Dictionary<string, ClusterConnectionPoolConfiguration> _connectionPoolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
+        private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
         #endregion
         #region Static Methods
         /// <summary>
@@ -48,12 +50,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         }
         #endregion
         #region Abstract Methods
+
         /// <summary>
         /// Create scheduler
         /// </summary>
         /// <param name="configuration">Cluster configuration</param>
+        /// <param name="jobInfoProject"></param>
         /// <returns></returns>
-        public abstract IRexScheduler CreateScheduler(Cluster configuration);
+        public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project);
 
         /// <summary>
         /// Create scheduler adapter
@@ -79,24 +83,29 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// Get scheduler connection pool
         /// </summary>
         /// <param name="clusterConf">Cluster configuration</param>
+        /// <param name="project">Project</param>
         /// <returns></returns>
-        protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf)
+        protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project)
         {
-            var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, clusterConf.SchedulerType);
+            var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt, clusterConf.SchedulerType);
             if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
             {
-                int connectionPoolMinSize = 0;
-                int connectionPoolMaxSize = 5;
+
                 int connectionPoolCleaningInterval = 60;
                 int connectionPoolMaxUnusedInterval = 1800;
+                
+                connectionPoolCleaningInterval = _connectionPoolSettings.ConnectionPoolCleaningInterval;
+                connectionPoolMaxUnusedInterval = _connectionPoolSettings.ConnectionPoolMaxUnusedInterval;
 
-                if (HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings.ContainsKey(clusterConf.MasterNodeName))
+                var clusterProject = project.ClusterProjects.FirstOrDefault(x => x.ClusterId == clusterConf.Id);
+                if (clusterProject is null || !clusterProject.IsDeleted)
                 {
-                    connectionPoolMinSize = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolMinSize;
-                    connectionPoolMaxSize = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolMaxSize;
-                    connectionPoolCleaningInterval = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolCleaningInterval;
-                    connectionPoolMaxUnusedInterval = _connectionPoolSettings[clusterConf.MasterNodeName].ConnectionPoolMaxUnusedInterval;
+                    throw new ArgumentException(
+                        $"Project with ID '{project.Id}' is not referenced to the cluster with ID '{clusterConf.Id}'.");
                 }
+                
+                int connectionPoolMinSize = 0;
+                int connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Count;
 
                 _schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(
                             clusterConf.MasterNodeName,

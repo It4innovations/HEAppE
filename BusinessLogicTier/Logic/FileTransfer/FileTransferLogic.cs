@@ -63,16 +63,18 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             foreach (var activeTemporaryKeyGroup in activeTemporaryKeysGroup)
             {
                 Cluster cluster = activeTemporaryKeyGroup.Key;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
-
+                
                 var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
-                    new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
+                        new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
                     .ToList();
 
-
-
-                clusterUserActiveTempKey.ForEach(f => scheduler.RemoveDirectFileTransferAccessForUser(f.Select(S => S.PublicKey), f.Key.ClusterUser, f.Key.Cluster));
-
+                foreach (var tempKey in clusterUserActiveTempKey)
+                {
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, tempKey.Key.Project);
+                    scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
+                        tempKey.Key.ClusterUser, tempKey.Key.Cluster);
+                }
 
                 activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
                 _unitOfWork.Save();
@@ -150,7 +152,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                     PublicKey = publicKey,
                 });
 
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project).AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
 
             _unitOfWork.Save();
             return transferMethod;
@@ -168,7 +170,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 throw new FileTransferTemporaryKeyException("The direct transfer could not be finished due to a public key mismatch!");
             }
 
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUser(
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project).RemoveDirectFileTransferAccessForUser(
                 new string[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser, jobInfo.Specification.Cluster);
 
             temporaryKey.IsDeleted = true;
