@@ -113,7 +113,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
                     }
                     //Create job directory
-                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath);
+                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode);
                     return jobInfo;
                 }
                 catch (Exception e)
@@ -131,7 +131,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
             if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForServiceAccount)
             {
-                if (BusinessLogicConfiguration.ClusterAccountRotation)
+                if (BusinessLogicConfiguration.SharedAccountsPoolMode)
                 {
                     //Check if user is already running job - if yes set state to WaitingForUser - else run the job
                     lock (_lockSubmitJobObj)
