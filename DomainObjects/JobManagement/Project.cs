@@ -35,6 +35,9 @@ namespace HEAppE.DomainObjects.JobManagement
         public bool IsDeleted { get; set; } = false;
 
         [Required]
+        public bool UseAccountingStringForScheduler { get; set; } = true;
+
+        [Required]
         public UsageType UsageType { get; set; } = UsageType.NodeHours;
 
         public virtual List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
