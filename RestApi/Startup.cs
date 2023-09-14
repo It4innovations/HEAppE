@@ -141,12 +141,6 @@ namespace HEAppE.RestApi
         var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
         gen.IncludeXmlComments(xmlPath);
       });
-
-      //Set Single Project HEAppE Instance
-/*      if (MiddlewareContextSettings.Projects.Count == 1)
-      {
-        ServiceTierSettings.SingleProjectId = MiddlewareContextSettings.Projects.FirstOrDefault()?.Id;
-      }*/
     }
 
     /// <summary>

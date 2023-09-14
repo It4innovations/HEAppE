@@ -234,19 +234,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            if (ServiceTierSettings.SingleProjectId.HasValue && projectId == ServiceTierSettings.SingleProjectId.Value)
-            {
-                CheckUserRoleForProject(loggedUser, requiredUserRole, ServiceTierSettings.SingleProjectId.Value);
-            }
-            else if (ServiceTierSettings.SingleProjectId.HasValue && projectId != ServiceTierSettings.SingleProjectId.Value)
-            {
-                throw new InputValidationException($"Project ID {projectId} is not allowed. Only project ID {ServiceTierSettings.SingleProjectId.Value} is allowed.");
-            }
-            else
-            {
-                CheckUserRoleForProject(loggedUser, requiredUserRole, projectId);
-            }
-
+            CheckUserRoleForProject(loggedUser, requiredUserRole, projectId);
             return loggedUser;
         }
 
@@ -276,26 +264,13 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            if (ServiceTierSettings.SingleProjectId.HasValue)
-            {
-                CheckUserRoleForProject(loggedUser, requiredUserRole, ServiceTierSettings.SingleProjectId.Value);
-                DomainObjects.JobManagement.Project project = unitOfWork.ProjectRepository.GetById(ServiceTierSettings.SingleProjectId.Value);
-                if (project is null)
-                {
-                    throw new ArgumentException($"Project with ID {ServiceTierSettings.SingleProjectId.Value} does not exist.");
-                }
-                return (loggedUser, new DomainObjects.JobManagement.Project[] { project });
-            }
-            else
-            {
-                var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x => (UserRoleType)x.AdaptorUserRoleId == requiredUserRole && !x.AdaptorUserGroup.Project.IsDeleted &&
+            var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x => (UserRoleType)x.AdaptorUserRoleId == requiredUserRole && !x.AdaptorUserGroup.Project.IsDeleted &&
                                                                                 x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow &&
                                                                                 !x.IsDeleted)
                                                                                 .Select(y => y.AdaptorUserGroup.Project)
                                                                                 .Distinct()
                                                                                 .ToArray();
-                return (loggedUser, projectIds);
-            }
+            return (loggedUser, projectIds); 
         }
 
         /// <summary>

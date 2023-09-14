@@ -37,7 +37,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
         public long? FileTransferMethodId { get; set; }
 
         [DataMember(Name = "IsExtraLong")]
-        public bool? IsExtraLong { get; set; } = false;
+        public bool IsExtraLong { get; set; } = false;
 
         [DataMember(Name = "EnvironmentVariables")]
         public EnvironmentVariableExt[] EnvironmentVariables { get; set; }

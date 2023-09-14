@@ -36,15 +36,10 @@ namespace HEAppE.ServiceTier.JobManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId.HasValue ? specification.ProjectId.Value : ServiceTierSettings.SingleProjectId.Value);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    JobSpecification js = specification.ConvertExtToInt(
-                                                            specification.ProjectId.HasValue ? specification.ProjectId.Value :
-                                                                (ServiceTierSettings.SingleProjectId.HasValue ? ServiceTierSettings.SingleProjectId.Value :
-                                                                    throw new InputValidationException($"This is not single project HEAppE instance. Please specify ProjectId.")
-                                                                )
-                                                            );
-                    SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
+                    JobSpecification js = specification.ConvertExtToInt(specification.ProjectId);
+                    SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
                     return jobInfo.ConvertIntToExt();
                 }
             }
@@ -70,7 +65,7 @@ namespace HEAppE.ServiceTier.JobManagement
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, project.Id);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     JobSpecification js = specification.ConvertExtToInt(project.Id);
-                    SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
+                    SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
                     return jobInfo.ConvertIntToExt();
                 }
             }
