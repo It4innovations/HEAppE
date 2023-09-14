@@ -1,3 +1,22 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+
+using HEAppE.DomainObjects;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.OpenStack;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.Utils;
+
+using log4net;
+
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+
 namespace HEAppE.DataAccessTier
 {
   internal class MiddlewareContext : DbContext
