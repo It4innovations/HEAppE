@@ -160,13 +160,13 @@ namespace HEAppE.DataAccessTier
                 .HasForeignKey(cp => new { cp.ProjectId });
 
             //M:N relations for ClusterProjectCredentials
-            modelBuilder.Entity<ClusterProjectCredentials>()
+            modelBuilder.Entity<ClusterProjectCredential>()
                 .HasKey(cpc => new { cpc.ClusterProjectId, cpc.ClusterAuthenticationCredentialsId });
-            modelBuilder.Entity<ClusterProjectCredentials>()
+            modelBuilder.Entity<ClusterProjectCredential>()
                 .HasOne(cpc => cpc.ClusterProject)
                 .WithMany(c => c.ClusterProjectCredentials)
                 .HasForeignKey(cpc => new { cpc.ClusterProjectId });
-            modelBuilder.Entity<ClusterProjectCredentials>()
+            modelBuilder.Entity<ClusterProjectCredential>()
                 .HasOne(cp => cp.ClusterAuthenticationCredentials)
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
@@ -182,7 +182,6 @@ namespace HEAppE.DataAccessTier
                 .HasOne(pc => pc.Contact)
                 .WithMany(p => p.ProjectContacts)
                 .HasForeignKey(pc => new { pc.ContactId });
-
 
             modelBuilder.Entity<Project>()
                 .HasIndex(p => p.AccountingString)
@@ -431,7 +430,7 @@ namespace HEAppE.DataAccessTier
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
-                case ClusterProjectCredentials clusterProjectCredentials:
+                case ClusterProjectCredential clusterProjectCredentials:
                     {
                         var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
                         UpdateEntityOrAddItem(entity, item);

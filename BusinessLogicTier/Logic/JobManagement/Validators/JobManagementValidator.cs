@@ -213,7 +213,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         private void ValidateRequestedProject(JobSpecification job)
         {
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(job.ClusterId, job.ProjectId);
-            if (clusterProject == null)
+            if (clusterProject == null || clusterProject.IsDeleted)
             {
                 _messageBuilder.AppendLine($"Requested project with Id {job.ProjectId} has no reference to cluster with Id {job.ClusterId}.");
             }

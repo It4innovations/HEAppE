@@ -55,6 +55,6 @@ namespace HEAppE.DataAccessTier
 
         public static List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();
 
-        public static List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
+        public static List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredential>();
     }
 }

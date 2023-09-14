@@ -22,6 +22,14 @@ namespace HEAppE.Utils
             {
                 var currentUserGroupRoles = GetUserRolesInGroup(adaptorUserUserGroupRoles, userGroupRole.AdaptorUserId, userGroupRole.AdaptorUserGroupId);
 
+                if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.HpcProjectAdmin))
+                {
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Administrator, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Maintainer, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
+                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
+                }
                 if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Administrator))
                 {
                     CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Maintainer, groupRoleCascadeAppender);

@@ -36,7 +36,7 @@ namespace HEAppE.ServiceTier.JobManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId.HasValue ? specification.ProjectId.Value : ServiceTierSettings.SingleProjectId.Value);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     JobSpecification js = specification.ConvertExtToInt(
                                                             specification.ProjectId.HasValue ? specification.ProjectId.Value :
@@ -145,7 +145,7 @@ namespace HEAppE.ServiceTier.JobManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, null);
+                    (AdaptorUser loggedUser, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                     IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                     var jobInfos = jobLogic.GetJobsForUser(loggedUser);
                     return jobInfos.Select(s => s.ConvertIntToExt()).ToArray();

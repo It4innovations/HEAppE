@@ -53,7 +53,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
             foreach (var task in specification.Tasks)
             {
-                ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser)
+                ResourceUsage currentUsage = userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser, new Project[] { task.Project })
                                                             .Where(w => w.NodeType.Id == task.ClusterNodeType.Id)
                                                             .FirstOrDefault();
 
@@ -402,7 +402,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
             specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId);
             specification.Submitter = loggedUser;
-            specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser);
+            specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
             specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
 
             foreach (TaskSpecification task in specification.Tasks)
