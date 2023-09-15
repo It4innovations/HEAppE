@@ -68,41 +68,6 @@ namespace HEAppE.RestApi.Controllers
             }
         }
 
-        /*/// <summary>
-        /// Create job specification
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("CreateJobByAccountingString")]
-        [RequestSizeLimit(50000)]
-        [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult CreateJobByAccountingString(CreateJobByAccountingStringModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CreateJob\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new JobManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                return Ok(_service.CreateJob(model.JobSpecification, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
-        }*/
-
         /// <summary>
         /// Submit job
         /// </summary>

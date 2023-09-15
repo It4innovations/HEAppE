@@ -30,7 +30,7 @@ namespace HEAppE.ServiceTier.JobManagement
         }
         #endregion
         #region Methods
-        public SubmittedJobInfoExt CreateJob(JobSpecificationByProjectExt specification, string sessionCode)
+        public SubmittedJobInfoExt CreateJob(JobSpecificationExt specification, string sessionCode)
         {
             try
             {
@@ -50,32 +50,7 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public SubmittedJobInfoExt CreateJob(JobSpecificationByAccountingStringExt specification, string sessionCode)
-        {
-            try
-            {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    Project project = unitOfWork.ProjectRepository.GetByAccountingString(specification.AccountingString);
-                    if (project == null)
-                    {
-                        _logger.Error($"Accounting string '{specification.AccountingString}' does not exist in the system.");
-                        throw new InputValidationException($"Accounting string '{specification.AccountingString}' does not exist in the system.");
-                    }
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, project.Id);
-                    IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                    JobSpecification js = specification.ConvertExtToInt(project.Id);
-                    SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
-                    return jobInfo.ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
-            }
-        }
-
+        
         public SubmittedJobInfoExt SubmitJob(long createdJobInfoId, string sessionCode)
         {
             try
@@ -95,7 +70,6 @@ namespace HEAppE.ServiceTier.JobManagement
                 return null;
             }
         }
-
         public SubmittedJobInfoExt CancelJob(long submittedJobInfoId, string sessionCode)
         {
             try

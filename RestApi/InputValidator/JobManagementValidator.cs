@@ -154,22 +154,6 @@ namespace HEAppE.RestApi.InputValidator
             }
             return _messageBuilder.ToString();
         }
-
-        private string ValidateCreateJobModel(CreateJobByAccountingStringModel validationObj)
-        {
-            _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
-            if (string.IsNullOrEmpty(validationObj.JobSpecification.AccountingString))
-            {
-                _messageBuilder.AppendLine("AccountingString cannot be null or empty");
-            }
-            ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
-            if (!validationResult.IsValid)
-            {
-                _messageBuilder.AppendLine(validationResult.Message);
-            }
-            return _messageBuilder.ToString();
-        }
-
         private string ValidateJobSpecificationExt(JobSpecificationExt job)
         {
             if (string.IsNullOrEmpty(job.Name))
