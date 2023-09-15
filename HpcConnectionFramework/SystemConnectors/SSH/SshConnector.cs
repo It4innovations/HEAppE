@@ -1,4 +1,5 @@
 ﻿using Exceptions.Internal;
+using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Utils;
 using Renci.SshNet;

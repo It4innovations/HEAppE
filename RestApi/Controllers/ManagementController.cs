@@ -150,40 +150,31 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-                var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
-                if (result)
-                {
-                    List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
-                    using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                    {
-                        activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
-                    }
-                    return Ok(new InstanceInformationExt()
-                    {
-                        Name = DeploymentInformationsConfiguration.Name,
-                        Description = DeploymentInformationsConfiguration.Description,
-                        Version = DeploymentInformationsConfiguration.Version,
-                        DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
-                        Port = DeploymentInformationsConfiguration.Port,
-                        URL = DeploymentInformationsConfiguration.Host,
-                        URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
-                        DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
-                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
-                        Projects = activeProjectsExtendedInfo
-                    });
-                }
-                else
-                {
-                    return BadRequest(null);
-                }
-            }
-            catch (Exception exception)
+            var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
+            if (result)
             {
-                if (exception is InputValidationException)
+                List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
+                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    BadRequest(exception.Message);
+                    activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
                 }
-                return Problem(null, null, null, exception.Message);
+                return Ok(new InstanceInformationExt()
+                {
+                    Name = DeploymentInformationsConfiguration.Name,
+                    Description = DeploymentInformationsConfiguration.Description,
+                    Version = DeploymentInformationsConfiguration.Version,
+                    DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
+                    Port = DeploymentInformationsConfiguration.Port,
+                    URL = DeploymentInformationsConfiguration.Host,
+                    URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
+                    DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
+                    ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
+                    Projects = activeProjectsExtendedInfo
+                });
+            }
+            else
+            {
+                return BadRequest(null);
             }
         }
 
@@ -201,24 +192,13 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CreateSecureShellKey(CreateSecureShellKeyModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-                return Ok(_managementService.CreateSecureShellKey(model.Username, model.AccountingStrings, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_managementService.CreateSecureShellKey(model.Username, model.AccountingStrings, model.SessionCode));
         }
 
         /// <summary>
@@ -235,24 +215,13 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RecreateSecureShellKey(RecreateSecureShellKeyModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.PublicKey, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_managementService.RecreateSecureShellKey(model.Username, model.PublicKey, model.SessionCode));
         }
 
         /// <summary>
@@ -269,24 +238,13 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RemoveSecureShellKey(RemoveSecureShellKeyModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-                return Ok(_managementService.RemoveSecureShellKey(model.PublicKey, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_managementService.RemoveSecureShellKey(model.PublicKey, model.SessionCode));
         }
         #endregion
     }

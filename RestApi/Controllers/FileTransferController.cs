@@ -57,14 +57,6 @@ namespace HEAppE.RestApi.Controllers
             return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
         }
 
-                return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
         /// <summary>
         /// Close file transfer tunnel
         /// </summary>
@@ -113,7 +105,7 @@ namespace HEAppE.RestApi.Controllers
                 ValidationResult validationResult = new FileTransferValidator(model).Validate();
                 if (!validationResult.IsValid)
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
+                    throw new InputValidationException(validationResult.Message);
                 }
 
                 _service.CloseFileTransfer(model.SubmittedJobInfoId, model.UsedTransferMethod.Credentials.PublicKey, model.SessionCode);

@@ -1,5 +1,4 @@
-﻿using HEAppE.RestUtils.Interfaces;
-using System;
+﻿using System;
 
 namespace Exceptions.External
 {

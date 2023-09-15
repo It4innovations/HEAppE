@@ -1,9 +1,6 @@
 ﻿using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
-using HEAppE.BusinessLogicTier.Logic.FileTransfer.Exceptions;
-using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -16,11 +13,13 @@ using log4net;
 using Renci.SshNet.Common;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
-using HEAppE.CertificateGenerator;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.BusinessLogicTier.Logic.FileTransfer;
-using HEAppE.BusinessLogicTier.Configuration;
 using Exceptions.External;
+using System.Reflection;
+using System.Linq;
+using System;
+using System.IO;
+using System.Collections.Generic;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 {

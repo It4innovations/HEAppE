@@ -1,5 +1,4 @@
-﻿using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.ExtModels.JobManagement.Models;
+﻿using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
 using HEAppE.ServiceTier.JobManagement;
@@ -8,10 +7,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using HEAppE.Utils.Validation;
-using HEAppE.RestApi.InputValidator;
-using Microsoft.Extensions.Caching.Memory;
 using Exceptions.External;
+using System;
+using System.Collections.Generic;
 
 namespace HEAppE.RestApi.Controllers
 {

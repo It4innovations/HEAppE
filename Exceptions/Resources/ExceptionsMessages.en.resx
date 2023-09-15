@@ -150,17 +150,26 @@
   <data name="InputValidationException_CommandTemplateNotGeneric" xml:space="preserve">
     <value>The specified command template is not generic.</value>
   </data>
+  <data name="InputValidationException_InvalidPublicKey" xml:space="preserve">
+    <value>The specified public key is not valid!</value>
+  </data>
   <data name="InputValidationException_IPAddressesProvidedOnlyForRunningTask" xml:space="preserve">
     <value>Allocated nodes IP addresses are provided only for running task.</value>
   </data>
   <data name="InputValidationException_NoFileOrDirectory" xml:space="preserve">
     <value>No such file or directory.</value>
   </data>
+  <data name="InputValidationException_NoProjectWithAccountString" xml:space="preserve">
+    <value>The specified project with accounting string '{0}' is not defined in HEAppE!</value>
+  </data>
   <data name="InputValidationException_NoScriptPath" xml:space="preserve">
     <value>The generic command template should contain script path!</value>
   </data>
   <data name="InputValidationException_NotValidJobSpecification" xml:space="preserve">
     <value>Submitted job specification is not valid: \r\n {0}</value>
+  </data>
+  <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
+    <value>The specified public key is not defined in HEAppE!</value>
   </data>
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Submitting Job is provided only for job in state Configuring.</value>

@@ -1,5 +1,4 @@
 ﻿using Exceptions.External;
-using HEAppE.BusinessLogicTier.Logic.Management.Exceptions;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -35,19 +34,19 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (commandTemplate is null)
             {
                 _logger.Error($"The specified command template with id {genericCommandTemplateId} is not defined in HEAppE!");
-                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             if (!commandTemplate.IsGeneric)
             {
                 _logger.Error($"The specified command template with id {genericCommandTemplateId} is not generic.");
-                throw new InputValidationException("The specified command template is not generic.");
+                throw new InputValidationException("CommandTemplateNotGeneric");
             }
 
             if (!commandTemplate.IsEnabled)
             {
                 _logger.Error($"The specified command template with id {genericCommandTemplateId} is disabled.");
-                throw new InputValidationException("The specified command template is deleted.");
+                throw new InputValidationException("CommandTemplateDeleted");
             }
 
             var commandTemplateParameter = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
@@ -56,13 +55,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (string.IsNullOrEmpty(commandTemplateParameter?.Identifier))
             {
                 _logger.Error($"The user-script command parameter for the generic command template is not defined in HEAppE!");
-                throw new RequestedObjectDoesNotExistException("The user-script command parameter for the generic command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("UserScriptNotDefined");
             }
 
             if (string.IsNullOrEmpty(executableFile))
             {
                 _logger.Error($"The generic command template should contain script path!");
-                throw new InputValidationException("The generic command template should contain script path!");
+                throw new InputValidationException("NoScriptPath");
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
@@ -110,25 +109,25 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (commandTemplate is null)
             {
                 _logger.Error($"The specified command template with id {commandTemplateId} is not defined in HEAppE!");
-                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             if (!commandTemplate.IsEnabled)
             {
                 _logger.Error($"The specified command template with id {commandTemplateId} is disabled.");
-                throw new InputValidationException("The specified command template is deleted.");
+                throw new InputValidationException("CommandTemplateDeleted");
             }
 
             if (commandTemplate.IsGeneric)
             {
                 _logger.Error($"The specified command template with id {commandTemplateId} is generic.");
-                throw new InputValidationException("The specified command template is generic.");
+                throw new InputValidationException("CommandTemplateIsGeneric");
             }
 
             if (executableFile is null)
             {
                 _logger.Error($"The specified command template must have specified executable file!");
-                throw new InputValidationException("The specified command template must have specified executable file!");
+                throw new InputValidationException("CommandTemplateNoExecutableFile");
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
@@ -168,7 +167,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (commandTemplate == null)
             {
                 _logger.Error($"The specified command template with id {commandTemplateId} is not defined in HEAppE!");
-                throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
             _logger.Info($"Removing command template: {commandTemplate.Name}");
             commandTemplate.IsEnabled = false;
@@ -203,7 +202,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (nonExistingProjects.Any())
             {
                 _logger.Error($"The specified project with accounting string {string.Join(", ", nonExistingProjects)} is not defined in HEAppE!");
-                throw new InputValidationException($"The specified project with accounting string {string.Join(", ", nonExistingProjects)} is not defined in HEAppE!");
+                throw new InputValidationException("NoProjectWithAccountString", string.Join(", ", nonExistingProjects));
             }
 
             SSHGenerator sshGenerator = new();
@@ -281,7 +280,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             if (clusterAuthenticationCredentials.Count == 0)
             {
-                throw new InputValidationException("The specified public key is not defined in HEAppE!");
+                throw new InputValidationException("PublicKeyNotFound");
             }
             _logger.Info($"Recreating SSH key for user {username}.");
             SSHGenerator sshGenerator = new SSHGenerator();
@@ -320,7 +319,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             if (clusterAuthenticationCredentials.Count == 0)
             {
-                throw new InputValidationException("The specified public key is not defined in HEAppE!");
+                throw new InputValidationException("PublicKeyNotFound");
             }
             _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
             foreach (var credentials in clusterAuthenticationCredentials)
@@ -348,7 +347,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (!match.Success)
             {
                 _logger.Error("The specified public key is not int the valid format!");
-                throw new InputValidationException("The specified public key is not valid!");
+                throw new InputValidationException("InvalidPublicKey");
             }
             else
             {

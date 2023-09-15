@@ -10,7 +10,6 @@ using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -23,20 +22,12 @@ namespace HEAppE.ServiceTier.FileTransfer
 
         public FileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
-                    IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
-                    FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
-                    return fileTransferMethod.ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return default;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
+                IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+                FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
+                return fileTransferMethod.ConvertIntToExt();
             }
         }
 

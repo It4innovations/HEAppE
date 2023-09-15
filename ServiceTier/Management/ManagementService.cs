@@ -88,62 +88,37 @@ namespace HEAppE.ServiceTier.Management
                     throw new InputValidationException("NoFileOrDirectory");
                 }
 
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                throw;
             }
         }
 
         public PublicKeyExt CreateSecureShellKey(string username, string[] accountingStrings, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.CreateSecureShellKey(username, accountingStrings).ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.CreateSecureShellKey(username, accountingStrings).ConvertIntToExt();
             }
         }
 
         public PublicKeyExt RecreateSecureShellKey(string username, string publicKey, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RecreateSecureShellKey(username, publicKey).ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.RecreateSecureShellKey(username, publicKey).ConvertIntToExt();
             }
         }
 
         public string RemoveSecureShellKey(string publicKey, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RemoveSecureShellKey(publicKey);
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.RemoveSecureShellKey(publicKey);
             }
         }
         #endregion

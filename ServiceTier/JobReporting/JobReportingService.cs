@@ -17,24 +17,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using Exceptions.External;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.BusinessLogicTier.Logic.JobReporting;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.ServiceTier.UserAndLimitationManagement;
-using HEAppE.BusinessLogicTier.Logic.JobReporting.Exceptions;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
-using HEAppE.ExtModels.JobReporting.Models;
-using HEAppE.ExtModels.JobReporting.Converts;
-using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using System.Text.RegularExpressions;
-using System.Security.Cryptography.X509Certificates;
-using HEAppE.ExtModels.JobReporting.Models.ListReport;
-using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
-using HEAppE.DomainObjects.JobReporting;
-using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 
 namespace HEAppE.ServiceTier.JobReporting
 {
