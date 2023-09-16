@@ -65,13 +65,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             if (session is null)
             {
                 _log.Error($"Session code \"{sessionCode}\" is not present in the database.");
-                throw new SessionCodeNotValidException($"Session code \"{sessionCode}\" is not present in the database.");
+                throw new SessionCodeNotValidException("NotPresent", sessionCode);
             }
 
             if (IsSessionExpired(session))
             {
                 _log.Warn($"Session code \"{sessionCode}\" already expired at \"{session.LastAccessTime.AddSeconds(_sessionExpirationSeconds)}\".");
-                throw new SessionCodeNotValidException($"Session code \"{sessionCode}\" already expired at \"{session.LastAccessTime.AddSeconds(_sessionExpirationSeconds)}\".");
+                throw new SessionCodeNotValidException("Expired", sessionCode, session.LastAccessTime.AddSeconds(_sessionExpirationSeconds));
             }
 
             session.LastAccessTime = DateTime.UtcNow;
@@ -87,7 +87,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 PasswordCredentials => AuthenticateUserWithPassword(credentials as PasswordCredentials),
                 DigitalSignatureCredentials => AuthenticateUserWithDigitalSignature(credentials as DigitalSignatureCredentials),
                 OpenIdCredentials => CreateSessionCode(await HandleOpenIdAuthenticationAsync(credentials as OpenIdCredentials)).UniqueCode,
-                _ => throw new ArgumentException($"Credentials of class {credentials.GetType().Name} are not supported. Change the UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.")
+                _ => throw new AuthenticationCredentialsException("NotSupportedAuthentication", credentials.GetType().Name)
             };
         }
 
@@ -114,7 +114,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
                 if (!adaptorUser.Groups.Any(f => f.ProjectId == projectId))
                 {
-                    throw new OpenStackAPIException($"User does not have permission to create OpenStack credentials for project \"{projectId}\"!");
+                    throw new OpenStackAPIException("MissingCreateCredentialsPermission", projectId);
                 }
 
                 var openStackProject = GetOpenStackInstanceWithProjects(projectId);
@@ -152,7 +152,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             catch (OpenStackAPIException ex)
             {
                 _log.Error($"Failed to retrieve OpenStack token for authorized OpenId user: \"{adaptorUser.Username}\". Reason: \"{ex.Message}\"");
-                throw new AuthenticationException("Unable to retrieve OpenStack application credentials for this user.");
+                throw new AuthenticationException("UnableToRetrieveOpenStackCredentials");
             }
         }
 
@@ -253,14 +253,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             var project = _unitOfWork.OpenStackProjectRepository.GetOpenStackProjectByProjectId(projectId.Value);
             if (project is null)
             {
-                throw new OpenStackAPIException($"There are not defined OpenStack project \"{projectId}\"!");
+                throw new OpenStackAPIException("NoOpenStackProject", projectId);
             }
 
             var projectCredentials = project.OpenStackAuthenticationCredentialProjects.FirstOrDefault(f => f.IsDefault) ?? project.OpenStackAuthenticationCredentialProjects.FirstOrDefault();
 
             if (projectCredentials is null)
             {
-                throw new OpenStackAPIException($"There are not assigned user credentials for OpenStack project \"{projectId}\"!");
+                throw new OpenStackAPIException("NoCredentialsForOpenStackProject", projectId);
             }
 
             return new OpenStackProjectDTO()
@@ -309,12 +309,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             catch (KeycloakOpenIdException keycloakException)
             {
                 _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", keycloakException);
-                throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", keycloakException);
+                throw new OpenIdAuthenticationException("InvalidToken", keycloakException);
             }
             catch (OpenIdAuthenticationException OpenIdException)
             {
                 _log.Error($"OpenId: Failed to authenticate user via access token. access_token='{openIdCredentials.OpenIdAccessToken}'", OpenIdException);
-                throw new OpenIdAuthenticationException("Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.", OpenIdException);
+                throw new OpenIdAuthenticationException("InvalidToken", OpenIdException);
             }
         }
 
@@ -392,7 +392,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 {
                     user.AdaptorUserUserGroupRoles.ForEach(f => { f.IsDeleted = true; f.ModifiedAt = changedTime; });
                     _unitOfWork.Save();
-                    throw new OpenIdAuthenticationException($"Open-d: User(\"{user.Username}\") has not User group!");
+                    throw new OpenIdAuthenticationException("NoUserGroup", user.Username);
                 }
                 else
                 {
@@ -440,9 +440,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (hash != user.Password)
             {
-                string message = $"Authentication of user \"{user.Username}\" was not successful due to wrong credentials.";
-                _log.Error(message);
-                throw new InvalidAuthenticationCredentialsException(message);
+                _log.Error($"Authentication of user \"{user.Username}\" was not successful due to wrong credentials.");
+                throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
             }
 
             return CreateSessionCode(user).UniqueCode;
@@ -472,7 +471,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 }
 
                 _log.Error($"Authentication of user \"{user.Username}\" was not successful due to wrong credentials.");
-                throw new InvalidAuthenticationCredentialsException($"Authentication of user \"{user.Username}\" was not successful due to wrong credentials.");
+                throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
             }
         }
 
@@ -483,16 +482,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (user == null)
             {
-                string wrongCredentialsError = $"Authentication of user \"{username}\" was not successful due to wrong credentials.";
-                _log.Error(wrongCredentialsError);
-                throw new InvalidAuthenticationCredentialsException(wrongCredentialsError);
+                _log.Error($"Authentication of user \"{username}\" was not successful due to wrong credentials.");
+                throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
             }
 
             if (user.Deleted)
             {
-                string deletedUserError = $"User \"{user.Username}\", that requested authentication was already deleted from the system.";
-                _log.Error(deletedUserError);
-                throw new AuthenticatedUserAlreadyDeletedException(deletedUserError);
+                _log.Error($"User \"{user.Username}\", that requested authentication was already deleted from the system.");
+                throw new AuthenticatedUserAlreadyDeletedException("UserDeleted", user.Username);
             }
             return user;
         }

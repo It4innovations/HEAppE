@@ -123,6 +123,15 @@
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
     <value>Logged user: '{0}' is not authorized to work with task info with id: '{1}'.</value>
   </data>
+  <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
+    <value>User '{0}', that requested authentication was already deleted from the system.</value>
+  </data>
+  <data name="AuthenticationCredentialsException_NotSupportedAuthentication" xml:space="preserve">
+    <value>Credentials of class {0} are not supported. Change the UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.</value>
+  </data>
+  <data name="AuthenticationException_UnableToRetrieveOpenStackCredentials" xml:space="preserve">
+    <value>Unable to retrieve OpenStack application credentials for this user.</value>
+  </data>
   <data name="AuthenticationTypeException_NotAllowed" xml:space="preserve">
     <value>Cluster authentication credentials authentication type is not allowed!</value>
   </data>
@@ -174,6 +183,15 @@
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Submitting Job is provided only for job in state Configuring.</value>
   </data>
+  <data name="InsufficientRoleException_MissingRole" xml:space="preserve">
+    <value>User doesn't have required role. Required role: '{0}'. Current user does not have any permission/role for project '{1}'.</value>
+  </data>
+  <data name="InsufficientRoleException_MissingRoles" xml:space="preserve">
+    <value>User doesn't have required role. Required role: '{0}'. Current user roles for project {1}: '{2}'.</value>
+  </data>
+  <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
+    <value>Authentication of user '{0}' was not successful due to wrong credentials.</value>
+  </data>
   <data name="InvalidRequestException_CannotDeleteJob" xml:space="preserve">
     <value>Cannot delete job with Id {0}, this job is in state {1}.</value>
   </data>
@@ -224,6 +242,21 @@
   </data>
   <data name="KeycloakOpenIdException_UserNotActive" xml:space="preserve">
     <value>Open-Id: User is not active!</value>
+  </data>
+  <data name="OpenIdAuthenticationException_InvalidToken" xml:space="preserve">
+    <value>Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.</value>
+  </data>
+  <data name="OpenIdAuthenticationException_NoUserGroup" xml:space="preserve">
+    <value>Open-d: User('{0}') has not User group!</value>
+  </data>
+  <data name="OpenStackAPIException_MissingCreateCredentialsPermission" xml:space="preserve">
+    <value>User does not have permission to create OpenStack credentials for project '{0}'!</value>
+  </data>
+  <data name="OpenStackAPIException_NoCredentialsForOpenStackProject" xml:space="preserve">
+    <value>There are not assigned user credentials for OpenStack project '{0}'!</value>
+  </data>
+  <data name="OpenStackAPIException_NoOpenStackProject" xml:space="preserve">
+    <value>There are not defined OpenStack project '{0}'!</value>
   </data>
   <data name="OpenStackAPIException_NotSpeficiedUrl" xml:space="preserve">
     <value>Not specify URL address for OpenStack.</value>
@@ -308,6 +341,12 @@
   </data>
   <data name="SchedulerException_NotValidType" xml:space="preserve">
     <value>Scheduler factory with type '{0}' does not exist.</value>
+  </data>
+  <data name="SessionCodeNotValidException_Expired" xml:space="preserve">
+    <value>Session code '{0}' already expired at '{1}'.</value>
+  </data>
+  <data name="SessionCodeNotValidException_NotPresent" xml:space="preserve">
+    <value>Session code '{0}' is not present in the database.</value>
   </data>
   <data name="SftpClientArgumentException_FactoryManagerTypeNotExists" xml:space="preserve">
     <value>File system manager factory with type '{0}' does not exist.</value>

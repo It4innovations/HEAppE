@@ -15,6 +15,14 @@ namespace Exceptions.External
         {
         }
 
+        public InsufficientRoleException(string message, params object[] args) : base(message, args)
+        {
+        }
+
+        public InsufficientRoleException(string message, Exception innerException, params object[] args) : base(message, innerException, args)
+        {
+        }
+
         /// <summary>
         /// Create InsufficientRoleException with prepared message.
         /// </summary>
@@ -23,9 +31,8 @@ namespace Exceptions.External
         /// <returns>New InsufficientRoleException.</returns>
         public static InsufficientRoleException CreateMissingRoleException(AdaptorUserRole requiredRole, IEnumerable<AdaptorUserRole> availableRoles, long projectId)
         {
-            string rolesForProjectText = (availableRoles is null || availableRoles.Count() == 0) ? $"Current user does not have any permission/role for project '{projectId}'." : $"Current user roles for project {projectId}: '{string.Join(",", availableRoles.Select(role => role.Name))}'.";
-            string message = $"User doesn't have required role. Required role: '{requiredRole.Name}'. {rolesForProjectText}";
-            return new InsufficientRoleException(message);
+            return (availableRoles is null || availableRoles.Count() == 0) ? new InsufficientRoleException("MissingRole", requiredRole.Name, projectId) :
+                new InsufficientRoleException("MissingRoles", requiredRole.Name, projectId, string.Join(",", availableRoles.Select(role => role.Name)));
         }
     }
 }

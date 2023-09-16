@@ -157,7 +157,7 @@ namespace HEAppE.RestApi
             {
                 builder.AppendLine(_exceptionsLocalizer.GetString(exceptionName, baseException.Args));
             }
-            else if(exception is BaseException)
+            else if (exception is BaseException)
             {
                 builder.AppendLine(_exceptionsLocalizer.GetString(exceptionName));
             }
