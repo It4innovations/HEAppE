@@ -128,20 +128,11 @@ namespace HEAppE.RestApi
         /// <returns></returns>
         private string GetExceptionMessage(Exception exception)
         {
-            string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
             StringBuilder localizedMessage = new();
 
             FormatExceptionMessage(exception, localizedMessage);
 
-            //If resource file doesn't contains message for exception type return exception message
-            string resultMessage = localizedMessage.ToString();
-
-            if (resultMessage == exceptionName)
-            {
-                return exception.Message;
-            }
-
-            return resultMessage;
+            return localizedMessage.ToString();
         }
 
         /// <summary>
@@ -152,18 +143,29 @@ namespace HEAppE.RestApi
         private void FormatExceptionMessage(Exception exception, StringBuilder builder)
         {
             string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
+            string localizedException;
 
             if (exception is BaseException baseException && baseException.Args is not null)
             {
-                builder.AppendLine(_exceptionsLocalizer.GetString(exceptionName, baseException.Args));
+                localizedException = _exceptionsLocalizer.GetString(exceptionName, baseException.Args);
             }
             else if (exception is BaseException)
             {
-                builder.AppendLine(_exceptionsLocalizer.GetString(exceptionName));
+                localizedException = _exceptionsLocalizer.GetString(exceptionName);
             }
             else
             {
+                localizedException = exception.Message;
+            }
+
+            //If resource file doesn't contains message for exception type return exception message
+            if (localizedException == exceptionName)
+            {
                 builder.AppendLine(exception.Message);
+            }
+            else
+            {
+                builder.AppendLine(localizedException);
             }
 
             if (exception.InnerException is not null)
