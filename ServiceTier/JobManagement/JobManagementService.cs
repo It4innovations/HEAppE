@@ -38,7 +38,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 JobSpecification js = specification.ConvertExtToInt(
                                                         specification.ProjectId.HasValue ? specification.ProjectId.Value :
                                                             (ServiceTierSettings.SingleProjectId.HasValue ? ServiceTierSettings.SingleProjectId.Value :
-                                                                throw new InputValidationException($"This is not single project HEAppE instance. Please specify ProjectId.")
+                                                                throw new InputValidationException("NotSingleProjectInstance")
                                                             )
                                                         );
                 SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
@@ -54,7 +54,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 if (project == null)
                 {
                     _logger.Error($"Accounting string '{specification.AccountingString}' does not exist in the system.");
-                    throw new InputValidationException($"Accounting string '{specification.AccountingString}' does not exist in the system.");
+                    throw new InputValidationException("NotExistingAccountString", specification.AccountingString);
                 }
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
@@ -80,7 +80,7 @@ namespace HEAppE.ServiceTier.JobManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException($"Job with ID '{submittedJobInfoId}' does not exist in the system");
+                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException("NotExistingJob", submittedJobInfoId);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, job.Project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                 SubmittedJobInfo jobInfo = jobLogic.CancelJob(submittedJobInfoId, loggedUser);
@@ -92,7 +92,7 @@ namespace HEAppE.ServiceTier.JobManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException($"Job with ID '{submittedJobInfoId}' does not exist in the system");
+                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException("NotExistingJob", submittedJobInfoId);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, job.Project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                 jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
@@ -114,7 +114,7 @@ namespace HEAppE.ServiceTier.JobManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException($"Job with ID '{submittedJobInfoId}' does not exist in the system");
+                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException("NotExistingJob", submittedJobInfoId);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, job.Project.Id);
 
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
@@ -127,7 +127,7 @@ namespace HEAppE.ServiceTier.JobManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException($"Job with ID '{submittedJobInfoId}' does not exist in the system");
+                var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException("NotExistingJob", submittedJobInfoId);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, job.Project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
 
@@ -139,7 +139,7 @@ namespace HEAppE.ServiceTier.JobManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                JobSpecification job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ?? throw new InputValidationException($"Job with ID '{createdJobInfoId}' does not exist in the system");
+                JobSpecification job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ?? throw new InputValidationException("NotExistingJob", createdJobInfoId);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, job.Project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
 
@@ -154,7 +154,7 @@ namespace HEAppE.ServiceTier.JobManagement
                 var task = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
                 if (task is null)
                 {
-                    throw new InputValidationException($"Task with ID '{submittedTaskInfoId}' does not exist in the system");
+                    throw new InputValidationException("NotExistingTask", submittedTaskInfoId);
                 }
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, task.Project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);

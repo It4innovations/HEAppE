@@ -1,5 +1,4 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -67,7 +66,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 var group = loggedUser.Groups.FirstOrDefault(val => val.Id == groupId);
                 if (group == null)
                 {
-                    throw new NotAllowedException("Logged user is not allowed to request this report.");
+                    throw new NotAllowedException("NotAllowedToRequestReport");
                 }
 
                 IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);

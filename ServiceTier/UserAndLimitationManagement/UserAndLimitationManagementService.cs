@@ -71,9 +71,8 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
             else
             {
-                var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
-                _log.Error(message);
-                throw new ArgumentException(message);
+                _log.Error($"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.");
+                throw new AuthenticationCredentialsException("NotSupportedAuthentication", credentials.GetType().Name);
             }
 
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -121,9 +120,8 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
             else
             {
-                string errorMessage = $"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.";
-                _log.Error(errorMessage);
-                throw new ArgumentException(errorMessage);
+                _log.Error($"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.");
+                throw new OpenIdAuthenticationException("NotSupportedAuthentication", credentials.GetType().Name);
             }
         }
 

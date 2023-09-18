@@ -174,6 +174,18 @@
   <data name="InputValidationException_NoScriptPath" xml:space="preserve">
     <value>The generic command template should contain script path!</value>
   </data>
+  <data name="InputValidationException_NotExistingAccountString" xml:space="preserve">
+    <value>Accounting string '{0}' does not exist in the system.</value>
+  </data>
+  <data name="InputValidationException_NotExistingJob" xml:space="preserve">
+    <value>Job with ID '{0}' does not exist in the system.</value>
+  </data>
+  <data name="InputValidationException_NotExistingTask" xml:space="preserve">
+    <value>Task with ID '{0}' does not exist in the system.</value>
+  </data>
+  <data name="InputValidationException_NotSingleProjectInstance" xml:space="preserve">
+    <value>This is not single project HEAppE instance. Please specify ProjectId.</value>
+  </data>
   <data name="InputValidationException_NotValidJobSpecification" xml:space="preserve">
     <value>Submitted job specification is not valid: \r\n {0}</value>
   </data>
@@ -200,6 +212,9 @@
   </data>
   <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
     <value>Requested path {0} was not found. Exception message: {1}</value>
+  </data>
+  <data name="InvalidRequestException_NotExistingPrivateKeyFile" xml:space="preserve">
+    <value>Private key file located at '{0}' does not exist</value>
   </data>
   <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
     <value>Cluster with this project does not exist in the system.</value>
@@ -243,8 +258,14 @@
   <data name="KeycloakOpenIdException_UserNotActive" xml:space="preserve">
     <value>Open-Id: User is not active!</value>
   </data>
+  <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
+    <value>Logged user is not allowed to request this report.</value>
+  </data>
   <data name="OpenIdAuthenticationException_InvalidToken" xml:space="preserve">
     <value>Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.</value>
+  </data>
+  <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
+    <value>Credentials of type {0} are not supported for OpenStack authentication.</value>
   </data>
   <data name="OpenIdAuthenticationException_NoUserGroup" xml:space="preserve">
     <value>Open-d: User('{0}') has not User group!</value>

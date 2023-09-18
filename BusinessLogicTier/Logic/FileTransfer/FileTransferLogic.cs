@@ -84,7 +84,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
             if (!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
             {
-                throw new Exception($"""Private key file located at "{clusterUserAuthCredentials.PrivateKeyFile}" does not exist""");
+                throw new InvalidRequestException("NotExistingPrivateKeyFile", clusterUserAuthCredentials.PrivateKeyFile);
             }
 
             var transferMethod = new FileTransferMethod
@@ -276,8 +276,6 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                 _log.Warn($"{loggedUser} is requesting not existing file '{relativeFilePath}'");
                 throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
             }
-
-            return null;
         }
 
         public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)

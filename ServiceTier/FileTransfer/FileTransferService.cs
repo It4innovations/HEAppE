@@ -1,5 +1,4 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
