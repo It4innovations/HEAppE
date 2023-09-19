@@ -31,7 +31,7 @@
         Reporter = 5,
         
         /// <summary>
-        /// HPC project administrator role with access to the entire system.
+        /// User with this role can create new project and use management API.
         /// </summary>
         ManagementAdmin = 6
     }

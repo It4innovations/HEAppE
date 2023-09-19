@@ -57,7 +57,7 @@
          {
             "Id":6,
             "Name":"ManagementAdmin",
-            "Description":"HPC project administrator role with access to the entire system.",
+            "Description":"User with this role can create new project and use management API.",
             "ParentRoleId":null
          }
       ],
