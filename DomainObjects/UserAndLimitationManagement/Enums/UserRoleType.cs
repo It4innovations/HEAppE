@@ -6,32 +6,33 @@
     public enum UserRoleType
     {
         /// <summary>
-        /// HPC project administrator role with access to the entire system.
-        /// </summary>
-        HpcProjectAdmin = 1,
-        /// <summary>
         /// HEAppE administrator role with access to the entire system.
         /// </summary>
-        Administrator = 2,
+        Administrator = 1,
 
         /// <summary>
         /// HEAppE maintainer role for getting information about actual HEAppE status.
         /// </summary>
-        Maintainer = 3,
+        Maintainer = 2,
 
         /// <summary>
         /// Standard user, can submit and check his own jobs.
         /// </summary>
-        Submitter = 4,
+        Submitter = 3,
 
         /// <summary>
         /// Users with this role car report in assigned groups.
         /// </summary>
-        GroupReporter = 5,
+        GroupReporter = 4,
 
         /// <summary>
         /// Users with this role can watch other jobs in the same group.
         /// </summary>
-        Reporter = 6
+        Reporter = 5,
+        
+        /// <summary>
+        /// HPC project administrator role with access to the entire system.
+        /// </summary>
+        ManagementAdmin = 6
     }
 }

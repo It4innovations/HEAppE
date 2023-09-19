@@ -122,7 +122,7 @@ namespace HEAppE.ServiceTier.Management
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedHpcProjectAdminUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedManagementAdminUserForSessionCode(sessionCode, unitOfWork);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
                     Project project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate, endDate, loggedUser);
                     return project.ConvertIntToExt();

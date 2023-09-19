@@ -209,7 +209,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser = GetValidatedHpcProjectAdminUserForSessionCode(sessionCode, unitOfWork);
+                    AdaptorUser loggedUser = GetValidatedManagementAdminUserForSessionCode(sessionCode, unitOfWork);
                     return loggedUser is not null;
                 }
             }
@@ -244,16 +244,16 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// <param name="sessionCode"></param>
         /// <param name="unitOfWork"></param>
         /// <returns></returns>
-        public static AdaptorUser GetValidatedHpcProjectAdminUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork)
+        public static AdaptorUser GetValidatedManagementAdminUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork)
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            bool hasRequiredRole = loggedUser.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == UserRoleType.HpcProjectAdmin);
+            bool hasRequiredRole = loggedUser.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == UserRoleType.ManagementAdmin);
 
             if (!hasRequiredRole)
             {
-                var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)UserRoleType.HpcProjectAdmin);
+                var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)UserRoleType.ManagementAdmin);
                 throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel);
             }
             return loggedUser;

@@ -441,7 +441,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
           _log.Info($"LexisCredentials: User \"{user.Username}\" was added to group: \"{prefixedGroup.Name}\"");
         }
         // update missing roles
-        _ = UserRoleUtils.GetAllUserRoles(user.AdaptorUserUserGroupRoles);
+        var allRoles = _unitOfWork.AdaptorUserRoleRepository.GetAll();
+        _ = UserRoleUtils.GetAllUserRoles(user.AdaptorUserUserGroupRoles, allRoles);
         if (!hasUserGroup)
         {
           _unitOfWork.Save();

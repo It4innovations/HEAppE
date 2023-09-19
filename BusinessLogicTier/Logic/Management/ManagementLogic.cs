@@ -298,7 +298,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 AdaptorUserGroupId = group.Id,
                 AdaptorUserRoleId = (long)UserRoleType.Administrator
             };
-            return UserRoleUtils.GetAllUserRoles(new List<AdaptorUserUserGroupRole> { role }).ToList();
+            var allRoles = _unitOfWork.AdaptorUserRoleRepository.GetAll();
+            return UserRoleUtils.GetAllUserRoles(new List<AdaptorUserUserGroupRole> { role }, allRoles).ToList();
         }
 
 

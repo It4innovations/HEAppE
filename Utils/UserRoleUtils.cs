@@ -13,89 +13,56 @@ namespace HEAppE.Utils
         /// <summary>
         /// Returns all user to role mappings and adds cascade roles for specific roles
         /// </summary>
-        /// <param name="adaptorUserUserGroupRoles"></param>
-        /// <returns></returns>
-        public static IEnumerable<AdaptorUserUserGroupRole> GetAllUserRoles(List<AdaptorUserUserGroupRole> adaptorUserUserGroupRoles)
+        /// <param name="userGroupRoles">List of AdaptorUserUserGroupRoles</param>
+        /// <param name="userRoles">List of AdaptorUserRoles</param>
+        /// <returns>List of AdaptorUserUserGroupRoles</returns>
+        public static IEnumerable<AdaptorUserUserGroupRole> GetAllUserRoles(List<AdaptorUserUserGroupRole> userGroupRoles, IList<AdaptorUserRole> userRoles)
         {
-            List<AdaptorUserUserGroupRole> groupRoleCascadeAppender = new List<AdaptorUserUserGroupRole>(adaptorUserUserGroupRoles);
-            foreach (var userGroupRole in adaptorUserUserGroupRoles)
+            var groupRoles = new List<AdaptorUserUserGroupRole>();
+            
+            //group by User and UserGroup
+            foreach (var userGroupRole in userGroupRoles.GroupBy(x => new { x.AdaptorUserId, x.AdaptorUserGroupId }))
             {
-                var currentUserGroupRoles = GetUserRolesInGroup(adaptorUserUserGroupRoles, userGroupRole.AdaptorUserId, userGroupRole.AdaptorUserGroupId);
+                var isRolePresentDictionary = userRoles.ToDictionary(x => x.Id, _ => false);
 
-                if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.HpcProjectAdmin))
+                foreach (var roleMapping in userGroupRole)
                 {
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Administrator, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Maintainer, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
-                }
-                if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Administrator))
-                {
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Maintainer, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
-                }
-                else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Maintainer))
-                {
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Submitter, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.GroupReporter, groupRoleCascadeAppender);
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
-                }
-                else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.Submitter))
-                {
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
-                }
-                else if (IsRoleInCollection(currentUserGroupRoles, UserRoleType.GroupReporter))
-                {
-                    CheckAndAddMissingUserUserRole(userGroupRole, currentUserGroupRoles, UserRoleType.Reporter, groupRoleCascadeAppender);
+                    if (isRolePresentDictionary[roleMapping.AdaptorUserRoleId])
+                    {
+                        continue;
+                    }
+
+                    groupRoles.Add(CreateUserGroupRole(roleMapping));
+                    isRolePresentDictionary[roleMapping.AdaptorUserRoleId] = true;
+
+                    var parentRoleId = userRoles.FirstOrDefault(x => x.Id == roleMapping.AdaptorUserRoleId)?.ParentRoleId;
+                    //check if parent role is present
+                    while (parentRoleId.HasValue && !isRolePresentDictionary[parentRoleId.Value])
+                    {
+                        groupRoles.Add(CreateUserGroupRole(roleMapping, parentRoleId.Value));
+                        isRolePresentDictionary[parentRoleId.Value] = true;
+                        parentRoleId = userRoles.FirstOrDefault(x => x.Id == parentRoleId.Value)?.ParentRoleId;
+                    }
                 }
             }
-            return groupRoleCascadeAppender.Distinct();
+
+            return groupRoles.Distinct();
         }
 
         /// <summary>
-        /// Checks and adds role when is not in collection grouped by user
+        /// Helper method to create a new AdaptorUserUserGroupRole
         /// </summary>
-        /// <param name="userGroupRole">Current userGroup role from configuration</param>
-        /// <param name="currentUserGroupRoles">All user roles in specific group</param>
-        /// <param name="roleType">System role type</param>
-        /// <param name="adaptorUserUserGroupRoleDBCollection">All user group roles for append</param>
-        public static void CheckAndAddMissingUserUserRole(AdaptorUserUserGroupRole userGroupRole, List<AdaptorUserUserGroupRole> currentUserGroupRoles, UserRoleType roleType, List<AdaptorUserUserGroupRole> adaptorUserUserGroupRoleDBCollection)
+        /// <param name="roleMapping"></param>
+        /// <param name="roleId"></param>
+        /// <returns></returns>
+        private static AdaptorUserUserGroupRole CreateUserGroupRole(AdaptorUserUserGroupRole roleMapping, long? roleId = null)
         {
-            if (!IsRoleInCollection(currentUserGroupRoles, roleType))
+            return new AdaptorUserUserGroupRole()
             {
-                adaptorUserUserGroupRoleDBCollection.Add(new AdaptorUserUserGroupRole()
-                {
-                    AdaptorUserId = userGroupRole.AdaptorUserId,
-                    AdaptorUserRoleId = (long)roleType,
-                    AdaptorUserGroupId = userGroupRole.AdaptorUserGroupId
-                });
-            }
-        }
-
-        /// <summary>
-        /// Checks if role is in collection by RoleId
-        /// </summary>
-        /// <param name="adaptorUserUserGroupRoles">Collection of roles</param>
-        /// <param name="role">System role</param>
-        /// <returns></returns>
-        public static bool IsRoleInCollection(IEnumerable<AdaptorUserUserGroupRole> adaptorUserUserGroupRoles, UserRoleType role)
-        {
-            return adaptorUserUserGroupRoles.Any(x => x.AdaptorUserRoleId.Equals((long)role));
-        }
-
-        /// <summary>
-        /// Returns user roles in specific group
-        /// </summary>
-        /// <param name="adaptorUserUserGroupRoles">All user group roles</param>
-        /// <param name="userId">AdaptorUserId</param>
-        /// <param name="groupId">AdaptorUserGroupId</param>
-        /// <returns></returns>
-        public static List<AdaptorUserUserGroupRole> GetUserRolesInGroup(List<AdaptorUserUserGroupRole> adaptorUserUserGroupRoles, long userId, long groupId)
-        {
-            return adaptorUserUserGroupRoles.Where(x => x.AdaptorUserId == userId && x.AdaptorUserGroupId == groupId).ToList();
+                AdaptorUserId = roleMapping.AdaptorUserId,
+                AdaptorUserGroupId = roleMapping.AdaptorUserGroupId,
+                AdaptorUserRoleId = roleId ?? roleMapping.AdaptorUserRoleId
+            };
         }
     }
 }

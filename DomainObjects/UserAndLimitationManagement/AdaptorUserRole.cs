@@ -15,7 +15,10 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [Required]
         [StringLength(200)]
         public string Description { get; set; }
-
+        
+        [ForeignKey("AdaptorUserRole")]
+        public long? ParentRoleId { get; set; }
+        public virtual AdaptorUserRole ParentRole { get; set; }
         public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
 
         [NotMapped]
