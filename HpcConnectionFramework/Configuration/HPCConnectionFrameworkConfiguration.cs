@@ -36,7 +36,7 @@ namespace HEAppE.HpcConnectionFramework.Configuration
         /// <summary>
         /// Clusters connection Pool configuration
         /// </summary>
-        public static Dictionary<string, ClusterConnectionPoolConfiguration> ClustersConnectionPoolSettings { get; } = new Dictionary<string, ClusterConnectionPoolConfiguration>();
+        public static ClusterConnectionPoolConfiguration ClustersConnectionPoolSettings { get; } = new ClusterConnectionPoolConfiguration();
         #endregion
     }
 }

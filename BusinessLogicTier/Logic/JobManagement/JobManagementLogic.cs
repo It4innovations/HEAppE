@@ -113,7 +113,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
                     }
                     //Create job directory
-                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath);
+                    SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster, jobInfo.Project).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode);
                     return jobInfo;
                 }
                 catch (Exception e)
@@ -131,7 +131,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
             if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForServiceAccount)
             {
-                if (BusinessLogicConfiguration.ClusterAccountRotation)
+                if (BusinessLogicConfiguration.SharedAccountsPoolMode)
                 {
                     //Check if user is already running job - if yes set state to WaitingForUser - else run the job
                     lock (_lockSubmitJobObj)
@@ -151,7 +151,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 }
                 jobInfo.SubmitTime = DateTime.UtcNow;
                 var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                                                      .CreateScheduler(jobInfo.Specification.Cluster)
+                                                      .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project)
                                                       .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
 
 
@@ -175,7 +175,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
                                                   .ToList();
 
-                var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster);
+                var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project);
                 scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.", jobInfo.Specification.ClusterUser);
 
                 var cluster = jobInfo.Specification.Cluster;
@@ -210,7 +210,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             }
             if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
             {
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
+                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
             }
             else
             {
@@ -282,13 +282,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         public void UpdateCurrentStateOfUnfinishedJobs()
         {
             var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished()
-                                                                   .GroupBy(g => g.Specification.Cluster)
+                                                                   .GroupBy(g => new {g.Specification.Cluster, g.Project})
                                                                    .ToList();
 
             foreach (var jobGroup in jobsGroup)
             {
-                Cluster cluster = jobGroup.Key;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
+                Cluster cluster = jobGroup.Key.Cluster;
+                Project project = jobGroup.Key.Project;
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
 
                 var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
 
@@ -357,7 +358,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
             }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                    .CreateScheduler(jobInfo.Specification.Cluster)
+                    .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project)
                     .CopyJobDataToTemp(jobInfo, clusterProject.LocalBasepath, hash, path);
         }
 
@@ -372,7 +373,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 ExceptionHandler.ThrowProperExternalException(new InvalidRequestException($"Cluster with this project does not exist in the system."));
             }
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                    .CreateScheduler(jobInfo.Specification.Cluster)
+                    .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project)
                     .CopyJobDataFromTemp(jobInfo, clusterProject.LocalBasepath, hash);
         }
 
@@ -382,7 +383,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             if (taskInfo.State == TaskState.Running)
             {
                 var cluster = taskInfo.Specification.JobSpecification.Cluster;
-                var stringIPs = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetAllocatedNodes(taskInfo);
+                var stringIPs = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project).GetAllocatedNodes(taskInfo);
                 return stringIPs;
             }
             else

@@ -43,32 +43,32 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
         }
 
-        public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, Project[] projects)
+        public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, long projectId)
         {
             ClusterNodeType nodeType = GetClusterNodeTypeById(clusterNodeId);
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
             if (!nodeType.ClusterId.HasValue)
             {
                 throw new InvalidRequestException("The specified cluster node has no reference to cluster.");
             }
 
-            var clusterProjectIds = nodeType.Cluster.ClusterProjects.Select(x => x.ProjectId).ToList();
+            if (project is null || !project.IsDeleted)
+            {
+                throw new InvalidRequestException("The specified project does not exist in the system.");
+            }
+
+            var clusterProjectIds = nodeType.Cluster.ClusterProjects.Where(x => x.ProjectId == projectId).Select(y=>y.ProjectId);
             var availableProjectIds = loggedUser.Groups.Where(g => clusterProjectIds.Contains(g.ProjectId.Value)).Select(x => x.ProjectId.Value).Distinct().ToList();
             if (availableProjectIds.Count() == 0)
             {
                 throw new InvalidRequestException($"User {loggedUser} has no access to ClusterNodeId {clusterNodeId}.");
-            }
-            long projectId = availableProjectIds.FirstOrDefault();
-            if(projects.Any(p => p.Id == projectId))
-            {
-                _log.Debug($"User {loggedUser} has access to ClusterNodeId {clusterNodeId}.");
-                throw new InvalidRequestException($"User {loggedUser} has access to ClusterNodeId {clusterNodeId}.");
             }
             var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(nodeType.ClusterId.Value, projectId);
             if (serviceAccount is null)
             {
                 throw new InvalidRequestException($"Project {projectId} has no refrence to Cluster {nodeType.ClusterId.Value}");
             }
-            return SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster)
+            return SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster, project)
                                     .GetCurrentClusterNodeUsage(nodeType, serviceAccount);
 
         }
@@ -76,9 +76,15 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, AdaptorUser loggedUser)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
             if (commandTemplate is null)
             {
                 throw new RequestedObjectDoesNotExistException("The specified command template is not defined in HEAppE!");
+            }
+
+            if (project is null || !project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException($"The specified project with ID '{projectId}' is not defined in HEAppE!");
             }
 
             if (commandTemplate.IsGeneric)
@@ -110,7 +116,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 }
 
                 var commandTemplateParameters = new List<string>() { scriptPath };
-                commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath).ToList());
+                commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project).GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath).ToList());
                 return commandTemplateParameters;
             }
             else

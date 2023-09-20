@@ -8,6 +8,10 @@ namespace HEAppE.RestApiModels.ClusterInformation
     {
         [DataMember(Name = "ClusterNodeId")]
         public long ClusterNodeId { get; set; }
+        
+        [DataMember(Name = "ProjectId")]
+        public long ProjectId { get; set; }
+
         public override string ToString()
         {
             return $"CurrentClusterNodeUsageModel({base.ToString()}; ClusterNodeId: {ClusterNodeId})";

@@ -16,16 +16,22 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
     internal class LinuxCommands : ICommands
     {
         #region Isntances
+
         /// <summary>
         /// Generic commnad key parameter
         /// </summary>
-        protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
+        protected static readonly string _genericCommandKeyParameter =
+            HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
+
         #endregion
+
         #region Properties
+
         /// <summary>
         /// Command
         /// </summary>
-        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
+        protected readonly CommandScriptPathConfiguration _commandScripts =
+            HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
 
         /// <summary>
         /// Logger
@@ -36,15 +42,24 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// Interpreter command
         /// Note: In case of problems run with -lc
         /// </summary>
-        public string InterpreterCommand { get { return "bash -c"; } }
+        public string InterpreterCommand
+        {
+            get { return "bash -c"; }
+        }
+
         #endregion
+
         #region Properties
+
         /// <summary>
         /// Execute commnad script path
         /// </summary>
         public string ExecuteCmdScriptPath => _commandScripts.ExecuteCmdPath;
+
         #endregion
+
         #region Constructors
+
         /// <summary>
         /// Constructor
         /// </summary>
@@ -52,8 +67,11 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             _log = LogManager.GetLogger(typeof(LinuxCommands));
         }
+
         #endregion
+
         #region ICommands Members
+
         /// <summary>
         /// Get generic command templates parameters from script
         /// </summary>
@@ -64,16 +82,20 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
+            var sshCommand =
+                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
             _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
 
-            foreach (Match match in Regex.Matches(sshCommand.Result, @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            foreach (Match match in Regex.Matches(sshCommand.Result,
+                         @$"{_genericCommandKeyParameter}([\s\t]+[A-z_\-]+)\n",
+                         RegexOptions.IgnoreCase | RegexOptions.Compiled))
             {
                 if (match.Success && match.Groups.Count == 2)
                 {
                     genericCommandParameters.Add(match.Groups[1].Value.TrimStart());
                 }
             }
+
             return genericCommandParameters;
         }
 
@@ -83,12 +105,15 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
+        public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            string hash)
         {
             string inputDirectory = $"{localBasePath}Temp/{hash}/.";
             string outputDirectory = $"{localBasePath}/{jobInfo.Specification.Id}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.CopyDataFromTempCmdPath} {inputDirectory} {outputDirectory}");
-            _log.Info($"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+                $"{_commandScripts.CopyDataFromTempCmdPath} {inputDirectory} {outputDirectory}");
+            _log.Info(
+                $"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
@@ -97,15 +122,18 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
         /// <param name="hash">Hash</param>
-        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
+        public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            string hash, string path)
         {
             //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
             string inputDirectory = $"{localBasePath}/{jobInfo.Specification.Id}/{path}";
             inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;
             string outputDirectory = $"{localBasePath}Temp/{hash}";
 
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.CopyDataToTempCmdPath} {inputDirectory} {outputDirectory}");
-            _log.Info($"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+                $"{_commandScripts.CopyDataToTempCmdPath} {inputDirectory} {outputDirectory}");
+            _log.Info(
+                $"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
@@ -114,10 +142,12 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
         /// <param name="jobInfo">Job information</param>
-        public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo)
+        public void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey,
+            SubmittedJobInfo jobInfo)
         {
             publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.AddFiletransferKeyCmdPath} {publicKey} {jobInfo.Specification.Id}");
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+                $"{_commandScripts.AddFiletransferKeyCmdPath} {publicKey} {jobInfo.Specification.Id}");
             _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
@@ -135,8 +165,10 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
                 cmdBuilder.Append($"{_commandScripts.RemoveFiletransferKeyCmdPath} {base64PublicKey};");
             }
 
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
-            _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+                cmdBuilder.ToString());
+            _log.Info(
+                $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>
@@ -144,18 +176,24 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="sharedAccountsPoolMode"></param>
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode)
         {
-            var cmdBuilder = new StringBuilder($"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id};");
+            var cmdBuilder =
+                new StringBuilder(
+                    $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id} {{ sharedAccountsPoolMode ? 1 : 0 }};");
             foreach (var task in jobInfo.Tasks)
             {
                 var path = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
-                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory};"
-                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id};";
+                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory} {{ sharedAccountsPoolMode ? 1 : 0 }};"
+                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id} {{ sharedAccountsPoolMode ? 1 : 0 }};";
 
                 cmdBuilder.Append(path);
             }
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
+
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
+                cmdBuilder.ToString());
             _log.Info($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
@@ -167,9 +205,11 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
             string shellCommand = $"rm -Rf {localBasePath}/{jobInfo.Specification.Id}";
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
+            var sshCommand =
+                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
             _log.Info($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
         }
+
         #endregion
     }
 }
