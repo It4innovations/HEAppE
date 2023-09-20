@@ -90,14 +90,14 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     _log.Error(message);
                     throw new ArgumentException(message);
                 }
-
+string result = string.Empty;
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
                     IUserAndLimitationManagementLogic userLogic =
                         LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    var result = await userLogic.AuthenticateUserAsync(credentialsIn);
-                    return result;
-                }
+                     result = await userLogic.AuthenticateUserAsync(credentialsIn);
+                  }  return result;
+                
             }
             catch (Exception exc)
             {
