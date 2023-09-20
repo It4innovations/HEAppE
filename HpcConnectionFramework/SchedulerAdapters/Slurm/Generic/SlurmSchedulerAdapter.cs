@@ -311,7 +311,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         {
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
+
+        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+            string clusterProjectRootDirectory, string localBasepath)
+        {
+            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath);
+        }
+
         #endregion
+        
+        
         #endregion
         #region Private Methods
         /// <summary>

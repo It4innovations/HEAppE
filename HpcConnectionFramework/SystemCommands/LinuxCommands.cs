@@ -5,6 +5,7 @@ using log4net;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -208,6 +209,22 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             var sshCommand =
                 SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
             _log.Info($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
+        }
+
+        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+            string clusterProjectRootDirectory, string localBasepath)
+        {
+            var cmdBuilder = new StringBuilder();
+            cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
+            cmdBuilder.Append($"git clone {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} . && ");
+            cmdBuilder.Append($"chmod -R +r {HPCConnectionFrameworkConfiguration.KeyScriptsDirectory} && ");
+            cmdBuilder.Append($"sed -i \"s|TODO|~/{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
+            cmdBuilder.Append($"ln -s {Path.Combine(clusterProjectRootDirectory, HPCConnectionFrameworkConfiguration.KeyScriptsDirectory)} ~/");
+
+            var sshCommand =
+                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
+            _log.Info($"Initialized Cluster scripts for project");
+            return sshCommand.Result;
         }
 
         #endregion

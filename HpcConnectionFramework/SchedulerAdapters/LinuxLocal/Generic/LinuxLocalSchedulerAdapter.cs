@@ -295,6 +295,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         {
             throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
         }
+
+        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+            string clusterProjectRootDirectory,
+            string localBasepath)
+        {
+            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath);
+        }
+
         #endregion
         #endregion
         #region Private Methods

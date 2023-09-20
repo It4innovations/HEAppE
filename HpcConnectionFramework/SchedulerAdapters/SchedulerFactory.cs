@@ -98,7 +98,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 connectionPoolMaxUnusedInterval = _connectionPoolSettings.ConnectionPoolMaxUnusedInterval;
 
                 var clusterProject = project.ClusterProjects.FirstOrDefault(x => x.ClusterId == clusterConf.Id);
-                if (clusterProject is null || !clusterProject.IsDeleted)
+                if (clusterProject is null || clusterProject.IsDeleted)
                 {
                     throw new ArgumentException(
                         $"Project with ID '{project.Id}' is not referenced to the cluster with ID '{clusterConf.Id}'.");

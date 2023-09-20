@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Dynamic;
 
 namespace HEAppE.HpcConnectionFramework.Configuration
 {
@@ -17,6 +18,16 @@ namespace HEAppE.HpcConnectionFramework.Configuration
         /// Database job array delimiter
         /// </summary>
         public static string JobArrayDbDelimiter { get; set; }
+        
+        /// <summary>
+        /// Cluster HEAppE Scripts GIT repository URI
+        /// </summary>
+        public static string ClusterScriptsRepository { get; set; }
+        
+        /// <summary>
+        /// .key_scripts HEAppE Scripts repository path
+        /// </summary>
+        public static string KeyScriptsDirectory { get; set; }
 
         /// <summary>
         /// Tunnel configuration

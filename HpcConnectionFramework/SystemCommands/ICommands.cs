@@ -71,5 +71,15 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
         void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
+
+        /// <summary>
+        /// Initialize cluster script directory
+        /// </summary>
+        /// <param name="schedulerConnectionConnection"></param>
+        /// <param name="clusterProjectRootDirectory"></param>
+        /// <param name="localBasepath"></param>
+        /// <returns></returns>
+        string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+            string clusterProjectRootDirectory, string localBasepath);
     }
 }

@@ -54,7 +54,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
             Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || !project.IsDeleted)
+            if (project is null || project.IsDeleted)
             {
                 _logger.Error($"The specified project with ID '{projectId}' is not defined in HEAppE!");
                 throw new RequestedObjectDoesNotExistException($"The specified project with ID '{projectId}' is not defined in HEAppE!");
@@ -151,7 +151,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
             Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || !project.IsDeleted)
+            if (project is null || project.IsDeleted)
             {
                 _logger.Error($"The specified project with ID '{projectId}' is not defined in HEAppE!");
                 throw new RequestedObjectDoesNotExistException($"The specified project with ID '{projectId}' is not defined in HEAppE!");
@@ -581,7 +581,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public SecureShellKey CreateSecureShellKey(string username, string password, long projectId)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || !project.IsDeleted)
+            if (project is null || project.IsDeleted)
             {
                 var errorMessage = $"Project with id {projectId} does not exist!";
                 _logger.Error(errorMessage);
@@ -690,6 +690,55 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
             _unitOfWork.Save();
             return "SecureShellKey revoked";
+        }
+        
+        /// <summary>
+        /// Initialize cluster script directory and create symlink for user
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="publicKey"></param>
+        /// <param name="clusterProjectRootDirectory"></param>
+        /// <returns></returns>
+        /// <exception cref="NotImplementedException"></exception>
+        public string InitializeClusterScriptDirectory(long projectId, string publicKey, string clusterProjectRootDirectory)
+        {
+            string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
+                .ToList();
+
+            if (clusterAuthenticationCredentials.Count == 0)
+            {
+                throw new InputValidationException("The specified public key is not defined in HEAppE!");
+            }
+            
+            foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x=>x.Username))
+            {
+                if (clusterAuthCredentials.IsDeleted)
+                {
+                    continue;
+                }
+
+                foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(
+                             x => x.ClusterProject))
+                {
+                    if (clusterAuthCredentials.IsDeleted)
+                    {
+                        continue;
+                    }
+
+                    var cluster = clusterProjectCredential.ClusterProject.Cluster;
+                    var project = clusterProjectCredential.ClusterProject.Project;
+                    var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, project);
+                    
+                    scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath,
+                        cluster, clusterAuthCredentials);
+                }
+            }
+
+            return "Cluster script directory was initialized.";
         }
 
         /// <summary>

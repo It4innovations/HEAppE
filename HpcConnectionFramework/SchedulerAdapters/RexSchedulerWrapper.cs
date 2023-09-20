@@ -316,6 +316,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         {
             return _adapter.GetTunnelsInfos(taskInfo, nodeHost);
         }
+
+        public string InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials)
+        {
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+            try
+            {
+                return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
+        }
+
         #endregion
     }
 }
