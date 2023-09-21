@@ -54,7 +54,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                         => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
-                        => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username),
+                        => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
 
                 _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
             };
@@ -398,11 +398,13 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// Create connection object using private key stored in memory (ssh-agent)
         /// </summary>
         /// <param name="masterNodeName">Master host name</param>
+        /// <param name="port"></param>
         /// <param name="username">Username</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string username)
+        private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, int? port,
+            string username)
         {
-            var client = new NoAuthenticationSshClient(masterNodeName, username);
+            var client = new NoAuthenticationSshClient(masterNodeName, port, username);
             return client;
         }
         #endregion
