@@ -5,7 +5,7 @@ namespace Exceptions.Base
     /// <summary>
     /// Represents base exception with args for localization message parameters
     /// </summary>
-    public class BaseException : Exception
+    public abstract class BaseException : Exception
     {
         public object[] Args { get; }
 

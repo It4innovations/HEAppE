@@ -157,10 +157,10 @@
     <value>Požadovaná kombinace pro cluster Id={0} s Project Id={1} nemá referenci v systému.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
-    <value>Špecifikovaná šablóna není definovaná v HEAppE!</value>
+    <value>Specifikovaná  šablona není definovaná v HEAppE!</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
-    <value>Špecifikovaná šablóna CommandTemplateId '{0}' nema referenci na ProjectId '{1}'.</value>
+    <value>Specifikovaná šablona CommandTemplateId '{0}' nema referenci na ProjectId '{1}'.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
     <value>ServiceAccountCredentials nejsou definovány v systému pro danou CommandTemplate.</value>

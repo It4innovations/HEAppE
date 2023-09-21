@@ -143,30 +143,18 @@ namespace HEAppE.RestApi
         private void FormatExceptionMessage(Exception exception, StringBuilder builder)
         {
             string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
-            string localizedException;
 
-            if (exception is BaseException baseException && baseException.Args is not null)
+            string localizedException = exception switch
             {
-                localizedException = _exceptionsLocalizer.GetString(exceptionName, baseException.Args);
-            }
-            else if (exception is BaseException)
-            {
-                localizedException = _exceptionsLocalizer.GetString(exceptionName);
-            }
-            else
-            {
-                localizedException = exception.Message;
-            }
+                BaseException baseException when baseException.Args is not null =>
+                    _exceptionsLocalizer.GetString(exceptionName, baseException.Args),
+                BaseException =>
+                    _exceptionsLocalizer.GetString(exceptionName),
+                _ => exception.Message
+            };
 
-            //If resource file doesn't contains message for exception type return exception message
-            if (localizedException == exceptionName)
-            {
-                builder.AppendLine(exception.Message);
-            }
-            else
-            {
-                builder.AppendLine(localizedException);
-            }
+            var message = localizedException == exceptionName ? exception.Message : localizedException;
+            builder.AppendLine(message);
 
             if (exception.InnerException is not null)
             {
