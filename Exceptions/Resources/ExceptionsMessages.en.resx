@@ -211,7 +211,7 @@
     <value>The specified cluster node has no reference to cluster.</value>
   </data>
   <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
-    <value>Requested path {0} was not found. Exception message: {1}</value>
+    <value>Requested path {0} was not found. Exception message: {1}.</value>
   </data>
   <data name="InvalidRequestException_NotExistingPrivateKeyFile" xml:space="preserve">
     <value>Private key file located at '{0}' does not exist</value>
