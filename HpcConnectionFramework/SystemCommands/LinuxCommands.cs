@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using System.Text.RegularExpressions;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
@@ -183,12 +184,12 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var cmdBuilder =
                 new StringBuilder(
-                    $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id} {{ sharedAccountsPoolMode ? 1 : 0 }};");
+                    $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0) };");
             foreach (var task in jobInfo.Tasks)
             {
                 var path = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
-                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory} {{ sharedAccountsPoolMode ? 1 : 0 }};"
-                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id} {{ sharedAccountsPoolMode ? 1 : 0 }};";
+                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory} {(sharedAccountsPoolMode ? 1 : 0) };"
+                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0) };";
 
                 cmdBuilder.Append(path);
             }
@@ -216,15 +217,22 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var cmdBuilder = new StringBuilder();
             cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-            cmdBuilder.Append($"git clone {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} . && ");
-            cmdBuilder.Append($"chmod -R +r {HPCConnectionFrameworkConfiguration.KeyScriptsDirectory} && ");
+            cmdBuilder.Append($"git clone {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} . || true && ");
+            cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "*")} && ");
             cmdBuilder.Append($"sed -i \"s|TODO|~/{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
-            cmdBuilder.Append($"ln -s {Path.Combine(clusterProjectRootDirectory, HPCConnectionFrameworkConfiguration.KeyScriptsDirectory)} ~/");
+            cmdBuilder.Append($"ln -sf {Path.Combine(clusterProjectRootDirectory, HPCConnectionFrameworkConfiguration.KeyScriptsDirectory)} ~/");
 
-            var sshCommand =
-                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
-            _log.Info($"Initialized Cluster scripts for project");
-            return sshCommand.Result;
+            try
+            {
+                var sshCommand =
+                    SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
+                _log.Info($"Initialized Cluster scripts for project");
+                return sshCommand.Result;
+            }
+            catch (SshCommandException ex)
+            {
+                return ex.Message;
+            }
         }
 
         #endregion
