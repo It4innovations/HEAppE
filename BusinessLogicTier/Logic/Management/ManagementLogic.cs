@@ -600,8 +600,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
             var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
 
-            ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
-            ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint);
+            ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
+            ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
 
             foreach (var clusterProject in clusterProjects)
             {
@@ -776,9 +776,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         private string GetUniquePrivateKeyPath(string accountingString)
         {
-            long netxId = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Max(x => x.Id) + 1;
+            long nextId = 1;
+
+            var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll();
+            if (credentials != null && credentials.Any())
+            {
+                nextId = credentials.Max(x => x.Id) + 1;
+            }
             string directoryPath = Path.Combine(_sshKeysDirectory, accountingString);
-            string keyPath = Path.Combine(directoryPath, $"KEY_{accountingString}_{netxId}");
+            string keyPath = Path.Combine(directoryPath, $"KEY_{accountingString}_{nextId}");
             return keyPath;
         }
 
@@ -862,24 +868,29 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// Create auth credentaials
         /// </summary>
         /// <param name="username"></param>
+        /// <param name="password"></param>
         /// <param name="keyPath"></param>
         /// <param name="passphrase"></param>
         /// <param name="publicKeyFingerprint"></param>
+        /// <param name="cluster"></param>
         /// <returns></returns>
-        private ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(string username, string password, string keyPath, string passphrase, string publicKeyFingerprint)
+        private ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(string username,
+            string password, string keyPath, string passphrase, string publicKeyFingerprint, Cluster cluster)
         {
-            return new ClusterAuthenticationCredentials
+            var credentials = new ClusterAuthenticationCredentials
             {
                 Username = username,
                 Password = password,
                 PrivateKeyFile = keyPath,
                 PrivateKeyPassword = passphrase,
-                AuthenticationType = ClusterAuthenticationCredentialsAuthType.PrivateKey,
                 CipherType = CipherGeneratorConfiguration.Type,
                 PublicKeyFingerprint = publicKeyFingerprint,
                 ClusterProjectCredentials = new List<ClusterProjectCredential>(),
                 IsGenerated = true
             };
+            credentials.AuthenticationType =
+                ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(credentials, cluster);
+            return credentials;
         }
 
         /// <summary>

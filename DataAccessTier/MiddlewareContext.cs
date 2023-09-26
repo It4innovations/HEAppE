@@ -272,7 +272,7 @@ namespace HEAppE.DataAccessTier
                                                               .ToList();
         if (clusters.Count() >= 1)
         {
-          clusterAuthenticationCredential.AuthenticationType = GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
+          clusterAuthenticationCredential.AuthenticationType = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
         }
       });
 
@@ -448,72 +448,6 @@ namespace HEAppE.DataAccessTier
         default:
         throw new ApplicationException("Seed entity is not supported.");
       }
-    }
-
-    private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential, Cluster cluster)
-    {
-      if (cluster.ProxyConnection is null)
-      {
-        if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
-        {
-          return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
-        }
-
-        if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
-        {
-          return ClusterAuthenticationCredentialsAuthType.PrivateKey;
-        }
-
-        if (!string.IsNullOrEmpty(credential.Password))
-        {
-          switch (cluster.ConnectionProtocol)
-          {
-            case ClusterConnectionProtocol.MicrosoftHpcApi:
-            return ClusterAuthenticationCredentialsAuthType.Password;
-
-            case ClusterConnectionProtocol.Ssh:
-            return ClusterAuthenticationCredentialsAuthType.Password;
-
-            case ClusterConnectionProtocol.SshInteractive:
-            return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
-
-            default:
-            return ClusterAuthenticationCredentialsAuthType.Password;
-          }
-        }
-      }
-      else
-      {
-        if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
-        {
-          return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
-        }
-
-        if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
-        {
-          return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
-        }
-
-        if (!string.IsNullOrEmpty(credential.Password))
-        {
-          switch (cluster.ConnectionProtocol)
-          {
-            case ClusterConnectionProtocol.MicrosoftHpcApi:
-            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-            case ClusterConnectionProtocol.Ssh:
-            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-            case ClusterConnectionProtocol.SshInteractive:
-            return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
-
-            default:
-            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-          }
-        }
-      }
-
-      return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
     }
     #endregion
     #region Entities
