@@ -587,6 +587,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 _logger.Error(errorMessage);
                 throw new InputValidationException(errorMessage);
             }
+            
+            _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
+            var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
+            if (clusterProjects.Count == 0)
+            {
+                var errorMessage = $"The project with the ID {projectId} has not been assigned to any cluster.";
+                _logger.Error(errorMessage);
+                throw new InputValidationException(errorMessage);
+            }
 
             SSHGenerator sshGenerator = new();
             string passphrase = StringUtils.GetRandomString();
@@ -597,8 +606,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             file.Directory.Create();
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
 
-            _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
-            var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
+
 
             ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
             ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);

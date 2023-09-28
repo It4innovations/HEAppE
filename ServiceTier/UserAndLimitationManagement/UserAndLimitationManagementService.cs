@@ -264,7 +264,8 @@ string result = string.Empty;
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x => (UserRoleType)x.AdaptorUserRoleId == requiredUserRole && !x.AdaptorUserGroup.Project.IsDeleted &&
+            var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x => (UserRoleType)x.AdaptorUserRoleId == requiredUserRole && x.AdaptorUserGroup.Project != null &&
+                                                                                !x.AdaptorUserGroup.Project.IsDeleted &&
                                                                                 x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow &&
                                                                                 !x.IsDeleted)
                                                                                 .Select(y => y.AdaptorUserGroup.Project)
