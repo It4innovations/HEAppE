@@ -426,24 +426,26 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InputValidationException(errorMessage);
             }
 
-            try
+            var cp = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId,
+                projectId);
+            if (cp != null)
             {
-                var cp = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
-                if (cp != null)
+                //Cluster to project is marked as deleted, update it
+                if (cp.IsDeleted)
                 {
-                    //Cluster to project is marked as deleted, update it
-                    if (cp.IsDeleted)
-                    {
-                        return ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
-                    }
-                    else
-                    {
-                        var errorMessage = $"Project with id {projectId} is already assigned to cluster with id {clusterId}!";
-                        _logger.Error(errorMessage);
-                        throw new InputValidationException(errorMessage);
-                    }
+                    return ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
                 }
                 else
+                {
+                    var errorMessage =
+                        $"Project with id {projectId} is already assigned to cluster with id {clusterId}!";
+                    _logger.Error(errorMessage);
+                    throw new InputValidationException(errorMessage);
+                }
+            }
+            else
+            {
+                try
                 {
                     //Create cluster to project mapping
                     var clusterProject = new ClusterProject
@@ -461,12 +463,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     _logger.Info($"Created Project ID '{projectId} assignment to Cluster ID '{clusterId}'.");
                     return clusterProject;
                 }
-            }
-            catch (Exception e)
-            {
-                var errorMessage = $"Error while assigning project to clusters: {e.Message}";
-                _logger.Error(errorMessage);
-                throw new Exception(errorMessage);
+                catch (Exception e)
+                {
+                    var errorMessage = $"Error while assigning project to clusters: {e.Message}";
+                    _logger.Error(errorMessage);
+                    throw new Exception(errorMessage);
+                }
             }
         }
 
@@ -605,9 +607,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             FileInfo file = new FileInfo(keyPath);
             file.Directory.Create();
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
-
-
-
+            
             ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
             ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
 
