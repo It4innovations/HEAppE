@@ -17,6 +17,7 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
                 ServerHostname = fileTransferMethod.ServerHostname,
                 SharedBasepath = fileTransferMethod.SharedBasePath,
                 Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
+                Port = fileTransferMethod.Port,
                 ProxyConnection = fileTransferMethod.Cluster.ProxyConnection?.ConvertIntToExt(),
                 Credentials = fileTransferMethod.Credentials.ConvertIntToExt()
             };
@@ -29,18 +30,6 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
             {
                 FileName = fileInformation.FileName,
                 LastModifiedDate = fileInformation.LastModifiedDate
-            };
-            return convert;
-        }
-
-        public static FileTransferMethod ConvertFileTransferMethodExtToInt(FileTransferMethodExt usedTransferMethod)
-        {
-            var convert = new FileTransferMethod
-            {
-                Credentials = usedTransferMethod.Credentials.ConvertExtToInt(),
-                Protocol = ConvertFileTransferProtocolExtToInt(usedTransferMethod.Protocol),
-                ServerHostname = usedTransferMethod.ServerHostname,
-                SharedBasePath = usedTransferMethod.SharedBasepath
             };
             return convert;
         }
