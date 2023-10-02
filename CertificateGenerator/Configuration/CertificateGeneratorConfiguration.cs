@@ -7,6 +7,10 @@
     {
         #region Properties
         /// <summary>
+        /// Directory for generated SSH keys
+        /// </summary>
+        public static string GeneratedKeysDirectory { get; set; }
+        /// <summary>
         /// Cipher generation configuration
         /// </summary>
         public static CipherGeneratorConfiguration CipherSettings { get; } = new CipherGeneratorConfiguration();

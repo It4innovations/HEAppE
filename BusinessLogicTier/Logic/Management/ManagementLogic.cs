@@ -31,7 +31,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
     {
         protected IUnitOfWork _unitOfWork;
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        protected string _sshKeysDirectory = "/opt/heappe/keys/";
         public ManagementLogic(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
@@ -791,7 +790,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 nextId = credentials.Max(x => x.Id) + 1;
             }
-            string directoryPath = Path.Combine(_sshKeysDirectory, accountingString);
+            string directoryPath = Path.Combine(CertificateGeneratorConfiguration.GeneratedKeysDirectory, accountingString);
             string keyPath = Path.Combine(directoryPath, $"KEY_{accountingString}_{nextId}");
             return keyPath;
         }
