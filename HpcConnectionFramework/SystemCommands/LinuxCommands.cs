@@ -217,7 +217,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var cmdBuilder = new StringBuilder();
             cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-            cmdBuilder.Append($"git clone {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} . || true && ");
+            cmdBuilder.Append($"git clone {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} || true && ");
             cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "*")} && ");
             cmdBuilder.Append($"sed -i \"s|TODO|~/{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
             cmdBuilder.Append($"ln -sf {Path.Combine(clusterProjectRootDirectory, HPCConnectionFrameworkConfiguration.KeyScriptsDirectory)} ~/");
