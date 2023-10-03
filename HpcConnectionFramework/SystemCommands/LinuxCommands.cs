@@ -6,6 +6,7 @@ using Renci.SshNet;
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
@@ -217,9 +218,18 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var cmdBuilder = new StringBuilder();
             cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-            cmdBuilder.Append($"git clone {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} || true && ");
+            var kyeScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.KeyScriptsDirectory
+                .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+            cmdBuilder.Append($"rm -rf {kyeScriptsDirectoryParts.FirstOrDefault()} && ");
+            cmdBuilder.Append($"git clone --quiet {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} > /dev/null && ");
             cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "*")} && ");
-            cmdBuilder.Append($"sed -i \"s|TODO|~/{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
+            cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
+            
+            if (!string.IsNullOrEmpty(kyeScriptsDirectoryParts.LastOrDefault()))
+            {
+                cmdBuilder.Append($"rm -rf {Path.Combine("~/", kyeScriptsDirectoryParts.LastOrDefault())} && ");
+            }
+
             cmdBuilder.Append($"ln -sf {Path.Combine(clusterProjectRootDirectory, HPCConnectionFrameworkConfiguration.KeyScriptsDirectory)} ~/");
 
             try
