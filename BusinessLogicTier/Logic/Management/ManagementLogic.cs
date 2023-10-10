@@ -454,7 +454,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     {
                         ClusterId = clusterId,
                         ProjectId = projectId,
-                        LocalBasepath = localBasepath,
+                        LocalBasepath = localBasepath.EndsWith("/") ? localBasepath.TrimEnd('/') : localBasepath,
                         CreatedAt = DateTime.Now,
                         IsDeleted = false,
                     };
@@ -495,7 +495,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 }
                 else
                 {
-                    clusterProject.LocalBasepath = localBasepath;
+                    clusterProject.LocalBasepath = localBasepath.EndsWith("/") ? localBasepath.TrimEnd('/') : localBasepath;
                     clusterProject.ModifiedAt = DateTime.Now;
                     clusterProject.IsDeleted = false;
                     clusterProject.Project.ModifiedAt = DateTime.UtcNow;
@@ -701,6 +701,68 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
             return "SecureShellKey revoked";
         }
+
+        /// <summary>
+        /// Test cluster access for robot account
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="publicKey"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        public string TestClusterAccessForAccount(long projectId, string publicKey)
+        {
+            string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
+                .ToList();
+
+            if (clusterAuthenticationCredentials.Count == 0)
+            {
+                throw new InputValidationException("The specified public key is not defined in HEAppE!");
+            }
+
+            var noAccessClusterIds = new List<long>();
+            foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x=>x.Username))
+            {
+                if (clusterAuthCredentials.IsDeleted)
+                {
+                    continue;
+                }
+
+                foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(
+                             x => x.ClusterProject))
+                {
+                    if (clusterAuthCredentials.IsDeleted)
+                    {
+                        continue;
+                    }
+
+                    var cluster = clusterProjectCredential.ClusterProject.Cluster;
+                    var project = clusterProjectCredential.ClusterProject.Project;
+                    var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, project);
+                    try
+                    {
+                        scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials);
+                    }
+                    catch (Exception ex)
+                    {
+                        noAccessClusterIds.Add(cluster.Id);
+                    }
+                    
+                }
+            }
+            
+            if(noAccessClusterIds.Count > 0)
+            {
+                _logger.Info($"The following clusters are not accessible with selected account: {string.Join(", ", noAccessClusterIds)}");
+                throw new InputValidationException($"The following clusters are not accessible with selected account: {string.Join(", ", noAccessClusterIds)}");
+            }
+            
+            _logger.Info($"All clusters assigned to project ID='{projectId}' are accessible with selected account.");
+            return $"All clusters assigned to project ID='{projectId}' are accessible with selected account.";
+        }
         
         /// <summary>
         /// Initialize cluster script directory and create symlink for user
@@ -776,6 +838,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 return BitConverter.ToString(fingerprintBytes).Replace("-", string.Empty).ToLower();
             }
         }
+        
+        
 
         #region Private methods
         /// <summary>

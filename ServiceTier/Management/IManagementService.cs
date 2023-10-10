@@ -24,5 +24,6 @@ namespace HEAppE.ServiceTier.Management
         ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode);
         string RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
         string InitializeClusterScriptDirectory(long projectId, string publicKey,string clusterProjectRootDirectory, string sessionCode);
+        object TestClusterAccessForAccount(long modelProjectId, string modelPublicKey, string modelSessionCode);
     }
 }

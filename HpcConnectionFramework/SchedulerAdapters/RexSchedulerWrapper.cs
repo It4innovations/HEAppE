@@ -1,4 +1,5 @@
-﻿using HEAppE.ConnectionPool;
+﻿using System;
+using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -7,6 +8,7 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
 using System.Collections.Generic;
 using System.Linq;
+using Exception = System.Exception;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -327,6 +329,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             finally
             {
                 _connectionPool.ReturnConnection(schedulerConnection);
+            }
+        }
+
+        public void TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials)
+        {
+            try
+            {
+                ConnectionInfo schedulerConnection =
+                    _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Cluster access test failed.", ex);
             }
         }
 

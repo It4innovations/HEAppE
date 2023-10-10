@@ -23,5 +23,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
         string RemoveProjectAssignmentToCluster(long projectId, long clusterId);
         string InitializeClusterScriptDirectory(long projectId, string publicKey, string clusterProjectRootDirectory);
+        string TestClusterAccessForAccount(long modelProjectId, string modelPublicKey);
     }
 }

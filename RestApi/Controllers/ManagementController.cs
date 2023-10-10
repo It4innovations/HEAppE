@@ -557,6 +557,24 @@ namespace HEAppE.RestApi.Controllers
                 return Problem(null, null, null, exception.Message);
             }
         }
+
+        public IActionResult TestClusterAccessForAccount(TestClusterAccessForAccountModel model)
+        {
+            try
+            {
+                _logger.LogDebug($"Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
+                ValidationResult validationResult = new ManagementValidator(model).Validate();
+                if (!validationResult.IsValid)
+                {
+                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message)); 
+                }
+                return Ok(_managementService.TestClusterAccessForAccount(model.ProjectId, model.PublicKey, model.SessionCode));
+            }
+            catch (Exception exception)
+            {
+                return Problem(null, null, null, exception.Message);
+            }
+        }
         #endregion
         
         

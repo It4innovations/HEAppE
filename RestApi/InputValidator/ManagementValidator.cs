@@ -30,10 +30,27 @@ namespace HEAppE.RestApi.InputValidator
                 ModifyProjectAssignmentToClusterModel ext => ValidateModifyProjectAssignmentToClusterModel(ext),
                 RemoveProjectAssignmentToClusterModel ext => ValidateRemoveProjectAssignmentToClusterModel(ext),
                 InitializeClusterScriptDirectoryModel ext => ValidateInitializeClusterScriptDirectoryModel(ext),
+                TestClusterAccessForAccountModel ext => ValidateTestClusterAccessForAccountModel(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateTestClusterAccessForAccountModel(TestClusterAccessForAccountModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            
+            ValidateId(ext.ProjectId, "ProjectId");
+            if (string.IsNullOrEmpty(ext.PublicKey))
+            {
+                _messageBuilder.AppendLine("PublicKey can not be null or empty.");
+            }
+            return _messageBuilder.ToString();
         }
 
         private string ValidateInitializeClusterScriptDirectoryModel(InitializeClusterScriptDirectoryModel ext)
