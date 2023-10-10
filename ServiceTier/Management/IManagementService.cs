@@ -17,7 +17,8 @@ namespace HEAppE.ServiceTier.Management
         CommandTemplateExt ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript, string sessionCode);
         string RemoveCommandTemplate(long commandTemplateId, string sessionCode);
         ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, string sessionCode);
-        ProjectExt ModifyProject(long id, UsageType usageType, string description, DateTime startDate, DateTime endDate, string sessionCode);
+        ProjectExt ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate,
+            DateTime endDate, string sessionCode);
         string RemoveProject(long id, string sessionCode);
         ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode);
         ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode);

@@ -282,7 +282,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
                 _taskBuilder.Append(" --export ");
                 foreach (EnvironmentVariable variable in variables)
                 {
-                    _taskBuilder.Append($"{variable.Name} = {variable.Value},");
+                    _taskBuilder.Append($"{variable.Name}={variable.Value},");
                 }
                 _taskBuilder.Remove(_taskBuilder.Length - 1, 1);
             }
