@@ -16,6 +16,9 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         [DataMember(Name = "Protocol")]
         public FileTransferProtocolExt? Protocol { get; set; }
 
+        [DataMember(Name = "Port")]
+        public int? Port { get; set; }
+
         [DataMember(Name = "ProxyConnection", IsRequired = false, EmitDefaultValue = false)]
         public ClusterProxyConnectionExt ProxyConnection { get; set; }
 
@@ -24,7 +27,7 @@ namespace HEAppE.ExtModels.FileTransfer.Models
 
         public override string ToString()
         {
-            return $"FileTransferMethodExt: ServerHostname={ServerHostname}, SharedBasepath={SharedBasepath}, Protocol={Protocol}, Credentials={Credentials}, ProxyConnection={ProxyConnection}";
+            return $"FileTransferMethodExt: ServerHostname={ServerHostname}, SharedBasepath={SharedBasepath}, Protocol={Protocol}, Port={Port}, Credentials={Credentials}, ProxyConnection={ProxyConnection}";
         }
     }
 }
