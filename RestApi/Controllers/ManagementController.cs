@@ -557,7 +557,20 @@ namespace HEAppE.RestApi.Controllers
                 return Problem(null, null, null, exception.Message);
             }
         }
+        #endregion
 
+        /// <summary>
+        /// Test cluster access for robot account
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+         [HttpPost("TestClusterAccessForAccount")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult TestClusterAccessForAccount(TestClusterAccessForAccountModel model)
         {
             try
@@ -575,8 +588,6 @@ namespace HEAppE.RestApi.Controllers
                 return Problem(null, null, null, exception.Message);
             }
         }
-        #endregion
-        
         
         /// <summary>
         /// Initialize cluster script directory for SSH HPC Account
