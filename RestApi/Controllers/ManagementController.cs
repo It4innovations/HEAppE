@@ -290,7 +290,7 @@ namespace HEAppE.RestApi.Controllers
                 string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
                 _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
 
-                return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.SessionCode));
+                return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.AccountingString, model.StartDate, model.EndDate, model.SessionCode));
             }
             catch (Exception exception)
             {

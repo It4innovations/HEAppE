@@ -325,16 +325,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="usageType"></param>
         /// <param name="modelName"></param>
         /// <param name="description"></param>
+        /// <param name="accountingString"></param>
         /// <param name="startDate"></param>
         /// <param name="endDate"></param>
-        /// <param name="accountingString"></param>
         /// <param name="name"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         /// <exception cref="Exception"></exception>
-        public Project ModifyProject(long id, UsageType usageType, string modelName, string description,
-            DateTime startDate, DateTime endDate)
+        public Project ModifyProject(long id, UsageType usageType, string modelName, string description, string accountingString,DateTime startDate, DateTime endDate)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id);
             if (project == null)
@@ -347,6 +346,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             project.UsageType = usageType;
             project.Name = modelName ?? project.Name;
             project.Description = description ?? project.Description;
+            project.AccountingString = accountingString ?? project.AccountingString;
             project.StartDate = startDate;
             project.EndDate = endDate;
             project.ModifiedAt = DateTime.UtcNow;
