@@ -121,7 +121,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             foreach (string jobResponseMessage in jobResponseMessages)
             {
                 //For each HPC scheduler job
-                var parameters = Regex.Matches(jobResponseMessage, @"\s?(?<Key>.[^=]*)=(?<Value>.[^\s]*)", RegexOptions.Compiled)
+                var parameters = Regex.Matches(jobResponseMessage, @"\s?(?<Key>.[^=]*)=(?<Value>[^\s]*)", RegexOptions.Compiled)
                                         .Where(w => w.Success)
                                         .Select(s => new
                                         {
