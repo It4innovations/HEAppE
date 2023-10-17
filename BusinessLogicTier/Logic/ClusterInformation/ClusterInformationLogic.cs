@@ -158,7 +158,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                     creds = firstCredentials;
                 }
 
-                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, firstCredentials.Id);
+                ClusterUserCache.SetLastUserId(cluster, serviceCredentials, creds.Id);
                 _log.DebugFormat("Using cluster account: {0}", creds.Username);
                 return creds;
             }
