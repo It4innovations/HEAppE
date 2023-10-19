@@ -37,22 +37,21 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         {
             lock (lastUserId)
             {
-                if (serviceAccount.Id == clusterUserId)
+                if (serviceAccount.Id != clusterUserId)
                 {
-                    // Do not user service account as regular account
-                }
-                if (lastUserId == null)
-                {
-                    lastUserId = new Dictionary<long, long>();
-                }
+                    if (lastUserId == null)
+                    {
+                        lastUserId = new Dictionary<long, long>();
+                    }
 
-                if (!lastUserId.ContainsKey(cluster.Id))
-                {
-                    lastUserId.Add(cluster.Id, clusterUserId);
-                }
-                else
-                {
-                    lastUserId[cluster.Id] = clusterUserId;
+                    if (!lastUserId.ContainsKey(cluster.Id))
+                    {
+                        lastUserId.Add(cluster.Id, clusterUserId);
+                    }
+                    else
+                    {
+                        lastUserId[cluster.Id] = clusterUserId;
+                    }
                 }
             }
         }

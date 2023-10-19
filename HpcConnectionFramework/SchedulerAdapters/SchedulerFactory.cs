@@ -19,7 +19,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
     {
         #region Instances
         private readonly Dictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
-        private readonly static Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new();
+        private static readonly Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new();
         private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings = HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
         #endregion
         #region Static Methods
@@ -31,18 +31,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <exception cref="ApplicationException"></exception>
         public static SchedulerFactory GetInstance(SchedulerType type)
         {
-            if (_schedulerFactoryPoolSingletons.ContainsKey(type))
+            lock (_schedulerFactoryPoolSingletons)
             {
-                return _schedulerFactoryPoolSingletons[type];
-            }
-            else
-            {
+                if (_schedulerFactoryPoolSingletons.ContainsKey(type))
+                {
+                    return _schedulerFactoryPoolSingletons[type];
+                }
+
                 SchedulerFactory factoryInstance = type switch
                 {
                     SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                     SchedulerType.Slurm => new SlurmSchedulerFactory(),
                     SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
-                    _ => throw new ApplicationException("Scheduler factory with type \"" + type + "\" does not exist."),
+                    _ => throw new ApplicationException("Scheduler factory with type \"" + type +
+                                                        "\" does not exist."),
                 };
                 _schedulerFactoryPoolSingletons.Add(type, factoryInstance);
                 return factoryInstance;
