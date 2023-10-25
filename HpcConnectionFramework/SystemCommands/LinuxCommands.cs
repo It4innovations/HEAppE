@@ -179,21 +179,25 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
+        /// <param name="localBasePath"></param>
         /// <param name="sharedAccountsPoolMode"></param>
+        /// <param name="serviceAccountUsername"></param>
         public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
-            bool sharedAccountsPoolMode)
+            bool sharedAccountsPoolMode, string serviceAccountUsername)
         {
             var cmdBuilder =
                 new StringBuilder(
-                    $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0) };");
+                    $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0)} {serviceAccountUsername};");
             foreach (var task in jobInfo.Tasks)
             {
                 var path = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
-                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory} {(sharedAccountsPoolMode ? 1 : 0) };"
-                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath}/{jobInfo.Specification.Id}/{task.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0) };";
+                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory} {(sharedAccountsPoolMode ? 1 : 0)} {serviceAccountUsername};"
+                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0)} {serviceAccountUsername};";
 
                 cmdBuilder.Append(path);
             }
+            
+            _log.Info($"Create job directory command: \"{cmdBuilder}\"");
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 cmdBuilder.ToString());

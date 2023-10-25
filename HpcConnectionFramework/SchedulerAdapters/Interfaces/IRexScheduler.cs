@@ -27,7 +27,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, Cluster cluster);
 
-        void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode);
+        void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode,
+            string serviceAccountUsername);
 
         void DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath);
 

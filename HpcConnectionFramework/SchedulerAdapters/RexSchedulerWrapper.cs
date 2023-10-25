@@ -204,12 +204,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="jobInfo">Job info</param>
         /// <param name="localBasePath"></param>
         /// <param name="sharedAccountsPoolMode"></param>
-        public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode)
+        /// <param name="serviceAccountUsername"></param>
+        public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode,
+            string serviceAccountUsername)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
-                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
+                
+                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode, serviceAccountUsername);
             }
             finally
             {
