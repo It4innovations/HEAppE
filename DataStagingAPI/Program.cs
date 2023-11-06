@@ -8,7 +8,9 @@ using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using log4net;
 using MicroKnights.Log4NetHelper;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
+using System.Globalization;
 using System.Reflection;
 using System.Text.Json.Serialization;
 
@@ -97,6 +99,23 @@ builder.Services.AddSwaggerGen(options =>
         };
     options.AddSecurityRequirement(requirement);
 });
+
+
+//Localization and resources
+builder.Services.AddLocalization();
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = new List<CultureInfo>
+                {
+                    new CultureInfo("en"),
+                    new CultureInfo("cs")
+                };
+
+    options.DefaultRequestCulture = new RequestCulture("en");
+    options.SupportedCultures = supportedCultures;
+});
+
 
 //CORS
 builder.Services.AddCors(options =>
