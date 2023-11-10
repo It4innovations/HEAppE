@@ -90,6 +90,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
+                Port = jobInfo.Specification.FileTransferMethod.Port,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
                 SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
@@ -128,6 +129,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
+                Port = jobInfo.Specification.FileTransferMethod.Port,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
                 SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),

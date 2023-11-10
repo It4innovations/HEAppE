@@ -237,6 +237,7 @@
         "Id": 1,
         "ServerHostname": "{ServerHostNameDNS}",
         "Protocol": 2,
+        "Port": null,
         "ClusterId": 1
       }
     ],

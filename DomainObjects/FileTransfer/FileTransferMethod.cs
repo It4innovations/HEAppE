@@ -14,6 +14,8 @@ namespace HEAppE.DomainObjects.FileTransfer
 
         public FileTransferProtocol Protocol { get; set; }
 
+        public int? Port { get; set; }
+
         [ForeignKey("Cluster")]
         public long ClusterId { get; set; }
 
@@ -28,7 +30,7 @@ namespace HEAppE.DomainObjects.FileTransfer
 
         public override string ToString()
         {
-            return $"Cluster: Id={Id}, ServerHostname={ServerHostname}, Protocol={Protocol}, Cluster={Cluster}, Credentials={Credentials}";
+            return $"Cluster: Id={Id}, ServerHostname={ServerHostname}, Protocol={Protocol}, Port={Port}, Cluster={Cluster}, Credentials={Credentials}";
         }
     }
 }
