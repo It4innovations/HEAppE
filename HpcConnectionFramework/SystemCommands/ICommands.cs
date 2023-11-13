@@ -63,7 +63,11 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode);
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        /// <param name="serviceAccountUsername"></param>
+        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode, string serviceAccountUsername);
 
         /// <summary>
         /// Delete job directory
