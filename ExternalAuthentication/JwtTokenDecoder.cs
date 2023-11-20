@@ -1,7 +1,7 @@
-﻿using HEAppE.ExternalAuthentication.DTO.JsonTypes;
-using HEAppE.ExternalAuthentication.Exceptions;
-using System;
+﻿using System;
 using System.IdentityModel.Tokens.Jwt;
+using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.DTO.JsonTypes;
 
 namespace HEAppE.ExternalAuthentication
 {
@@ -19,16 +19,16 @@ namespace HEAppE.ExternalAuthentication
         {
             if (!_tokenHandler.CanReadToken(accessToken))
             {
-                throw new JwtDecodeException("Provided access_token is not well formed JWT.");
+                throw new JwtDecodeException("BadAccessTokenFormat");
             }
             try
             {
                 var decodedJwtToken = _tokenHandler.ReadJwtToken(accessToken);
                 return new DecodedAccessToken(decodedJwtToken);
             }
-            catch (Exception innerException)
+            catch (Exception)
             {
-                throw new JwtDecodeException("Unable to read provided access_token as JWT token.", innerException);
+                throw new JwtDecodeException("NotReadableAccessToken");
             }
         }
     }

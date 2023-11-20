@@ -1,6 +1,6 @@
 ﻿using System.Net.Http;
 
-using HEAppE.BusinesslogicTier.logic.FileTransfer;
+using HEAppE.BusinessLogicTier.logic.FileTransfer;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;

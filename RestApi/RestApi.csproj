@@ -44,6 +44,7 @@
     <ProjectReference Include="..\BackgroundThread\BackgroundThread.csproj" />
     <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
     <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
+    <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
     <ProjectReference Include="..\OpenStackAPI\OpenStackAPI.csproj" />
     <ProjectReference Include="..\RestApiModels\RestApiModels.csproj" />
     <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />

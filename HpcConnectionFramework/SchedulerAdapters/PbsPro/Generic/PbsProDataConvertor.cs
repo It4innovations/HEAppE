@@ -1,12 +1,13 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text.RegularExpressions;
+using HEAppE.Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 {
@@ -32,7 +33,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="nodeType">Cluster node type</param>
         /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
+        /// <exception cref="PbsException"></exception>
         public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
             string response = (string)responseMessage;
@@ -49,7 +50,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 
             if (!parameters.Any())
             {
-                throw new FormatException("Unable to parse response from PBS Professional HPC scheduler!");
+                throw new PbsException("UnableToParseResponse");
             }
 
             FillingSchedulerJobResultObjectFromSchedulerAttribute(nodeType.Cluster, queueInfo, parameters.ToDictionary(i => i.Key, j => j.Value));
@@ -67,7 +68,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// </summary>
         /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
+        /// <exception cref="PbsException"></exception>
         public override IEnumerable<string> GetJobIds(string responseMessage)
         {
             var scheduledJobIds = Regex.Matches(responseMessage, @"(?<JobId>.+)\n", RegexOptions.Compiled)
@@ -75,7 +76,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                                             .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
                                             .ToList();
 
-            return scheduledJobIds.Any() ? scheduledJobIds : throw new FormatException("Unable to parse response from PBS Professional HPC scheduler!");
+            return scheduledJobIds.Any() ? scheduledJobIds : throw new PbsException("UnableToParseResponse");
         }
 
         /// <summary>
@@ -109,7 +110,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="cluster">Cluster</param>
         /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
+        /// <exception cref="PbsException"></exception>
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
         {
             string response = (string)responseMessage;
@@ -162,7 +163,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             }
 
-            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from PBS Professional HPC scheduler!");
+            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new PbsException("UnableToParseResponse");
         }
         #endregion
     }

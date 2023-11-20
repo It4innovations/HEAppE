@@ -1,14 +1,15 @@
-﻿using HEAppE.ConnectionPool;
+﻿using HEAppE.Exceptions.Internal;
+using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement;
+using System;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -28,7 +29,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// </summary>
         /// <param name="type">Instance type</param>
         /// <returns></returns>
-        /// <exception cref="ApplicationException"></exception>
+        /// <exception cref="SchedulerException"></exception>
         public static SchedulerFactory GetInstance(SchedulerType type)
         {
             lock (_schedulerFactoryPoolSingletons)
@@ -43,8 +44,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                     SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                     SchedulerType.Slurm => new SlurmSchedulerFactory(),
                     SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
-                    _ => throw new ApplicationException("Scheduler factory with type \"" + type +
-                                                        "\" does not exist."),
+                    _ => throw new SchedulerException("NotValidType", type),
                 };
                 _schedulerFactoryPoolSingletons.Add(type, factoryInstance);
                 return factoryInstance;
@@ -93,17 +93,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
             {
 
-                int connectionPoolCleaningInterval = 60;
-                int connectionPoolMaxUnusedInterval = 1800;
-                
-                connectionPoolCleaningInterval = _connectionPoolSettings.ConnectionPoolCleaningInterval;
-                connectionPoolMaxUnusedInterval = _connectionPoolSettings.ConnectionPoolMaxUnusedInterval;
+                int connectionPoolCleaningInterval = _connectionPoolSettings.ConnectionPoolCleaningInterval;
+                int connectionPoolMaxUnusedInterval = _connectionPoolSettings.ConnectionPoolMaxUnusedInterval;
 
                 var clusterProject = project.ClusterProjects.FirstOrDefault(x => x.ClusterId == clusterConf.Id);
                 if (clusterProject is null || clusterProject.IsDeleted)
                 {
-                    throw new ArgumentException(
-                        $"Project with ID '{project.Id}' is not referenced to the cluster with ID '{clusterConf.Id}'.");
+                    throw new ArgumentException($"Project with ID '{project.Id}' is not referenced to the cluster with ID '{clusterConf.Id}'.");
                 }
                 
                 int connectionPoolMinSize = 0;

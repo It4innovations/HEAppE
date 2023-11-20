@@ -1,6 +1,4 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -8,21 +6,17 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.JobReporting.Converts;
-using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
-using HEAppE.Utils;
 using log4net;
-using Microsoft.Extensions.Caching.Memory;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 
 namespace HEAppE.ServiceTier.Management
@@ -34,7 +28,6 @@ namespace HEAppE.ServiceTier.Management
         private readonly ILog _logger;
 
         #endregion
-
         #region Constructors
 
         public ManagementService()
@@ -43,9 +36,7 @@ namespace HEAppE.ServiceTier.Management
         }
 
         #endregion
-
         #region IManagementService Methods
-
         public CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId,
             string description, string code, string executableFile, string preparationScript, string sessionCode)
         {
@@ -53,12 +44,9 @@ namespace HEAppE.ServiceTier.Management
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    CommandTemplate commandTemplate = managementLogic.CreateCommandTemplate(genericCommandTemplateId,
-                        name, projectId, description, code, executableFile, preparationScript);
+                    CommandTemplate commandTemplate = managementLogic.CreateCommandTemplate(genericCommandTemplateId, name, projectId, description, code, executableFile, preparationScript);
                     return commandTemplate.ConvertIntToExt();
                 }
             }
@@ -66,43 +54,9 @@ namespace HEAppE.ServiceTier.Management
             {
                 if (exc.Message.Contains("No such file or directory"))
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
+                    throw new InputValidationException("NoFileOrDirectory");
                 }
-
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
-            }
-        }
-
-        public string RemoveCommandTemplate(long commandTemplateId, string sessionCode)
-        {
-            try
-            {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-                    if (commandTemplate == null)
-                    {
-                        throw new RequestedObjectDoesNotExistException(
-                            "The specified command template is not defined in HEAppE!");
-                    }
-
-                    if (commandTemplate.ProjectId == null)
-                    {
-                        throw new InputValidationException("The specified command template cannot be removed!");
-                    }
-
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
-                        sessionCode, unitOfWork, UserRoleType.Administrator, commandTemplate.ProjectId.Value);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    managementLogic.RemoveCommandTemplate(commandTemplateId);
-                    return $"CommandTemplate with id {commandTemplateId} has been removed.";
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                throw;
             }
         }
 
@@ -113,12 +67,9 @@ namespace HEAppE.ServiceTier.Management
             {
                 using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
                 {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    CommandTemplate commandTemplate = managementLogic.ModifyCommandTemplate(commandTemplateId, name,
-                        projectId, description, code, executableFile, preparationScript);
+                    CommandTemplate commandTemplate = managementLogic.ModifyCommandTemplate(commandTemplateId, name, projectId, description, code, executableFile, preparationScript);
                     return commandTemplate.ConvertIntToExt();
                 }
             }
@@ -126,250 +77,144 @@ namespace HEAppE.ServiceTier.Management
             {
                 if (exc.Message.Contains("No such file or directory"))
                 {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(exc.Message));
+                    throw new InputValidationException("NoFileOrDirectory");
                 }
 
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                throw;
             }
         }
 
-        public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
-            DateTime startDate, DateTime endDate, string sessionCode)
+        public void RemoveCommandTemplate(long commandTemplateId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
+                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+
+                if (commandTemplate.ProjectId == null)
                 {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedManagementAdminUserForSessionCode(sessionCode,
-                            unitOfWork);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    Project project = managementLogic.CreateProject(accountingString, usageType, name, description,
-                        startDate, endDate, loggedUser);
-                    return project.ConvertIntToExt();
+                    throw new InputValidationException("The specified command template cannot be removed!");
                 }
+
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, commandTemplate.ProjectId.Value);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveCommandTemplate(commandTemplateId);
             }
-            catch (Exception exc)
+        }
+
+        public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedManagementAdminUserForSessionCode(sessionCode, unitOfWork);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                Project project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate, endDate, loggedUser);
+                return project.ConvertIntToExt();
             }
         }
 
         public ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, string accountingString, DateTime startDate, DateTime endDate, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, id);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    Project project =
-                        managementLogic.ModifyProject(id, usageType, name, description, accountingString, startDate, endDate);
-                    return project.ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, id);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                Project project = managementLogic.ModifyProject(id, usageType, name, description, accountingString, startDate, endDate);
+                return project.ConvertIntToExt();
             }
         }
 
-        public string RemoveProject(long id, string sessionCode)
+        public void RemoveProject(long id, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, id);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RemoveProject(id);
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, id);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveProject(id);
             }
         }
 
-        public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
-            string sessionCode)
+        public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    ClusterProject clusterProject =
-                        managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, localBasepath);
-                    return clusterProject.ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
-
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterProject clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                return clusterProject.ConvertIntToExt();
             }
         }
 
-        public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
-            string sessionCode)
+        public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    ClusterProject clusterProject =
-                        managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
-                    return clusterProject.ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterProject clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                return clusterProject.ConvertIntToExt();
             }
         }
 
-        public string RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
+        public void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                        UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RemoveProjectAssignmentToCluster(projectId, clusterId);
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveProjectAssignmentToCluster(projectId, clusterId);
             }
         }
 
         public PublicKeyExt CreateSecureShellKey(string username, string password, long projectId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.CreateSecureShellKey(username, password, projectId).ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.CreateSecureShellKey(username, password, projectId).ConvertIntToExt();
             }
         }
 
-        public PublicKeyExt RecreateSecureShellKey(string username, string password, string publicKey, long projectId,
-            string sessionCode)
+        public PublicKeyExt RecreateSecureShellKey(string username, string password, string publicKey, long projectId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RecreateSecureShellKey(username, password, publicKey, projectId)
-                        .ConvertIntToExt();
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.RecreateSecureShellKey(username, password, publicKey, projectId).ConvertIntToExt();
             }
         }
 
-        public string RemoveSecureShellKey(string publicKey, long projectId, string sessionCode)
+        public void RemoveSecureShellKey(string publicKey, long projectId, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.RemoveSecureShellKey(publicKey, projectId);
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveSecureShellKey(publicKey, projectId);
             }
         }
 
-        public string InitializeClusterScriptDirectory(long projectId, string publicKey,
-            string clusterProjectRootDirectory, string sessionCode)
+        public void InitializeClusterScriptDirectory(long projectId, string publicKey, string clusterProjectRootDirectory, string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                            UserRoleType.Administrator, projectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.InitializeClusterScriptDirectory(projectId, publicKey,
-                        clusterProjectRootDirectory);
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.InitializeClusterScriptDirectory(projectId, publicKey, clusterProjectRootDirectory);
             }
         }
 
-        public object TestClusterAccessForAccount(long modelProjectId, string modelPublicKey, string modelSessionCode)
+        public bool TestClusterAccessForAccount(long modelProjectId, string modelPublicKey, string modelSessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser =
-                        UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork,
-                            UserRoleType.Administrator, modelProjectId);
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    return managementLogic.TestClusterAccessForAccount(modelProjectId, modelPublicKey);
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, UserRoleType.Administrator, modelProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.TestClusterAccessForAccount(modelProjectId, modelPublicKey);
             }
         }
-
-#endregion
+        #endregion
     }
 }

@@ -1,4 +1,4 @@
-﻿using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+﻿using HEAppE.Exceptions.Internal;
 using log4net;
 using Renci.SshNet;
 using System;
@@ -45,12 +45,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         {
             if (string.IsNullOrWhiteSpace(masterNodeName))
             {
-                throw new ArgumentException($"Argument 'masterNodeName' cannot be null or empty");
+                throw new SshClientArgumentException("NullArgument", "masterNodeName");
             }
 
             if (string.IsNullOrWhiteSpace(userName))
             {
-                throw new ArgumentException($"Argument 'userName' cannot be null or empty");
+                throw new SshClientArgumentException("NullArgument", "userName");
             }
 
             _masterNodeName = masterNodeName;
@@ -72,12 +72,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         {
             if (string.IsNullOrWhiteSpace(commandText))
             {
-                throw new ArgumentException($"Argument 'commandText' cannot be null or empty");
+                throw new SshClientArgumentException("NullArgument", "commandText");
             }
 
             if (!CheckIsAgentHasIdentities())
             {
-                throw new SshCommandException("Ssh-agent has no identities added!");
+                throw new SshCommandException("NoIdentities");
             };
 
             var sshCommand = new SshCommandWrapper

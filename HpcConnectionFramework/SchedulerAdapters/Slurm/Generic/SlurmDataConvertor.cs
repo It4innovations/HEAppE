@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
@@ -32,7 +33,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="nodeType">Cluster node type</param>
         /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
+        /// <exception cref="SlurmException"></exception>
         public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
         {
             int nodesUsed = 0;
@@ -47,7 +48,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             {
                 if (!int.TryParse(parsedNodeUsedLine, out nodesUsed))
                 {
-                    throw new FormatException("Unable to parse cluster node usage from HPC scheduler!");
+                    throw new SlurmException("UnableToParseNodeUsage");
                 }
             }
 
@@ -65,7 +66,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
+        /// <exception cref="SlurmException"></exception>
         public override IEnumerable<string> GetJobIds(string responseMessage)
         {
             var scheduledJobIds = Regex.Matches(responseMessage, @"(Submitted batch job[\s\t]+)(?<JobId>[0-9]+)", RegexOptions.Compiled)
@@ -73,7 +74,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                 .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
                                 .ToList();
 
-            return scheduledJobIds.Any() ? scheduledJobIds : throw new FormatException("Unable to parse response from HPC scheduler!");
+            return scheduledJobIds.Any() ? scheduledJobIds : throw new SlurmException("UnableToParseResponse");
         }
 
         /// <summary>
@@ -106,7 +107,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="cluster">Cluster</param>
         /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
-        /// <exception cref="FormatException"></exception>
+        /// <exception cref="SlurmException"></exception>
         public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
         {
             string response = ((string)responseMessage).Replace("\n\t", string.Empty)
@@ -161,7 +162,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             }
 
-            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new FormatException("Unable to parse response from HPC scheduler!");
+            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new SlurmException("UnableToParseResponse");
         }
 
         /// <summary>

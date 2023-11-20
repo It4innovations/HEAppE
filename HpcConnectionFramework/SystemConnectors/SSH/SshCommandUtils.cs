@@ -1,4 +1,4 @@
-﻿using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+﻿using HEAppE.Exceptions.Internal;
 using log4net;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
@@ -35,7 +35,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             if (sshCommand.ExitStatus != 0)
             {
                 _log.Error($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
-                throw new SshCommandException($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
+                throw new SshCommandException("CommandException", sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
             }
 
             if (sshCommand.Error.Length > 0)

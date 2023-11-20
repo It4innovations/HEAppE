@@ -39,6 +39,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ExternalAuthentication", "E
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataStagingAPI", "DataStagingAPI\DataStagingAPI.csproj", "{B0392FA9-226E-46F7-8641-C0E14BC598DE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exceptions", "Exceptions\Exceptions.csproj", "{97DA6573-9FCA-45BD-A91C-6B1738021857}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -117,6 +119,10 @@ Global
 		{B0392FA9-226E-46F7-8641-C0E14BC598DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0392FA9-226E-46F7-8641-C0E14BC598DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0392FA9-226E-46F7-8641-C0E14BC598DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{97DA6573-9FCA-45BD-A91C-6B1738021857}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

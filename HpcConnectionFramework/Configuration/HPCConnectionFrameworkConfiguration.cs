@@ -18,16 +18,6 @@ namespace HEAppE.HpcConnectionFramework.Configuration
         /// Database job array delimiter
         /// </summary>
         public static string JobArrayDbDelimiter { get; set; }
-        
-        /// <summary>
-        /// Cluster HEAppE Scripts GIT repository URI
-        /// </summary>
-        public static string ClusterScriptsRepository { get; set; }
-        
-        /// <summary>
-        /// .key_scripts HEAppE Scripts repository path
-        /// </summary>
-        public static string KeyScriptsDirectory { get; set; }
 
         /// <summary>
         /// Tunnel configuration
@@ -35,19 +25,14 @@ namespace HEAppE.HpcConnectionFramework.Configuration
         public static TunnelConfiguration TunnelSettings { get; } = new TunnelConfiguration();
 
         /// <summary>
-        /// Command scripts path configuration
-        /// </summary>
-        public static CommandScriptPathConfiguration CommandScriptsPathSettings { get; } = new CommandScriptPathConfiguration();
-
-        /// <summary>
-        /// Linux local command scripts path configuration
-        /// </summary>
-        public static LinuxLocalCommandScriptPathConfiguration LinuxLocalCommandScriptPathSettings { get; } = new LinuxLocalCommandScriptPathConfiguration();
-
-        /// <summary>
         /// Clusters connection Pool configuration
         /// </summary>
         public static ClusterConnectionPoolConfiguration ClustersConnectionPoolSettings { get; } = new ClusterConnectionPoolConfiguration();
+
+        /// <summary>
+        /// Clusters scripts configuration
+        /// </summary>
+        public static ScriptsConfiguration ScriptsSettings { get; } = new ScriptsConfiguration();
         #endregion
     }
 }

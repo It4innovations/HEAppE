@@ -1,6 +1,6 @@
-﻿using HEAppE.CertificateGenerator.Configuration;
+﻿using HEAppE.Exceptions.Internal;
+using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;
@@ -56,7 +56,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
 
-                _ => throw new NotImplementedException("Cluster authentication credentials authentication type is not allowed!")
+                _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
             };
         }
 
@@ -229,7 +229,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             }
             catch (Exception e)
             {
-                throw new SshCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 
@@ -312,7 +312,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             }
             catch (Exception e)
             {
-                throw new SshCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 
@@ -350,7 +350,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             }
             catch (Exception e)
             {
-                throw new SshCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 
@@ -390,7 +390,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             }
             catch (Exception e)
             {
-                throw new SshCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 

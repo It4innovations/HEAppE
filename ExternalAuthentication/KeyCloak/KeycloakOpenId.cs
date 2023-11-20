@@ -1,6 +1,6 @@
-﻿using HEAppE.ExternalAuthentication.Configuration;
+﻿using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.JsonTypes;
-using HEAppE.ExternalAuthentication.KeyCloak.Exceptions;
 using HEAppE.RestUtils;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -33,7 +33,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         {
             if (string.IsNullOrEmpty(ExternalAuthConfiguration.BaseUrl))
             {
-                throw new KeycloakOpenIdException($"Not specify URL address for authentication user by \"{ExternalAuthConfiguration.Protocol}\"");
+                throw new KeycloakOpenIdException("BadURLForUser", ExternalAuthConfiguration.Protocol);
             }
 
             if (ExternalAuthConfiguration.Protocol == "openid-connect")
@@ -52,7 +52,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
             }
             else
             {
-                throw new NotImplementedException("Other client protocol than 'open-id' connect is not implemented. Please switch the client to 'openid-connect'.");
+                throw new KeycloakOpenIdException("BadProtocol");
             }
 
         }
@@ -165,23 +165,20 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         {
             if (!(introspectedToken.Active && ExternalAuthConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId) && introspectedToken.EmailVerified))
             {
-                StringBuilder textBuilder = new();
                 if (!introspectedToken.Active)
                 {
-                    textBuilder.AppendLine("Open-Id: User is not active!");
+                    throw new KeycloakOpenIdException("UserNotActive");
                 }
 
                 if (!introspectedToken.EmailVerified)
                 {
-                    textBuilder.AppendLine("Open-Id: User does not verified email!");
+                    throw new KeycloakOpenIdException("NotVerifiedEmail");
                 }
 
                 if (!ExternalAuthConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId))
                 {
-                    textBuilder.AppendLine("Open-Id: User is not in allowed clientIds!");
+                    throw new KeycloakOpenIdException("NotInAllowedClientIds");
                 }
-
-                throw new KeycloakOpenIdException(textBuilder.ToString());
             }
         }
         #endregion

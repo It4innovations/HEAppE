@@ -11,4 +11,8 @@
       <PackageReference Include="RestSharp" Version="108.0.3" />
     </ItemGroup>
 
+    <ItemGroup>
+      <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
+    </ItemGroup>
+
 </Project>

@@ -1,5 +1,4 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System.Collections.Generic;
 

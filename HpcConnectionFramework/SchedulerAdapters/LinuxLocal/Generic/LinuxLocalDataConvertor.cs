@@ -23,7 +23,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <summary>
         /// Command
         /// </summary>
-        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
+        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.LinuxLocalCommandScriptPathSettings;
         #endregion
         #region Constructors
         /// <summary>

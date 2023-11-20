@@ -1,28 +1,24 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
-
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
+﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
-using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.Utils;
-
 using log4net;
-
 using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement
 {
@@ -48,62 +44,54 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 
         public async Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials)
         {
-            try
+            AuthenticationCredentials credentialsIn;
+            if (credentials is PasswordCredentialsExt)
             {
-                AuthenticationCredentials credentialsIn;
-                if (credentials is PasswordCredentialsExt)
+                credentialsIn = new PasswordCredentials
                 {
-                    credentialsIn = new PasswordCredentials
-                    {
-                        Username = credentials.Username,
-                        Password = ((PasswordCredentialsExt)credentials).Password
-                    };
-                }
-                else if (credentials is DigitalSignatureCredentialsExt)
-                {
-                    credentialsIn = new DigitalSignatureCredentials
-                    {
-                        Username = credentials.Username,
-                        DigitalSignature = Array.ConvertAll(((DigitalSignatureCredentialsExt)credentials).DigitalSignature, b => unchecked((byte)b)),
-                        SignedContent = StringUtils.CombineContentWithSalt(credentials.Username)
-                    };
-                }
-                else if (credentials is OpenIdCredentialsExt openIdCredentials)
-                {
-                    //Username is extracted from the access_token later.
-                    credentialsIn = new OpenIdCredentials
-                    {
-                        OpenIdAccessToken = openIdCredentials.OpenIdAccessToken,
-                    };
-                }
-                else if (credentials is LexisCredentialsExt lexisCredentialsExt)
-                {
-                    //Username is extracted from the access_token later.
-                    credentialsIn = new LexisCredentials
-                    {
-                        OpenIdLexisAccessToken = lexisCredentialsExt.OpenIdAccessToken,
-                    };
-                }
-                else
-                {
-                    var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
-                    _log.Error(message);
-                    throw new ArgumentException(message);
-                }
-string result = string.Empty;
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    IUserAndLimitationManagementLogic userLogic =
-                        LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                     result = await userLogic.AuthenticateUserAsync(credentialsIn);
-                  }  return result;
-                
+                    Username = credentials.Username,
+                    Password = ((PasswordCredentialsExt)credentials).Password
+                };
             }
-            catch (Exception exc)
+            else if (credentials is DigitalSignatureCredentialsExt)
             {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                credentialsIn = new DigitalSignatureCredentials
+                {
+                    Username = credentials.Username,
+                    DigitalSignature = Array.ConvertAll(((DigitalSignatureCredentialsExt)credentials).DigitalSignature, b => unchecked((byte)b)),
+                    SignedContent = StringUtils.CombineContentWithSalt(credentials.Username)
+                };
             }
+            else if (credentials is OpenIdCredentialsExt openIdCredentials)
+            {
+                //Username is extracted from the access_token later.
+                credentialsIn = new OpenIdCredentials
+                {
+                    OpenIdAccessToken = openIdCredentials.OpenIdAccessToken,
+                };
+            }
+            else if (credentials is LexisCredentialsExt lexisCredentialsExt)
+            {
+                //Username is extracted from the access_token later.
+                credentialsIn = new LexisCredentials
+                {
+                    OpenIdLexisAccessToken = lexisCredentialsExt.OpenIdAccessToken,
+                };
+            }
+            else
+            {
+                var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
+                _log.Error(message);
+                throw new ArgumentException(message);
+            }
+            string result = string.Empty;
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                IUserAndLimitationManagementLogic userLogic =
+                    LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                result = await userLogic.AuthenticateUserAsync(credentialsIn);
+            }
+            return result;
         }
 
         public async Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials, long projectId)
@@ -142,81 +130,37 @@ string result = string.Empty;
             }
             else
             {
-                string errorMessage = $"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.";
-                _log.Error(errorMessage);
-                throw new ArgumentException(errorMessage);
-            }
-        }
-
-        [Obsolete]
-        public IEnumerable<ResourceUsageExt> GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode)
-        {
-            try
-            {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
-                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser, projects).Select(s => s.ConvertIntToExt());
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                _log.Error($"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.");
+                throw new OpenIdAuthenticationException("NotSupportedAuthentication", credentials.GetType().Name);
             }
         }
 
         public IEnumerable<ProjectResourceUsageExt> CurrentUsageAndLimitationsForCurrentUserByProject(string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
-                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser, projects).Select(s => s.ConvertIntToExt());
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
+                IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser, projects).Select(s => s.ConvertIntToExt());
             }
         }
 
         public IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
-                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.ProjectsForCurrentUser(loggedUser, projects).Select(p => p.ConvertIntToExt());
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter);
+                IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                return userLogic.ProjectsForCurrentUser(loggedUser, projects).Select(p => p.ConvertIntToExt());
             }
         }
 
         public bool ValidateUserPermissions(string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = GetValidatedManagementAdminUserForSessionCode(sessionCode, unitOfWork);
-                    return loggedUser is not null;
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return false;
+                AdaptorUser loggedUser = GetValidatedManagementAdminUserForSessionCode(sessionCode, unitOfWork);
+                return loggedUser is not null;
             }
         }
 
@@ -271,7 +215,7 @@ string result = string.Empty;
                                                                                 .Select(y => y.AdaptorUserGroup.Project)
                                                                                 .Distinct()
                                                                                 .ToArray();
-            return (loggedUser, projectIds); 
+            return (loggedUser, projectIds);
         }
 
         /// <summary>

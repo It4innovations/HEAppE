@@ -1,8 +1,8 @@
-﻿using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
+﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
@@ -10,7 +10,6 @@ using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
-using HEAppE.RestApiModels.JobManagement;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
@@ -20,7 +19,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -50,63 +48,46 @@ namespace HEAppE.RestApi.Controllers
         #region Methods
         #region InstanceInformation
         /// <summary>
-        /// Get HEAppE Infromation
+        /// Get HEAppE Information
         /// </summary>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
-        [HttpGet("InstanceInformations")]
+        [HttpGet("InstanceInformation")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult InstanceInformations(string sessionCode)
+        public IActionResult InstanceInformation(string sessionCode)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformation\" Parameters: SessionCode: \"{sessionCode}\"");
+            ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformations\" Parameters: SessionCode: \"{sessionCode}\"");
-                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                var result = _userAndManagementService.ValidateUserPermissions(sessionCode);
-                if (result)
-                {
-                    List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
-                    using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                    {
-                        activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
-                    }
-                    return Ok(new InstanceInformationExt()
-                    {
-                        Name = DeploymentInformationsConfiguration.Name,
-                        Description = DeploymentInformationsConfiguration.Description,
-                        Version = DeploymentInformationsConfiguration.Version,
-                        DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
-                        Port = DeploymentInformationsConfiguration.Port,
-                        URL = DeploymentInformationsConfiguration.Host,
-                        URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
-                        DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
-                        ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
-                        Projects = activeProjectsExtendedInfo
-                    });
-                }
-                else
-                {
-                    return BadRequest(null);
-                }
-            }
-            catch (Exception exception)
+            _userAndManagementService.ValidateUserPermissions(sessionCode);
+            List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
+                activeProjectsExtendedInfo = unitOfWork.ProjectRepository.GetAllActiveProjects()?.Select(p => p.ConvertIntToExtendedInfoExt()).ToList();
             }
+
+            return Ok(new InstanceInformationExt()
+            {
+                Name = DeploymentInformationsConfiguration.Name,
+                Description = DeploymentInformationsConfiguration.Description,
+                Version = DeploymentInformationsConfiguration.Version,
+                DeployedIPAddress = DeploymentInformationsConfiguration.DeployedIPAddress,
+                Port = DeploymentInformationsConfiguration.Port,
+                URL = DeploymentInformationsConfiguration.Host,
+                URLPostfix = DeploymentInformationsConfiguration.HostPostfix,
+                DeploymentType = DeploymentInformationsConfiguration.DeploymentType.ConvertIntToExt(),
+                ResourceAllocationTypes = DeploymentInformationsConfiguration.ResourceAllocationTypes?.Select(s => s.ConvertIntToExt()).ToList(),
+                Projects = activeProjectsExtendedInfo
+            });
         }
         #endregion
         #region CommandTemplate
@@ -124,28 +105,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CreateCommandTemplate(CreateCommandTemplateModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplate\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateCommandTemplate));
-
-                return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
         }
 
         /// <summary>
@@ -162,29 +130,16 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult ModifyCommandTemplate(ModifyCommandTemplateModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplate\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(ModifyCommandTemplate));
-
-                return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
-                                                         model.ExecutableFile, model.PreparationScript, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
+                                                               model.ExecutableFile, model.PreparationScript, model.SessionCode));
         }
 
         /// <summary>
@@ -201,28 +156,16 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(RemoveCommandTemplate));
-
-                return Ok(_managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            _managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode);
+            return Ok("CommandTemplate was deleted.");
         }
         #endregion
         #region Project
@@ -240,28 +183,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CreateProject(CreateProjectModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
-
-                return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.SessionCode));
         }
 
         /// <summary>
@@ -278,28 +208,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult ModifyProject(ModifyProjectModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
-
-                return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.AccountingString, model.StartDate, model.EndDate, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.AccountingString, model.StartDate, model.EndDate, model.SessionCode));
         }
 
         /// <summary>
@@ -316,28 +233,16 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RemoveProject(RemoveProjectModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
-
-                return Ok(_managementService.RemoveProject(model.Id, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            _managementService.RemoveProject(model.Id, model.SessionCode);
+            return Ok("Project was deleted.");
         }
         #endregion
         #region ProjectAssignmentToCluster
@@ -355,28 +260,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CreateProjectAssignmentToCluster(CreateProjectAssignmentToClusterModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
-
-                return Ok(_managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            return Ok(_managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
         }
 
         /// <summary>
@@ -393,28 +285,15 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult ModifyProjectAssignmentToCluster(ModifyProjectAssignmentToClusterModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
-
-                return Ok(_managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            ClearListAvailableClusterMethodCache();
+            return Ok(_managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
         }
 
         /// <summary>
@@ -431,28 +310,16 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RemoveProjectAssignmentToCluster(RemoveProjectAssignmentToClusterModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveProjectAssignmentToCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
-                _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
-
-                return Ok(_managementService.RemoveProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            _managementService.RemoveProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok("Removed assignment of the Project to the Cluster.");
         }
         #endregion
         #region SecureShellKey
@@ -470,24 +337,14 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult CreateSecureShellKey(CreateSecureShellKeyModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-                return Ok(_managementService.CreateSecureShellKey(model.Username, model.Password, model.ProjectId, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            return Ok(_managementService.CreateSecureShellKey(model.Username, model.Password, model.ProjectId, model.SessionCode));
         }
 
         /// <summary>
@@ -504,24 +361,14 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RecreateSecureShellKey(RecreateSecureShellKeyModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-                return Ok(_managementService.RecreateSecureShellKey(model.Username, model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            return Ok(_managementService.RecreateSecureShellKey(model.Username, model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
         }
 
         /// <summary>
@@ -538,57 +385,17 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RemoveSecureShellKey(RemoveSecureShellKeyModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-                return Ok(_managementService.RemoveSecureShellKey(model.PublicKey, model.ProjectId, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+
+            _managementService.RemoveSecureShellKey(model.PublicKey, model.ProjectId, model.SessionCode);
+            return Ok("SecureShellKey revoked");
         }
         #endregion
-
-        /// <summary>
-        /// Test cluster access for robot account
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-         [HttpPost("TestClusterAccessForAccount")]
-        [RequestSizeLimit(1000)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult TestClusterAccessForAccount(TestClusterAccessForAccountModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message)); 
-                }
-                return Ok(_managementService.TestClusterAccessForAccount(model.ProjectId, model.PublicKey, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                return Problem(null, null, null, exception.Message);
-            }
-        }
-        
         /// <summary>
         /// Initialize cluster script directory for SSH HPC Account
         /// </summary>
@@ -603,24 +410,52 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult InitializeClusterScriptDirectory(InitializeClusterScriptDirectoryModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"InitializeClusterScriptDirectory\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"Management\" Method: \"InitializeClusterScriptDirectory\"");
-                ValidationResult validationResult = new ManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-                return Ok(_managementService.InitializeClusterScriptDirectory(model.ProjectId, model.PublicKey, model.ClusterProjectRootDirectory, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
+
+            _managementService.InitializeClusterScriptDirectory(model.ProjectId, model.PublicKey, model.ClusterProjectRootDirectory, model.SessionCode);
+            return Ok("Cluster script directory was initialized.");
+        }
+
+        /// <summary>
+        /// Test cluster access for robot account
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("TestClusterAccessForAccount")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult TestClusterAccessForAccount(TestClusterAccessForAccountModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
+                throw new InputValidationException(validationResult.Message);
             }
+
+            var message = _managementService.TestClusterAccessForAccount(model.ProjectId, model.PublicKey, model.SessionCode)
+                ? "All clusters assigned to project are accessible with selected account."
+                : "Some of the clusters are not accessible with selected account";
+
+            _logger.LogInformation(message);
+            return Ok(message);
+        }
+
+        #endregion
+        #region Private Methods
+        private void ClearListAvailableClusterMethodCache()
+        {
+            string memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+            _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
         }
         #endregion
     }

@@ -1,5 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.FileTransferFramework.Exceptions;
+﻿using HEAppE.Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
@@ -232,7 +232,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
             catch (Exception e)
             {
-                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SFTPCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 
@@ -282,7 +282,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
             catch (Exception e)
             {
-                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SFTPCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 
@@ -320,7 +320,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
             catch (Exception e)
             {
-                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SFTPCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 
@@ -360,7 +360,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
             catch (Exception e)
             {
-                throw new SFTPCommandException($"Not corresponding password for the private key that is used for the connection to \"{masterNodeName}\"!", e);
+                throw new SFTPCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
             }
         }
 

@@ -7,14 +7,14 @@
     {
         #region Properties
         /// <summary>
-        /// Connection pool cleanning interval in seconds
+        /// Connection pool cleaning interval in seconds
         /// </summary>
-        public int ConnectionPoolCleaningInterval { get; set; }
+        public int ConnectionPoolCleaningInterval { get; set; } = 60;
 
         /// <summary>
         /// Connection pool max unused interval in seconds
         /// </summary>
-        public int ConnectionPoolMaxUnusedInterval { get; set; }
+        public int ConnectionPoolMaxUnusedInterval { get; set; } = 1800;
         #endregion
     }
 }

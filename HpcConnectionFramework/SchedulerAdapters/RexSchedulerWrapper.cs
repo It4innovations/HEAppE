@@ -335,16 +335,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             }
         }
 
-        public void TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials)
+        public bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials)
         {
             try
             {
-                ConnectionInfo schedulerConnection =
-                    _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+                ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+                return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
-                throw new Exception("Cluster access test failed.", ex);
+                _log.Info($"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}");
+                return false;
             }
         }
 

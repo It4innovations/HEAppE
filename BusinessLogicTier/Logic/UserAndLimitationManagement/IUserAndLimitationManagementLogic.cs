@@ -4,7 +4,6 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
 using HEAppE.OpenStackAPI.DTO;
-using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 

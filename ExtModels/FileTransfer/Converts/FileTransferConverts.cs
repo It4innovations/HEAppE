@@ -1,5 +1,5 @@
-﻿using HEAppE.BusinessLogicTier.Logic;
-using HEAppE.DomainObjects.FileTransfer;
+﻿using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;

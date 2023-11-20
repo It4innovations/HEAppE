@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using log4net;
@@ -9,7 +10,6 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
@@ -33,8 +33,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <summary>
         /// Command
         /// </summary>
-        protected readonly CommandScriptPathConfiguration _commandScripts =
-            HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
+        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings;
 
         /// <summary>
         /// Logger
@@ -53,16 +52,13 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         #endregion
 
         #region Properties
-
         /// <summary>
         /// Execute commnad script path
         /// </summary>
         public string ExecuteCmdScriptPath => _commandScripts.ExecuteCmdPath;
 
         #endregion
-
         #region Constructors
-
         /// <summary>
         /// Constructor
         /// </summary>
@@ -72,9 +68,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         }
 
         #endregion
-
         #region ICommands Members
-
         /// <summary>
         /// Get generic command templates parameters from script
         /// </summary>
@@ -135,8 +129,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 $"{_commandScripts.CopyDataToTempCmdPath} {inputDirectory} {outputDirectory}");
-            _log.Info(
-                $"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
+            _log.Info($"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
@@ -170,8 +163,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 cmdBuilder.ToString());
-            _log.Info(
-                $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+            _log.Info($"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>
@@ -222,19 +214,19 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var cmdBuilder = new StringBuilder();
             cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-            var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.KeyScriptsDirectory
+            var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory
                 .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
             cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
-            cmdBuilder.Append($"git clone --quiet {HPCConnectionFrameworkConfiguration.ClusterScriptsRepository} > /dev/null && ");
-            cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "*")} && ");
-            cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
+            cmdBuilder.Append($"git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} > /dev/null && ");
+            cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*")} && ");
+            cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
             
             if (!string.IsNullOrEmpty(keyScriptsDirectoryParts.LastOrDefault()))
             {
                 cmdBuilder.Append($"rm -rf {Path.Combine("~/", keyScriptsDirectoryParts.LastOrDefault())} && ");
             }
 
-            cmdBuilder.Append($"ln -sf {Path.Combine(clusterProjectRootDirectory, HPCConnectionFrameworkConfiguration.KeyScriptsDirectory)} ~/");
+            cmdBuilder.Append($"ln -sf {Path.Combine(clusterProjectRootDirectory, HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory)} ~/");
 
             try
             {
