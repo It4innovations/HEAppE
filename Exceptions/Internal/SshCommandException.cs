@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Linq;
 using System.Text.RegularExpressions;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace Exceptions.Internal
+namespace HEAppE.Exceptions.Internal
 {
     public class SshCommandException : InternalException
     {

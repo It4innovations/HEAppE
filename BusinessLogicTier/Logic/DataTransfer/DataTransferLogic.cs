@@ -1,4 +1,4 @@
-﻿using Exceptions.External;
+﻿using HEAppE.Exceptions.External;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.JobManagement;
@@ -81,7 +81,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                 lock (_lockTunnelObj)
                 {
                     var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
 
                     var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
                     if (getTunnelsInfos.Any(f => f.RemotePort == nodePort))
@@ -94,12 +94,9 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                     var tunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).Where(w => w.RemotePort == nodePort)
                                                                                                  .FirstOrDefault();
 
-                    if (tunnelInfo is null)
-                    {
-                        throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress, nodePort);
-                    }
-
-                    return new DataTransferMethod
+                    return tunnelInfo is null
+                        ? throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress, nodePort)
+                        : new DataTransferMethod
                     {
                         SubmittedTaskId = taskInfo.Id,
                         Port = tunnelInfo.LocalPort,
@@ -127,7 +124,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
             var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
             lock (_lockTunnelObj)
             {
-                SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveTunnel(taskInfo);
+                SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project).RemoveTunnel(taskInfo);
                 _taskWithExistingTunnel.Remove(taskInfo.Id);
             }
         }
@@ -149,7 +146,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
         {
             _logger.Info($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
 
-            var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType).CreateScheduler(taskInfo.Specification.JobSpecification.Cluster);
+            var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType).CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project);
             lock (_lockTunnelObj)
             {
                 scheduler.RemoveTunnel(taskInfo);
@@ -162,9 +159,9 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
             var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
             _logger.Info($"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\"");
 
-            var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
-            var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
+                var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
+                var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
 
             if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
             {
@@ -201,9 +198,9 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
             var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
             _logger.Info($"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\" HTTP Payload: \"{httpPayload}\"");
 
-            var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
-            var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
+                var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
+                var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
 
             if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
             {

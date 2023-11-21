@@ -1,8 +1,9 @@
 ﻿using System;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace Exceptions.External
+namespace HEAppE.Exceptions.External
 {
-	public class SessionCodeNotValidException : ExternalException {
+    public class SessionCodeNotValidException : ExternalException {
 		public SessionCodeNotValidException(string message) : base(message) { }
         public SessionCodeNotValidException(string message, params object[] args) : base(message, args) { }
 

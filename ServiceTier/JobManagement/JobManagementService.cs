@@ -13,7 +13,7 @@ using log4net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Exceptions.External;
+using HEAppE.Exceptions.External;
 
 namespace HEAppE.ServiceTier.JobManagement
 {
@@ -29,41 +29,19 @@ namespace HEAppE.ServiceTier.JobManagement
         }
         #endregion
         #region Methods
-        public SubmittedJobInfoExt CreateJob(JobSpecificationByProjectExt specification, string sessionCode)
+        public SubmittedJobInfoExt CreateJob(JobSpecificationExt specification, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, specification.ProjectId);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                JobSpecification js = specification.ConvertExtToInt(
-                                                        specification.ProjectId.HasValue ? specification.ProjectId.Value :
-                                                            (ServiceTierSettings.SingleProjectId.HasValue ? ServiceTierSettings.SingleProjectId.Value :
-                                                                throw new InputValidationException("NotSingleProjectInstance")
-                                                            )
-                                                        );
-                SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
+                JobSpecification js = specification.ConvertExtToInt(specification.ProjectId);
+                SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
                 return jobInfo.ConvertIntToExt();
             }
         }
 
-        public SubmittedJobInfoExt CreateJob(JobSpecificationByAccountingStringExt specification, string sessionCode)
-        {
-            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-            {
-                Project project = unitOfWork.ProjectRepository.GetByAccountingString(specification.AccountingString);
-                if (project == null)
-                {
-                    _logger.Error($"Accounting string '{specification.AccountingString}' does not exist in the system.");
-                    throw new InputValidationException("NotExistingAccountString", specification.AccountingString);
-                }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, project.Id);
-                IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                JobSpecification js = specification.ConvertExtToInt(project.Id);
-                SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong.Value);
-                return jobInfo.ConvertIntToExt();
-            }
-        }
-
+        
         public SubmittedJobInfoExt SubmitJob(long createdJobInfoId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -103,7 +81,7 @@ namespace HEAppE.ServiceTier.JobManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, null);
+                (AdaptorUser loggedUser, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                 var jobInfos = jobLogic.GetJobsForUser(loggedUser);
                 return jobInfos.Select(s => s.ConvertIntToExt()).ToArray();

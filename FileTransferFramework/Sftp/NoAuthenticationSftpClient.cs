@@ -1,4 +1,4 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework.Sftp.Commands;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;

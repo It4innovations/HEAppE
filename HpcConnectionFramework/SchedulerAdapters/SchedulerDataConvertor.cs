@@ -1,4 +1,4 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -375,8 +375,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 }
             }
             catch
-            {
-                _log.Error($"Error occurred when object was converting property type: \"{type}\" for input data: \"{obj}\" with format: \"{format}\"");
+            { 
                 throw new SchedulerException("ConvertingError", type, obj, format);
             }
         }

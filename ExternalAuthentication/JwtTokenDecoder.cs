@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IdentityModel.Tokens.Jwt;
-using Exceptions.External;
+using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.DTO.JsonTypes;
 
 namespace HEAppE.ExternalAuthentication

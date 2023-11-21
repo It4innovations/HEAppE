@@ -1,9 +1,8 @@
-﻿using Exceptions;
-using Exceptions.External;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
+﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.ClusterInformation;
@@ -55,21 +54,9 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult ListAvailableClusters()
         {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
+            _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
 
-                return Ok(_service.ListAvailableClusters());
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-
-                throw;
-            }
+            return Ok(_service.ListAvailableClusters());
         }
 
         /// <summary>
@@ -85,31 +72,20 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult RequestCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"GetCommandTemplateParametersName\"");
+            ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"GetCommandTemplateParametersName\"");
-                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    throw new InputValidationException(validationResult.Message);
-                }
-
-                // check if user can access project
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter, model.ProjectId);
-                }
-                return Ok(_service.RequestCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
+                throw new InputValidationException(validationResult.Message);
             }
-            catch (Exception exception)
+
+            // check if user can access project
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-
-                throw;
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter, model.ProjectId);
             }
+
+            return Ok(_service.RequestCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));
         }
 
         /// <summary>
@@ -117,78 +93,31 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="sessionCode">Session code</param>
         /// <param name="clusterNodeId">ClusterNode ID</param>
+        /// <param name="projectId">Project ID</param>
         /// <returns></returns>
         [HttpGet("CurrentClusterNodeUsage")]
-        [RequestSizeLimit(94)]
+        [RequestSizeLimit(154)]
         [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult CurrentClusterNodeUsage(string sessionCode, long clusterNodeId)
+        public IActionResult CurrentClusterNodeUsage(string sessionCode, long clusterNodeId, long projectId)
         {
-            try
+            var model = new CurrentClusterNodeUsageModel()
             {
-                var model = new CurrentClusterNodeUsageModel()
-                {
-                    SessionCode = sessionCode,
-                    ClusterNodeId = clusterNodeId
-                };
-                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    throw new InputValidationException(validationResult.Message);
-                }
-
-                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
-            }
-            catch (Exception exception)
+                SessionCode = sessionCode,
+                ClusterNodeId = clusterNodeId,
+                ProjectId = projectId
+            };
+            _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-
-                throw;
+                throw new InputValidationException(validationResult.Message);
             }
-        }
 
-        /// <summary>
-        /// Get actual cluster node usage
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("CurrentClusterNodeUsage")]
-        [RequestSizeLimit(94)]
-        [ProducesResponseType(typeof(ClusterNodeUsageExt), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [Obsolete]
-        public IActionResult Obsolete_CurrentClusterNodeUsage(CurrentClusterNodeUsageModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"CurrentClusterNodeUsage\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new ClusterInformationValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    throw new InputValidationException(validationResult.Message);
-                }
-
-                return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-
-                throw;
-            }
+            return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.ProjectId, model.SessionCode));
         }
         #endregion
     }

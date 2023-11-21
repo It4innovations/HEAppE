@@ -1,6 +1,7 @@
 ﻿using System;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace Exceptions.External
+namespace HEAppE.Exceptions.External
 {
     /// <summary>
     /// Exception thrown when unable to parse JWT token.

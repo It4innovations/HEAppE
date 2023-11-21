@@ -118,25 +118,25 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithJob" xml:space="preserve">
-    <value>Přihlášený uživatel: '{0}' nemá povolení pracovat s jobem s ID: '{1}'.</value>
+    <value>Přihlášený uživatel: '{0}' nemá povolení pracovat s jobem: '{1}'.</value>
   </data>
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
-    <value>Přihlášený uživatel: '{0}' nemá povolení pracovat s jobem s ID: '{1}'.</value>
+    <value>Přihlášený uživatel: '{0}' nemá povolení pracovat s jobem: '{1}'.</value>
   </data>
   <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
     <value>Uživatel '{0}', který požádal o ověření, byl již smazán ze systému.</value>
   </data>
-  <data name="AuthenticationCredentialsException_NotSupportedAuthentication" xml:space="preserve">
-    <value>Pověření třídy {0} nejsou podporována. Změňte metodu UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() pro přidání podpory pro další typy autentikace.</value>
-  </data>
   <data name="AuthenticationException_UnableToRetrieveOpenStackCredentials" xml:space="preserve">
     <value>Nelze získat přihlašovací údaje OpenStack aplikace pro tohoto uživatele.</value>
   </data>
-  <data name="AuthenticationTypeException_NotAllowed" xml:space="preserve">
-    <value>Autentikační typ autentikace clusteru není povolen!</value>
+  <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
+    <value>Externí autentikační metoda není naimplementovaná!</value>
+  </data>
+  <data name="AuthenticationTypeException_NotSupportedRole" xml:space="preserve">
+    <value>Neexistuje role pro mapování!</value>
   </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
-    <value>Aktuální použití pro uživatele {0} a typ node {1} nebylo vytvořeno metodou GetCurrentUsageAndLimitationsForUser.</value>
+    <value>Aktuální použití pro uživatele '{0}' a node type '{1}' nebylo vytvořeno metodou GetCurrentUsageAndLimitationsForUser.</value>
   </data>
   <data name="ExternalException_JsonDeserializationException" xml:space="preserve">
     <value>Nepodařilo se deserializovat json odpověď z REST požadavku.</value>
@@ -160,7 +160,7 @@
     <value>Šablona není generická.</value>
   </data>
   <data name="InputValidationException_InvalidPublicKey" xml:space="preserve">
-    <value>Uvedený veřejný klíč není platný!</value>
+    <value>Uvedený veřejný klíč není platný.</value>
   </data>
   <data name="InputValidationException_IPAddressesProvidedOnlyForRunningTask" xml:space="preserve">
     <value>Přidělené IP adresy uzlů jsou k dispozici pouze pro běžící úlohy.</value>
@@ -168,23 +168,14 @@
   <data name="InputValidationException_NoFileOrDirectory" xml:space="preserve">
     <value>Soubor nebo složka nebyla nalezena.</value>
   </data>
-  <data name="InputValidationException_NoProjectWithAccountString" xml:space="preserve">
-    <value>Specifikovaný projekt s account řetězcem '{0}' není definován v HEAppE!</value>
-  </data>
   <data name="InputValidationException_NoScriptPath" xml:space="preserve">
-    <value>Generická šablona musí obsahovat cestu ke skriptu!</value>
-  </data>
-  <data name="InputValidationException_NotExistingAccountString" xml:space="preserve">
-    <value>Account řetězec '{0}' neexistuje v systému.</value>
+    <value>Generická šablona musí obsahovat cestu ke skriptu.</value>
   </data>
   <data name="InputValidationException_NotExistingJob" xml:space="preserve">
-    <value>Job s ID '{0}' neexistuje v systému.</value>
+    <value>Job '{0}' neexistuje v systému.</value>
   </data>
   <data name="InputValidationException_NotExistingTask" xml:space="preserve">
-    <value>Task s ID '{0}' neexistuje v systému.</value>
-  </data>
-  <data name="InputValidationException_NotSingleProjectInstance" xml:space="preserve">
-    <value>Toto není instance HEAppE jednoho projektu. Uveďte prosím ProjectId.</value>
+    <value>Task '{0}' neexistuje v systému.</value>
   </data>
   <data name="InputValidationException_NotValidJobSpecification" xml:space="preserve">
     <value>Při zasílání jobu nebyla platná specifikace: \r\n {0}</value>
@@ -198,23 +189,26 @@
   <data name="InsufficientRoleException_MissingRole" xml:space="preserve">
     <value>Uživatel nemá požadovanou roli. Požadovaná role: '{0}'. Aktuální uživatel nemá žádné oprávnění/roli pro projekt '{1}'.</value>
   </data>
+  <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
+    <value>Uživatel nemá '{0}' roli pro vytvoření projektu.</value>
+  </data>
   <data name="InsufficientRoleException_MissingRoles" xml:space="preserve">
-    <value>Uživatel nemá požadovanou roli. Požadovaná role: '{0}'. Aktuální role uživatele pro projekt {1}: '{2}'.</value>
+    <value>Uživatel nemá požadovanou roli. Požadovaná role: '{0}'. Aktuální role uživatele pro projekt '{1}' jsou '{2}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Autentizace uživatele '{0}' nebyla úspěšná kvůli nesprávným přihlašovacím údajům.</value>
   </data>
   <data name="InvalidRequestException_CannotDeleteJob" xml:space="preserve">
-    <value>Nelze smazat úlohu s ID {0}, tato úloha je ve stavu {1}.</value>
+    <value>Nelze smazat úlohu '{0}', tato úloha je ve stavu '{1}'.</value>
   </data>
   <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
     <value>Specifikovaný uzlový klastr nemá odkaz na žádný klastr.</value>
   </data>
   <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
-    <value>Neexistuje žádná taková cesta: {0}. Zpráva o chybě: {1}.</value>
+    <value>Neexistuje žádná taková cesta: '{0}'. Zpráva o chybě: '{1}'.</value>
   </data>
   <data name="InvalidRequestException_NotExistingPrivateKeyFile" xml:space="preserve">
-    <value>Soubor s privátním klíčem umístěný na '{0}' neexistuje</value>
+    <value>Soubor s privátním klíčem umístěný na '{0}' neexistuje.</value>
   </data>
   <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
     <value>Klastr s tímto projektem neexistuje v systému.</value>
@@ -222,14 +216,26 @@
   <data name="InvalidRequestException_ParameterIllegalCharacters" xml:space="preserve">
     <value>Parametr '{0}': '{1}' obsahuje neplatné znaky.</value>
   </data>
+  <data name="InvalidRequestException_ProjectAlreadyExist" xml:space="preserve">
+    <value>Projekt s account řetězcem '{0}' již existuje!</value>
+  </data>
+  <data name="InvalidRequestException_ProjectAlreadyExistWithCluster" xml:space="preserve">
+    <value>Project s Id '{0}' je už přiřazen ke klusteru s Id '{1}'!</value>
+  </data>
+  <data name="InvalidRequestException_ProjectDeleted" xml:space="preserve">
+    <value>Projekt s account řetězcem '{0}' byl již použit a je odstraněn!</value>
+  </data>
+  <data name="InvalidRequestException_ProjectNoAssignToCluster" xml:space="preserve">
+    <value>Projekt s Id '{0}' není přiřazen k žádnemu klusteru.</value>
+  </data>
   <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
-    <value>Projekt {0} nemá žádný odkaz na klastr {1}.</value>
+    <value>Projekt '{0}' nemá žádný odkaz na klastr '{1}'.</value>
   </data>
   <data name="InvalidRequestException_TaskEmptyAttribute" xml:space="preserve">
     <value>'{0}' atribut v úloze '{1}' nesmí být prázdný.</value>
   </data>
   <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
-    <value>Uživatel {0} nemá přístup k node ID klastru {1}.</value>
+    <value>Uživatel '{0}' nemá přístup k node Id klastru '{1}'.</value>
   </data>
   <data name="JwtDecodeException_BadAccessTokenFormat" xml:space="preserve">
     <value>Poskytnutý přístupový token není správně utvořený JWT.</value>
@@ -247,10 +253,10 @@
     <value>Open-Id: Mapování projektové role není správně definováno!</value>
   </data>
   <data name="KeycloakOpenIdException_NotDefinedProject" xml:space="preserve">
-    <value>Open-Id: Nejsou definovány ID projektů '{0}' na serveru Open-Id!</value>
+    <value>Open-Id: Nejsou definovány Id projektů '{0}' na serveru Open-Id!</value>
   </data>
   <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
-    <value>Open-Id: Uživatel není v povolených klientových ID!</value>
+    <value>Open-Id: Uživatel není v povolených klientových Id!</value>
   </data>
   <data name="KeycloakOpenIdException_NotVerifiedEmail" xml:space="preserve">
     <value>Open-Id: Uživatel nemá ověřený e-mail!</value>
@@ -265,16 +271,13 @@
     <value>Poskytnutý OpenId token není platný nebo neaktivní. Nelze ověřit uživatele podle poskytnutých údajů.</value>
   </data>
   <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
-    <value>Pověření typu {0} nejsou podporována pro autentizaci OpenStacku.</value>
+    <value>Pověření typu '{0}' nejsou podporována pro autentizaci OpenStacku.</value>
   </data>
   <data name="OpenIdAuthenticationException_NoUserGroup" xml:space="preserve">
     <value>Open-d: Uživatel ('{0}') nemá uživatelskou skupinu!</value>
   </data>
   <data name="OpenStackAPIException_MissingCreateCredentialsPermission" xml:space="preserve">
     <value>Uživatel nemá oprávnění vytvořit přihlašovací údaje OpenStack pro projekt '{0}'</value>
-  </data>
-  <data name="OpenStackAPIException_MissingCreateCredentialsPermission1" xml:space="preserve">
-    <value>Uživatel nemá oprávnění vytvářet přihlašovací údaje OpenStack pro projekt '{0}'!</value>
   </data>
   <data name="OpenStackAPIException_NoCredentialsForOpenStackProject" xml:space="preserve">
     <value>Nebyly přiděleny uživatelské přihlašovací údaje pro projekt OpenStack '{0}'!</value>
@@ -289,7 +292,7 @@
     <value>Výjimka vyvolána při získávání parametrů fronty: '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy: '{3}'.</value>
   </data>
   <data name="PbsException_GetActualTasksInfo" xml:space="preserve">
-    <value>Výjimka vyvolána při získávání parametrů úloh s ID: '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy: '{3}'.</value>
+    <value>Výjimka vyvolána při získávání parametrů úloh s Id: '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy: '{3}'.</value>
   </data>
   <data name="PbsException_GetAllocatedNodesException" xml:space="preserve">
     <value>Výjimka vyvolána při získávání alokovaných uzlů používaných běžícím úkolem (HPC úloha): '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy: '{3}'.</value>
@@ -303,20 +306,17 @@
   <data name="PbsException_UnableToParseResponse" xml:space="preserve">
     <value>Nelze analyzovat odpověď od plánovače PBS Professional HPC!</value>
   </data>
-  <data name="RequestedJobResourcesExceededUserLimitationsException_ExceededUsageLimitations" xml:space="preserve">
-    <value>Požadované zdroje pro úlohu {0} překročily omezení uživatele.</value>
-  </data>
   <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
-    <value>Požadovaný typ uzlu klastru s ID='{0}' neexistuje v systému.</value>
+    <value>Požadovaný typ uzlu klastru s Id '{0}' neexistuje v systému.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterNotExists" xml:space="preserve">
-    <value>Požadovaný klastr s ID='{0}' neexistuje v systému.</value>
+    <value>Požadovaný klastr s Id '{0}' neexistuje v systému.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNoServiceAccount" xml:space="preserve">
-    <value>Požadovaná kombinace pro klastr s ID={0} a projekt s ID={1} nemá referenci na pověření služebního účtu v systému.</value>
+    <value>Požadovaná kombinace pro klastr s Id '{0} a projekt s Id '{1}' nemá referenci na pověření služebního účtu v systému.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
-    <value>Požadovaná kombinace pro klastr s ID={0} a projekt s ID={1} nemá referenci v systému.</value>
+    <value>Požadovaná kombinace pro klastr s Id '{0}' a projekt s Id '{1}' nemá referenci v systému.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
     <value>Specifikovaná šablona příkazu není definována v HEAppE!</value>
@@ -325,13 +325,19 @@
     <value>Specifikovaná CommandTemplateId '{0}' není odkazována na ProjectId '{1}'.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingFileTransferMethod" xml:space="preserve">
-    <value>Požadovaná metoda přenosu souborů s ID='{0}' neexistuje v systému.</value>
+    <value>Požadovaná metoda přenosu souborů s Id '{0}' neexistuje v systému.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingJobInfo" xml:space="preserve">
-    <value>Požadované informace o úloze s ID: '{0}' neexistují v systému.</value>
+    <value>Požadované informace o úloze s Id '{0}' neexistují v systému.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_NotExistingPublicKey" xml:space="preserve">
+    <value>Specifikovaný veřejný klíč není definován v HEAppE!</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingTaskInfo" xml:space="preserve">
-    <value>Požadované informace o úkolu s ID: '{0}' neexistují v systému.</value>
+    <value>Požadované informace o úkolu s Id '{0}' neexistují v systému.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ProjectNotFound" xml:space="preserve">
+    <value>Specifikovaný projekt není definován v HEAppE!</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
     <value>Pověření služebního účtu není definováno v systému pro tuto CommandTemplate.</value>
@@ -340,16 +346,16 @@
     <value>Parametr příkazu uživatelského skriptu pro generickou šablonu příkazu není definován v HEAppE!</value>
   </data>
   <data name="ResourceUsageException_GroupNotSpecified" xml:space="preserve">
-    <value>Nebyla uvedena specifikovaná skupina s ID: '{0}' v systému!</value>
+    <value>Nebyla uvedena specifikovaná skupina s Id '{0}' v systému!</value>
   </data>
   <data name="ResourceUsageException_JobNotSpecified" xml:space="preserve">
-    <value>Nebyla uvedena specifikovaná úloha s ID: '{0}' v systému!</value>
+    <value>Nebyla uvedena specifikovaná úloha s Id '{0}' v systému!</value>
   </data>
   <data name="ResourceUsageException_ReporterNoAccessToJob" xml:space="preserve">
-    <value>Tento zpravodaj nemá přístup k reportu úlohy: '{0}', protože zpravodaj nemá přístup k projektu úlohy!</value>
+    <value>Tento zpravodaj nemá přístup k reportu úlohy '{0}', protože zpravodaj nemá přístup k projektu úlohy!</value>
   </data>
   <data name="ResourceUsageException_UserNotSpecified" xml:space="preserve">
-    <value>Nebyl uveden specifikovaný uživatel s ID: '{0}' v systému!</value>
+    <value>Nebyl uveden specifikovaný uživatel s Id '{0}' v systému!</value>
   </data>
   <data name="SchedulerException_ConvertingError" xml:space="preserve">
     <value>Při konverzi typu objektu '{0}' pro vstupní data: '{1}' ve formátu: '{2}' došlo k chybě.</value>
@@ -358,7 +364,7 @@
     <value>Šablona příkazu '{0}' pro úlohu '{1}' neexistuje v konfiguraci adaptéru.</value>
   </data>
   <data name="SchedulerException_NotSupportedEndpoint" xml:space="preserve">
-    <value>Plánovač {0} nepodporuje tento bod konektivity.</value>
+    <value>Plánovač '{0}' nepodporuje tento bod konektivity.</value>
   </data>
   <data name="SchedulerException_NotValidCommandTemplateParameter" xml:space="preserve">
     <value>Parametr '{0}' ve šabloně příkazu '{1}' nelze nalézt ani jako vlastnost úkolu, ani jako další parametr.</value>
@@ -379,7 +385,7 @@
     <value>Argument '{0}' nesmí být null nebo prázdný.</value>
   </data>
   <data name="SftpClientException_NoAuthenticationSftpClientMethod" xml:space="preserve">
-    <value>NoAuthenticationSftpClient nepodporuje metodu {0}!</value>
+    <value>NoAuthenticationSftpClient nepodporuje metodu '{0}'!</value>
   </data>
   <data name="SFTPCommandException_NotCorrespondingPasswordForPrivateKey" xml:space="preserve">
     <value>Neodpovídající heslo k privátnímu klíči, který se používá pro připojení k '{0}'!</value>
@@ -388,7 +394,7 @@
     <value>Výjimka vyvolána při získávání využití uzlu v klastru: '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy ve frontě: '{3}'.</value>
   </data>
   <data name="SlurmException_GetActualTasksInfo" xml:space="preserve">
-    <value>Výjimka vyvolána při získávání parametrů úloh s ID: '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy: '{3}'.</value>
+    <value>Výjimka vyvolána při získávání parametrů úloh s Id: '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy: '{3}'.</value>
   </data>
   <data name="SlurmException_GetAllocatedNodesException" xml:space="preserve">
     <value>Výjimka vyvolána při získávání alokovaných uzlů používaných běžícím úkolem (HPC úloha): '{0}'. Výsledek skriptu odeslání: '{1}'. Zpráva skriptu odeslání: '{2}'. Příkazový řádek pro odeslání úlohy: '{3}'.</value>
@@ -437,8 +443,5 @@
   </data>
   <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
     <value>Neexistuje volný místní port pro vytvoření ssh tunelu.</value>
-  </data>
-  <data name="UnableToCreateTunnelException_TunnelAlreadyExistsForPort" xml:space="preserve">
-    <value>ID úlohy: '{0}' s IP adresou uzlu: '{1}' již má ssh tunel pro port: '{2}'.</value>
   </data>
 </root>

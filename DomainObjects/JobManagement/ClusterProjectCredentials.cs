@@ -7,7 +7,7 @@ using System.Xml.Linq;
 namespace HEAppE.DomainObjects.JobManagement
 {
     [Table("ClusterProjectCredentials")]
-    public class ClusterProjectCredentials
+    public class ClusterProjectCredential
     {
         public long ClusterProjectId { get; set; }
         public virtual ClusterProject ClusterProject { get; set; }

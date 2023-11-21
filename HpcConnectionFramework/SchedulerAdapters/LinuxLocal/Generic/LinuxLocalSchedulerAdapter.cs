@@ -1,4 +1,4 @@
-using Exceptions.Internal;
+using HEAppE.Exceptions.Internal;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -40,12 +40,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <summary>
         /// Command Script Paths
         /// </summary>
-        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
+        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings;
 
         /// <summary>
         /// Command
         /// </summary>
-        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
+        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.LinuxLocalCommandScriptPathSettings;
 
         /// <summary>
         /// Generic commnad key parameter
@@ -123,7 +123,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// Cancel job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
+        /// <param name="submitedTasksInfo">Submitted tasks idÂ´s</param>
         /// <param name="message">Message</param>
         public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
@@ -223,9 +223,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        /// <param name="serviceAccountUsername"></param>
+        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode, string serviceAccountUsername)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode, serviceAccountUsername);
         }
 
         /// <summary>
@@ -293,6 +297,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         {
             throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
         }
+
+        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+            string clusterProjectRootDirectory,
+            string localBasepath)
+        {
+            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath);
+        }
+
         #endregion
         #endregion
         #region Private Methods

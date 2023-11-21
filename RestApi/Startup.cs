@@ -1,6 +1,7 @@
 ﻿using AspNetCoreRateLimit;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.ExternalAuthentication.Configuration;
@@ -8,14 +9,12 @@ using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
-using HEAppE.ServiceTier;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -26,7 +25,6 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Reflection;
 
 namespace HEAppE.RestApi
@@ -47,6 +45,7 @@ namespace HEAppE.RestApi
         /// Configuration property
         /// </summary>
         public IConfiguration Configuration { get; }
+
         #endregion
         #region Constructors
         /// <summary>
@@ -65,7 +64,6 @@ namespace HEAppE.RestApi
         /// <param name="services">Collection services</param>
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();
             services.AddMemoryCache();
 
             //IP rate limitation
@@ -73,6 +71,7 @@ namespace HEAppE.RestApi
             services.Configure<IpRateLimitPolicies>(Configuration.GetSection("IpRateLimitPolicies"));
 
             //Other configuration
+
             Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
             Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
             Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
@@ -88,6 +87,17 @@ namespace HEAppE.RestApi
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
             services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
             services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+
+            //UserOrgHttpClient
+            //services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
+
+            services.AddHttpClient("userOrgApi", conf =>
+            {
+                if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
+                {
+                    conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
+                }
+            });
 
             //CORS
             services.AddCors(options =>
@@ -134,7 +144,6 @@ namespace HEAppE.RestApi
 
             //Localization and resources
             services.AddLocalization();
-
             services.Configure<RequestLocalizationOptions>(options =>
             {
                 var supportedCultures = new List<CultureInfo>
@@ -146,12 +155,6 @@ namespace HEAppE.RestApi
                 options.DefaultRequestCulture = new RequestCulture("en");
                 options.SupportedCultures = supportedCultures;
             });
-
-            //Set Single Project HEAppE Instance
-            if (MiddlewareContextSettings.Projects.Count == 1)
-            {
-                ServiceTierSettings.SingleProjectId = MiddlewareContextSettings.Projects.FirstOrDefault()?.Id;
-            }
         }
 
         /// <summary>
@@ -162,6 +165,7 @@ namespace HEAppE.RestApi
         /// <param name="loggerFactory">Logger factory</param>
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env, ILoggerFactory loggerFactory)
         {
+            LogicFactory.ServiceProvider = app.ApplicationServices;
             var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
             GlobalContext.Properties["instanceName"] = DeploymentInformationsConfiguration.Name;
             GlobalContext.Properties["instanceVersion"] = DeploymentInformationsConfiguration.Version;

@@ -28,6 +28,11 @@
         /// <summary>
         /// Users with this role can watch other jobs in the same group.
         /// </summary>
-        Reporter = 5
+        Reporter = 5,
+        
+        /// <summary>
+        /// User with this role can create new project and use management API.
+        /// </summary>
+        ManagementAdmin = 6
     }
 }

@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
+
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
@@ -351,7 +352,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("ClusterProject");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentials", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredential", b =>
                 {
                     b.Property<long>("ClusterProjectId")
                         .HasColumnType("bigint");
@@ -1261,9 +1262,14 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<long?>("ParentRoleId")
+                        .HasColumnType("bigint");
+
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Name");
+
+                    b.HasIndex("ParentRoleId");
 
                     b.ToTable("AdaptorUserRole");
                 });
@@ -1430,7 +1436,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("Project");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentials", b =>
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredential", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ClusterAuthenticationCredentials")
                         .WithMany("ClusterProjectCredentials")
@@ -1771,10 +1777,19 @@ namespace HEAppE.DataAccessTier.Migrations
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
-                        .WithMany()
+                        .WithMany("AdaptorUserGroups")
                         .HasForeignKey("ProjectId");
 
                     b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", "ParentRole")
+                        .WithMany()
+                        .HasForeignKey("ParentRoleId");
+
+                    b.Navigation("ParentRole");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroupRole", b =>
@@ -1881,6 +1896,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Project", b =>
                 {
+                    b.Navigation("AdaptorUserGroups");
+
                     b.Navigation("ClusterProjects");
 
                     b.Navigation("CommandTemplates");

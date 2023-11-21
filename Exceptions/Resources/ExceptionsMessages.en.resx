@@ -118,25 +118,25 @@
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithJob" xml:space="preserve">
-    <value>Logged user: '{0}' is not authorized to work with job info with id: '{1}'.</value>
+    <value>Logged user: '{0}' is not authorized to work with job info: '{1}'.</value>
   </data>
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
-    <value>Logged user: '{0}' is not authorized to work with task info with id: '{1}'.</value>
+    <value>Logged user: '{0}' is not authorized to work with task info: '{1}'.</value>
   </data>
   <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
     <value>User '{0}', that requested authentication was already deleted from the system.</value>
   </data>
-  <data name="AuthenticationCredentialsException_NotSupportedAuthentication" xml:space="preserve">
-    <value>Credentials of class {0} are not supported. Change the UserAndLimitationManagement.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.</value>
-  </data>
   <data name="AuthenticationException_UnableToRetrieveOpenStackCredentials" xml:space="preserve">
     <value>Unable to retrieve OpenStack application credentials for this user.</value>
   </data>
-  <data name="AuthenticationTypeException_NotAllowed" xml:space="preserve">
-    <value>Cluster authentication credentials authentication type is not allowed!</value>
+  <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
+    <value>External authentication method is not implemented!</value>
+  </data>
+  <data name="AuthenticationTypeException_NotSupportedRole" xml:space="preserve">
+    <value>Not existing role for mapping!</value>
   </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
-    <value>Current usage for user {0} and node type {1} was not created by the GetCurrentUsageAndLimitationsForUser method.</value>
+    <value>Current usage for user '{0}' and node type '{1}' was not created by the GetCurrentUsageAndLimitationsForUser method.</value>
   </data>
   <data name="ExternalException_JsonDeserializationException" xml:space="preserve">
     <value>Failed to deserialize json response from REST request.</value>
@@ -168,23 +168,14 @@
   <data name="InputValidationException_NoFileOrDirectory" xml:space="preserve">
     <value>No such file or directory.</value>
   </data>
-  <data name="InputValidationException_NoProjectWithAccountString" xml:space="preserve">
-    <value>The specified project with accounting string '{0}' is not defined in HEAppE!</value>
-  </data>
   <data name="InputValidationException_NoScriptPath" xml:space="preserve">
     <value>The generic command template should contain script path!</value>
   </data>
-  <data name="InputValidationException_NotExistingAccountString" xml:space="preserve">
-    <value>Accounting string '{0}' does not exist in the system.</value>
-  </data>
   <data name="InputValidationException_NotExistingJob" xml:space="preserve">
-    <value>Job with ID '{0}' does not exist in the system.</value>
+    <value>Job '{0}' does not exist in the system.</value>
   </data>
   <data name="InputValidationException_NotExistingTask" xml:space="preserve">
-    <value>Task with ID '{0}' does not exist in the system.</value>
-  </data>
-  <data name="InputValidationException_NotSingleProjectInstance" xml:space="preserve">
-    <value>This is not single project HEAppE instance. Please specify ProjectId.</value>
+    <value>Task '{0}' does not exist in the system.</value>
   </data>
   <data name="InputValidationException_NotValidJobSpecification" xml:space="preserve">
     <value>Submitted job specification is not valid: \r\n {0}</value>
@@ -198,23 +189,26 @@
   <data name="InsufficientRoleException_MissingRole" xml:space="preserve">
     <value>User doesn't have required role. Required role: '{0}'. Current user does not have any permission/role for project '{1}'.</value>
   </data>
+  <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
+    <value>User does not have '{0}' role for project creation.</value>
+  </data>
   <data name="InsufficientRoleException_MissingRoles" xml:space="preserve">
-    <value>User doesn't have required role. Required role: '{0}'. Current user roles for project {1}: '{2}'.</value>
+    <value>User doesn't have required role. Required role: '{0}'. Current user roles for project '{1}' are '{2}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Authentication of user '{0}' was not successful due to wrong credentials.</value>
   </data>
   <data name="InvalidRequestException_CannotDeleteJob" xml:space="preserve">
-    <value>Cannot delete job with Id {0}, this job is in state {1}.</value>
+    <value>Cannot delete job '{0}', this job is in state '{1}'.</value>
   </data>
   <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
     <value>The specified cluster node has no reference to cluster.</value>
   </data>
   <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
-    <value>Requested path {0} was not found. Exception message: {1}.</value>
+    <value>Requested path '{0}' was not found. Exception message: '{1}'.</value>
   </data>
   <data name="InvalidRequestException_NotExistingPrivateKeyFile" xml:space="preserve">
-    <value>Private key file located at '{0}' does not exist</value>
+    <value>Private key file located at '{0}' does not exist.</value>
   </data>
   <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
     <value>Cluster with this project does not exist in the system.</value>
@@ -222,14 +216,26 @@
   <data name="InvalidRequestException_ParameterIllegalCharacters" xml:space="preserve">
     <value>Parameter '{0}': '{1}' contains illegal characters.</value>
   </data>
+  <data name="InvalidRequestException_ProjectAlreadyExist" xml:space="preserve">
+    <value>Project with accounting string '{0}' already exists!</value>
+  </data>
+  <data name="InvalidRequestException_ProjectAlreadyExistWithCluster" xml:space="preserve">
+    <value>Project with Id '{0}' is already assigned to cluster with Id '{1}'!</value>
+  </data>
+  <data name="InvalidRequestException_ProjectDeleted" xml:space="preserve">
+    <value>Project with accounting string '{0}' was previously present in the system and was deleted!</value>
+  </data>
+  <data name="InvalidRequestException_ProjectNoAssignToCluster" xml:space="preserve">
+    <value>The project with the Id '{0}' has not been assigned to any cluster.</value>
+  </data>
   <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
-    <value>Project {0} has no refrence to Cluster {1}.</value>
+    <value>Project '{0}' has no refrence to Cluster '{1}'.</value>
   </data>
   <data name="InvalidRequestException_TaskEmptyAttribute" xml:space="preserve">
     <value>'{0}' attribute in the task '{1}' cannot be empty.</value>
   </data>
   <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
-    <value>User {0} has no access to ClusterNodeId {1}.</value>
+    <value>User '{0}' has no access to ClusterNodeId {1}.</value>
   </data>
   <data name="JwtDecodeException_BadAccessTokenFormat" xml:space="preserve">
     <value>Provided access_token is not well formed JWT.</value>
@@ -265,7 +271,7 @@
     <value>Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.</value>
   </data>
   <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
-    <value>Credentials of type {0} are not supported for OpenStack authentication.</value>
+    <value>Credentials of type '{0}' are not supported for OpenStack authentication.</value>
   </data>
   <data name="OpenIdAuthenticationException_NoUserGroup" xml:space="preserve">
     <value>Open-d: User('{0}') has not User group!</value>
@@ -300,20 +306,17 @@
   <data name="PbsException_UnableToParseResponse" xml:space="preserve">
     <value>Unable to parse response from PBS Professional HPC scheduler!</value>
   </data>
-  <data name="RequestedJobResourcesExceededUserLimitationsException_ExceededUsageLimitations" xml:space="preserve">
-    <value>Requested resources for job {0} exceeded user limitations.</value>
-  </data>
   <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
-    <value>Requested cluster node type with Id='{0}' does not exist in the system.</value>
+    <value>Requested cluster node type with Id '{0}' does not exist in the system.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterNotExists" xml:space="preserve">
-    <value>Requested cluster with Id='{0}' does not exist in the system.</value>
+    <value>Requested cluster with Id '{0}' does not exist in the system.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNoServiceAccount" xml:space="preserve">
-    <value>Requested combination for cluster Id={0} with Project Id={1} has no Service Account Credentials reference in the system.</value>
+    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no Service Account Credentials reference in the system.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
-    <value>Requested combination for cluster Id={0} with Project Id={1} has no reference in the system.</value>
+    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the system.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
     <value>The specified command template is not defined in HEAppE!</value>
@@ -322,13 +325,19 @@
     <value>Specified CommandTemplateId '{0}' is not referenced to ProjectId '{1}'.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingFileTransferMethod" xml:space="preserve">
-    <value>Requested FileTransferMethod with Id='{0}' does not exist in the system.</value>
+    <value>Requested FileTransferMethod with Id '{0}' does not exist in the system.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingJobInfo" xml:space="preserve">
     <value>Requested job info with Id: '{0}' does not exist in the system.</value>
   </data>
+  <data name="RequestedObjectDoesNotExistException_NotExistingPublicKey" xml:space="preserve">
+    <value>The specified public key is not defined in HEAppE!</value>
+  </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingTaskInfo" xml:space="preserve">
     <value>Requested task info with Id: '{0}' does not exist in the system.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ProjectNotFound" xml:space="preserve">
+    <value>The specified project is not defined in HEAppE!</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
     <value>ServiceAccountCredentials is not defined in the system for this CommandTemplate.</value>
@@ -355,7 +364,7 @@
     <value>Command Template '{0}' for task '{1}' does not exist in the adaptor configuration.</value>
   </data>
   <data name="SchedulerException_NotSupportedEndpoint" xml:space="preserve">
-    <value>{0} Scheduler does not suport this endpoint.</value>
+    <value>'{0}' Scheduler does not suport this endpoint.</value>
   </data>
   <data name="SchedulerException_NotValidCommandTemplateParameter" xml:space="preserve">
     <value>Parameter '{0}' in the command template '{1}' could not be found either as a property of the task, nor as an additional parameter.</value>
@@ -376,7 +385,7 @@
     <value>Argument '{0}' cannot be null or empty.</value>
   </data>
   <data name="SftpClientException_NoAuthenticationSftpClientMethod" xml:space="preserve">
-    <value>NoAuthenticationSftpClient has not implemented {0} method!</value>
+    <value>NoAuthenticationSftpClient has not implemented '{0}' method!</value>
   </data>
   <data name="SFTPCommandException_NotCorrespondingPasswordForPrivateKey" xml:space="preserve">
     <value>Not corresponding password for the private key that is used for the connection to '{0}'!</value>
@@ -434,8 +443,5 @@
   </data>
   <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
     <value>There is not free local port for creation ssh tunnel.</value>
-  </data>
-  <data name="UnableToCreateTunnelException_TunnelAlreadyExistsForPort" xml:space="preserve">
-    <value>Task id: '{0}' with node IP address: '{1}' already has ssh tunnel for port: '{2}'.</value>
   </data>
 </root>

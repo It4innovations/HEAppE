@@ -5,6 +5,7 @@ using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
@@ -23,7 +24,12 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
+                if (submittedJobInfo == null)
+                {
+                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
                 return fileTransferMethod.ConvertIntToExt();
@@ -34,28 +40,43 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
+                if (submittedJobInfo == null)
+                {
+                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 FileTransferMethod fileTransferMethod = fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
                 return fileTransferMethod.ConvertIntToExt();
             }
         }
-        
+
         public void CloseFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)?.Project.Id);
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
+                if (submittedJobInfo == null)
+                {
+                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 fileTransferLogic.EndFileTransfer(submittedJobInfoId, publicKey, loggedUser);
             }
         }
-        
+
         public JobFileContentExt[] DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffsetExt[] taskFileOffsets, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
+                if (submittedJobInfo == null)
+                {
+                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 IList<JobFileContent> downloadedFileParts = fileTransferLogic.DownloadPartsOfJobFilesFromCluster(
                     submittedJobInfoId,
@@ -64,23 +85,33 @@ namespace HEAppE.ServiceTier.FileTransfer
                 return (from fileContent in downloadedFileParts select FileTransferConverts.ConvertJobFileContentToExt(fileContent)).ToArray();
             }
         }
-        
+
         public FileInformationExt[] ListChangedFilesForJob(long submittedJobInfoId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
+                if (submittedJobInfo == null)
+                {
+                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 ICollection<FileInformation> result = fileTransferLogic.ListChangedFilesForJob(submittedJobInfoId, loggedUser);
                 return result?.Select(s => s.ConvertIntToExt()).ToArray();
             }
         }
-        
+
         public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId).Project.Id);
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
+                if (submittedJobInfo == null)
+                {
+                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 return fileTransferLogic.DownloadFileFromCluster(submittedJobInfoId, relativeFilePath, loggedUser);
             }

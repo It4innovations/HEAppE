@@ -1,4 +1,4 @@
-﻿using Exceptions.External;
+﻿using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.DataTransfer;

@@ -1,10 +1,9 @@
-﻿using Exceptions.Base;
-using System;
+﻿using System;
 
-namespace Exceptions.Internal
+namespace HEAppE.Exceptions.AbstractTypes
 {
     /// <summary>
-    /// Represents intenal application exception
+    /// Represents internal application exception
     /// </summary>
     public class InternalException : BaseException
     {

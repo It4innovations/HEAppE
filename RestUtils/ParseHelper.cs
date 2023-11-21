@@ -1,4 +1,4 @@
-﻿using Exceptions.External;
+﻿using HEAppE.Exceptions.AbstractTypes;
 using Newtonsoft.Json;
 using RestSharp;
 using System;
@@ -29,14 +29,14 @@ namespace HEAppE.RestUtils
                 catch (JsonSerializationException serializationException)
                 {
                     throw (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
-                                                                                           "JsonDeserializationException",
-                                                                                           serializationException);
+                                                                      "JsonDeserializationException",
+                                                                      serializationException);
                 }
             }
 
             throw (ExternalException)Activator.CreateInstance(typeof(TExceptionType),
-                                                                                   response.ErrorException?.Message,
-                                                                                   response.ErrorException);
+                                                              response.ErrorException?.Message,
+                                                              response.ErrorException);
         }
     }
 }

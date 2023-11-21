@@ -1,298 +1,309 @@
 ﻿{
-  "MiddlewareContextSettings": {
-    "AdaptorUsers": [
-      {
-        "Id": 1,
-        "Username": "{UserName}",
-        "Password": "{Password}",
-        "CreatedAt": "2015-01-01 00:00:00",
-        "ModifiedAt": null
-      }
-    ],
-    "AdaptorUserGroups": [
-      {
-        "Id": 1,
-        "Name": "{GroupName}",
-        "Description": "{GroupDescription}",
-        "ProjectId": 1
-      },
-      {
-        "Id": 2,
-        "Name": "OpenIdGroup",
-        "Description": "{OpenIdGroupDescription}",
-        "ProjectId": 1
-      }
-    ],
-    "AdaptorUserRoles": [
-      {
-        "Id": 1,
-        "Name": "Administrator",
-        "Description": "HEAppE administrator role with access to the entire system."
-      },
-      {
-        "Id": 2,
-        "Name": "Maintainer",
-        "Description": "HEAppE maintainer role for getting information about actual HEAppE status."
-      },
-      {
-        "Id": 3,
-        "Name": "Submitter",
-        "Description": "Standard user, can submit and check his own jobs."
-      },
-      {
-        "Id": 4,
-        "Name": "GroupReporter",
-        "Description": "Users with this role car report in assigned groups."
-      },
-      {
-        "Id": 5,
-        "Name": "Reporter",
-        "Description": "Users with this role can watch other jobs in the same group."
-      }
-    ],
-    "AdaptorUserUserGroupRoles": [
-      {
-        "AdaptorUserId": 1,
-        "AdaptorUserGroupId": 1,
-        "AdaptorUserRoleId": 1,
-        "CreatedAt": "2015-01-01 00:00:00",
-        "ModifiedAt": null,
-        "IsDeleted": false
-      }
-    ],
-    "ClusterProxyConnections": [
-      {
-        "Id": 1,
-        "Host": "",
-        "Port": 8000,
-        "Type": 1,
-        "Username": null,
-        "Password": null
-      }
-    ],
-    "Clusters": [
-      {
-        "Id": 1,
-        "Name": "{ClusterName}",
-        "Description": "{ClusterDescription}",
-        "MasterNodeName": "{ClusterLoginURL}",
-        "SchedulerType": 2,
-        "ConnectionProtocol": 2,
-        "TimeZone": "CET",
-        "Port": null,
-        "UpdateJobStateByServiceAccount": true,
-        "DomainName": "{DomainName}",
-        "ProxyConnectionId": null
-      }
-    ],
-    "ClusterAuthenticationCredentials": [
-      {
-        "Id": 1,
-        "Username": "{UserName}",
-        "Password": null,
-        "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "CipherType": 1
-      },
-      {
-        "Id": 2,
-        "Username": "{UserName}",
-        "Password": null,
-        "PrivateKeyFile": "{PrivateKeyFile}",
-        "PrivateKeyPassword": "{PrivateKeyPassword}",
-        "CipherType": 1
-      }
-    ],
-    "Projects": [
-      {
-        "Id": 1,
-        "Name": "{Name}",
-        "Description": "{Description}",
-        "AccountingString": "{AccountingString}",
-        "StartDate": "{StartDate}",
-        "EndDate": "{EndDate}",
-        "CreatedAt": "{CreatedAt}",
-        "ModifiedAt": null,
-        "IsDeleted": false,
-        "UseAccountingStringForScheduler": true
-      }
-    ],
-    "Contacts": [
-      {
-        "Id": 1,
-        "Email": "{Email}",
-        "IsDeleted": false,
-        "CreatedAt": "{CreatedAt}",
-        "ModifiedAt": null,
-        "PublicKey":  null
-      }
-    ],
-    "ProjectContacts": [
-      {
-        "ProjectId": 1,
-        "ContactId": 1,
-        "IsPI": true
-      }
-    ],
-    "ClusterProjects": [
-      {
-        "Id": 1,
-        "ClusterId": 1,
-        "ProjectId": 1,
-        "LocalBasepath": "{LocalBasepath}",
-        "CreatedAt": "{CreatedAt}",
-        "ModifiedAt": null,
-        "IsDeleted": false
-      }
-    ],
-    "ClusterProjectCredentials": [
-      {
-        "ClusterProjectId": 1,
-        "ClusterAuthenticationCredentialsId": 1,
-        "IsServiceAccount": true,
-        "CreatedAt": "{CreatedAt}",
-        "ModifiedAt": null,
-        "IsDeleted": false
-      },
-      {
-        "ClusterProjectId": 1,
-        "ClusterAuthenticationCredentialsId": 2,
-        "IsServiceAccount": false,
-        "CreatedAt": "{CreatedAt}",
-        "ModifiedAt": null,
-        "IsDeleted": false
-      }
-    ],
-    "ClusterNodeTypes": [
-      {
-        "Id": 1,
-        "Name": "{Name}",
-        "Description": "{Description}",
-        "NumberOfNodes": "{NumberOfNodes}",
-        "CoresPerNode": "{CoresPerNode}",
-        "Queue": "{Queue}",
-        "QualityOfService": null,
-        "MaxWalltime": "{MaxWalltime}",
-        "ClusterId": 1,
-        "FileTransferMethodId": 1,
-        "ClusterAllocationName": null
-      }
-    ],
-    "CommandTemplates": [
-      {
-        "Id": 1,
-        "Name": "TestTemplate",
-        "Description": "TestTemplate",
-        "ExtendedAllocationCommand": null,
-        "ExecutableFile": "~/.key_scripts/test.sh",
-        "CommandParameters": "%%{inputParam}",
-        "PreparationScript": null,
-        "ClusterNodeTypeId": 1,
-        "IsGeneric": false,
-        "IsEnabled": true,
-        "ProjectId": null
-      },
-      {
-        "Id": 2,
-        "Name": "GenericCommandTemplate",
-        "Description": "Command template for generic job.",
-        "ExtendedAllocationCommand": null,
-        "ExecutableFile": "~/.key_scripts/generic.sh",
-        "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
-        "PreparationScript": null,
-        "ClusterNodeTypeId": 1,
-        "IsGeneric": true,
-        "IsEnabled": true,
-        "ProjectId": null
-      }
-    ],
-    "CommandTemplateParameters": [
-      {
-        "Id": 1,
-        "Identifier": "inputParam",
-        "Query": "",
-        "Description": "inputParam",
-        "CommandTemplateId": 1,
-        "IsVisible": true
-      },
-      {
-        "Id": 2,
-        "Identifier": "userScriptPath",
-        "Query": "",
-        "Description": "Path of the user script, to be executed via the generic job script",
-        "CommandTemplateId": 2,
-        "IsVisible": true
-      },
-      {
-        "Id": 3,
-        "Identifier": "userScriptParametres",
-        "Query": "",
-        "Description": "Generic parameters of the generic command template.",
-        "CommandTemplateId": 2,
-        "IsVisible": false
-      }
-    ],
-    "FileTransferMethods": [
-      {
-        "Id": 1,
-        "ServerHostname": "{ServerHostNameDNS}",
-        "Protocol": 2,
-        "Port": null,
-        "ClusterId": 1
-      }
-    ],
-    "OpenStackInstances": [
-      {
-        "Id": 1,
-        "Name": "",
-        "InstanceUrl": ""
-      }
-    ],
-    "OpenStackDomains": [
-      {
-        "Id": 1,
-        "Name": "",
-        "UID": "",
-        "OpenStackInstanceId": 1
-      }
-    ],
-    "OpenStackAuthenticationCredentials": [
-      {
-        "Id": 1,
-        "UserId": "",
-        "Username": "",
-        "Password": ""
-      }
-    ],
-    "OpenStackProjectDomains": [
-      {
-        "Id": 1,
-        "Name": "",
-        "UID": ""
-      }
-    ],
-    "OpenStackProjects": [
-      {
-        "Id": 1,
-        "Name": "",
-        "UID": "",
-        "OpenStackDomainId": 1,
-        "OpenStackProjectDomainId": 1,
-        "AdaptorUserGroupId": 2
-      }
-    ],
-    "OpenStackAuthenticationCredentialProjects": [
-      {
-        "OpenStackAuthenticationCredentialId": 1,
-        "OpenStackProjectId": 1,
-        "IsDefault": true
-      }
-    ],
-    "OpenStackAuthenticationCredentialDomains": [
-      {
-        "OpenStackAuthenticationCredentialId": 1,
-        "OpenStackDomainId": 1
-      }
-    ]
-  }
+   "MiddlewareContextSettings":{
+      "AdaptorUsers":[
+         {
+            "Id":1,
+            "Username":"{UserName}",
+            "Password":"{Password}",
+            "CreatedAt":"2015-01-01 00:00:00",
+            "ModifiedAt":null
+         }
+      ],
+      "AdaptorUserGroups":[
+         {
+            "Id":1,
+            "Name":"{GroupName}",
+            "Description":"{GroupDescription}",
+            "ProjectId":1
+         },
+         {
+            "Id":2,
+            "Name":"OpenIdGroup",
+            "Description":"{OpenIdGroupDescription}",
+            "ProjectId":1
+         }
+      ],
+      "AdaptorUserRoles":[
+         {
+            "Id":1,
+            "Name":"Administrator",
+            "Description":"HEAppE administrator role with access to the entire system.",
+            "ParentRoleId":2
+         },
+         {
+            "Id":2,
+            "Name":"Maintainer",
+            "Description":"HEAppE maintainer role for getting information about actual HEAppE status.",
+            "ParentRoleId":3
+         },
+         {
+            "Id":3,
+            "Name":"Submitter",
+            "Description":"Standard user, can submit and check his own jobs.",
+            "ParentRoleId":4
+         },
+         {
+            "Id":4,
+            "Name":"GroupReporter",
+            "Description":"Users with this role car report in assigned groups.",
+            "ParentRoleId":5
+         },
+         {
+            "Id":5,
+            "Name":"Reporter",
+            "Description":"Users with this role can watch other jobs in the same group.",
+            "ParentRoleId":null
+         },
+         {
+            "Id":6,
+            "Name":"ManagementAdmin",
+            "Description":"User with this role can create new project and use management API.",
+            "ParentRoleId":null
+         }
+      ],
+      "AdaptorUserUserGroupRoles":[
+         {
+            "AdaptorUserId":1,
+            "AdaptorUserGroupId":1,
+            "AdaptorUserRoleId":1,
+            "CreatedAt":"2015-01-01 00:00:00",
+            "ModifiedAt":null,
+            "IsDeleted":false
+         }
+      ],
+      "ClusterProxyConnections":[
+         {
+            "Id":1,
+            "Host":"",
+            "Port":8000,
+            "Type":1,
+            "Username":null,
+            "Password":null
+         }
+      ],
+      "Clusters":[
+         {
+            "Id":1,
+            "Name":"{ClusterName}",
+            "Description":"{ClusterDescription}",
+            "MasterNodeName":"{ClusterLoginURL}",
+            "SchedulerType":2,
+            "ConnectionProtocol":2,
+            "TimeZone":"CET",
+            "Port":null,
+            "UpdateJobStateByServiceAccount":true,
+            "DomainName":"{DomainName}",
+            "ProxyConnectionId":null
+         }
+      ],
+      "ClusterAuthenticationCredentials":[
+         {
+            "Id":1,
+            "Username":"{UserName}",
+            "Password":null,
+            "PrivateKeyFile":"{PrivateKeyFile}",
+            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "CipherType":1
+         },
+         {
+            "Id":2,
+            "Username":"{UserName}",
+            "Password":null,
+            "PrivateKeyFile":"{PrivateKeyFile}",
+            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "CipherType":1
+         }
+      ],
+      "Projects":[
+         {
+            "Id":1,
+            "Name":"{Name}",
+            "Description":"{Description}",
+            "AccountingString":"{AccountingString}",
+            "StartDate":"{StartDate}",
+            "EndDate":"{EndDate}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "UseAccountingStringForScheduler":true
+         }
+      ],
+      "Contacts":[
+         {
+            "Id":1,
+            "Email":"{Email}",
+            "IsDeleted":false,
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "PublicKey":null
+         }
+      ],
+      "ProjectContacts":[
+         {
+            "ProjectId":1,
+            "ContactId":1,
+            "IsPI":true
+         }
+      ],
+      "ClusterProjects":[
+         {
+            "Id":1,
+            "ClusterId":1,
+            "ProjectId":1,
+            "LocalBasepath":"{LocalBasepath}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false
+         }
+      ],
+      "ClusterProjectCredentials":[
+         {
+            "ClusterProjectId":1,
+            "ClusterAuthenticationCredentialsId":1,
+            "IsServiceAccount":true,
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false
+         },
+         {
+            "ClusterProjectId":1,
+            "ClusterAuthenticationCredentialsId":2,
+            "IsServiceAccount":false,
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false
+         }
+      ],
+      "ClusterNodeTypes":[
+         {
+            "Id":1,
+            "Name":"{Name}",
+            "Description":"{Description}",
+            "NumberOfNodes":"{NumberOfNodes}",
+            "CoresPerNode":"{CoresPerNode}",
+            "Queue":"{Queue}",
+            "QualityOfService":null,
+            "MaxWalltime":"{MaxWalltime}",
+            "ClusterId":1,
+            "FileTransferMethodId":1,
+            "ClusterAllocationName":null
+         }
+      ],
+      "CommandTemplates":[
+         {
+            "Id":1,
+            "Name":"TestTemplate",
+            "Description":"TestTemplate",
+            "ExtendedAllocationCommand":null,
+            "ExecutableFile":"~/.key_scripts/test.sh",
+            "CommandParameters":"%%{inputParam}",
+            "PreparationScript":null,
+            "ClusterNodeTypeId":1,
+            "IsGeneric":false,
+            "IsEnabled":true,
+            "ProjectId":null
+         },
+         {
+            "Id":2,
+            "Name":"GenericCommandTemplate",
+            "Description":"Command template for generic job.",
+            "ExtendedAllocationCommand":null,
+            "ExecutableFile":"~/.key_scripts/generic.sh",
+            "CommandParameters":"%%{userScriptPath} %%{userScriptParametres}",
+            "PreparationScript":null,
+            "ClusterNodeTypeId":1,
+            "IsGeneric":true,
+            "IsEnabled":true,
+            "ProjectId":null
+         }
+      ],
+      "CommandTemplateParameters":[
+         {
+            "Id":1,
+            "Identifier":"inputParam",
+            "Query":"",
+            "Description":"inputParam",
+            "CommandTemplateId":1,
+            "IsVisible":true
+         },
+         {
+            "Id":2,
+            "Identifier":"userScriptPath",
+            "Query":"",
+            "Description":"Path of the user script, to be executed via the generic job script",
+            "CommandTemplateId":2,
+            "IsVisible":true
+         },
+         {
+            "Id":3,
+            "Identifier":"userScriptParametres",
+            "Query":"",
+            "Description":"Generic parameters of the generic command template.",
+            "CommandTemplateId":2,
+            "IsVisible":false
+         }
+      ],
+      "FileTransferMethods":[
+         {
+            "Id":1,
+            "ServerHostname":"{ServerHostNameDNS}",
+            "Protocol":2,
+            "Port": null,
+            "ClusterId":1
+         }
+      ],
+      "OpenStackInstances":[
+         {
+            "Id":1,
+            "Name":"",
+            "InstanceUrl":""
+         }
+      ],
+      "OpenStackDomains":[
+         {
+            "Id":1,
+            "Name":"",
+            "UID":"",
+            "OpenStackInstanceId":1
+         }
+      ],
+      "OpenStackAuthenticationCredentials":[
+         {
+            "Id":1,
+            "UserId":"",
+            "Username":"",
+            "Password":""
+         }
+      ],
+      "OpenStackProjectDomains":[
+         {
+            "Id":1,
+            "Name":"",
+            "UID":""
+         }
+      ],
+      "OpenStackProjects":[
+         {
+            "Id":1,
+            "Name":"",
+            "UID":"",
+            "OpenStackDomainId":1,
+            "OpenStackProjectDomainId":1,
+            "AdaptorUserGroupId":2
+         }
+      ],
+      "OpenStackAuthenticationCredentialProjects":[
+         {
+            "OpenStackAuthenticationCredentialId":1,
+            "OpenStackProjectId":1,
+            "IsDefault":true
+         }
+      ],
+      "OpenStackAuthenticationCredentialDomains":[
+         {
+            "OpenStackAuthenticationCredentialId":1,
+            "OpenStackDomainId":1
+         }
+      ]
+   }
 }

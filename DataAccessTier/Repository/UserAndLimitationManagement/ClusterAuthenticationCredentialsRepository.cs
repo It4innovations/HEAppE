@@ -32,10 +32,11 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             return credentials?.FirstOrDefault();
         }
 
-        public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint)
+        public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint, long projectId)
         {
-            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && !x.IsDeleted && x.PublicKeyFingerprint == fingerprint);
+            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && !x.IsDeleted && x.PublicKeyFingerprint == fingerprint && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId));
             return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
+
         }
         #endregion
     }

@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace Exceptions.Base
+namespace HEAppE.Exceptions.AbstractTypes
 {
     /// <summary>
     /// Represents base exception with args for localization message parameters

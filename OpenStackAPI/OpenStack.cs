@@ -1,4 +1,4 @@
-﻿using Exceptions.External;
+﻿using HEAppE.Exceptions.External;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.OpenStackAPI.DTO;
 using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;

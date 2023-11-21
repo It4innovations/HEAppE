@@ -1,7 +1,6 @@
-﻿using Exceptions.Base;
-using Exceptions.External;
-using Exceptions.Internal;
-using Exceptions.Resources;
+﻿using HEAppE.Exceptions.AbstractTypes;
+using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Resources;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
@@ -86,50 +85,51 @@ namespace HEAppE.DataStagingAPI
         /// <param name="exception"></param>
         private async Task HandleException(HttpContext context, Exception exception)
         {
-            string message = string.Empty;
-
+            ProblemDetails problem = new();
             switch (exception)
             {
                 case InputValidationException:
-                    message = GetExceptionMessage(exception);
-                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    problem.Title = "Input Validation Exception";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status404NotFound;
                     break;
                 case InternalException:
-                    message = GetExceptionMessage(exception);
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    problem.Title = "Internal Exception";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status500InternalServerError;
                     break;
                 case ExternalException:
-                    message = GetExceptionMessage(exception);
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    problem.Title = "External Exception";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status500InternalServerError;
                     break;
                 case BadHttpRequestException:
+                    var badReqException = (BadHttpRequestException)exception;
+                    problem.Title = badReqException.Message;
+                    problem.Status = badReqException.Message switch
                     {
-                        var badReqException = (BadHttpRequestException)exception;
-                        context.Response.StatusCode = badReqException.Message switch
-                        {
-                            "Request body too large." => (int)HttpStatusCode.RequestEntityTooLarge,
-                            "Not found." => (int)HttpStatusCode.NotFound,
-                            _ => (int)HttpStatusCode.BadRequest,
-                        };
-                        break;
-                    }
-
+                        "Request body too large." => StatusCodes.Status413PayloadTooLarge,
+                        "Not found." => StatusCodes.Status404NotFound,
+                        _ => StatusCodes.Status400BadRequest
+                    };
+                    break;
                 default:
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    problem.Title = "Other Exception";
+                    problem.Status = StatusCodes.Status500InternalServerError;
                     break;
             }
 
-            _logger.LogInformation($"HTTP Response Information:(" +
-                                   $"\"Status Code\":{context.Response.StatusCode} " +
-                                   $"\"Schema\":{context.Request.Scheme} " +
-                                   $"\"Host\": {context.Request.Host} " +
-                                   $"\"Path\": {context.Request.Path} " +
-                                   $"\"QueryString\": {context.Request.QueryString} " +
-                                   $"\"Content-Length\": {context.Request.ContentLength} " +
-                                   $"\"Error\": {exception})");
+            _logger.LogInformation("HTTP Response Information:(\"Status Code\":{statusCode} \"Schema\":{scheme} \"Host\": {host} \"Path\": {path} \"QueryString\": {queryString} \"Content-Length\": {contentLength} \"Error\": {error})",
+                                    context.Response.StatusCode,
+                                    context.Request.Scheme,
+                                    context.Request.Host,
+                                    context.Request.Path,
+                                    context.Request.QueryString,
+                                    context.Request.ContentLength,
+                                    exception);
 
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonConvert.SerializeObject(new { error = message }));
+            await context.Response.WriteAsJsonAsync(problem);
         }
 
         /// <summary>
@@ -140,9 +140,7 @@ namespace HEAppE.DataStagingAPI
         private string GetExceptionMessage(Exception exception)
         {
             StringBuilder localizedMessage = new();
-
             FormatExceptionMessage(exception, localizedMessage);
-
             return localizedMessage.ToString();
         }
 
@@ -154,13 +152,10 @@ namespace HEAppE.DataStagingAPI
         private void FormatExceptionMessage(Exception exception, StringBuilder builder)
         {
             string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
-
             string localizedException = exception switch
             {
-                BaseException baseException when baseException.Args is not null =>
-                    _exceptionsLocalizer.GetString(exceptionName, baseException.Args),
-                BaseException =>
-                    _exceptionsLocalizer.GetString(exceptionName),
+                BaseException baseException when baseException.Args is not null => _exceptionsLocalizer.GetString(exceptionName, baseException.Args),
+                BaseException => _exceptionsLocalizer.GetString(exceptionName),
                 _ => exception.Message
             };
 

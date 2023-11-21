@@ -7,6 +7,6 @@ namespace HEAppE.ServiceTier.ClusterInformation
     {
         IEnumerable<ClusterExt> ListAvailableClusters();
         IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, string sessionCode);
-        ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, string sessionCode);
+        ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode);
     }
 }

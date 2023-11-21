@@ -13,6 +13,8 @@ using Microsoft.OpenApi.Models;
 using System.Globalization;
 using System.Reflection;
 using System.Text.Json.Serialization;
+using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.ExternalAuthentication.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -21,6 +23,7 @@ builder.Logging.ClearProviders();
 if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
 {
     builder.Logging.AddLog4Net("Logging/log4netDocker.config");
+    builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings.json", false, false);
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
 }
 else
@@ -42,8 +45,16 @@ builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrateg
 
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
+
+builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
+
+builder.Services.AddHttpClient("userOrgApi", conf =>
+{
+    conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
+});
 
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
@@ -139,7 +150,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLifetime.Singleton);
 
 var app = builder.Build();
-
+LogicFactory.ServiceProvider = app.Services;
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

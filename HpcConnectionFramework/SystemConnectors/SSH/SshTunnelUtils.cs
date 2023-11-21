@@ -1,4 +1,4 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using Renci.SshNet;
@@ -162,7 +162,8 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                                 port = i;
                                 break;
                             }
-                            else
+                            
+                            if((i+1) == TunnelConfiguration.MaxLocalPort)
                             {
                                 throw new UnableToCreateTunnelException("NoFreeLocalPortForSsh");
                             }

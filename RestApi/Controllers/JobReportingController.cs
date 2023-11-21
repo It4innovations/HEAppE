@@ -1,6 +1,4 @@
-﻿using Exceptions;
-using Exceptions.External;
-using HEAppE.BusinessLogicTier.Logic;
+﻿using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;

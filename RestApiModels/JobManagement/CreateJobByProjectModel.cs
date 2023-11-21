@@ -8,7 +8,7 @@ namespace HEAppE.RestApiModels.JobManagement
     public class CreateJobByProjectModel : SessionCodeModel
     {
         [DataMember(Name = "JobSpecification")]
-        public JobSpecificationByProjectExt JobSpecification { get; set; }
+        public JobSpecificationExt JobSpecification { get; set; }
         public override string ToString()
         {
             return $"CreateJobModel({base.ToString()}; JobSpecification: {JobSpecification})";

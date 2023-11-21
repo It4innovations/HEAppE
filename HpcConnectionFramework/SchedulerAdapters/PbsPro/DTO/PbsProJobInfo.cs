@@ -1,4 +1,4 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;

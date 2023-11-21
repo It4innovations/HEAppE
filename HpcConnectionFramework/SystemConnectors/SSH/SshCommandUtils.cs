@@ -1,4 +1,4 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using log4net;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {

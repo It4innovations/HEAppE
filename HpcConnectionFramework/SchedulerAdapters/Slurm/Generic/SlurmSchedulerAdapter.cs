@@ -1,4 +1,4 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -233,9 +233,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        /// <param name="serviceAccountUsername"></param>
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode, string serviceAccountUsername)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode, serviceAccountUsername);
         }
 
         /// <summary>
@@ -302,7 +306,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         {
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
+
+        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+            string clusterProjectRootDirectory, string localBasepath)
+        {
+            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath);
+        }
+
         #endregion
+        
+        
         #endregion
         #region Private Methods
         /// <summary>

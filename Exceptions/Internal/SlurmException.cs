@@ -1,6 +1,7 @@
 ﻿using System;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace Exceptions.Internal
+namespace HEAppE.Exceptions.Internal
 {
     public class SlurmException : InternalException
     {

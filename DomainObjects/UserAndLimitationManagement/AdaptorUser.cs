@@ -22,7 +22,6 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         [StringLength(100)]
         public string Email { get; set; }
-
         public bool Synchronize { get; set; }
 
         public bool Deleted { get; set; }

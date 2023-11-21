@@ -2,6 +2,7 @@
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils.Validation;
 using System;
@@ -213,7 +214,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         private void ValidateRequestedProject(JobSpecification job)
         {
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(job.ClusterId, job.ProjectId);
-            if (clusterProject == null)
+            if (clusterProject == null || clusterProject.IsDeleted)
             {
                 _messageBuilder.AppendLine($"Requested project with Id {job.ProjectId} has no reference to cluster with Id {job.ClusterId}.");
             }
@@ -278,8 +279,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         {
             try
             {
+                Project project = _unitOfWork.ProjectRepository.GetById(projectId);
+                if (project is null || !project.IsDeleted)
+                {
+                    throw new InputValidationException($"Project with ID '{projectId}' is not present in the system");
+                }
                 var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
-                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
+                return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
             }
             catch (Exception)
             {

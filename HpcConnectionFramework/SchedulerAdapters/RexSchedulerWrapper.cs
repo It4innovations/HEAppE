@@ -1,4 +1,5 @@
-﻿using HEAppE.ConnectionPool;
+﻿using System;
+using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -7,6 +8,7 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
 using System.Collections.Generic;
 using System.Linq;
+using Exception = System.Exception;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -200,12 +202,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// Create job directory
         /// </summary>
         /// <param name="jobInfo">Job info</param>
-        public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        /// <param name="serviceAccountUsername"></param>
+        public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode,
+            string serviceAccountUsername)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
-                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
+                
+                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode, serviceAccountUsername);
             }
             finally
             {
@@ -314,6 +321,34 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         {
             return _adapter.GetTunnelsInfos(taskInfo, nodeHost);
         }
+
+        public string InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials)
+        {
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+            try
+            {
+                return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
+        }
+
+        public bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials)
+        {
+            try
+            {
+                ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+                return true;
+            }
+            catch (Exception)
+            {
+                _log.Info($"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}");
+                return false;
+            }
+        }
+
         #endregion
     }
 }

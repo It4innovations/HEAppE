@@ -1,7 +1,6 @@
-﻿using Exceptions.Base;
-using System;
+﻿using System;
 
-namespace Exceptions.External
+namespace HEAppE.Exceptions.AbstractTypes
 {
     /// <summary>
     /// Represents external application exception

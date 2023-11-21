@@ -1,15 +1,15 @@
-﻿using Exceptions.External;
-using Exceptions.Internal;
+﻿using HEAppE.Exceptions.AbstractTypes;
+using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Resources;
 using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System;
-using System.Net;
-using System.Threading.Tasks;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
-using Exceptions.Resources;
-using Exceptions.Base;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Globalization;
 using System.Text;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi
 {
@@ -19,6 +19,11 @@ namespace HEAppE.RestApi
     public class ExceptionMiddleware
     {
         #region Instances
+        /// <summary>
+        /// Default Culture
+        /// </summary>
+        private static readonly CultureInfo _defaultCultureInfo = new CultureInfo("en");
+
         /// <summary>
         /// Request delegate
         /// </summary>
@@ -33,7 +38,6 @@ namespace HEAppE.RestApi
         /// Resource localizer
         /// </summary>
         private readonly IStringLocalizer<ExceptionsMessages> _exceptionsLocalizer;
-
         #endregion
         #region Constructor
         /// <summary>
@@ -75,50 +79,59 @@ namespace HEAppE.RestApi
         /// <param name="exception"></param>
         private async Task HandleException(HttpContext context, Exception exception)
         {
-            string message = string.Empty;
+            ProblemDetails problem = new()
+            {
+                Status = StatusCodes.Status500InternalServerError
+            };
 
+            var logLevel = LogLevel.Error;
             switch (exception)
             {
                 case InputValidationException:
-                    message = GetExceptionMessage(exception);
-                    context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
+                    problem.Title = "Input Validation Exception";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status404NotFound;
+                    logLevel = LogLevel.Warning;
                     break;
                 case InternalException:
-                    message = GetExceptionMessage(exception);
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    problem.Title = "Internal Exception";
+                    problem.Detail = GetExceptionMessage(exception);
                     break;
                 case ExternalException:
-                    message = GetExceptionMessage(exception);
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    problem.Title = "External Exception";
+                    problem.Detail = GetExceptionMessage(exception);
                     break;
                 case BadHttpRequestException:
+                    var badReqException = (BadHttpRequestException)exception;
+                    problem.Title = badReqException.Message;
+                    problem.Status = badReqException.Message switch
                     {
-                        var badReqException = (BadHttpRequestException)exception;
-                        context.Response.StatusCode = badReqException.Message switch
-                        {
-                            "Request body too large." => (int)HttpStatusCode.RequestEntityTooLarge,
-                            "Not found." => (int)HttpStatusCode.NotFound,
-                            _ => (int)HttpStatusCode.BadRequest,
-                        };
-                        break;
-                    }
-
+                        "Request body too large." => StatusCodes.Status413PayloadTooLarge,
+                        "Not found." => StatusCodes.Status404NotFound,
+                        _ => StatusCodes.Status400BadRequest
+                    };
+                    break;
                 default:
-                    context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+                    problem.Title = "Other Exception";
                     break;
             }
 
-            _logger.LogInformation($"HTTP Response Information:(" +
-                                   $"\"Status Code\":{context.Response.StatusCode} " +
-                                   $"\"Schema\":{context.Request.Scheme} " +
-                                   $"\"Host\": {context.Request.Host} " +
-                                   $"\"Path\": {context.Request.Path} " +
-                                   $"\"QueryString\": {context.Request.QueryString} " +
-                                   $"\"Content-Length\": {context.Request.ContentLength} " +
-                                   $"\"Error\": {exception})");
+            _logger.LogInformation("HTTP Response Information:(\"Status Code\":{statusCode} \"Schema\":{scheme} \"Host\": {host} \"Path\": {path} \"QueryString\": {queryString} \"Content-Length\": {contentLength} \"Error\": {error})",
+                                    context.Response.StatusCode,
+                                    context.Request.Scheme,
+                                    context.Request.Host,
+                                    context.Request.Path,
+                                    context.Request.QueryString,
+                                    context.Request.ContentLength,
+                                    exception);
+
+            var currentCultureInfo = Thread.CurrentThread.CurrentCulture;
+            Thread.CurrentThread.CurrentCulture = _defaultCultureInfo;
+            _logger.Log(logLevel, exception, GetExceptionMessage(exception));
+            Thread.CurrentThread.CurrentCulture= currentCultureInfo;
 
             context.Response.ContentType = "application/json";
-            await context.Response.WriteAsync(JsonConvert.SerializeObject(new { error = message }));
+            await context.Response.WriteAsJsonAsync(problem);
         }
 
         /// <summary>
@@ -129,9 +142,7 @@ namespace HEAppE.RestApi
         private string GetExceptionMessage(Exception exception)
         {
             StringBuilder localizedMessage = new();
-
             FormatExceptionMessage(exception, localizedMessage);
-
             return localizedMessage.ToString();
         }
 
@@ -143,13 +154,10 @@ namespace HEAppE.RestApi
         private void FormatExceptionMessage(Exception exception, StringBuilder builder)
         {
             string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
-
             string localizedException = exception switch
             {
-                BaseException baseException when baseException.Args is not null =>
-                    _exceptionsLocalizer.GetString(exceptionName, baseException.Args),
-                BaseException =>
-                    _exceptionsLocalizer.GetString(exceptionName),
+                BaseException baseException when baseException.Args is not null => _exceptionsLocalizer.GetString(exceptionName, baseException.Args),
+                BaseException => _exceptionsLocalizer.GetString(exceptionName),
                 _ => exception.Message
             };
 

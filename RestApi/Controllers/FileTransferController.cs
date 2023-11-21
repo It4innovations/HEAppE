@@ -1,4 +1,4 @@
-﻿using Exceptions.External;
+﻿using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.FileTransfer;
@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 
 namespace HEAppE.RestApi.Controllers
@@ -84,41 +83,6 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
-        /// End file transfer tunnel
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("EndFileTransfer")]
-        [RequestSizeLimit(4700)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [ProducesResponseType(StatusCodes.Status500InternalServerError)]
-        [Obsolete]
-        public IActionResult EndFileTransfer(EndFileTransferModelOveral model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"EndFileTransfer\" Parameters: \"{model}\"");
-
-                ValidationResult validationResult = new FileTransferValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    throw new InputValidationException(validationResult.Message);
-                }
-
-                _service.CloseFileTransfer(model.SubmittedJobInfoId, model.UsedTransferMethod.Credentials.PublicKey, model.SessionCode);
-                return Ok("EndFileTransfer");
-            }
-            catch (Exception e)
-            {
-                return BadRequest(e.Message);
-            }
-        }
-
-
-        /// <summary>
         /// Download part of job files from Cluster
         /// </summary>
         /// <param name="model"></param>
@@ -162,31 +126,6 @@ namespace HEAppE.RestApi.Controllers
                 SessionCode = sessionCode,
                 SubmittedJobInfoId = submittedJobInfoId
             };
-            _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
-            ValidationResult validationResult = new FileTransferValidator(model).Validate();
-            if (!validationResult.IsValid)
-            {
-                throw new InputValidationException(validationResult.Message);
-            }
-
-            return Ok(_service.ListChangedFilesForJob(model.SubmittedJobInfoId, model.SessionCode));
-        }
-
-        /// <summary>
-        /// Get all changes files during job execution
-        /// </summary>
-        /// <param name="model"></param>
-        /// <returns></returns>
-        [HttpPost("ListChangedFilesForJob")]
-        [RequestSizeLimit(98)]
-        [ProducesResponseType(typeof(IEnumerable<FileInformationExt>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [Obsolete]
-        public IActionResult Obsolete_ListChangedFilesForJob(ListChangedFilesForJobModel model)
-        {
             _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"ListChangedFilesForJob\" Parameters: \"{model}\"");
             ValidationResult validationResult = new FileTransferValidator(model).Validate();
             if (!validationResult.IsValid)

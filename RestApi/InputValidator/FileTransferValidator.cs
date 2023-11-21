@@ -19,7 +19,6 @@ namespace HEAppE.RestApi.InputValidator
                 TaskFileOffsetExt ext => ValidateTaskFileOffset(ext),
                 GetFileTransferMethodModel methodModel => ValidateGetFileTransferMethodModel(methodModel),
                 EndFileTransferModel transferModel => ValidateEndFileTransferModel(transferModel),
-                EndFileTransferModelOveral transferModel => ValidateEndFileTransferModelOveral(transferModel),
                 DownloadPartsOfJobFilesFromClusterModel clusterModel => ValidateDownloadPartsOfJobFilesFromClusterModel(clusterModel),
                 ListChangedFilesForJobModel jobModel => ValidateListChangedFilesForJobModel(jobModel),
                 DownloadFileFromClusterModel clusterModel => ValidateDownloadFileFromClusterModel(clusterModel),
@@ -64,19 +63,6 @@ namespace HEAppE.RestApi.InputValidator
 
             foreach (var taskFileOffset in model.TaskFileOffsets)
                 _ = ValidateTaskFileOffset(taskFileOffset);
-
-            return _messageBuilder.ToString();
-        }
-
-        [Obsolete]
-        private string ValidateEndFileTransferModelOveral(EndFileTransferModelOveral model)
-        {
-            ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
-            ValidateSessionCode(model.SessionCode);
-            if (string.IsNullOrEmpty(model.UsedTransferMethod.Credentials.PublicKey))
-            {
-                _messageBuilder.AppendLine("PublicKey must be set");
-            }
 
             return _messageBuilder.ToString();
         }

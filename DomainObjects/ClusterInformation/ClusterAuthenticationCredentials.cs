@@ -38,7 +38,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
         [Required]
         public bool IsDeleted { get; set; } = false;
 
-        public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
+        public virtual List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredential>();
         #endregion
         #region Override Methods
         public override string ToString()

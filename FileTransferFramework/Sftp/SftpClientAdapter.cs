@@ -1,8 +1,7 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework.Sftp.Commands;
 using HEAppE.Utils;
 using Renci.SshNet;
-using System;
 using System.Collections.Generic;
 using System.IO;
 

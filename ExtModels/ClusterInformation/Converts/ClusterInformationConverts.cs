@@ -1,7 +1,6 @@
-﻿using Exceptions;
-using Exceptions.External;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobReporting.Converts;
@@ -31,9 +30,11 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
         public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
         {
             // get all projects
-            var projects = nodeType.Cluster.ClusterProjects.Select(x => x.Project)
+            var projects = nodeType.Cluster.ClusterProjects.Where(cp => !cp.IsDeleted)
+                                                            .Select(x => x.Project)
                                                                 .Where(p => !p.IsDeleted)
-                                                                .ToList();
+                                                            .ToList();
+
             var projectExts = projects.Select(x => x.ConvertIntToExt()).ToList();
 
             // select possible commands for specific project or command for all projects

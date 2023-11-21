@@ -1,4 +1,4 @@
-﻿using Exceptions.Internal;
+﻿using HEAppE.Exceptions.Internal;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -171,7 +171,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             {
                 if (!ce.Contains("qdel: Job has finished"))
                 {
-                    throw ce;
+                    throw;
                 }
             }
         }
@@ -266,9 +266,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        /// <param name="serviceAccountUsername"></param>
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode, string serviceAccountUsername)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode, serviceAccountUsername);
         }
 
         /// <summary>
@@ -335,6 +339,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         {
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
+
+        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+            string clusterProjectRootDirectory,
+            string localBasepath)
+        {
+            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath);
+        }
+
         #endregion
         #endregion
         #region Private Methods

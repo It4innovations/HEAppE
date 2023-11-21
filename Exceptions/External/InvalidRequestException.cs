@@ -1,8 +1,9 @@
 ﻿using System;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace Exceptions.External
+namespace HEAppE.Exceptions.External
 {
-	public class InvalidRequestException : ExternalException
+    public class InvalidRequestException : ExternalException
 	{
 		public InvalidRequestException(string message) : base(message) { }
         public InvalidRequestException(string message, params object[] args) : base(message, args) { }

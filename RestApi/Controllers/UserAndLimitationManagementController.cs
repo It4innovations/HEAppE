@@ -1,16 +1,15 @@
-﻿using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+﻿using HEAppE.Exceptions.External;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils.Validation;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging;
-using System.Threading.Tasks;
 using Microsoft.Extensions.Caching.Memory;
-using Exceptions.External;
-using System;
+using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -37,6 +36,30 @@ namespace HEAppE.RestApi.Controllers
         }
         #endregion
         #region Methods
+        /// <summary>
+        /// Provide user authentication via OpenId token.
+        /// </summary>
+        /// <param name="model">Authentication credentials</param>
+        /// <returns></returns>
+        [HttpPost("AuthenticateLexisToken")]
+        [RequestSizeLimit(2048)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public async Task<IActionResult> AuthenticateLexisTokenAsync(AuthenticateLexisTokenModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateLexisToken\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(await _service.AuthenticateUserAsync(model.Credentials));
+        }
+
         /// <summary>
         /// Provide user authentication via OpenId token.
         /// </summary>
@@ -131,31 +154,6 @@ namespace HEAppE.RestApi.Controllers
             }
 
             return Ok(await _service.AuthenticateUserAsync(model.Credentials));
-        }
-
-        /// <summary>
-        /// Get current resource usage
-        /// </summary>
-        /// <param name="model">Session code</param>
-        /// <returns></returns>
-        [HttpPost("GetCurrentUsageAndLimitationsForCurrentUser")]
-        [RequestSizeLimit(60)]
-        [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [Obsolete]
-        public IActionResult Obsolete_GetCurrentUsageAndLimitationsForCurrentUser(GetCurrentUsageAndLimitationsForCurrentUserModel model)
-        {
-            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{model}\"");
-            ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
-            if (!validationResult.IsValid)
-            {
-                throw new InputValidationException(validationResult.Message);
-            }
-
-            return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(model.SessionCode));
         }
 
         /// <summary>

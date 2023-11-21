@@ -97,7 +97,7 @@ namespace HEAppE.DomainObjects.JobManagement
                     writer.WriteStringValue(Project.AccountingString);
 
                     writer.WritePropertyName("CreateTime");
-                    writer.WriteStringValue(DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss"));
+                    writer.WriteStringValue(DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss"));
 
                     writer.WritePropertyName("Tasks");
                     writer.WriteStartArray();

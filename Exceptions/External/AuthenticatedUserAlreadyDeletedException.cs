@@ -1,8 +1,9 @@
 ﻿using System;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace Exceptions.External
+namespace HEAppE.Exceptions.External
 {
-	public class AuthenticatedUserAlreadyDeletedException : ExternalException {
+    public class AuthenticatedUserAlreadyDeletedException : ExternalException {
 		public AuthenticatedUserAlreadyDeletedException(string message) : base(message) { }
 
         public AuthenticatedUserAlreadyDeletedException(string message, params object[] args) : base(message, args) { }
