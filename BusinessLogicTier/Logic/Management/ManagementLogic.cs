@@ -456,21 +456,36 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string keyPath = GetUniquePrivateKeyPath(project.AccountingString);
             new FileInfo(keyPath).Directory.Create();
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
+            
+            
 
             ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
             ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
 
             foreach (var clusterProject in clusterProjects)
             {
-                serviceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
+                var serviceAccount =
+                    _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                        clusterProject.ClusterId, projectId);
+                
+                if (serviceAccount == null)
+                {
+                    serviceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
+                    _logger.Info($"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
+                }
                 nonServiceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
+                _logger.Info($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
+                
             }
 
             project.ModifiedAt = DateTime.UtcNow;
             _unitOfWork.ProjectRepository.Update(project);
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
+            if(serviceCredentials.ClusterProjectCredentials.Any())
+            {
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
+            }
 
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
             _unitOfWork.Save();
             return secureShellKey;
         }
