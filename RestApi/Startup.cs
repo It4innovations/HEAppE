@@ -141,7 +141,7 @@ namespace HEAppE.RestApi
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 gen.IncludeXmlComments(xmlPath);
             });
-
+            services.AddRazorPages();
             //Localization and resources
             services.AddLocalization();
             services.Configure<RequestLocalizationOptions>(options =>
