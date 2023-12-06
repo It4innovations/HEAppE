@@ -80,7 +80,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
-            if (project is null || !project.IsDeleted)
+            if (project is null && project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }

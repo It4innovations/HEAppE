@@ -280,7 +280,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             try
             {
                 Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-                if (project is null || !project.IsDeleted)
+                if (project is null && project.IsDeleted)
                 {
                     throw new InputValidationException($"Project with ID '{projectId}' is not present in the system");
                 }

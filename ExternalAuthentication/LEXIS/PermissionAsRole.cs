@@ -8,21 +8,23 @@ namespace HEAppE.ExternalAuthentication.LEXIS
 { 
     public record PermissionAsRole()
     {
-        public PermissionAsRole(bool IsMaintainer, bool IsSubmitter, bool IsReporter, IEnumerable<AdaptorUserUserGroupRole> existingProjectGroupRoles) : this()
+        public PermissionAsRole(bool isMaintainer, bool isSubmitter, bool isReporter, IEnumerable<AdaptorUserRole> existingProjectGroupRoles) : this()
         {
-            if (IsMaintainer)
+            if (isMaintainer)
             {
-                MaintainerRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(LexisRoleMapping.Maintainer))?.AdaptorUserRole;
+                IsMaintainer = true;
+                MaintainerRole = existingProjectGroupRoles.FirstOrDefault(x => x.Name == nameof(LexisRoleMapping.Maintainer));
             }
 
-            if (IsSubmitter)
+            if (isSubmitter)
             {
-                SubmitterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(LexisRoleMapping.Submitter))?.AdaptorUserRole;
-
+                IsSubmitter = true;
+                SubmitterRole = existingProjectGroupRoles.FirstOrDefault(x => x.Name == nameof(LexisRoleMapping.Submitter));
             }
-            if (IsReporter)
+            if (isReporter)
             {
-                ReporterRole = existingProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRole.Name == nameof(LexisRoleMapping.Reporter))?.AdaptorUserRole;
+                IsReporter = true;
+                ReporterRole = existingProjectGroupRoles.FirstOrDefault(x => x.Name == nameof(LexisRoleMapping.Reporter));
             }
         }
         public AdaptorUserRole MaintainerRole { get; set; } = null;
