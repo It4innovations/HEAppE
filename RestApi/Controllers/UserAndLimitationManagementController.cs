@@ -66,7 +66,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenId")]
-        [RequestSizeLimit(2048)]
+        [RequestSizeLimit(4096)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
@@ -90,7 +90,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenStack")]
-        [RequestSizeLimit(2088)]
+        [RequestSizeLimit(4096)]
         [ProducesResponseType(typeof(OpenStackApplicationCredentialsExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]

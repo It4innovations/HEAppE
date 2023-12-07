@@ -403,14 +403,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         _log.Error($"LexisCredentials: User group with prefix \"{LexisAuthenticationConfiguration.HEAppEGroupNamePrefix}\" for project short name \"{proj.ProjectShortName}\" does not exist in HEAppE database!");
                         continue;
                     }
-                    var existingProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserGroupId == prefixedGroup.Id);
+                    var existingGroupRoles = _unitOfWork.AdaptorUserRoleRepository.GetAll();     
                     var existingUserProjectGroupRoles = user.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserId == user.Id && x.AdaptorUserGroupId == prefixedGroup.Id);
                     // map to role
                     var tmpPermissionAsRole = new PermissionAsRole(
                         proj.Permissions.Any(p => p == LexisRoleMapping.Maintainer),
                         proj.Permissions.Any(p => p == LexisRoleMapping.Submitter),
                         proj.Permissions.Any(p => p == LexisRoleMapping.Reporter),
-                        existingProjectGroupRoles);
+                        existingGroupRoles);
 
                     if (tmpPermissionAsRole is { IsMaintainer: false, IsReporter: false, IsSubmitter: false })
                     {
@@ -426,8 +426,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         user.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole()
                         {
                             AdaptorUser = user,
+                            AdaptorUserId = user.Id,
                             AdaptorUserGroup = prefixedGroup,
+                            AdaptorUserGroupId = prefixedGroup.Id,
                             AdaptorUserRole = usrPermissionRole,
+                            AdaptorUserRoleId = usrPermissionRole.Id,
                             IsDeleted = false,
                             CreatedAt = changedTime
                         });
