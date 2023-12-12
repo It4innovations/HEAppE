@@ -319,14 +319,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         private async Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials)
         {
-            //TODO ??
             try
             {
                 var requestUri = $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
                 _userOrgHttpClient.DefaultRequestHeaders.Clear();
                 _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
                 var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
-
                 return GetOrRegisterLexisCredentials(result);
             }
             catch (KeycloakOpenIdException keycloakException)
@@ -419,9 +417,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     }
 
                     var usrPermissionRole = tmpPermissionAsRole.GetRole;
-                    var existingUserProjectRole = existingUserProjectGroupRoles.FirstOrDefault(x => x.AdaptorUserRoleId == usrPermissionRole.Id);
 
-                    if (!existingUserProjectGroupRoles.Any() || existingUserProjectRole is null) // non -> create
+                    if (!existingUserProjectGroupRoles.Any() || existingUserProjectGroupRoles is null) // non -> create
                     {
                         user.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole()
                         {
@@ -434,11 +431,31 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                             IsDeleted = false,
                             CreatedAt = changedTime
                         });
+
+                        var reporterRoles = _unitOfWork.AdaptorUserRoleRepository.GetAllByRoleNames(new[] { "GroupReporter", "Reporter" });
+
+                        foreach(var reporterRole in reporterRoles)
+                        {
+                            user.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole()
+                            {
+                                AdaptorUser = user,
+                                AdaptorUserId = user.Id,
+                                AdaptorUserGroup = prefixedGroup,
+                                AdaptorUserGroupId = prefixedGroup.Id,
+                                AdaptorUserRole = reporterRole,
+                                AdaptorUserRoleId = reporterRole.Id,
+                                IsDeleted = false,
+                                CreatedAt = changedTime
+                            });
+                        }                        
                     }
                     else
                     {
-                        existingUserProjectRole.IsDeleted = false;
-                        existingUserProjectRole.ModifiedAt = changedTime;
+                        foreach(var existingRole in existingUserProjectGroupRoles)
+                        {
+                            existingRole.IsDeleted = false;
+                            existingRole.ModifiedAt = changedTime;
+                        }
                     }
                     hasUserGroup = true;
                     _log.Info($"LexisCredentials: User \"{user.Username}\" was added to group: \"{prefixedGroup.Name}\"");
