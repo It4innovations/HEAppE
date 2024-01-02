@@ -102,13 +102,13 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, string sessionCode)
+        public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedManagementAdminUserForSessionCode(sessionCode, unitOfWork);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                Project project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate, endDate, loggedUser);
+                Project project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate, endDate, useAccountingStringForScheduler, piEmail,loggedUser);
                 return project.ConvertIntToExt();
             }
         }

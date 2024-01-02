@@ -219,7 +219,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="loggedUser"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
-        public Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, AdaptorUser loggedUser)
+        public Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
         {
             var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
             if (existingProject != null)
@@ -230,8 +230,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InputValidationException(errorMessage);
             }
 
-            var project = InitializeProject(accountingString, usageType, name, description, startDate, endDate);
-
+            Contact contact = _unitOfWork.ContactRepository.GetByEmail(piEmail) ?? new Contact()
+            {
+                Email = piEmail,
+                IsDeleted = false,
+                CreatedAt = DateTime.UtcNow,
+                ModifiedAt = DateTime.UtcNow
+            };
+            Project project = InitializeProject(accountingString, usageType, name, description, startDate, endDate, useAccountingStringForScheduler, contact);
+            
             // Create user groups for different purposes
             var defaultAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, string.Empty);
             var lexisAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
@@ -244,6 +251,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
                 _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
                 _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
+                
                 _unitOfWork.Save();
 
                 // Check if an admin user exists and is not the logged-in user
@@ -681,8 +689,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="description"></param>
         /// <param name="startDate"></param>
         /// <param name="endDate"></param>
+        /// <param name="useAccountingStringForScheduler"></param>
+        /// <param name="contact"></param>
         /// <returns></returns>
-        private static Project InitializeProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate)
+        private static Project InitializeProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, Contact contact)
         {
             return new Project
             {
@@ -694,7 +704,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 EndDate = endDate,
                 UsageType = usageType,
                 IsDeleted = false,
-                UseAccountingStringForScheduler = true
+                UseAccountingStringForScheduler = useAccountingStringForScheduler,
+                ProjectContacts = new List<ProjectContact>()
+                {
+                    new ProjectContact()
+                    {
+                        IsPI = true,
+                        Contact = contact
+                    }
+                }
             };
         }
 

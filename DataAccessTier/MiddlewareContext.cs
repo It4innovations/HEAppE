@@ -191,8 +191,7 @@ namespace HEAppE.DataAccessTier
                 .IsUnique();
 
             modelBuilder.Entity<Project>()
-                .Property(p => p.UseAccountingStringForScheduler)
-                .HasDefaultValue(true);
+              .Property(p => p.UseAccountingStringForScheduler);
     }
     #endregion
     #region Seeding methods
@@ -485,6 +484,7 @@ namespace HEAppE.DataAccessTier
     public virtual DbSet<JobSpecification> JobSpecifications { get; set; }
     public virtual DbSet<TaskSpecification> TaskSpecifications { get; set; }
     public virtual DbSet<Project> Projects { get; set; }
+    public virtual DbSet<Contact> Contacts { get; set; }
     public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
     #endregion
 

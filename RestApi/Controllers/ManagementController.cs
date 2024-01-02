@@ -191,7 +191,9 @@ namespace HEAppE.RestApi.Controllers
             }
 
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.SessionCode));
+            return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name,
+                model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
+                model.SessionCode));
         }
 
         /// <summary>

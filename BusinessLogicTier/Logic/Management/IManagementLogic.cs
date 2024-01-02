@@ -12,7 +12,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript);
         CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript);
         void RemoveCommandTemplate(long commandTemplateId);
-        Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, AdaptorUser loggedUser);
+        Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser);
         Project ModifyProject(long id, UsageType usageType, string modelName, string description, string accountingString, DateTime startDate, DateTime endDate);
         void RemoveProject(long id);
         SecureShellKey CreateSecureShellKey(string username, string password, long projectId);
