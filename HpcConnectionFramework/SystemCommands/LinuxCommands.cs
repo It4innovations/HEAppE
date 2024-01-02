@@ -177,6 +177,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
             bool sharedAccountsPoolMode, string serviceAccountUsername)
         {
+            localBasePath = localBasePath.TrimEnd('/');
             var cmdBuilder =
                 new StringBuilder(
                     $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0)} {serviceAccountUsername};");
