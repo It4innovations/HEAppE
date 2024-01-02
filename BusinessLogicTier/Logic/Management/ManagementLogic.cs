@@ -771,14 +771,24 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         private List<AdaptorUserUserGroupRole> CreateAdminUserRole(AdaptorUser user, AdaptorUserGroup group)
         {
-            var role = new AdaptorUserUserGroupRole
+            var roles = new List<AdaptorUserUserGroupRole>()
             {
-                AdaptorUserId = user.Id,
-                AdaptorUserGroupId = group.Id,
-                AdaptorUserRoleId = (long)UserRoleType.Administrator
+                new ()
+                {
+                    AdaptorUserId = user.Id,
+                    AdaptorUserGroupId = group.Id,
+                    AdaptorUserRoleId = (long)UserRoleType.Administrator
+                },
+                new ()
+                {
+                    AdaptorUserId = user.Id,
+                    AdaptorUserGroupId = group.Id,
+                    AdaptorUserRoleId = (long)UserRoleType.ManagementAdmin
+                },
+                
             };
             var allRoles = _unitOfWork.AdaptorUserRoleRepository.GetAll();
-            return UserRoleUtils.GetAllUserRoles(new List<AdaptorUserUserGroupRole> { role }, allRoles).ToList();
+            return UserRoleUtils.GetAllUserRoles(roles, allRoles).ToList();
         }
 
         /// <summary>
