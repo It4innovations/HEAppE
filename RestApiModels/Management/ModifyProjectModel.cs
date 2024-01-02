@@ -29,5 +29,8 @@ namespace HEAppE.RestApiModels.Management
 
         [DataMember(Name = "UsageType", IsRequired = true)]
         public UsageTypeExt? UsageType { get; set; }
+
+        [DataMember(Name = "UseAccountingStringForScheduler", IsRequired = false)]
+        public bool? UseAccountingStringForScheduler { get; set; }
     }
 }

@@ -218,7 +218,7 @@ namespace HEAppE.RestApi.Controllers
             }
 
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.AccountingString, model.StartDate, model.EndDate, model.SessionCode));
+            return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.AccountingString, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.SessionCode));
         }
 
         /// <summary>

@@ -302,7 +302,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="endDate"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public Project ModifyProject(long id, UsageType usageType, string modelName, string description, string accountingString, DateTime startDate, DateTime endDate)
+        public Project ModifyProject(long id, UsageType usageType, string modelName, string description, string accountingString, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
@@ -313,6 +313,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             project.StartDate = startDate;
             project.EndDate = endDate;
             project.ModifiedAt = DateTime.UtcNow;
+            project.UseAccountingStringForScheduler = useAccountingStringForScheduler ?? project.UseAccountingStringForScheduler;
 
             _unitOfWork.ProjectRepository.Update(project);
             _unitOfWork.Save();
