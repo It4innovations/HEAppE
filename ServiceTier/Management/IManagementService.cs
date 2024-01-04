@@ -3,6 +3,7 @@ using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
 using System;
+using System.Collections.Generic;
 
 namespace HEAppE.ServiceTier.Management
 {
@@ -17,7 +18,7 @@ namespace HEAppE.ServiceTier.Management
         ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode);
         ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode);
         void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
-        PublicKeyExt CreateSecureShellKey(string username, string password, long projectId, string sessionCode);
+        List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, string sessionCode);
         PublicKeyExt RecreateSecureShellKey(string username, string password, string publicKey, long projectId, string sessionCode);
         void RemoveSecureShellKey(string publicKey, long projectId, string sessionCode);
         void InitializeClusterScriptDirectory(long projectId, string publicKey, string clusterProjectRootDirectory, string sessionCode);

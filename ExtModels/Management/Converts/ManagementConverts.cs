@@ -46,7 +46,8 @@ namespace HEAppE.ExtModels.Management.Converts
             {
                 KeyType = key.CipherType.ConvertIntToExt(),
                 PublicKeyOpenSSH = key.PublicKeyInAuthorizedKeysFormat,
-                PublicKeyPEM = key.PublicKeyPEM
+                PublicKeyPEM = key.PublicKeyPEM,
+                Username = key.Username
             };
             return convert;
         }

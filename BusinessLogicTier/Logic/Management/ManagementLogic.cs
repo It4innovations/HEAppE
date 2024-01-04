@@ -20,6 +20,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Transactions;
+using HEAppE.CertificateGenerator.Generators.v2;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -438,20 +439,44 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <summary>
         /// Creates encrypted SSH key for the specified user and saves it to the database.
         /// </summary>
-        /// <param name="username"></param>
-        /// <param name="password"></param>
+        /// <param name="credentials"></param>
         /// <param name="projectId"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         /// <exception cref="InputValidationException"></exception>
-        public SecureShellKey CreateSecureShellKey(string username, string password, long projectId)
+        public List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || project.IsDeleted)
+            if (project is null || project.IsDeleted || project.EndDate < DateTime.UtcNow)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
+            List<SecureShellKey> secureShellKeys = new();
+            foreach ((string username, string password) in credentials)
+            {
+                
+                var existingCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId);
+                if (existingCredentials.Any())
+                {
+                    //get existing secure key
+                    var existingKey = existingCredentials.FirstOrDefault();
+                    if (existingKey != null)
+                    {
+                        //get PUBLIC KEY FROM PRIVATE KEY
+                        SecureShellKey sshKey = SSHGenerator.GetPublicKeyFromPrivateKey(existingKey);
+                        secureShellKeys.Add(sshKey);
+                        continue;
+                    }
+                }
 
+                secureShellKeys.Add(CreateSecureShellKey(username, password, project));
+            }
+
+            return secureShellKeys;
+        }
+
+        private SecureShellKey CreateSecureShellKey(string username, string password, Project project)
+        {
             _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
             var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id).ToList();
             if (!clusterProjects.Any())
@@ -475,7 +500,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 var serviceAccount =
                     _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                        clusterProject.ClusterId, projectId);
+                        clusterProject.ClusterId, project.Id);
                 
                 if (serviceAccount == null)
                 {

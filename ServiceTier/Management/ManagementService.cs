@@ -17,6 +17,8 @@ using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace HEAppE.ServiceTier.Management
@@ -166,13 +168,13 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt CreateSecureShellKey(string username, string password, long projectId, string sessionCode)
+        public List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                return managementLogic.CreateSecureShellKey(username, password, projectId).ConvertIntToExt();
+                return managementLogic.CreateSecureShellKey(credentials, projectId).Select(x=> x.ConvertIntToExt()).ToList();
             }
         }
 

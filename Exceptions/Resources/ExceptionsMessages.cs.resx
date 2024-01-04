@@ -444,4 +444,7 @@
   <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
     <value>Neexistuje volný místní port pro vytvoření ssh tunelu.</value>
   </data>
+  <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
+    <value>Zadané uživatelské jméno '{0}' již bylo použito pro tento projekt u SSH klíče.</value>
+  </data>
 </root>

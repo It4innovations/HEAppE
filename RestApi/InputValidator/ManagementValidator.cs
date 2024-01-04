@@ -20,6 +20,7 @@ namespace HEAppE.RestApi.InputValidator
                 CreateCommandTemplateModel ext => ValidateCreateCommandTemplateModel(ext),
                 ModifyCommandTemplateModel ext => ValidateModifyCommandTemplateModel(ext),
                 RemoveCommandTemplateModel ext => ValidateRemoveCommandTemplateModel(ext),
+                CreateSecureShellKeyModelObsolete ext => ValidateCreateSecureShellKeyModelObsolete(ext),
                 CreateSecureShellKeyModel ext => ValidateCreateSecureShellKeyModel(ext),
                 RecreateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModel ext => ValidateRemoveSecureShellKeyModel(ext),
@@ -231,8 +232,28 @@ namespace HEAppE.RestApi.InputValidator
             }
             return _messageBuilder.ToString();
         }
-
+        
         private string ValidateCreateSecureShellKeyModel(CreateSecureShellKeyModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            foreach(string username in ext.Credentials.Select(x=>x.Username))
+            {
+                if (string.IsNullOrEmpty(username))
+                {
+                    _messageBuilder.AppendLine("Username can not be null or empty.");
+                }
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateSecureShellKeyModelObsolete(CreateSecureShellKeyModelObsolete ext)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
             if (string.IsNullOrEmpty(ext.Username))

@@ -1,4 +1,5 @@
-﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
+﻿using System;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -337,7 +338,8 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult CreateSecureShellKey(CreateSecureShellKeyModel model)
+        [Obsolete]
+        public IActionResult CreateSecureShellKeyObsolete(CreateSecureShellKeyModelObsolete model)
         {
             _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
             ValidationResult validationResult = new ManagementValidator(model).Validate();
@@ -345,8 +347,41 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
+            List<(string,string)> usernamePasswords = new()
+            {
+                (model.Username, model.Password)
+            };
+            
+            return Ok(_managementService.CreateSecureShellKey(usernamePasswords, model.ProjectId, model.SessionCode));
+        }
+        
+        /// <summary>
+        /// Generate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("GenerateSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult GenerateSecureShellKey(CreateSecureShellKeyModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GenerateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
 
-            return Ok(_managementService.CreateSecureShellKey(model.Username, model.Password, model.ProjectId, model.SessionCode));
+            List<(string, string)> credentials = new();
+            foreach (var credential in model.Credentials)
+            {
+                credentials.Add((credential.Username, credential.Password));
+            }
+            return Ok(_managementService.CreateSecureShellKey(credentials, model.ProjectId, model.SessionCode));
         }
 
         /// <summary>

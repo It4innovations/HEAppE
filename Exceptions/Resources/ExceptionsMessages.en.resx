@@ -444,4 +444,7 @@
   <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
     <value>There is not free local port for creation ssh tunnel.</value>
   </data>
+  <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
+    <value>The specified username '{0}' was already used for this project SSH key.</value>
+  </data>
 </root>
