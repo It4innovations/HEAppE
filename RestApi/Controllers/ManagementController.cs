@@ -376,11 +376,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            List<(string, string)> credentials = new();
-            foreach (var credential in model.Credentials)
-            {
-                credentials.Add((credential.Username, credential.Password));
-            }
+            List<(string, string)> credentials = model.Credentials.Select(credential => (credential.Username, credential.Password)).ToList();
             return Ok(_managementService.CreateSecureShellKey(credentials, model.ProjectId, model.SessionCode));
         }
 
@@ -396,7 +392,8 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult RecreateSecureShellKey(RecreateSecureShellKeyModel model)
+        [Obsolete]
+        public IActionResult RecreateSecureShellKey(RegenerateSecureShellKeyModel model)
         {
             _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
             ValidationResult validationResult = new ManagementValidator(model).Validate();
@@ -405,7 +402,31 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_managementService.RecreateSecureShellKey(model.Username, model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
+            return Ok(_managementService.RegenerateSecureShellKey(model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
+        }
+        
+        /// <summary>
+        /// Regenerate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("RegenerateSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult RegenerateSecureShellKey(RegenerateSecureShellKeyModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(_managementService.RegenerateSecureShellKey(model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
         }
 
         /// <summary>
@@ -414,6 +435,32 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpDelete("SecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [Obsolete]
+        public IActionResult RemoveSecureShellKeyObsolete(RemoveSecureShellKeyModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveSecureShellKey(model.PublicKey, model.ProjectId, model.SessionCode);
+            return Ok("SecureShellKey revoked");
+        }
+        
+        /// <summary>
+        /// Remove SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("RemoveSecureShellKey")]
         [RequestSizeLimit(1000)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]

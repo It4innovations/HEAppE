@@ -22,7 +22,7 @@ namespace HEAppE.RestApi.InputValidator
                 RemoveCommandTemplateModel ext => ValidateRemoveCommandTemplateModel(ext),
                 CreateSecureShellKeyModelObsolete ext => ValidateCreateSecureShellKeyModelObsolete(ext),
                 CreateSecureShellKeyModel ext => ValidateCreateSecureShellKeyModel(ext),
-                RecreateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
+                RegenerateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModel ext => ValidateRemoveSecureShellKeyModel(ext),
                 CreateProjectModel ext => ValidateCreateProjectModel(ext),
                 ModifyProjectModel ext => ValidateModifyProjectModel(ext),
@@ -214,13 +214,9 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateRecreateSecureShellKeyModel(RecreateSecureShellKeyModel ext)
+        private string ValidateRecreateSecureShellKeyModel(RegenerateSecureShellKeyModel ext)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
-            if (string.IsNullOrEmpty(ext.Username))
-            {
-                _messageBuilder.AppendLine("Username can not be null or empty.");
-            }
             if (string.IsNullOrEmpty(ext.PublicKey))
             {
                 _messageBuilder.AppendLine("PublicKey can not be null or empty.");

@@ -88,24 +88,17 @@ namespace HEAppE.CertificateGenerator
         {
             switch(CipherGeneratorConfiguration.Type)
             {
-                case FileTransferCipherType.RSA3072:
-                case FileTransferCipherType.RSA4096:
-                    return new SecureShellKey()
-                    {
-                        Username = existingKey.Username,
-                        CipherType = CipherGeneratorConfiguration.Type,
-                        PublicKeyPEM = RSACertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
-                        PublicKeyInAuthorizedKeysFormat = RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword)
-                    };
                 case FileTransferCipherType.nistP256:
                 case FileTransferCipherType.nistP521:
                     return new SecureShellKey()
                     {
                         Username = existingKey.Username,
                         CipherType = CipherGeneratorConfiguration.Type,
-                        PublicKeyPEM = RSACertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
-                        PublicKeyInAuthorizedKeysFormat = RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword)
+                        PublicKeyPEM = ECDsaCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
+                        PublicKeyInAuthorizedKeysFormat = ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword)
                     };
+                case FileTransferCipherType.RSA3072:
+                case FileTransferCipherType.RSA4096:
                 default:
                     return new SecureShellKey()
                     {

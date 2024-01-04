@@ -178,13 +178,13 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public PublicKeyExt RecreateSecureShellKey(string username, string password, string publicKey, long projectId, string sessionCode)
+        public PublicKeyExt RegenerateSecureShellKey(string password, string publicKey, long projectId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                return managementLogic.RecreateSecureShellKey(username, password, publicKey, projectId).ConvertIntToExt();
+                return managementLogic.RegenerateSecureShellKey(password, publicKey, projectId).ConvertIntToExt();
             }
         }
 

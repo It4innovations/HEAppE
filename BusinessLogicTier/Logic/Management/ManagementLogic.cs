@@ -527,13 +527,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <summary>
         /// Recreates encrypted SSH key for the specified user and saves it to the database.
         /// </summary>
-        /// <param name="username"></param>
         /// <param name="password"></param>
         /// <param name="publicKey"></param>
         /// <param name="projectId"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public SecureShellKey RecreateSecureShellKey(string username, string password, string publicKey, long projectId)
+        public SecureShellKey RegenerateSecureShellKey(string password, string publicKey, long projectId)
         {
             string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
             var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
@@ -542,6 +541,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("PublicKeyNotFound");
             }
+            
+            var username = clusterAuthenticationCredentials.First().Username;
 
             _logger.Info($"Recreating SSH key for user {username}.");
             var sshGenerator = new SSHGenerator();
