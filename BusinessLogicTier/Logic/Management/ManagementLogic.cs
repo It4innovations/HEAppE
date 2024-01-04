@@ -731,7 +731,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 Name = string.Concat(prefix, name),
                 AdaptorUserUserGroupRoles = new List<AdaptorUserUserGroupRole>(),
-                Description = description,
+                Description = string.Concat(prefix, description),
                 Project = project
             };
         }
