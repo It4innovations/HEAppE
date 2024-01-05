@@ -134,7 +134,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 {
                     using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                     var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)UserRoleType.Submitter);
-                    throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, adaptorUser.GetRolesForProject(openStackProject.HEAppEProjectId.Value), openStackProject.HEAppEProjectId.Value);
+                    var allowedRoleList = new List<AdaptorUserRole>() { requiredRoleModel };
+                    throw InsufficientRoleException.CreateMissingRoleException(allowedRoleList, adaptorUser.GetRolesForProject(openStackProject.HEAppEProjectId.Value), openStackProject.HEAppEProjectId.Value);
                 }
 
                 var openStack = new OpenStack(openStackProject.Domain.InstanceUrl);

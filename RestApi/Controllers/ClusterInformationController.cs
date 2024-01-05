@@ -82,7 +82,7 @@ namespace HEAppE.RestApi.Controllers
             // check if user can access project
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter, model.ProjectId);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter.GetAllowedRolesForUserRoleType(), model.ProjectId);
             }
 
             return Ok(_service.RequestCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));

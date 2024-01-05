@@ -242,7 +242,7 @@ namespace HEAppE.DataAccessTier
       InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
       InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
-      InsertOrUpdateSeedData(UserRoleUtils.GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserGroupRoles, MiddlewareContextSettings.AdaptorUserRoles), false);
+      InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroupRoles);
 
       InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
       InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);

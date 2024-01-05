@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -17,7 +18,9 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         public string Description { get; set; }
         
         [ForeignKey("AdaptorUserRole")]
+        [Obsolete]
         public long? ParentRoleId { get; set; }
+        [Obsolete]
         public virtual AdaptorUserRole ParentRole { get; set; }
         public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
 

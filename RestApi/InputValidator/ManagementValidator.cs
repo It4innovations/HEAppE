@@ -3,7 +3,6 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
 using System;
 using System.Linq;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace HEAppE.RestApi.InputValidator
 {

@@ -27,14 +27,15 @@ namespace HEAppE.Exceptions.External
         /// <summary>
         /// Create InsufficientRoleException with prepared message
         /// </summary>
-        /// <param name="requiredRole">Required (missing) user role</param>
+        /// <param name="allowedRole">Allowed (missing) user roles</param>
         /// <param name="availableRoles">Available user roles of the user</param>
         /// <param name="projectId"></param>
         /// <returns>ew InsufficientRoleException</returns>
-        public static InsufficientRoleException CreateMissingRoleException(AdaptorUserRole requiredRole, IEnumerable<AdaptorUserRole> availableRoles, long projectId)
+        public static InsufficientRoleException CreateMissingRoleException(IEnumerable<AdaptorUserRole> allowedRoles, IEnumerable<AdaptorUserRole> availableRoles, long projectId)
         {
-            return (availableRoles is null || availableRoles.Count() == 0) ? new InsufficientRoleException("MissingRole", requiredRole.Name, projectId) :
-                new InsufficientRoleException("MissingRoles", requiredRole.Name, projectId, string.Join(",", availableRoles.Select(role => role.Name)));
+            string allowedRolesString = string.Join(",", allowedRoles.Select(role => role.Name));
+            return (availableRoles is null || availableRoles.Count() == 0) ? new InsufficientRoleException("MissingRole", allowedRolesString, projectId) :
+                new InsufficientRoleException("MissingRoles", allowedRolesString, projectId, string.Join(",", availableRoles.Select(role => role.Name)));
         }
 
         /// <summary>

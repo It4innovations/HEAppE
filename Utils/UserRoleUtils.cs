@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
+﻿using System;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,7 @@ namespace HEAppE.Utils
     /// <summary>
     /// User role utils
     /// </summary>
+    [Obsolete]
     public static class UserRoleUtils
     {
         /// <summary>
@@ -16,6 +18,7 @@ namespace HEAppE.Utils
         /// <param name="userGroupRoles">List of AdaptorUserUserGroupRoles</param>
         /// <param name="userRoles">List of AdaptorUserRoles</param>
         /// <returns>List of AdaptorUserUserGroupRoles</returns>
+        [Obsolete]
         public static IEnumerable<AdaptorUserUserGroupRole> GetAllUserRoles(List<AdaptorUserUserGroupRole> userGroupRoles, IList<AdaptorUserRole> userRoles)
         {
             var groupRoles = new List<AdaptorUserUserGroupRole>();
@@ -55,6 +58,7 @@ namespace HEAppE.Utils
         /// <param name="roleMapping"></param>
         /// <param name="roleId"></param>
         /// <returns></returns>
+        [Obsolete]
         private static AdaptorUserUserGroupRole CreateUserGroupRole(AdaptorUserUserGroupRole roleMapping, long? roleId = null)
         {
             return new AdaptorUserUserGroupRole()
