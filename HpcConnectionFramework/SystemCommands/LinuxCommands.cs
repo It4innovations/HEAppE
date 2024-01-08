@@ -173,19 +173,18 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="jobInfo">Job information</param>
         /// <param name="localBasePath"></param>
         /// <param name="sharedAccountsPoolMode"></param>
-        /// <param name="serviceAccountUsername"></param>
         public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
-            bool sharedAccountsPoolMode, string serviceAccountUsername)
+            bool sharedAccountsPoolMode)
         {
             localBasePath = localBasePath.TrimEnd('/');
             var cmdBuilder =
                 new StringBuilder(
-                    $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0)} {serviceAccountUsername};");
+                    $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0)};");
             foreach (var task in jobInfo.Tasks)
             {
                 var path = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
-                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory} {(sharedAccountsPoolMode ? 1 : 0)} {serviceAccountUsername};"
-                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0)} {serviceAccountUsername};";
+                    ? $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id}/{task.Specification.ClusterTaskSubdirectory} {(sharedAccountsPoolMode ? 1 : 0)};"
+                    : $"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id} {(sharedAccountsPoolMode ? 1 : 0)};";
 
                 cmdBuilder.Append(path);
             }
