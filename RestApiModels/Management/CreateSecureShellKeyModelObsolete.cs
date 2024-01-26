@@ -1,10 +1,12 @@
 ﻿using HEAppE.RestApiModels.AbstractModels;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.Management
 {
     [DataContract(Name = "CreateSecureShellKeyModel")]
+    [Obsolete]
     public class CreateSecureShellKeyModelObsolete : SessionCodeModel
     {
         [DataMember(Name = "Username", IsRequired = true),  StringLength(50)]

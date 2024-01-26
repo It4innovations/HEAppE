@@ -10,7 +10,6 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.Configuration;
-using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
@@ -139,7 +138,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter.GetAllowedRolesForUserRoleType());
+                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
                 IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
                 return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser, projects).Select(s => s.ConvertIntToExt());
             }
@@ -149,7 +148,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter.GetAllowedRolesForUserRoleType());
+                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
                 IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
                 return userLogic.ProjectsForCurrentUser(loggedUser, projects).Select(p => p.ConvertIntToExt());
             }
@@ -159,7 +158,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                (AdaptorUser loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator.GetAllowedRolesForUserRoleType());
+                (AdaptorUser loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Administrator);
                 return loggedUser is not null;
             }
         }
@@ -167,33 +166,33 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// <summary>
         /// Get user for given <paramref name="sessionCode"/> and check if the user has <paramref name="requiredUserRole"/>.
         /// </summary>
-        /// <param name="sessionCode">User session code.</param>
-        /// <param name="unitOfWork">Unit of work.</param>
-        /// <param name="allowedRoles">Allowed user roles.</param>
-        /// <param name="projectId">Project ID (is is null, then test for all projects)</param>
+        /// <param name="sessionCode">User session code</param>
+        /// <param name="unitOfWork">Unit of work</param>
+        /// <param name="requiredUserRole">Allowed User role</param>
+        /// <param name="projectId">Project Id /param>
         /// <returns>AdaptorUser object if user has required user role.</returns>
         /// <exception cref="InsufficientRoleException">Is thrown if the user doesn't have <paramref name="requiredUserRole"/>.</exception>
-        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, IEnumerable<UserRoleType> allowedRoles, long projectId)
+        /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
+        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, AdaptorUserRoleType requiredUserRole, long projectId)
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            CheckUserRoleForProject(loggedUser, allowedRoles, projectId);
+            CheckUserRoleForProject(loggedUser, requiredUserRole, projectId);
             return loggedUser;
         }
 
-        public static (AdaptorUser, DomainObjects.JobManagement.Project[] projectIds) GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, IEnumerable<UserRoleType> allowedRoles)
+        public static (AdaptorUser, IEnumerable<DomainObjects.JobManagement.Project> projectIds) GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, AdaptorUserRoleType allowedRole)
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x =>  allowedRoles.Any(r=>r == (UserRoleType)x.AdaptorUserRoleId)  && x.AdaptorUserGroup.Project != null &&
+            var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == allowedRole) &&
+                                                                                x.AdaptorUserGroup.Project != null &&
                                                                                 !x.AdaptorUserGroup.Project.IsDeleted &&
                                                                                 x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow &&
                                                                                 !x.IsDeleted)
-                                                                                .Select(y => y.AdaptorUserGroup.Project)
-                                                                                .Distinct()
-                                                                                .ToArray();
+                                                                                .Select(y => y.AdaptorUserGroup.Project);
             return (loggedUser, projectIds);
         }
 
@@ -201,23 +200,28 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// Check whether the user has any of the allowed roles to access given functionality.
         /// </summary>
         /// <param name="user">User account with roles.</param>
-        /// <param name="allowedRoles">Allowed user role.</param>
-        /// <param name="projectId">Project ID</param>
-        /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="allowedRoles"/></exception>
-        private static void CheckUserRoleForProject(AdaptorUser user, IEnumerable<UserRoleType> allowedRoles, long projectId)
+        /// <param name="requiredUserRole">Allowed user role.</param>
+        /// <param name="projectId">Project Id</param>
+        /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="requiredUserRole"/></exception>
+        /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
+        private static void CheckUserRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId)
         {
-            bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => allowedRoles.Any(r=>r == (UserRoleType)x.AdaptorUserRoleId) && x.AdaptorUserGroup.ProjectId == projectId && !x.AdaptorUserGroup.Project.IsDeleted && x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow && !x.IsDeleted);
+            bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => x.AdaptorUserRole.ContainedRoleTypes
+                                                                    .Any(a => a == requiredUserRole) 
+                                                                        && x.AdaptorUserGroup.ProjectId == projectId
+                                                                        && !x.AdaptorUserGroup.Project.IsDeleted
+                                                                        && x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow
+                                                                        && !x.IsDeleted);
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var project = unitOfWork.ProjectRepository.GetById(projectId);
                 if (project is null || project.IsDeleted)
                 {
-                    throw new InsufficientRoleException($"Project with ID {projectId} does not exist or was deleted.");
+                    throw new RequestedObjectDoesNotExistException("ProjectNotFound");
                 }
-                var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetAll().Where(r=> allowedRoles.Any(a=>a == (UserRoleType)r.Id)).ToList();
-                
-                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.GetRolesForProject(projectId).Distinct(), projectId);
+
+                throw new InsufficientRoleException("MissingRoleForProjectCreation", requiredUserRole.ToString(), projectId);
             }
         }
     }

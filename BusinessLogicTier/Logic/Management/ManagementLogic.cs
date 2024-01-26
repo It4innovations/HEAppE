@@ -20,7 +20,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Transactions;
-using HEAppE.CertificateGenerator.Generators.v2;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -231,15 +230,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InputValidationException(errorMessage);
             }
 
-            Contact contact = _unitOfWork.ContactRepository.GetByEmail(piEmail) ?? new Contact()
-            {
-                Email = piEmail,
-                IsDeleted = false,
-                CreatedAt = DateTime.UtcNow,
-                ModifiedAt = DateTime.UtcNow
-            };
+            Contact contact = _unitOfWork.ContactRepository.GetByEmail(piEmail)
+                ?? new Contact()
+                {
+                    Email = piEmail,
+                };
+
             Project project = InitializeProject(accountingString, usageType, name, description, startDate, endDate, useAccountingStringForScheduler, contact);
-            
+
             // Create user groups for different purposes
             var defaultAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, string.Empty);
             var lexisAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
@@ -252,36 +250,27 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 _unitOfWork.AdaptorUserGroupRepository.Insert(defaultAdaptorUserGroup);
                 _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
                 _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
-                
+
                 _unitOfWork.Save();
 
                 // Check if an admin user exists and is not the logged-in user
                 var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
                 if (heappeAdminUser != null && heappeAdminUser.Id != loggedUser.Id)
                 {
-                    var adminUserRole = CreateAdminUserRole(heappeAdminUser, defaultAdaptorUserGroup);
-                    heappeAdminUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
-
+                    heappeAdminUser.CreateSpecificUserRoleForUser(defaultAdaptorUserGroup, AdaptorUserRoleType.Administrator);
                     _unitOfWork.AdaptorUserRepository.Update(heappeAdminUser);
                     _unitOfWork.Save();
                 }
 
-                // Check if the logged-in user has a password
-                if (string.IsNullOrEmpty(loggedUser.Password))
+                var adaptorUserGroup = loggedUser.UserType switch
                 {
-                    // For externally authenticated users, create admin roles in respective user groups
-                    var lexisAdminUserRole = CreateAdminUserRole(loggedUser, lexisAdaptorUserGroup);
-                    var openIdAdminUserRole = CreateAdminUserRole(loggedUser, openIdAdaptorUserGroup);
-
-                    loggedUser.AdaptorUserUserGroupRoles.AddRange(lexisAdminUserRole);
-                    loggedUser.AdaptorUserUserGroupRoles.AddRange(openIdAdminUserRole);
-                }
-                else
-                {
-                    var adminUserRole = CreateAdminUserRole(loggedUser, defaultAdaptorUserGroup);
-                    loggedUser.AdaptorUserUserGroupRoles.AddRange(adminUserRole);
-                }
-
+                    AdaptorUserType.Default => defaultAdaptorUserGroup,
+                    AdaptorUserType.OpenId => openIdAdaptorUserGroup,
+                    AdaptorUserType.Lexis => lexisAdaptorUserGroup,
+                    _ => defaultAdaptorUserGroup
+                };
+                
+                loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Administrator);
                 _unitOfWork.AdaptorUserRepository.Update(loggedUser);
                 _unitOfWork.Save();
 
@@ -360,7 +349,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 //Cluster to project is marked as deleted, update it
                 if (!cp.IsDeleted)
                 {
-                    throw new InputValidationException("ProjectAlreadyExistWithCluster");                 
+                    throw new InputValidationException("ProjectAlreadyExistWithCluster");
                 }
 
                 return ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
@@ -454,7 +443,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             List<SecureShellKey> secureShellKeys = new();
             foreach ((string username, string password) in credentials)
             {
-                
+
                 var existingCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId);
                 if (existingCredentials.Any())
                 {
@@ -490,8 +479,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string keyPath = GetUniquePrivateKeyPath(project.AccountingString);
             new FileInfo(keyPath).Directory.Create();
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
-            
-            
+
+
 
             ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
             ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
@@ -501,7 +490,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 var serviceAccount =
                     _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                         clusterProject.ClusterId, project.Id);
-                
+
                 if (serviceAccount == null)
                 {
                     serviceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
@@ -509,12 +498,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 }
                 nonServiceCredentials.ClusterProjectCredentials.Add(CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
                 _logger.Info($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
-                
+
             }
 
             project.ModifiedAt = DateTime.UtcNow;
             _unitOfWork.ProjectRepository.Update(project);
-            if(serviceCredentials.ClusterProjectCredentials.Any())
+            if (serviceCredentials.ClusterProjectCredentials.Any())
             {
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
             }
@@ -541,7 +530,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("PublicKeyNotFound");
             }
-            
+
             var username = clusterAuthenticationCredentials.First().Username;
 
             _logger.Info($"Recreating SSH key for user {username}.");
@@ -806,24 +795,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 IsDeleted = false,
                 IsServiceAccount = isServiceAccount
             };
-        }
-
-        /// <summary>
-        /// Create admin user role
-        /// </summary>
-        /// <param name="user"></param>
-        /// <param name="group"></param>
-        /// <returns></returns>
-        private List<AdaptorUserUserGroupRole> CreateAdminUserRole(AdaptorUser user, AdaptorUserGroup group)
-        {
-            var role = new AdaptorUserUserGroupRole
-            {
-                AdaptorUserId = user.Id,
-                AdaptorUserGroupId = group.Id,
-                AdaptorUserRoleId = (long)UserRoleType.Administrator
-            };
-            var allRoles = _unitOfWork.AdaptorUserRoleRepository.GetAll();
-            return UserRoleUtils.GetAllUserRoles(new List<AdaptorUserUserGroupRole> { role }, allRoles).ToList();
         }
 
         /// <summary>

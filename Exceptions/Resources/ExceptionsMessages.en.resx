@@ -126,14 +126,17 @@
   <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
     <value>User '{0}', that requested authentication was already deleted from the system.</value>
   </data>
+  <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
+    <value>None Group does not exist in the system.</value>
+  </data>
   <data name="AuthenticationException_UnableToRetrieveOpenStackCredentials" xml:space="preserve">
     <value>Unable to retrieve OpenStack application credentials for this user.</value>
   </data>
   <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
     <value>External authentication method is not implemented!</value>
   </data>
-  <data name="AuthenticationTypeException_NotSupportedRole" xml:space="preserve">
-    <value>Not existing role for mapping!</value>
+  <data name="AuthenticationTypeException_NoUserGroup" xml:space="preserve">
+    <value>External authentication: User('{0}') has not User group!</value>
   </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Current usage for user '{0}' and node type '{1}' was not created by the GetCurrentUsageAndLimitationsForUser method.</value>
@@ -191,9 +194,6 @@
   </data>
   <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
     <value>User does not have '{0}' role for project creation.</value>
-  </data>
-  <data name="InsufficientRoleException_MissingRoles" xml:space="preserve">
-    <value>User doesn't have required role. Required role: '{0}'. Current user roles for project '{1}' are '{2}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Authentication of user '{0}' was not successful due to wrong credentials.</value>
@@ -272,9 +272,6 @@
   </data>
   <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
     <value>Credentials of type '{0}' are not supported for OpenStack authentication.</value>
-  </data>
-  <data name="OpenIdAuthenticationException_NoUserGroup" xml:space="preserve">
-    <value>Open-d: User('{0}') has not User group!</value>
   </data>
   <data name="OpenStackAPIException_MissingCreateCredentialsPermission" xml:space="preserve">
     <value>User does not have permission to create OpenStack credentials for project '{0}'!</value>

@@ -3,7 +3,7 @@
     /// <summary>
     /// User role enum.
     /// </summary>
-    public enum UserRoleType
+    public enum AdaptorUserRoleType
     {
         /// <summary>
         /// HEAppE administrator role with access to the entire system.
@@ -29,7 +29,7 @@
         /// Users with this role can watch other jobs in the same group.
         /// </summary>
         Reporter = 5,
-        
+
         /// <summary>
         /// User with this role can create new project and use management API.
         /// </summary>

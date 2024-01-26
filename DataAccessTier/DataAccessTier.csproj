@@ -2,7 +2,6 @@
 
   <PropertyGroup>
     <TargetFramework>net7.0</TargetFramework>
-    <LangVersion>7.1</LangVersion>
     <AssemblyName>DataAccessTier</AssemblyName>
     <RootNamespace>HEAppE.DataAccessTier</RootNamespace>
   </PropertyGroup>
@@ -32,6 +31,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+    <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
   </ItemGroup>
 

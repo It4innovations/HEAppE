@@ -29,7 +29,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                 {
                     throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
                 }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter.GetAllowedRolesForUserRoleType(), submittedJobInfo.Project.Id);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
                 return fileTransferMethod.ConvertIntToExt();
@@ -45,7 +45,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                 {
                     throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
                 }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter.GetAllowedRolesForUserRoleType(), submittedJobInfo.Project.Id);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 FileTransferMethod fileTransferMethod = fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
                 return fileTransferMethod.ConvertIntToExt();
@@ -61,7 +61,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                 {
                     throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
                 }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter.GetAllowedRolesForUserRoleType(), submittedJobInfo.Project.Id);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 fileTransferLogic.EndFileTransfer(submittedJobInfoId, publicKey, loggedUser);
             }
@@ -76,7 +76,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                 {
                     throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
                 }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter.GetAllowedRolesForUserRoleType(), submittedJobInfo.Project.Id);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 IList<JobFileContent> downloadedFileParts = fileTransferLogic.DownloadPartsOfJobFilesFromCluster(
                     submittedJobInfoId,
@@ -95,7 +95,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                 {
                     throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
                 }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter.GetAllowedRolesForUserRoleType(), submittedJobInfo.Project.Id);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 ICollection<FileInformation> result = fileTransferLogic.ListChangedFilesForJob(submittedJobInfoId, loggedUser);
                 return result?.Select(s => s.ConvertIntToExt()).ToArray();
@@ -111,7 +111,7 @@ namespace HEAppE.ServiceTier.FileTransfer
                 {
                     throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
                 }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Submitter.GetAllowedRolesForUserRoleType(), submittedJobInfo.Project.Id);
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 return fileTransferLogic.DownloadFileFromCluster(submittedJobInfoId, relativeFilePath, loggedUser);
             }

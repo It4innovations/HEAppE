@@ -1,5 +1,8 @@
 ﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.Internal;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -15,18 +18,24 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         }
         #endregion
         #region Methods
-        public IEnumerable<AdaptorUserRole> GetAllByUserId(long userId)
+        public AdaptorUserRole GetByRoleName(string roleName)
         {
-            return GetAll().SelectMany(s => s.AdaptorUserUserGroupRoles)
-                            .Where(w => w.AdaptorUserId == userId)
-                            .Select(s => s.AdaptorUserRole)
-                            .ToList();
+            return _context.AdaptorUserRoles.FirstOrDefault(f => roleName.Contains(f.Name));
         }
 
-        public IEnumerable<AdaptorUserRole> GetAllByRoleNames(IEnumerable<string> roleNames)
+        public AdaptorUserRole GetByRoleNames(IEnumerable<string> roleNames)
         {
-            return GetAll().Where(w => roleNames.Contains(w.Name))
-                         .ToList();
+            var adaptorUserRoles = _dbSet.Where(w => roleNames.Contains(w.Name));
+            return adaptorUserRoles switch
+            {
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Administrator) => role.First(f=> f.RoleType == AdaptorUserRoleType.Administrator),
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.ManagementAdmin) => role.First(f => f.RoleType == AdaptorUserRoleType.ManagementAdmin),
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Maintainer) => role.First(f=>f.RoleType == AdaptorUserRoleType.Maintainer),
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Submitter) => role.First(f=>f.RoleType == AdaptorUserRoleType.Submitter),
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.GroupReporter) => role.First(f => f.RoleType == AdaptorUserRoleType.GroupReporter),
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Reporter) => role.First(f => f.RoleType == AdaptorUserRoleType.Reporter),
+                _ => throw new AdaptorUserGroupException("NoExist")
+            };
         }
         #endregion
     }
