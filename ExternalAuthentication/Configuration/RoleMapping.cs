@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 
 namespace HEAppE.ExternalAuthentication.Configuration
@@ -18,21 +18,17 @@ namespace HEAppE.ExternalAuthentication.Configuration
             {
                 if (_mappingRoles.Count == 0)
                 {
-                    Type myType = typeof(RoleMapping);
-                    FieldInfo[] staticFields = myType.GetFields(BindingFlags.Static | BindingFlags.Public);
-                    foreach (FieldInfo field in staticFields)
+                    var staticFields = typeof(RoleMapping).GetProperties(BindingFlags.Static | BindingFlags.Public)
+                        .Where(w => w.PropertyType == typeof(string));
+                    foreach (var field in staticFields)
                     {
-                        if (field.FieldType == typeof(string))
+                        object value = field.GetValue(null);
+                        if (value is not null)
                         {
-                            object value = field.GetValue(null);
-                            if (string.IsNullOrEmpty(value.ToString()))
-                            {
-                                _mappingRoles.Add(field.Name, value.ToString());
-                            }
+                            _mappingRoles.Add(value.ToString(), field.Name);
                         }
                     }
                 }
-
                 return _mappingRoles;
             }
         }

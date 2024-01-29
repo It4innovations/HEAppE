@@ -1,5 +1,4 @@
-﻿using HEAppE.Exceptions.External;
-using HEAppE.ExternalAuthentication.Configuration;
+﻿using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO;
 using HEAppE.ExternalAuthentication.DTO.JsonTypes;
 using Newtonsoft.Json;
@@ -24,7 +23,7 @@ namespace HEAppE.ExternalAuthentication
                 UserName = obj.EmailVerified && !string.IsNullOrWhiteSpace(obj.Email)
                                  ? $"{ExternalAuthConfiguration.HEAppEUserPrefix}{obj.Email}"
                                  : $"{ExternalAuthConfiguration.HEAppEUserPrefix}{Regex.Replace(obj.PreferredUsername, @"\s+", " ", RegexOptions.Compiled)}",
-                Projects = GetProjectWithRoleMapping(obj) ?? new List<ProjectOpenId>()
+                Projects = GetProjectWithRoleMapping(obj)
             };
         }
 
@@ -44,7 +43,7 @@ namespace HEAppE.ExternalAuthentication
 
                         if (projects is null)
                         {
-                            throw new KeycloakOpenIdException("NotDefinedProject", string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name)));
+                            continue;
                         }
                         hasMappedGroup = true;
                         foreach (ExternalAuthProjectConfiguration project in projects)
@@ -72,15 +71,14 @@ namespace HEAppE.ExternalAuthentication
 
                     if (!hasMappedGroup)
                     {
-                        throw new KeycloakOpenIdException("IncorrectProjectRoleMapping");
+                        continue;
                     }
                 }
                 return projectRoleMapping.Values;
             }
             catch (Exception)
             {
-                //TODO Log
-                return default;
+                return new List<ProjectOpenId>();
             }
         }
     }

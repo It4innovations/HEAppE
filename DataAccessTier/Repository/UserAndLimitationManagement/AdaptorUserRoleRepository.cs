@@ -25,7 +25,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 
         public AdaptorUserRole GetByRoleNames(IEnumerable<string> roleNames)
         {
-            var adaptorUserRoles = _dbSet.Where(w => roleNames.Contains(w.Name));
+            var adaptorUserRoles = _dbSet.Where(w => roleNames.Contains(w.Name)).ToList();
             return adaptorUserRoles switch
             {
                 var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Administrator) => role.First(f=> f.RoleType == AdaptorUserRoleType.Administrator),

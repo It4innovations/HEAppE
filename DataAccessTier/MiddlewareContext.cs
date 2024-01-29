@@ -10,6 +10,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Utils;
 
 using log4net;
@@ -64,6 +65,13 @@ namespace HEAppE.DataAccessTier
                                     {
                                         _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
                                         throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
+                                    }
+
+
+                                    if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
+                                    {
+                                        _log.Error("Application and database migrations counts are not the same. Please update the database.");
+                                        throw new ApplicationException("Application and database migrations counts are not the same. Please update the database.");
                                     }
 
                                     _log.Info("Application and database migrations are same. Starting seeding data into database.");
@@ -190,8 +198,11 @@ namespace HEAppE.DataAccessTier
                 .HasIndex(p => p.AccountingString)
                 .IsUnique();
 
+            modelBuilder.Entity<AdaptorUser>()
+                .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
+
             modelBuilder.Entity<Project>()
-              .Property(p => p.UseAccountingStringForScheduler);
+              .Property(p => p.UseAccountingStringForScheduler).HasDefaultValue(true);
         }
         #endregion
         #region Seeding methods
