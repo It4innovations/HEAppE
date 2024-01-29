@@ -66,10 +66,6 @@ namespace HEAppE.RestApi.InputValidator
             {
                 _messageBuilder.AppendLine(validationResult.Message);
             }
-            if (string.IsNullOrEmpty(ext.PublicKey))
-            {
-                _messageBuilder.AppendLine("PublicKey can not be null or empty.");
-            }
             
             ValidateId(ext.ProjectId, "ProjectId");
             return _messageBuilder.ToString();

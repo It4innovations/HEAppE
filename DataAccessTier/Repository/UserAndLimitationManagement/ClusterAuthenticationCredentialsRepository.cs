@@ -52,6 +52,13 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
 
         }
+        
+        public IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId)
+        {
+            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && !x.IsDeleted && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId));
+            return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
+
+        }
         #endregion
     }
 }

@@ -81,8 +81,9 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="schedulerConnectionConnection"></param>
         /// <param name="clusterProjectRootDirectory"></param>
         /// <param name="localBasepath"></param>
+        /// <param name="isServiceAccount"></param>
         /// <returns></returns>
         string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-            string clusterProjectRootDirectory, string localBasepath);
+            string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount);
     }
 }

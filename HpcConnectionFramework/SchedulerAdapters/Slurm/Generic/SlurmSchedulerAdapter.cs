@@ -307,9 +307,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-            string clusterProjectRootDirectory, string localBasepath)
+            string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
         {
-            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath);
+            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
         }
 
         #endregion

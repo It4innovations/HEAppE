@@ -42,6 +42,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost);
         string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-            string clusterProjectRootDirectory, string localBasepath);
+            string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount);
     }
 }

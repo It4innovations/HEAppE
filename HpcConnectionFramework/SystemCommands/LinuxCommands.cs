@@ -197,33 +197,31 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             _log.Info($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
         }
 
-        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath)
+        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
         {
-            //TODO for all accounts
             var cmdBuilder = new StringBuilder();
             cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-            
-            string targetDirectory = string.Empty;
-            if(!clusterProjectRootDirectory.EndsWith("HEAppE/Scripts/.key_scripts"))
-            {
-                targetDirectory = Path.Combine(clusterProjectRootDirectory, "HEAppE", "Scripts", ".key_scripts");
-                cmdBuilder.Append($"mkdir -p {targetDirectory} && ");
-            }
-            
-            var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory
-                .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
 
-            cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
-            cmdBuilder.Append($"git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} > /dev/null && ");
-            cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*")} && ");
-            cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
-            
-            cmdBuilder.Append($"cp -r {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*")} {targetDirectory} && ");
-            cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
-            
-            if (!string.IsNullOrEmpty(keyScriptsDirectoryParts.LastOrDefault()))
+            string targetDirectory = Path.Combine(clusterProjectRootDirectory, "HEAppE", "Scripts", ".key_scripts");
+            cmdBuilder.Append($"mkdir -p {targetDirectory} && ");
+
+            if (isServiceAccount)
             {
-                cmdBuilder.Append($"rm -rf {Path.Combine("~/", keyScriptsDirectoryParts.LastOrDefault())} && ");
+                var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory
+                    .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
+
+                cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
+                cmdBuilder.Append($"git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} > /dev/null && ");
+                cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*")} && ");
+                cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
+
+                cmdBuilder.Append($"cp -r {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*")} {targetDirectory} && ");
+                cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
+                
+                if (!string.IsNullOrEmpty(keyScriptsDirectoryParts.LastOrDefault()))
+                {
+                    cmdBuilder.Append($"rm -rf {Path.Combine("~/", keyScriptsDirectoryParts.LastOrDefault())} && ");
+                }
             }
 
             cmdBuilder.Append($"ln -sf {targetDirectory} ~/");

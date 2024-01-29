@@ -198,13 +198,13 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public void InitializeClusterScriptDirectory(long projectId, string publicKey, string clusterProjectRootDirectory, string sessionCode)
+        public void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                managementLogic.InitializeClusterScriptDirectory(projectId, publicKey, clusterProjectRootDirectory);
+                managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory);
             }
         }
 

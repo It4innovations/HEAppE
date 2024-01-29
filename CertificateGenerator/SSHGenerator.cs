@@ -79,7 +79,7 @@ namespace HEAppE.CertificateGenerator
                 CipherType = CipherGeneratorConfiguration.Type,
                 PrivateKeyPEM = _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase),
                 PublicKeyPEM = _certGeneratorV2.ToPublicKeyInPEM(),
-                PublicKeyInAuthorizedKeysFormat = _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(),
+                PublicKeyInAuthorizedKeysFormat = _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(username),
                 PublicKeyFingerprint = _certGeneratorV2.GetPublicKeyFingerprint()
             };
             return key;

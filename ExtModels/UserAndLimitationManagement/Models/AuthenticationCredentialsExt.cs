@@ -6,7 +6,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
     [DataContract(Name = "AuthenticationCredentialsExt")]
     public class AuthenticationCredentialsExt
     {
-        [DataMember(Name = "UserName"), StringLength(50)]
+        [DataMember(Name = "UserName"), StringLength(100)]
         public string Username { get; set; }
 
         public override string ToString()

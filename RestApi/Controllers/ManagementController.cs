@@ -502,7 +502,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.InitializeClusterScriptDirectory(model.ProjectId, model.PublicKey, model.ClusterProjectRootDirectory, model.SessionCode);
+            _managementService.InitializeClusterScriptDirectory(model.ProjectId,  model.ClusterProjectRootDirectory, model.SessionCode);
             return Ok("Cluster script directory was initialized.");
         }
 

@@ -588,14 +588,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// Initialize cluster script directory and create symbolic link for user
         /// </summary>
         /// <param name="projectId"></param>
-        /// <param name="publicKey"></param>
         /// <param name="clusterProjectRootDirectory"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public void InitializeClusterScriptDirectory(long projectId, string publicKey, string clusterProjectRootDirectory)
+        public void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
         {
-            string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
-            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
                 .ToList();
 
             if (!clusterAuthenticationCredentials.Any())
@@ -622,7 +620,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
 
                     var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
-                    scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials);
+                    scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
                 }
             }
         }
@@ -636,8 +634,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public bool TestClusterAccessForAccount(long projectId, string publicKey)
         {
-            string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
-            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
+            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)
                 .ToList();
 
             if (!clusterAuthenticationCredentials.Any())
@@ -652,14 +649,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 {
                     continue;
                 }
-
                 foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
                 {
                     if (clusterAuthCredentials.IsDeleted)
                     {
                         continue;
                     }
-
+                    
                     var cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
                     var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
