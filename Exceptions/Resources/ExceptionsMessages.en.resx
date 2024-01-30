@@ -138,6 +138,9 @@
   <data name="AuthenticationTypeException_NoUserGroup" xml:space="preserve">
     <value>External authentication: User('{0}') has not User group!</value>
   </data>
+  <data name="AuthenticationTypeException_InvalidToken" xml:space="preserve">
+    <value>Invalid or not active {0} token provided. Unable to authenticate user by provided credentials.</value>
+  </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Current usage for user '{0}' and node type '{1}' was not created by the GetCurrentUsageAndLimitationsForUser method.</value>
   </data>
@@ -249,12 +252,6 @@
   <data name="KeycloakOpenIdException_BadURLForUser" xml:space="preserve">
     <value>Not specify URL address for authentication user by '{0}'.</value>
   </data>
-  <data name="KeycloakOpenIdException_IncorrectProjectRoleMapping" xml:space="preserve">
-    <value>Open-Id: Project-role mapping is not correctly defined!</value>
-  </data>
-  <data name="KeycloakOpenIdException_NotDefinedProject" xml:space="preserve">
-    <value>Open-Id: There are not defined project Ids '{0}' in Open-Id server!</value>
-  </data>
   <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
     <value>Open-Id: User is not in allowed clientIds!</value>
   </data>
@@ -266,9 +263,6 @@
   </data>
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Logged user is not allowed to request this report.</value>
-  </data>
-  <data name="OpenIdAuthenticationException_InvalidToken" xml:space="preserve">
-    <value>Invalid or not active OpenId token provided. Unable to authenticate user by provided credentials.</value>
   </data>
   <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
     <value>Credentials of type '{0}' are not supported for OpenStack authentication.</value>

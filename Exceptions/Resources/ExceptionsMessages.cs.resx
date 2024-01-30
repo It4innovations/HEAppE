@@ -138,6 +138,9 @@
   <data name="AuthenticationTypeException_NoUserGroup" xml:space="preserve">
     <value>Externí autentikace: Uživatel('{0}') nemá Uživatelskou Skupinu!</value>
   </data>
+  <data name="AuthenticationTypeException_InvalidToken" xml:space="preserve">
+    <value>Poskytnutý {0} token není platný nebo neaktivní. Nelze ověřit uživatele podle poskytnutých údajů.</value>
+  </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Aktuální použití pro uživatele '{0}' a node type '{1}' nebylo vytvořeno metodou GetCurrentUsageAndLimitationsForUser.</value>
   </data>
@@ -249,12 +252,6 @@
   <data name="KeycloakOpenIdException_BadURLForUser" xml:space="preserve">
     <value>Neuvedena URL adresa pro autentizaci uživatele podle '{0}'.</value>
   </data>
-  <data name="KeycloakOpenIdException_IncorrectProjectRoleMapping" xml:space="preserve">
-    <value>Open-Id: Mapování projektové role není správně definováno!</value>
-  </data>
-  <data name="KeycloakOpenIdException_NotDefinedProject" xml:space="preserve">
-    <value>Open-Id: Nejsou definovány Id projektů '{0}' na serveru Open-Id!</value>
-  </data>
   <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
     <value>Open-Id: Uživatel není v povolených klientových Id!</value>
   </data>
@@ -266,9 +263,6 @@
   </data>
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Přihlášený uživatel nemá povolení žádat o tento report.</value>
-  </data>
-  <data name="OpenIdAuthenticationException_InvalidToken" xml:space="preserve">
-    <value>Poskytnutý OpenId token není platný nebo neaktivní. Nelze ověřit uživatele podle poskytnutých údajů.</value>
   </data>
   <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
     <value>Pověření typu '{0}' nejsou podporována pro autentizaci OpenStacku.</value>

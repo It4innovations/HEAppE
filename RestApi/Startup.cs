@@ -213,6 +213,7 @@ namespace HEAppE.RestApi
                                         : "/" + SwaggerConfiguration.HostPostfix;
                 swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/{SwaggerConfiguration.Version}/swagger.json", SwaggerConfiguration.Title);
                 swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
+                swaggerUI.EnableTryItOutByDefault();
             });
 
             app.UseRequestLocalization();
