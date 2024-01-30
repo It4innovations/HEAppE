@@ -18,9 +18,6 @@ namespace HEAppE.RestApiModels.Management
         [DataMember(Name = "Description", IsRequired = false), StringLength(100)]
         public string Description { get; set; }
         
-        [DataMember(Name = "AccountingString", IsRequired = false), StringLength(20)]
-        public string AccountingString { get; set; }
-        
         [DataMember(Name = "StartDate", IsRequired = true)]
         public DateTime StartDate { get; set; }
 

@@ -69,7 +69,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InputValidationException("CommandTemplateDeleted");
             }
 
-            var commandTemplateParameter = commandTemplate.TemplateParameters.FirstOrDefault(f => f.IsVisible);
+            CommandTemplateParameter commandTemplateParameter = commandTemplate.TemplateParameters.FirstOrDefault(f => f.IsVisible);
             if (string.IsNullOrEmpty(commandTemplateParameter?.Identifier))
             {
                 throw new RequestedObjectDoesNotExistException("UserScriptNotDefined");
@@ -81,8 +81,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
-            var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
-            var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            ClusterAuthenticationCredentials serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
+            List<string> commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster, project)
                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
@@ -164,12 +164,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
-            var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
+           var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster, project)
                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
 
-            var templateParameters = new List<CommandTemplateParameter>();
+            List<CommandTemplateParameter> templateParameters = new();
             foreach (string parameter in commandTemplateParameters)
             {
                 templateParameters.Add(new CommandTemplateParameter()
@@ -185,7 +185,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             commandTemplate.Description = description;
             commandTemplate.ExtendedAllocationCommand = extendedAllocationCommand;
             commandTemplate.PreparationScript = preparationScript;
-            commandTemplate.TemplateParameters.ForEach(cmdParameters => _unitOfWork.CommandTemplateParameterRepository.Delete(cmdParameters));
+            commandTemplate.TemplateParameters.ForEach(_unitOfWork.CommandTemplateParameterRepository.Delete);
             commandTemplate.TemplateParameters.AddRange(templateParameters);
             commandTemplate.ExecutableFile = executableFile;
             commandTemplate.CommandParameters = string.Join(' ', commandTemplateParameters.Select(x => $"%%{"{"}{x}{"}"}"));
@@ -219,9 +219,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="loggedUser"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
-        public Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
+        public DomainObjects.JobManagement.Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
         {
-            var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
+            DomainObjects.JobManagement.Project existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
             if (existingProject != null)
             {
                 var errorMessage = existingProject.IsDeleted
@@ -243,7 +243,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             var lexisAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, LexisAuthenticationConfiguration.HEAppEGroupNamePrefix);
             var openIdAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, ExternalAuthConfiguration.HEAppEUserPrefix);
 
-            using (var transactionScope = new TransactionScope(
+            using (TransactionScope transactionScope = new(
                         TransactionScopeOption.Required,
                         new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
             {
@@ -269,7 +269,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     AdaptorUserType.Lexis => lexisAdaptorUserGroup,
                     _ => defaultAdaptorUserGroup
                 };
-                
+
                 loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Administrator);
                 _unitOfWork.AdaptorUserRepository.Update(loggedUser);
                 _unitOfWork.Save();
@@ -292,14 +292,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="endDate"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public Project ModifyProject(long id, UsageType usageType, string modelName, string description, string accountingString, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
+        public DomainObjects.JobManagement.Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
             project.UsageType = usageType;
             project.Name = modelName ?? project.Name;
             project.Description = description ?? project.Description;
-            project.AccountingString = accountingString ?? project.AccountingString;
             project.StartDate = startDate;
             project.EndDate = endDate;
             project.ModifiedAt = DateTime.UtcNow;
@@ -347,16 +346,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (cp != null)
             {
                 //Cluster to project is marked as deleted, update it
-                if (!cp.IsDeleted)
-                {
-                    throw new InputValidationException("ProjectAlreadyExistWithCluster");
-                }
-
-                return ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                return !cp.IsDeleted
+                    ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
+                    : ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
             }
 
             //Create cluster to project mapping
-            var clusterProject = new ClusterProject
+            ClusterProject clusterProject = new()
             {
                 ClusterId = clusterId,
                 ProjectId = projectId,
@@ -406,7 +402,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="InputValidationException"></exception>
         public void RemoveProjectAssignmentToCluster(long projectId, long clusterId)
         {
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
+            ClusterProject clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
                 ?? throw new InputValidationException("ProjectNoReferenceToCluster");
 
             clusterProject.IsDeleted = true;
@@ -444,7 +440,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             foreach ((string username, string password) in credentials)
             {
 
-                var existingCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId);
+                IEnumerable<ClusterAuthenticationCredentials> existingCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId);
                 if (existingCredentials.Any())
                 {
                     //get existing secure key
@@ -485,7 +481,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
             ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
 
-            foreach (var clusterProject in clusterProjects)
+            foreach (ClusterProject clusterProject in clusterProjects)
             {
                 var serviceAccount =
                     _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
@@ -516,13 +512,93 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <summary>
         /// Recreates encrypted SSH key for the specified user and saves it to the database.
         /// </summary>
+        /// <param name="username"></param>
         /// <param name="password"></param>
-        /// <param name="publicKey"></param>
         /// <param name="projectId"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public SecureShellKey RegenerateSecureShellKey(string password, string publicKey, long projectId)
+        public SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId)
         {
+            //TODO Repositare
+            IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+
+            if (!clusterAuthenticationCredentials.Any())
+            {
+                throw new InvalidRequestException("HPCIdentityNotFound");
+            }
+
+            _logger.Info($"Recreating SSH key for user {username}.");
+
+            DateTime modificationDate = DateTime.UtcNow;
+            SSHGenerator sshGenerator = new();
+            string passphrase = StringUtils.GetRandomString();
+            SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
+
+            foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
+            {
+                File.WriteAllText(credentials.PrivateKeyFile, secureShellKey.PrivateKeyPEM);
+                credentials.PrivateKeyPassword = passphrase;
+                credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
+                credentials.CipherType = secureShellKey.CipherType;
+                credentials.ClusterProjectCredentials.ForEach(cpc =>
+                {
+                    cpc.IsDeleted = false;
+                    cpc.ModifiedAt = modificationDate;
+                    cpc.ClusterProject.Project.ModifiedAt = modificationDate;
+                });
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
+            }
+
+            _unitOfWork.Save();
+            return secureShellKey;
+        }
+
+        /// <summary>
+        /// Removes encrypted SSH key
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="projectId"></param>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public void RemoveSecureShellKey(string username, long projectId)
+        {
+            //TODO Repositare
+            IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+
+            if (!clusterAuthenticationCredentials.Any())
+            {
+                throw new InvalidRequestException("HPCIdentityNotFound");
+            }
+
+
+            DateTime modificationDate = DateTime.UtcNow;
+            _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
+            foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
+            {
+                File.Delete(credentials.PrivateKeyFile);
+                credentials.IsDeleted = true;
+                credentials.ClusterProjectCredentials.ForEach(cpc =>
+                {
+                    cpc.IsDeleted = true;
+                    cpc.ModifiedAt = modificationDate;
+                    cpc.ClusterProject.Project.ModifiedAt = modificationDate;
+                });
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
+            }
+            _unitOfWork.Save();
+        }
+
+        /// <summary>
+        /// Recreates encrypted SSH key for the specified user and saves it to the database.
+        /// </summary>
+        /// <param name="publicKey"></param>
+        /// <param name="password"></param>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        [Obsolete]
+        public SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId)
+        {
+
             string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
             var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
                 .ToList();
@@ -534,16 +610,24 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             var username = clusterAuthenticationCredentials.First().Username;
 
             _logger.Info($"Recreating SSH key for user {username}.");
-            var sshGenerator = new SSHGenerator();
+
+            DateTime modificationDate = DateTime.UtcNow;
+            SSHGenerator sshGenerator = new();
             string passphrase = StringUtils.GetRandomString();
             SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
 
-            foreach (var credentials in clusterAuthenticationCredentials)
+            foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
                 File.WriteAllText(credentials.PrivateKeyFile, secureShellKey.PrivateKeyPEM);
                 credentials.PrivateKeyPassword = passphrase;
                 credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
                 credentials.CipherType = secureShellKey.CipherType;
+                credentials.ClusterProjectCredentials.ForEach(cpc =>
+                {
+                    cpc.IsDeleted = false;
+                    cpc.ModifiedAt = modificationDate;
+                    cpc.ClusterProject.Project.ModifiedAt = modificationDate;
+                });
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
 
@@ -557,7 +641,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="publicKey"></param>
         /// <param name="projectId"></param>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public void RemoveSecureShellKey(string publicKey, long projectId)
+        [Obsolete]
+        public void RemoveSecureShellKeyByPublicKey(string publicKey, long projectId)
         {
             string publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
             var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
@@ -568,16 +653,17 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("PublicKeyNotFound");
             }
 
+            DateTime modificationDate = DateTime.UtcNow;
             _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
-            foreach (var credentials in clusterAuthenticationCredentials)
+            foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
                 File.Delete(credentials.PrivateKeyFile);
                 credentials.IsDeleted = true;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
                 {
                     cpc.IsDeleted = true;
-                    cpc.ModifiedAt = DateTime.UtcNow;
-                    cpc.ClusterProject.Project.ModifiedAt = DateTime.UtcNow;
+                    cpc.ModifiedAt = modificationDate;
+                    cpc.ClusterProject.Project.ModifiedAt = modificationDate;
                 });
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
             }
@@ -608,19 +694,19 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     continue;
                 }
 
-                foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
+                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
                 {
                     if (clusterAuthCredentials.IsDeleted)
                     {
                         continue;
                     }
 
-                    var cluster = clusterProjectCredential.ClusterProject.Cluster;
+                    Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
-                    var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+                    string localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
 
-                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
-                    scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
+                    HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
+                    _ = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
                 }
             }
         }
@@ -629,38 +715,40 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// Test cluster access for robot account
         /// </summary>
         /// <param name="projectId"></param>
-        /// <param name="publicKey"></param>
+        /// <param name="username"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public bool TestClusterAccessForAccount(long projectId, string publicKey)
+        public bool TestClusterAccessForAccount(long projectId, string username)
         {
-            var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)
-                .ToList();
+
+            IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
+                ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
+                : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
             if (!clusterAuthenticationCredentials.Any())
             {
-                throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
+                throw new InvalidRequestException("HPCIdentityNotFound");
             }
 
-            var noAccessClusterIds = new List<long>();
-            foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
+            List<long> noAccessClusterIds = new();
+            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
             {
                 if (clusterAuthCredentials.IsDeleted)
                 {
                     continue;
                 }
-                foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
+                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
                 {
                     if (clusterAuthCredentials.IsDeleted)
                     {
                         continue;
                     }
-                    
-                    var cluster = clusterProjectCredential.ClusterProject.Cluster;
-                    var project = clusterProjectCredential.ClusterProject.Project;
-                    var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
 
-                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
+                    Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
+                    var project = clusterProjectCredential.ClusterProject.Project;
+                    string localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+
+                    HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
                     if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
                     {
                         noAccessClusterIds.Add(cluster.Id);
@@ -681,7 +769,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             long nextId = 1;
 
-            var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll();
+            IList<ClusterAuthenticationCredentials> credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll();
             if (credentials != null && credentials.Any())
             {
                 nextId = credentials.Max(x => x.Id) + 1;
@@ -719,7 +807,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 UseAccountingStringForScheduler = useAccountingStringForScheduler,
                 ProjectContacts = new List<ProjectContact>()
                 {
-                    new ProjectContact()
+                    new()
                     {
                         IsPI = true,
                         Contact = contact
@@ -759,7 +847,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         private static ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(string username, string password, string keyPath, string passphrase, string publicKeyFingerprint, Cluster cluster)
         {
-            var credentials = new ClusterAuthenticationCredentials
+            ClusterAuthenticationCredentials credentials = new()
             {
                 Username = username,
                 Password = password,
@@ -802,14 +890,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         private static string ComputePublicKeyFingerprint(string publicKey)
         {
             publicKey = publicKey.Replace("\n", "");
-            var regex = new Regex(@"([A-Za-z0-9+\/=]+=)");
+            Regex regex = new(@"([A-Za-z0-9+\/=]+=)");
             Match match = regex.Match(publicKey);
             if (!match.Success)
             {
                 throw new InputValidationException("InvalidPublicKey");
             }
 
-            var base64EncodedBytes = Convert.FromBase64String(match.Value);
+            byte[] base64EncodedBytes = Convert.FromBase64String(match.Value);
             byte[] fingerprintBytes;
 
             fingerprintBytes = DigestUtilities.CalculateDigest("SHA256", base64EncodedBytes);

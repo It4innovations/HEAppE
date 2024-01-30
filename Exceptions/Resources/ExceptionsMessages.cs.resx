@@ -189,6 +189,9 @@
   <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
     <value>Uvedený veřejný klíč není definován v HEAppE!</value>
   </data>
+  <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
+    <value>Specifikovaný HPC uživatel není definován in HEAppE!</value>
+  </data>
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Odesílání jobu je k dispozici pouze pro joby ve stavu Konfigurace.</value>
   </data>

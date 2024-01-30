@@ -189,6 +189,9 @@
   <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
     <value>The specified public key is not defined in HEAppE!</value>
   </data>
+  <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
+    <value>The specified HPC identity is not defined in HEAppE!</value>
+  </data>
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Submitting Job is provided only for job in state Configuring.</value>
   </data>

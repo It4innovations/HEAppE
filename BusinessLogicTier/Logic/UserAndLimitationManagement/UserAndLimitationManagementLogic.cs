@@ -7,7 +7,6 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Extensions;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication;
@@ -100,7 +99,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             _log.Info($"User \"{credentials.Username}\" wants to authenticate to the OpenStack.");
 
-            var user = await HandleOpenIdAuthenticationAsync(credentials);
+            AdaptorUser user = await HandleOpenIdAuthenticationAsync(credentials);
             return user;
         }
 
@@ -122,7 +121,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     throw new OpenStackAPIException("MissingCreateCredentialsPermission", projectId);
                 }
 
-                var openStackProject = GetOpenStackInstanceWithProjects(projectId);
+                OpenStackProjectDTO openStackProject = GetOpenStackInstanceWithProjects(projectId);
                 bool hasRequiredRole = adaptorUser.AdaptorUserUserGroupRoles.Any(x => (AdaptorUserRoleType)x.AdaptorUserRoleId == AdaptorUserRoleType.Submitter
                                                                                                     && x.AdaptorUserGroup.ProjectId == openStackProject.HEAppEProjectId
                                                                                                     && !x.AdaptorUserGroup.Project.IsDeleted
@@ -133,11 +132,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     throw new InsufficientRoleException("MissingRoleForProjectCreation", AdaptorUserRoleType.Submitter.ToString(), openStackProject.HEAppEProjectId.Value);
                 }
 
-                var openStack = new OpenStack(openStackProject.Domain.InstanceUrl);
+                OpenStack openStack = new(openStackProject.Domain.InstanceUrl);
                 var authResponse = await openStack.AuthenticateAsync(openStackProject);
-                var openStackCredentials = await openStack.CreateApplicationCredentialsAsync(adaptorUser.Username, authResponse);
+                ApplicationCredentialsDTO openStackCredentials = await openStack.CreateApplicationCredentialsAsync(adaptorUser.Username, authResponse);
 
-                var openStackSession = new OpenStackSession
+                OpenStackSession openStackSession = new()
                 {
                     UserId = adaptorUser.Id,
                     AuthenticationTime = DateTime.UtcNow,
@@ -176,15 +175,15 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser, IEnumerable<Project> projects)
         {
-            var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+            IEnumerable<SubmittedJobInfo> notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
                                                                       .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-            var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
+            IEnumerable<ClusterNodeType> nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
                                                                 .ListClusterNodeTypes();
 
             IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
             foreach (ClusterNodeType nodeType in nodeTypes)
             {
-                var usage = new ResourceUsage
+                ResourceUsage usage = new()
                 {
                     NodeType = nodeType,
                     CoresUsed = notFinishedJobs.Sum(s => s.Tasks.Sum(taskSum => taskSum.Specification.MaxCores)) ?? 0
@@ -197,12 +196,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         public IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser, IEnumerable<Project> projects)
         {
-            var allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
+            IEnumerable<SubmittedJobInfo> allUserJobs = _unitOfWork.SubmittedJobInfoRepository.GetAllForSubmitterId(loggedUser.Id);
 
             IList<ProjectResourceUsage> result = new List<ProjectResourceUsage>();
-            foreach (var project in projects)
+            foreach (Project project in projects)
             {
-                var usage = new ProjectResourceUsage
+                ProjectResourceUsage usage = new()
                 {
                     Id = project.Id,
                     AccountingString = project.AccountingString,
@@ -216,17 +215,17 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     NodeTypes = new List<ClusterNodeTypeResourceUsage>()
                 };
 
-                var projectCommandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
-                var nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
+                IList<CommandTemplate> projectCommandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
+                IEnumerable<ClusterNodeType> nodeTypes = projectCommandTemplates.Select(x => x.ClusterNodeType).ToList().Distinct();
                 foreach (ClusterNodeType nodeType in nodeTypes)
                 {
-                    var tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType == nodeType);
-                    var clusterNodeUsedCoresAndLimitation = new NodeUsedCoresAndLimitation()
+                    IEnumerable<SubmittedTaskInfo> tasksAtNode = allUserJobs.SelectMany(x => x.Tasks).Where(x => x.NodeType == nodeType);
+                    NodeUsedCoresAndLimitation clusterNodeUsedCoresAndLimitation = new()
                     {
                         CoresUsed = tasksAtNode.Sum(taskSum => taskSum.AllocatedCores) ?? 0,
                         NodeType = nodeType
                     };
-                    var clusterNodeTypeUsage = new ClusterNodeTypeResourceUsage()
+                    ClusterNodeTypeResourceUsage clusterNodeTypeUsage = new()
                     {
                         Id = nodeType.Id,
                         Name = nodeType.Name,
@@ -250,39 +249,36 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         #region Private Methods
         private OpenStackProjectDTO GetOpenStackInstanceWithProjects(long? projectId)
         {
-            var project = _unitOfWork.OpenStackProjectRepository.GetOpenStackProjectByProjectId(projectId.Value)
+            DomainObjects.OpenStack.OpenStackProject project = _unitOfWork.OpenStackProjectRepository.GetOpenStackProjectByProjectId(projectId.Value)
                 ?? throw new OpenStackAPIException("NoOpenStackProject", projectId);
 
-            var projectCredentials = project.OpenStackAuthenticationCredentialProjects.FirstOrDefault(f => f.IsDefault) ?? project.OpenStackAuthenticationCredentialProjects.FirstOrDefault();
+            DomainObjects.OpenStack.OpenStackAuthenticationCredentialProject projectCredentials = project.OpenStackAuthenticationCredentialProjects.FirstOrDefault(f => f.IsDefault) ?? project.OpenStackAuthenticationCredentialProjects.FirstOrDefault();
 
-            if (projectCredentials is null)
-            {
-                throw new OpenStackAPIException("NoCredentialsForOpenStackProject", projectId);
-            }
-
-            return new OpenStackProjectDTO()
-            {
-                Name = project.Name,
-                UID = project.UID,
-                HEAppEProjectId = project.AdaptorUserGroup.ProjectId,
-                ProjectDomain = new OpenStackProjectDomainDTO()
+            return projectCredentials is null
+                ? throw new OpenStackAPIException("NoCredentialsForOpenStackProject", projectId)
+                : new OpenStackProjectDTO()
                 {
-                    UID = project.OpenStackProjectDomain.UID,
-                    Name = project.OpenStackProjectDomain.Name
-                },
-                Domain = new OpenStackDomainDTO()
-                {
-                    UID = project.OpenStackDomain.UID,
-                    Name = project.OpenStackDomain.Name,
-                    InstanceUrl = project.OpenStackDomain.OpenStackInstance.InstanceUrl
-                },
-                Credentials = new OpenStackCredentialsDTO()
-                {
-                    Id = projectCredentials.OpenStackAuthenticationCredential.UserId,
-                    Username = projectCredentials.OpenStackAuthenticationCredential.Username,
-                    Password = projectCredentials.OpenStackAuthenticationCredential.Password
-                }
-            };
+                    Name = project.Name,
+                    UID = project.UID,
+                    HEAppEProjectId = project.AdaptorUserGroup.ProjectId,
+                    ProjectDomain = new OpenStackProjectDomainDTO()
+                    {
+                        UID = project.OpenStackProjectDomain.UID,
+                        Name = project.OpenStackProjectDomain.Name
+                    },
+                    Domain = new OpenStackDomainDTO()
+                    {
+                        UID = project.OpenStackDomain.UID,
+                        Name = project.OpenStackDomain.Name,
+                        InstanceUrl = project.OpenStackDomain.OpenStackInstance.InstanceUrl
+                    },
+                    Credentials = new OpenStackCredentialsDTO()
+                    {
+                        Id = projectCredentials.OpenStackAuthenticationCredential.UserId,
+                        Username = projectCredentials.OpenStackAuthenticationCredential.Username,
+                        Password = projectCredentials.OpenStackAuthenticationCredential.Password
+                    }
+                };
         }
 
         /// <summary>
@@ -294,11 +290,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             try
             {
-                var openIdClient = new KeycloakOpenId();
-                var tokenIntrospectResult = await openIdClient.TokenIntrospectionAsync(openIdCredentials.OpenIdAccessToken);
+                KeycloakOpenId openIdClient = new();
+                ExternalAuthentication.DTO.JsonTypes.KeycloakTokenIntrospectionResult tokenIntrospectResult = await openIdClient.TokenIntrospectionAsync(openIdCredentials.OpenIdAccessToken);
                 KeycloakOpenId.ValidateUserToken(tokenIntrospectResult);
                 string offline_token = (await openIdClient.ExchangeTokenAsync(openIdCredentials.OpenIdAccessToken)).AccessToken;
-                var userInfo = await openIdClient.GetUserInfoAsync(offline_token);
+                ExternalAuthentication.DTO.JsonTypes.KeycloakUserInfoResult userInfo = await openIdClient.GetUserInfoAsync(offline_token);
                 return GetOrRegisterNewOpenIdUser(userInfo.Convert());
             }
             catch (KeycloakOpenIdException)
@@ -311,10 +307,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             try
             {
-                var requestUri = $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
+                string requestUri = $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
                 _userOrgHttpClient.DefaultRequestHeaders.Clear();
                 _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
-                var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
+                UserInfoExtendedModel result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
                 return GetOrRegisterLexisCredentials(result);
             }
             catch (HttpRequestException)
@@ -340,12 +336,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     Permissions = x.SystemPermissionTypes
                 });
 
-            var userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
+            IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
                 .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
 
             lock (_lockCreateUserObj)
             {
-                var changedTime = DateTime.UtcNow;
+                DateTime changedTime = DateTime.UtcNow;
                 AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(lexisUser.UserName);
                 if (user is null)
                 {
@@ -360,7 +356,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
                 foreach (var lexisProject in lexisProjects)
                 {
-                    var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a => string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
+                    IEnumerable<AdaptorUserGroup> groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a => string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
 
                     if (groupsWithProject is null || !groupsWithProject.Any())
                     {
@@ -368,15 +364,15 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         continue;
                     }
 
-                    var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey).Select(s => RoleMapping.MappingRoles[s]);
+                    IEnumerable<string> roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey).Select(s => RoleMapping.MappingRoles[s]);
                     if (roleNames is null || !roleNames.Any())
                     {
                         _log.Warn($"LEXIS AAI: Permissions for mapping is not correctly setup for Project Short Name \"{lexisProject.ProjectShortName}\"!");
                         continue;
                     }
 
-                    var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
-                    foreach (var prefixedGroup in groupsWithProject)
+                    AdaptorUserRole userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
+                    foreach (AdaptorUserGroup prefixedGroup in groupsWithProject)
                     {
                         UpdateRoleForUserAndGroup(user, prefixedGroup, userRole);
                     }
@@ -386,12 +382,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 }
 
                 _unitOfWork.Save();
-                if (!hasUserGroup)
-                {
-                    throw new AuthenticationTypeException("NoUserGroup", user.Username);
-                }
-
-                return user;
+                return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
             }
         }
 
@@ -404,7 +395,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         {
             lock (_lockCreateUserObj)
             {
-                var changedTime = DateTime.UtcNow;
+                DateTime changedTime = DateTime.UtcNow;
                 AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
                 if (user is null)
                 {
@@ -417,7 +408,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 //Set roles for group to IsDeleted
                 user.AdaptorUserUserGroupRoles.ForEach(f => { f.IsDeleted = true; f.ModifiedAt = changedTime; });
 
-                foreach (var project in openIdUser.Projects)
+                foreach (ProjectOpenId project in openIdUser.Projects)
                 {
                     if (!TryGetUserGroupByName(project.HEAppEGroupName, out AdaptorUserGroup openIdGroup))
                     {
@@ -425,7 +416,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                         continue;
                     }
 
-                    var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(project.Roles);
+                    AdaptorUserRole userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(project.Roles);
                     UpdateRoleForUserAndGroup(user, openIdGroup, userRole);
 
                     hasUserGroup = true;
@@ -433,12 +424,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 }
 
                 _unitOfWork.Save();
-                if (!hasUserGroup)
-                {
-                    throw new AuthenticationTypeException("NoUserGroup", user.Username);
-                }
-
-                return user;
+                return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
             }
         }
 
@@ -452,7 +438,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <returns>User</returns>
         private AdaptorUser CreateUser(string username, string email, DateTime changedTime, AdaptorUserType adaptorUserType)
         {
-            var user = new AdaptorUser
+            AdaptorUser user = new()
             {
                 Username = username,
                 Deleted = false,
@@ -475,7 +461,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         /// <param name="userRole">UserRole</param>
         private static void UpdateRoleForUserAndGroup(AdaptorUser user, AdaptorUserGroup group, AdaptorUserRole userRole)
         {
-            var adaptorUserWithGroupRole = user.AdaptorUserUserGroupRoles.FirstOrDefault(f => f.AdaptorUserGroup == group);
+            AdaptorUserUserGroupRole adaptorUserWithGroupRole = user.AdaptorUserUserGroupRoles.FirstOrDefault(f => f.AdaptorUserGroup == group);
             if (adaptorUserWithGroupRole is null)
             {
                 user.CreateSpecificUserRoleForUser(group, userRole.RoleType);
@@ -514,19 +500,16 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             byte[] cipherBytes = inputBytes.Concat(saltBytes).ToArray();
 
             byte[] hashBytes = SHA512.Create().ComputeHash(cipherBytes);
-            var sb = new StringBuilder();
+            StringBuilder sb = new();
             for (int i = 0; i < hashBytes.Length; i++)
             {
-                sb.Append(hashBytes[i].ToString("X2"));
+                _ = sb.Append(hashBytes[i].ToString("X2"));
             }
             string hash = sb.ToString();
 
-            if (hash != user.Password)
-            {
-                throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
-            }
-
-            return CreateSessionCode(user).UniqueCode;
+            return hash != user.Password
+                ? throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username)
+                : CreateSessionCode(user).UniqueCode;
         }
 
         private string AuthenticateUserWithDigitalSignature(DigitalSignatureCredentials credentials)
@@ -541,19 +524,14 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
 
             // Verify digital signature
-            using (RSACryptoServiceProvider rsa = new RSACryptoServiceProvider(2048))
-            {
-                // TODO: Verify
-                rsa.FromXmlString(user.PublicKey);
-                RSAPKCS1SignatureDeformatter rsaDeformatter = new RSAPKCS1SignatureDeformatter(rsa);
-                rsaDeformatter.SetHashAlgorithm("SHA256");
-                if (rsaDeformatter.VerifySignature(hash, credentials.DigitalSignature))
-                {
-                    return CreateSessionCode(user).UniqueCode;
-                }
-
-                throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
-            }
+            using RSACryptoServiceProvider rsa = new(2048);
+            // TODO: Verify
+            rsa.FromXmlString(user.PublicKey);
+            RSAPKCS1SignatureDeformatter rsaDeformatter = new(rsa);
+            rsaDeformatter.SetHashAlgorithm("SHA256");
+            return rsaDeformatter.VerifySignature(hash, credentials.DigitalSignature)
+                ? CreateSessionCode(user).UniqueCode
+                : throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
         }
 
         private AdaptorUser GetActiveUser(string username)
@@ -561,17 +539,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(username);
             _log.Info($"User \"{username}\" wants to authenticate to the system.");
 
-            if (user == null)
-            {
-                throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username);
-            }
-
-            if (user.Deleted)
-            {
-                throw new AuthenticatedUserAlreadyDeletedException("UserDeleted", user.Username);
-            }
-
-            return user;
+            return user == null
+                ? throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username)
+                : user.Deleted ? throw new AuthenticatedUserAlreadyDeletedException("UserDeleted", user.Username) : user;
         }
 
         private SessionCode CreateSessionCode(AdaptorUser user)
@@ -612,17 +582,17 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         public IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser, IEnumerable<Project> projects)
         {
-            var projectReferences = new List<ProjectReference>();
-            var groupRoles = loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
-            foreach (var groupRole in groupRoles)
+            List<ProjectReference> projectReferences = new();
+            IEnumerable<AdaptorUserUserGroupRole> groupRoles = loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup).Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
+            foreach (AdaptorUserUserGroupRole groupRole in groupRoles)
             {
-                var project = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects().FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
+                Project project = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects().FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
                 //if project.Id is present in projects array, then it is a project that user has access to
                 if (project is null || !projects.Any(x => x.Id == project.Id))
                 {
                     continue;
                 }
-                var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
+                IList<CommandTemplate> commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
                 project.CommandTemplates = commandTemplates.ToList();
                 projectReferences.Add(new()
                 {
