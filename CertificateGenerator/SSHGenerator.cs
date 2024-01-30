@@ -95,7 +95,7 @@ namespace HEAppE.CertificateGenerator
                         Username = existingKey.Username,
                         CipherType = CipherGeneratorConfiguration.Type,
                         PublicKeyPEM = ECDsaCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
-                        PublicKeyInAuthorizedKeysFormat = ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword)
+                        PublicKeyInAuthorizedKeysFormat = ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword, existingKey.Username)
                     };
                 case FileTransferCipherType.RSA3072:
                 case FileTransferCipherType.RSA4096:
@@ -104,8 +104,8 @@ namespace HEAppE.CertificateGenerator
                     {
                         Username = existingKey.Username,
                         CipherType = CipherGeneratorConfiguration.Type,
-                        PublicKeyPEM = ECDsaCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
-                        PublicKeyInAuthorizedKeysFormat = ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword)
+                        PublicKeyPEM = RSACertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
+                        PublicKeyInAuthorizedKeysFormat = RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword, existingKey.Username)
                     };
             };
         }

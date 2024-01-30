@@ -117,7 +117,8 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             pemWriter.Writer.Flush();
             return stringWriter.ToString();
         }
-        public new static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKeyPath, string passphrase)
+        public new static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKeyPath,
+            string passphrase, string comment= null)
         {
             var fileStream = System.IO.File.OpenText(privateKeyPath);
             var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
@@ -130,7 +131,14 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             formattedPublicKey.Append("ssh-rsa ");
             formattedPublicKey.Append(base64PublicKey);
             
-            formattedPublicKey.Append($" {_publicComment}");
+            if (!string.IsNullOrEmpty(comment))
+            {
+                formattedPublicKey.Append($" {comment}");
+            }
+            else
+            {
+                formattedPublicKey.Append($" {_publicComment}");
+            }
             return formattedPublicKey.ToString();
         }
 

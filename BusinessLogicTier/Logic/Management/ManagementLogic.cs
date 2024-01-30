@@ -439,7 +439,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             List<SecureShellKey> secureShellKeys = new();
             foreach ((string username, string password) in credentials)
             {
-
                 IEnumerable<ClusterAuthenticationCredentials> existingCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId);
                 if (existingCredentials.Any())
                 {
