@@ -216,7 +216,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var project = unitOfWork.ProjectRepository.GetById(projectId);
-                if (project is null || project.IsDeleted)
+                if (project is null || project.IsDeleted || project.EndDate < DateTime.UtcNow)
                 {
                     throw new RequestedObjectDoesNotExistException("ProjectNotFound");
                 }

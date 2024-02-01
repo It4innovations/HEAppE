@@ -352,15 +352,16 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             //Create cluster to project mapping
+            var modified = DateTime.UtcNow;
             ClusterProject clusterProject = new()
             {
                 ClusterId = clusterId,
                 ProjectId = projectId,
                 LocalBasepath = localBasepath.EndsWith("/") ? localBasepath.TrimEnd('/') : localBasepath,
-                CreatedAt = DateTime.UtcNow,
+                CreatedAt = modified,
                 IsDeleted = false,
             };
-            project.ModifiedAt = DateTime.UtcNow;
+            project.ModifiedAt = modified;
             _unitOfWork.ProjectRepository.Update(project);
             _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
             _unitOfWork.Save();
@@ -382,10 +383,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
                 ?? throw new InputValidationException("ProjectNoReferenceToCluster");
 
+            var modified = DateTime.UtcNow;
             clusterProject.LocalBasepath = localBasepath.EndsWith("/") ? localBasepath.TrimEnd('/') : localBasepath;
-            clusterProject.ModifiedAt = DateTime.UtcNow;
+            clusterProject.ModifiedAt = modified;
             clusterProject.IsDeleted = false;
-            clusterProject.Project.ModifiedAt = DateTime.UtcNow;
+            clusterProject.Project.ModifiedAt = modified;
             _unitOfWork.ProjectRepository.Update(clusterProject.Project);
             _unitOfWork.ClusterProjectRepository.Update(clusterProject);
             _unitOfWork.Save();
@@ -405,15 +407,16 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             ClusterProject clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
                 ?? throw new InputValidationException("ProjectNoReferenceToCluster");
 
+            var modified = DateTime.UtcNow;
             clusterProject.IsDeleted = true;
-            clusterProject.ModifiedAt = DateTime.UtcNow;
+            clusterProject.ModifiedAt = modified;
             clusterProject.ClusterProjectCredentials.ForEach(x =>
             {
                 x.IsDeleted = true;
-                x.ModifiedAt = DateTime.UtcNow;
+                x.ModifiedAt = modified;
                 x.ClusterAuthenticationCredentials.IsDeleted = true;
             });
-            clusterProject.Project.ModifiedAt = DateTime.UtcNow;
+            clusterProject.Project.ModifiedAt = modified;
             _unitOfWork.ProjectRepository.Update(clusterProject.Project);
             _unitOfWork.ClusterProjectRepository.Update(clusterProject);
             _unitOfWork.Save();
@@ -474,8 +477,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string keyPath = GetUniquePrivateKeyPath(project.AccountingString);
             new FileInfo(keyPath).Directory.Create();
             File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
-
-
 
             ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
             ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
