@@ -201,8 +201,8 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var cmdBuilder = new StringBuilder();
             cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-
-            string targetDirectory = Path.Combine(clusterProjectRootDirectory, "HEAppE", "Scripts", ".key_scripts");
+            
+            string targetDirectory = Path.Combine(clusterProjectRootDirectory, "HEAppE", "Scripts", ".key_scripts").Replace('\\', '/');
             cmdBuilder.Append($"mkdir -p {targetDirectory} && ");
 
             if (isServiceAccount)
@@ -212,15 +212,15 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
 
                 cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
                 cmdBuilder.Append($"git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} > /dev/null && ");
-                cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*")} && ");
-                cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "remote-cmd3.sh")} && ");
+                cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*").Replace('\\', '/')} && ");
+                cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
 
-                cmdBuilder.Append($"cp -r {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*")} {targetDirectory} && ");
+                cmdBuilder.Append($"cp -r {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*").Replace('\\', '/')} {targetDirectory} && ");
                 cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
                 
                 if (!string.IsNullOrEmpty(keyScriptsDirectoryParts.LastOrDefault()))
                 {
-                    cmdBuilder.Append($"rm -rf {Path.Combine("~/", keyScriptsDirectoryParts.LastOrDefault())} && ");
+                    cmdBuilder.Append($"rm -rf {Path.Combine("~/", keyScriptsDirectoryParts.LastOrDefault()).Replace('\\', '/')} && ");
                 }
             }
 
