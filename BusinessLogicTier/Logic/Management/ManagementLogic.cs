@@ -770,10 +770,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 Directory.CreateDirectory(directoryPath);
             }
-            //get count of files in directory
-            int numberOfKeysInDirectory = Directory.GetFiles(directoryPath).Length;
-            int nextId = (numberOfKeysInDirectory == 0) ? 1 : numberOfKeysInDirectory + 1;
-            string keyPath = Path.Combine(directoryPath, $"{CertificateGeneratorConfiguration.GeneratedKeyPrefix}_{nextId}");
+            //get count of files in directory and increment by 1
+            int nextId =  Directory.GetFiles(directoryPath).Length + 1;
+            string keyPath = Path.Combine(directoryPath, $"{CertificateGeneratorConfiguration.GeneratedKeyPrefix}_{nextId:D2}");
             return keyPath;
         }
 
