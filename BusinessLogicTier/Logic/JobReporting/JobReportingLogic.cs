@@ -45,10 +45,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns list of all UserGroups and all Projects in groups
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<UserGroupListReport> UserGroupListReport(Project[] projects, long userId)
+        public IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId)
         {
 
-            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject().Where(x => projects.Any(y => y.Id == x.ProjectId) && x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId && !y.IsDeleted && y.AdaptorUserRoleId == (long)UserRoleType.GroupReporter));
+            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects().Where(x => projects.Any(y => y.Id == x.ProjectId) && x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId && !y.IsDeleted && y.AdaptorUserRoleId == (long)AdaptorUserRoleType.GroupReporter));
             var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport()
             {
                 AdaptorUserGroup = adaptorUserGroup,
@@ -84,7 +84,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns aggregated job reports by state
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(Project[] projects)
+        public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects)
         {
             return _unitOfWork.SubmittedJobInfoRepository.GetAll()
                                                             .Where(x => projects.Any(y => y.Id == x.Id))

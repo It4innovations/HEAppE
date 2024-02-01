@@ -1,8 +1,8 @@
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Extensions;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-
 namespace HEAppE.DomainObjects.UserAndLimitationManagement
 {
     [Table("AdaptorUserRole")]
@@ -15,14 +15,14 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [Required]
         [StringLength(200)]
         public string Description { get; set; }
-        
-        [ForeignKey("AdaptorUserRole")]
-        public long? ParentRoleId { get; set; }
-        public virtual AdaptorUserRole ParentRole { get; set; }
+
         public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
 
         [NotMapped]
-        public List<AdaptorUser> Users => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUser).ToList();
+        public AdaptorUserRoleType RoleType => (AdaptorUserRoleType)Id;
+
+        [NotMapped]
+        public IEnumerable<AdaptorUserRoleType> ContainedRoleTypes => RoleType.GetAllowedRolesForUserRoleType();
 
         public override string ToString()
         {

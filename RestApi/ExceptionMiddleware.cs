@@ -88,17 +88,23 @@ namespace HEAppE.RestApi
             switch (exception)
             {
                 case InputValidationException:
-                    problem.Title = "Input Validation Exception";
+                    problem.Title = "Validation Problem";
                     problem.Detail = GetExceptionMessage(exception);
                     problem.Status = StatusCodes.Status404NotFound;
                     logLevel = LogLevel.Warning;
                     break;
-                case InternalException:
-                    problem.Title = "Internal Exception";
+                case AuthenticationTypeException:
+                    problem.Title = "Authentication Problem";
                     problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = exception.Message == "InvalidToken" ? StatusCodes.Status401Unauthorized : StatusCodes.Status500InternalServerError;
+                    logLevel = LogLevel.Warning;
+                    break;
+                case InternalException:
+                    problem.Title = "Problem";
+                    problem.Detail = "Problem occured! Contact the administrators.";
                     break;
                 case ExternalException:
-                    problem.Title = "External Exception";
+                    problem.Title = "External Problem";
                     problem.Detail = GetExceptionMessage(exception);
                     break;
                 case BadHttpRequestException:
@@ -112,18 +118,11 @@ namespace HEAppE.RestApi
                     };
                     break;
                 default:
-                    problem.Title = "Other Exception";
+                    problem.Title = "Problem";
+                    problem.Detail = "Problem occured! Contact the administrators.";
                     break;
             }
 
-            _logger.LogInformation("HTTP Response Information:(\"Status Code\":{statusCode} \"Schema\":{scheme} \"Host\": {host} \"Path\": {path} \"QueryString\": {queryString} \"Content-Length\": {contentLength} \"Error\": {error})",
-                                    context.Response.StatusCode,
-                                    context.Request.Scheme,
-                                    context.Request.Host,
-                                    context.Request.Path,
-                                    context.Request.QueryString,
-                                    context.Request.ContentLength,
-                                    exception);
 
             var currentCultureInfo = Thread.CurrentThread.CurrentCulture;
             Thread.CurrentThread.CurrentCulture = _defaultCultureInfo;

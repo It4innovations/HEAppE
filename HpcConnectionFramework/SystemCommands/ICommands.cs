@@ -65,9 +65,8 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="jobInfo">Job information</param>
         /// <param name="localBasePath"></param>
         /// <param name="sharedAccountsPoolMode"></param>
-        /// <param name="serviceAccountUsername"></param>
         void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
-            bool sharedAccountsPoolMode, string serviceAccountUsername);
+            bool sharedAccountsPoolMode);
 
         /// <summary>
         /// Delete job directory
@@ -82,8 +81,9 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="schedulerConnectionConnection"></param>
         /// <param name="clusterProjectRootDirectory"></param>
         /// <param name="localBasepath"></param>
+        /// <param name="isServiceAccount"></param>
         /// <returns></returns>
         string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-            string clusterProjectRootDirectory, string localBasepath);
+            string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount);
     }
 }

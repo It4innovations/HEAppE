@@ -27,8 +27,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys, ClusterAuthenticationCredentials credentials, Cluster cluster);
 
-        void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode,
-            string serviceAccountUsername);
+        void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode);
 
         void DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath);
 
@@ -41,7 +40,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
         void RemoveTunnel(SubmittedTaskInfo taskInfo);
 
         IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost);
-        string InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials);
+        string InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath,
+            Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount);
         bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials);
     }
 }

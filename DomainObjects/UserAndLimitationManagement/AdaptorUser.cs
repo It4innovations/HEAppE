@@ -1,4 +1,5 @@
 using HEAppE.DomainObjects.Logging;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
@@ -11,7 +12,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
     public class AdaptorUser : IdentifiableDbEntity, ILogUserIdentification
     {
         [Required]
-        [StringLength(50)]
+        [StringLength(100)]
         public string Username { get; set; }
 
         [StringLength(128)]
@@ -30,36 +31,34 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public DateTime? ModifiedAt { get; set; }
 
+        [Required]
+        public AdaptorUserType UserType { get; set; } = AdaptorUserType.Default;
+
         public virtual List<AdaptorUserUserGroupRole> AdaptorUserUserGroupRoles { get; set; } = new List<AdaptorUserUserGroupRole>();
 
         [NotMapped]
         public List<AdaptorUserGroup> Groups => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUserGroup).ToList();
 
-        [NotMapped]
-        public List<AdaptorUserRole> Roles => AdaptorUserUserGroupRoles?.Select(g => g.AdaptorUserRole).ToList();
-
-        public List<AdaptorUserRole> GetRolesForProject(long projectId)
-        {
-            return AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserGroup.ProjectId == projectId).Select(x => x.AdaptorUserRole).ToList();
-        }
-
-        /// <summary>
-        /// Check if user have specified user role.
-        /// </summary>
-        /// <param name="role">User role.</param>
-        /// <returns>True if user has the specified role.</returns>
-        public bool HasUserRole(AdaptorUserRole role)
-        {
-            if (AdaptorUserUserGroupRoles is null)
-            {
-                return false;
-            }
-            return AdaptorUserUserGroupRoles.Any(userRole => userRole.AdaptorUserRoleId == role.Id);
-        }
-
         public string GetLogIdentification()
         {
             return Username;
+        }
+
+        /// <summary>
+        /// Create Specific User Role for User
+        /// </summary>
+        /// <param name="group">User Group</param>
+        /// <param name="roleType">Role</param>
+        /// <returns></returns>
+        public void CreateSpecificUserRoleForUser( AdaptorUserGroup group, AdaptorUserRoleType roleType)
+        {
+            var adaptorUserUserGroupRole = new AdaptorUserUserGroupRole()
+            {
+                AdaptorUserId = Id,
+                AdaptorUserGroupId = group.Id,
+                AdaptorUserRoleId = (long)roleType
+            };
+            AdaptorUserUserGroupRoles.Add(adaptorUserUserGroupRole);
         }
 
         public override string ToString()

@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 
 namespace HEAppE.RestApi.Controllers
@@ -77,12 +76,6 @@ namespace HEAppE.RestApi.Controllers
             if (!validationResult.IsValid)
             {
                 throw new InputValidationException(validationResult.Message);
-            }
-
-            // check if user can access project
-            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-            {
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(model.SessionCode, unitOfWork, UserRoleType.Reporter, model.ProjectId);
             }
 
             return Ok(_service.RequestCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId, model.UserScriptPath, model.SessionCode));

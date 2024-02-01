@@ -123,6 +123,9 @@
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
     <value>Přihlášený uživatel: '{0}' nemá povolení pracovat s jobem: '{1}'.</value>
   </data>
+  <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
+    <value>Žádná skupina neexistuje v systému.</value>
+  </data>
   <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
     <value>Uživatel '{0}', který požádal o ověření, byl již smazán ze systému.</value>
   </data>
@@ -132,8 +135,11 @@
   <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
     <value>Externí autentikační metoda není naimplementovaná!</value>
   </data>
-  <data name="AuthenticationTypeException_NotSupportedRole" xml:space="preserve">
-    <value>Neexistuje role pro mapování!</value>
+  <data name="AuthenticationTypeException_NoUserGroup" xml:space="preserve">
+    <value>Externí autentikace: Uživatel('{0}') nemá Uživatelskou Skupinu!</value>
+  </data>
+  <data name="AuthenticationTypeException_InvalidToken" xml:space="preserve">
+    <value>Poskytnutý {0} token není platný nebo neaktivní. Nelze ověřit uživatele podle poskytnutých údajů.</value>
   </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Aktuální použití pro uživatele '{0}' a node type '{1}' nebylo vytvořeno metodou GetCurrentUsageAndLimitationsForUser.</value>
@@ -183,6 +189,9 @@
   <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
     <value>Uvedený veřejný klíč není definován v HEAppE!</value>
   </data>
+  <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
+    <value>Specifikovaný HPC uživatel není definován in HEAppE!</value>
+  </data>
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Odesílání jobu je k dispozici pouze pro joby ve stavu Konfigurace.</value>
   </data>
@@ -191,9 +200,6 @@
   </data>
   <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
     <value>Uživatel nemá '{0}' roli pro vytvoření projektu.</value>
-  </data>
-  <data name="InsufficientRoleException_MissingRoles" xml:space="preserve">
-    <value>Uživatel nemá požadovanou roli. Požadovaná role: '{0}'. Aktuální role uživatele pro projekt '{1}' jsou '{2}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Autentizace uživatele '{0}' nebyla úspěšná kvůli nesprávným přihlašovacím údajům.</value>
@@ -249,12 +255,6 @@
   <data name="KeycloakOpenIdException_BadURLForUser" xml:space="preserve">
     <value>Neuvedena URL adresa pro autentizaci uživatele podle '{0}'.</value>
   </data>
-  <data name="KeycloakOpenIdException_IncorrectProjectRoleMapping" xml:space="preserve">
-    <value>Open-Id: Mapování projektové role není správně definováno!</value>
-  </data>
-  <data name="KeycloakOpenIdException_NotDefinedProject" xml:space="preserve">
-    <value>Open-Id: Nejsou definovány Id projektů '{0}' na serveru Open-Id!</value>
-  </data>
   <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
     <value>Open-Id: Uživatel není v povolených klientových Id!</value>
   </data>
@@ -267,14 +267,8 @@
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Přihlášený uživatel nemá povolení žádat o tento report.</value>
   </data>
-  <data name="OpenIdAuthenticationException_InvalidToken" xml:space="preserve">
-    <value>Poskytnutý OpenId token není platný nebo neaktivní. Nelze ověřit uživatele podle poskytnutých údajů.</value>
-  </data>
   <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
     <value>Pověření typu '{0}' nejsou podporována pro autentizaci OpenStacku.</value>
-  </data>
-  <data name="OpenIdAuthenticationException_NoUserGroup" xml:space="preserve">
-    <value>Open-d: Uživatel ('{0}') nemá uživatelskou skupinu!</value>
   </data>
   <data name="OpenStackAPIException_MissingCreateCredentialsPermission" xml:space="preserve">
     <value>Uživatel nemá oprávnění vytvořit přihlašovací údaje OpenStack pro projekt '{0}'</value>
@@ -443,5 +437,8 @@
   </data>
   <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
     <value>Neexistuje volný místní port pro vytvoření ssh tunelu.</value>
+  </data>
+  <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
+    <value>Zadané uživatelské jméno '{0}' již bylo použito pro tento projekt u SSH klíče.</value>
   </data>
 </root>

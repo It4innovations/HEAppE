@@ -32,6 +32,10 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         public int? MaxWalltime { get; set; }
 
+        public int? MaxNodesPerUser { get; set; }
+
+        public int? MaxNodesPerJob { get; set; }
+
         [ForeignKey("Cluster")]
         public long? ClusterId { get; set; }
         public virtual Cluster Cluster { get; set; }

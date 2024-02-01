@@ -24,6 +24,20 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
         }
 
+        public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForUsernameAndProject(string username, long projectId)
+        {
+            var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cpc => cpc.Username == username && cpc.ClusterProjectCredentials.Any(c => c.ClusterProject.ProjectId == projectId));
+            var credentials = clusterAuthenticationCredentials?.Select(x=>x).Where(x => !x.IsDeleted);
+            return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
+        }
+
+        public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId)
+        {
+            var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cpc => cpc.ClusterProjectCredentials.Any(c => c.ClusterProject.ProjectId == projectId));
+            var credentials = clusterAuthenticationCredentials?.Select(x => x).Where(x => !x.IsDeleted);
+            return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
+        }
+
         public ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId)
         {
             var clusterProject = _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
@@ -35,6 +49,13 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint, long projectId)
         {
             var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && !x.IsDeleted && x.PublicKeyFingerprint == fingerprint && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId));
+            return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
+
+        }
+        
+        public IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId)
+        {
+            var credentials = _context.ClusterAuthenticationCredentials.Where(x => x.IsGenerated && !x.IsDeleted && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId));
             return credentials?.ToList() ?? new List<ClusterAuthenticationCredentials>();
 
         }

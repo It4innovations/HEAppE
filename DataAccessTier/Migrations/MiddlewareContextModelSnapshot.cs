@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
+#nullable disable
 
 namespace HEAppE.DataAccessTier.Migrations
 {
@@ -16,7 +17,7 @@ namespace HEAppE.DataAccessTier.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.10")
+                .HasAnnotation("ProductVersion", "7.0.15")
                 .HasAnnotation("Proxies:ChangeTracking", false)
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
@@ -149,6 +150,12 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long?>("FileTransferMethodId")
                         .HasColumnType("bigint");
+
+                    b.Property<int?>("MaxNodesPerJob")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("MaxNodesPerUser")
+                        .HasColumnType("int");
 
                     b.Property<int?>("MaxWalltime")
                         .HasColumnType("int");
@@ -1206,10 +1213,15 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool>("Synchronize")
                         .HasColumnType("bit");
 
+                    b.Property<int>("UserType")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(1);
+
                     b.Property<string>("Username")
                         .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.HasKey("Id");
 
@@ -1262,14 +1274,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<long?>("ParentRoleId")
-                        .HasColumnType("bigint");
-
                     b.HasKey("Id");
 
                     b.HasAlternateKey("Name");
-
-                    b.HasIndex("ParentRoleId");
 
                     b.ToTable("AdaptorUserRole");
                 });
@@ -1781,15 +1788,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasForeignKey("ProjectId");
 
                     b.Navigation("Project");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserRole", "ParentRole")
-                        .WithMany()
-                        .HasForeignKey("ParentRoleId");
-
-                    b.Navigation("ParentRole");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserUserGroupRole", b =>

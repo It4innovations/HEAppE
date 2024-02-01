@@ -1,5 +1,8 @@
 ﻿using Org.BouncyCastle.Crypto;
 using System;
+using System.IO;
+using Org.BouncyCastle.Crypto.Utilities;
+using Org.BouncyCastle.Utilities.IO.Pem;
 
 namespace HEAppE.CertificateGenerator.Generators.v2
 {
@@ -21,7 +24,7 @@ namespace HEAppE.CertificateGenerator.Generators.v2
         /// <summary>
         /// Public comment
         /// </summary>
-        protected string _publicComment = $"key-added-{DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss")}";
+        protected static string _publicComment = $"key-added-{DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss")}";
         #endregion
 
 
@@ -49,6 +52,23 @@ namespace HEAppE.CertificateGenerator.Generators.v2
         /// </summary>
         /// <returns></returns>
         public abstract string ToPublicKeyInPEM();
+
+        public static string ToPublicKeyInPEMFromPrivateKey(string privateKeyPath, string passphrase)
+        {
+            var fileStream = System.IO.File.OpenText(privateKeyPath);
+            var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
+            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
+            var publicKey = keyPair.Public;
+            byte[] publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+            using (StringWriter stringWriter = new StringWriter())
+            {
+                using (Org.BouncyCastle.OpenSsl.PemWriter w = new Org.BouncyCastle.OpenSsl.PemWriter(stringWriter))
+                {
+                    w.WriteObject(new PemObject("OPENSSH PUBLIC KEY", publicKeyBytes));
+                }
+                return stringWriter.ToString();
+            }
+        }
 
         /// <summary>
         /// Returns the SSH public key in OpenSSH authorized_keys format

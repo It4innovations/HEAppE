@@ -98,10 +98,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 }
                 var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id)
                     ?? throw new InvalidRequestException("NotExistingProject");
-
-                var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId);
+                
                 //Create job directory
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster, jobInfo.Project).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode, serviceAccount.Username);
+                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster, jobInfo.Project).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode);
                 return jobInfo;
             }
         }

@@ -126,14 +126,20 @@
   <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
     <value>User '{0}', that requested authentication was already deleted from the database.</value>
   </data>
+  <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
+    <value>None Group does not exist in the system.</value>
+  </data>
   <data name="AuthenticationException_UnableToRetrieveOpenStackCredentials" xml:space="preserve">
     <value>Unable to retrieve OpenStack application credentials for this user.</value>
   </data>
   <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
     <value>External authentication method is not implemented.</value>
   </data>
-  <data name="AuthenticationTypeException_NotSupportedRole" xml:space="preserve">
-    <value>External role for mapping is missing.</value>
+  <data name="AuthenticationTypeException_NoUserGroup" xml:space="preserve">
+    <value>External authentication: User('{0}') has not User group!</value>
+  </data>
+  <data name="AuthenticationTypeException_InvalidToken" xml:space="preserve">
+    <value>Invalid or not active {0} token provided. Unable to authenticate user by provided credentials.</value>
   </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Current usage for user '{0}' and node type '{1}' was not created by the GetCurrentUsageAndLimitationsForUser method.</value>
@@ -182,6 +188,9 @@
   </data>
   <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
     <value>The specified public key is not defined in the database.</value>
+  </data>
+  <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
+    <value>The specified HPC identity is not defined in HEAppE!</value>
   </data>
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Unable to submit the job - incorrect job state.</value>
@@ -243,12 +252,6 @@
   <data name="KeycloakOpenIdException_BadURLForUser" xml:space="preserve">
     <value>Bad URL address for external authentication.</value>
   </data>
-  <data name="KeycloakOpenIdException_IncorrectProjectRoleMapping" xml:space="preserve">
-    <value>Project-role mapping is not correctly defined.</value>
-  </data>
-  <data name="KeycloakOpenIdException_NotDefinedProject" xml:space="preserve">
-    <value>There are no defined project Ids '{0}' in Open-Id server.</value>
-  </data>
   <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
     <value>User is not in allowed clientIds.</value>
   </data>
@@ -261,14 +264,8 @@
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Logged user is not allowed to request this report.</value>
   </data>
-  <data name="OpenIdAuthenticationException_InvalidToken" xml:space="preserve">
-    <value>Invalid or not active OpenId token was provided.</value>
-  </data>
   <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
     <value>Credentials of type '{0}' are not supported for OpenStack authentication.</value>
-  </data>
-  <data name="OpenIdAuthenticationException_NoUserGroup" xml:space="preserve">
-    <value>User '{0}' is not part of any User group.</value>
   </data>
   <data name="OpenStackAPIException_MissingCreateCredentialsPermission" xml:space="preserve">
     <value>User does not have permission to create OpenStack credentials for project '{0}'.</value>
@@ -437,5 +434,8 @@
   </data>
   <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
     <value>There is no free local port available for creation of SSH tunnel.</value>
+  </data>
+  <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
+    <value>The specified username '{0}' was already used for this project SSH key.</value>
   </data>
 </root>

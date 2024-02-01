@@ -151,5 +151,36 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             var keyGenParameters = new KeyGenerationParameters(secureRandom, size);
             return keyGenParameters;
         }
+        
+        public new static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKeyPath,
+            string passphrase, string comment = null)
+        {
+            var fileStream = System.IO.File.OpenText(privateKeyPath);
+            var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
+            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
+            var publicKey = keyPair.Public;
+            byte[] publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+            string base64PublicKey = Convert.ToBase64String(publicKeyBytes);
+            
+            //get key size from private key
+            var privateKey = keyPair.Private;
+            ECPrivateKeyParameters privateKeyParams = privateKey as ECPrivateKeyParameters;
+            int keySize = privateKeyParams.Parameters.Curve.FieldSize;
+
+            StringBuilder formattedPublicKey = new StringBuilder();
+            formattedPublicKey.Append($"ecdsa-sha2-nistp{keySize} ");
+            formattedPublicKey.Append(base64PublicKey);
+
+            if (!string.IsNullOrEmpty(comment))
+            {
+                formattedPublicKey.Append($" {comment}");
+            }
+            else
+            {
+                formattedPublicKey.Append($" {_publicComment}");
+            }
+
+            return formattedPublicKey.ToString();
+        }
     }
 }

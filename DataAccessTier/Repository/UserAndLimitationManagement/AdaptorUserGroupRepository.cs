@@ -1,6 +1,7 @@
 ﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -27,14 +28,15 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
                           .FirstOrDefault();
         }
 
-        public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndProject()
+        public IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndActiveProjects()
         {
             return _dbSet.Include(p => p.Project)
                             .ThenInclude(i => i.CommandTemplates)
                             .ThenInclude(i => i.TemplateParameters)
-                            .Include(i => i.AdaptorUserUserGroupRoles)
+                         .Include(i => i.AdaptorUserUserGroupRoles)
                             .ThenInclude(i => i.AdaptorUser)
-                            .ToList();
+                         .Where(p => !p.Project.IsDeleted && p.Project.EndDate >= DateTime.UtcNow)
+                         .ToList();
         }
 
         public AdaptorUserGroup GetDefaultSubmitterGroup()

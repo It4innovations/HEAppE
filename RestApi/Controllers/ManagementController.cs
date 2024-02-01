@@ -1,4 +1,5 @@
-﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
+﻿using System;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -21,6 +22,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -191,7 +193,9 @@ namespace HEAppE.RestApi.Controllers
             }
 
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.SessionCode));
+            return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name,
+                model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
+                model.SessionCode));
         }
 
         /// <summary>
@@ -216,7 +220,7 @@ namespace HEAppE.RestApi.Controllers
             }
 
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.AccountingString, model.StartDate, model.EndDate, model.SessionCode));
+            return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.SessionCode));
         }
 
         /// <summary>
@@ -335,7 +339,8 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult CreateSecureShellKey(CreateSecureShellKeyModel model)
+        [Obsolete]
+        public IActionResult CreateSecureShellKeyObsolete(CreateSecureShellKeyModelObsolete model)
         {
             _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
             ValidationResult validationResult = new ManagementValidator(model).Validate();
@@ -343,8 +348,37 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
+            List<(string,string)> usernamePasswords = new()
+            {
+                (model.Username, model.Password)
+            };
+            
+            return Ok(_managementService.CreateSecureShellKey(usernamePasswords, model.ProjectId, model.SessionCode));
+        }
+        
+        /// <summary>
+        /// Generate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("GenerateSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult GenerateSecureShellKey(CreateSecureShellKeyModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GenerateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
 
-            return Ok(_managementService.CreateSecureShellKey(model.Username, model.Password, model.ProjectId, model.SessionCode));
+            List<(string, string)> credentials = model.Credentials.Select(credential => (credential.Username, credential.Password)).ToList();
+            return Ok(_managementService.CreateSecureShellKey(credentials, model.ProjectId, model.SessionCode));
         }
 
         /// <summary>
@@ -359,7 +393,8 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult RecreateSecureShellKey(RecreateSecureShellKeyModel model)
+        [Obsolete]
+        public IActionResult RecreateSecureShellKey(RegenerateSecureShellKeyModelObsolete model)
         {
             _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
             ValidationResult validationResult = new ManagementValidator(model).Validate();
@@ -368,7 +403,31 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_managementService.RecreateSecureShellKey(model.Username, model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
+            return Ok(_managementService.RegenerateSecureShellKey(string.Empty, model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
+        }
+        
+        /// <summary>
+        /// Regenerate SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("RegenerateSecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult RegenerateSecureShellKey(RegenerateSecureShellKeyModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(_managementService.RegenerateSecureShellKey(model.Username, model.Password,string.Empty, model.ProjectId, model.SessionCode));
         }
 
         /// <summary>
@@ -377,6 +436,32 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpDelete("SecureShellKey")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [Obsolete]
+        public IActionResult RemoveSecureShellKeyObsolete(RemoveSecureShellKeyModelObsolete model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveSecureShellKey(null, model.PublicKey, model.ProjectId, model.SessionCode);
+            return Ok("SecureShellKey revoked");
+        }
+        
+        /// <summary>
+        /// Remove SSH key
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("RemoveSecureShellKey")]
         [RequestSizeLimit(1000)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -392,7 +477,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.RemoveSecureShellKey(model.PublicKey, model.ProjectId, model.SessionCode);
+            _managementService.RemoveSecureShellKey(model.Username,null, model.ProjectId, model.SessionCode);
             return Ok("SecureShellKey revoked");
         }
         #endregion
@@ -417,7 +502,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.InitializeClusterScriptDirectory(model.ProjectId, model.PublicKey, model.ClusterProjectRootDirectory, model.SessionCode);
+            _managementService.InitializeClusterScriptDirectory(model.ProjectId,  model.ClusterProjectRootDirectory, model.SessionCode);
             return Ok("Cluster script directory was initialized.");
         }
 
@@ -433,7 +518,8 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        public IActionResult TestClusterAccessForAccount(TestClusterAccessForAccountModel model)
+        [Obsolete]
+        public IActionResult TestClusterAccessForAccountObsolete(TestClusterAccessForAccountModelObsolete model)
         {
             _logger.LogDebug($"Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
             ValidationResult validationResult = new ManagementValidator(model).Validate();
@@ -442,7 +528,44 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            var message = _managementService.TestClusterAccessForAccount(model.ProjectId, model.PublicKey, model.SessionCode)
+            var message = _managementService.TestClusterAccessForAccount(model.ProjectId, model.SessionCode, null)
+                ? "All clusters assigned to project are accessible with selected account."
+                : "Some of the clusters are not accessible with selected account";
+
+            _logger.LogInformation(message);
+            return Ok(message);
+        }
+
+        /// <summary>
+        /// Test cluster access for robot account
+        /// </summary>
+        /// <param name="username"></param>
+        /// <param name="projectId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("TestClusterAccessForAccount")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult TestClusterAccessForAccount(string username, long projectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
+            
+            ValidationResult validationResult = new ManagementValidator(new TestClusterAccessForAccountModel()
+            {
+                ProjectId = projectId,
+                SessionCode = sessionCode,
+                Username = username
+            }).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var message = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username)
                 ? "All clusters assigned to project are accessible with selected account."
                 : "Some of the clusters are not accessible with selected account";
 

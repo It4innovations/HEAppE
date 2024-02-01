@@ -204,15 +204,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="jobInfo">Job info</param>
         /// <param name="localBasePath"></param>
         /// <param name="sharedAccountsPoolMode"></param>
-        /// <param name="serviceAccountUsername"></param>
-        public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode,
-            string serviceAccountUsername)
+        public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
                 
-                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode, serviceAccountUsername);
+                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
             }
             finally
             {
@@ -322,12 +320,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return _adapter.GetTunnelsInfos(taskInfo, nodeHost);
         }
 
-        public string InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials)
+        public string InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath,
+            Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
             try
             {
-                return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath);
+                return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
             }
             finally
             {
