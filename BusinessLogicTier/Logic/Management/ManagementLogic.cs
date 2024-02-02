@@ -519,7 +519,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId)
         {
-            //TODO Repositare
             IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
             if (!clusterAuthenticationCredentials.Any())
@@ -561,7 +560,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveSecureShellKey(string username, long projectId)
         {
-            //TODO Repositare
             IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
             if (!clusterAuthenticationCredentials.Any())
@@ -767,16 +765,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         private string GetUniquePrivateKeyPath(string accountingString)
         {
-            long nextId = 1;
-
-            IList<ClusterAuthenticationCredentials> credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll();
-            if (credentials != null && credentials.Any())
-            {
-                nextId = credentials.Max(x => x.Id) + 1;
-            }
-
             string directoryPath = Path.Combine(CertificateGeneratorConfiguration.GeneratedKeysDirectory, accountingString);
-            string keyPath = Path.Combine(directoryPath, $"{CertificateGeneratorConfiguration.GeneratedKeyPrefix}_{nextId}");
+            if (!Directory.Exists(directoryPath))
+            {
+                Directory.CreateDirectory(directoryPath);
+            }
+            //get count of files in directory and increment by 1
+            int nextId =  Directory.GetFiles(directoryPath).Length + 1;
+            string keyPath = Path.Combine(directoryPath, $"{CertificateGeneratorConfiguration.GeneratedKeyPrefix}_{nextId:D2}");
             return keyPath;
         }
 
@@ -890,18 +886,30 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         private static string ComputePublicKeyFingerprint(string publicKey)
         {
             publicKey = publicKey.Replace("\n", "");
-            Regex regex = new(@"([A-Za-z0-9+\/=]+=)");
-            Match match = regex.Match(publicKey);
-            if (!match.Success)
+            Regex base64Regex = new(@"([A-Za-z0-9+\/=]+=)");
+            Match base64Match = base64Regex.Match(publicKey);
+
+            if (!base64Match.Success || !TryFromBase64String(base64Match.Value, out byte[] base64EncodedBytes))
             {
                 throw new InputValidationException("InvalidPublicKey");
             }
 
-            byte[] base64EncodedBytes = Convert.FromBase64String(match.Value);
-            byte[] fingerprintBytes;
-
-            fingerprintBytes = DigestUtilities.CalculateDigest("SHA256", base64EncodedBytes);
+            byte[] fingerprintBytes = DigestUtilities.CalculateDigest("SHA256", base64EncodedBytes);
             return BitConverter.ToString(fingerprintBytes).Replace("-", string.Empty).ToLower();
+        }
+
+        private static bool TryFromBase64String(string base64, out byte[] result)
+        {
+            try
+            {
+                result = Convert.FromBase64String(base64);
+                return true;
+            }
+            catch (FormatException)
+            {
+                result = null;
+                return false;
+            }
         }
         #endregion
     }
