@@ -24,11 +24,9 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-                if (submittedJobInfo == null)
-                {
-                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
-                }
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+                    throw new InputValidationException("NotExistingSubmittedJobInfo", submittedJobInfoId);
+
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 FileTransferMethod fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
@@ -40,11 +38,9 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-                if (submittedJobInfo == null)
-                {
-                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
-                }
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+                    throw new InputValidationException("NotExistingSubmittedJobInfo", submittedJobInfoId);
+
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 FileTransferMethod fileTransferMethod = fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
@@ -56,11 +52,9 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-                if (submittedJobInfo == null)
-                {
-                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
-                }
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+                    throw new InputValidationException("NotExistingSubmittedJobInfo", submittedJobInfoId);
+
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 fileTransferLogic.EndFileTransfer(submittedJobInfoId, publicKey, loggedUser);
@@ -71,11 +65,9 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-                if (submittedJobInfo == null)
-                {
-                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
-                }
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+                    throw new InputValidationException("NotExistingSubmittedJobInfo", submittedJobInfoId);
+
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 IList<JobFileContent> downloadedFileParts = fileTransferLogic.DownloadPartsOfJobFilesFromCluster(
@@ -90,11 +82,9 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-                if (submittedJobInfo == null)
-                {
-                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
-                }
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+                    throw new InputValidationException("NotExistingSubmittedJobInfo", submittedJobInfoId);
+
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 ICollection<FileInformation> result = fileTransferLogic.ListChangedFilesForJob(submittedJobInfoId, loggedUser);
@@ -106,11 +96,9 @@ namespace HEAppE.ServiceTier.FileTransfer
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId);
-                if (submittedJobInfo == null)
-                {
-                    throw new InputValidationException($"SubmittedJobInfo with id '{submittedJobInfoId}' not found");
-                }
+                var submittedJobInfo = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
+                    throw new InputValidationException("NotExistingSubmittedJobInfo", submittedJobInfoId);
+
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
                 IFileTransferLogic fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
                 return fileTransferLogic.DownloadFileFromCluster(submittedJobInfoId, relativeFilePath, loggedUser);

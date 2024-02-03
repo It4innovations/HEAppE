@@ -22,7 +22,7 @@ namespace HEAppE.RestApi
         /// <summary>
         /// Default Culture
         /// </summary>
-        private static readonly CultureInfo _defaultCultureInfo = new CultureInfo("en");
+        private static readonly CultureInfo _defaultCultureInfo = new("en");
 
         /// <summary>
         /// Request delegate
@@ -101,7 +101,7 @@ namespace HEAppE.RestApi
                     break;
                 case InternalException:
                     problem.Title = "Problem";
-                    problem.Detail = "Problem occured! Contact the administrators.";
+                    problem.Detail = _exceptionsLocalizer["InternalException"];
                     break;
                 case ExternalException:
                     problem.Title = "External Problem";
@@ -119,15 +119,12 @@ namespace HEAppE.RestApi
                     break;
                 default:
                     problem.Title = "Problem";
-                    problem.Detail = "Problem occured! Contact the administrators.";
+                    problem.Detail = _exceptionsLocalizer["InternalException"];
                     break;
             }
 
-
-            var currentCultureInfo = Thread.CurrentThread.CurrentCulture;
-            Thread.CurrentThread.CurrentCulture = _defaultCultureInfo;
-            _logger.Log(logLevel, exception, GetExceptionMessage(exception));
-            Thread.CurrentThread.CurrentCulture= currentCultureInfo;
+            // Log exception with default 'en' culture localization
+            _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
 
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(problem);
@@ -137,11 +134,27 @@ namespace HEAppE.RestApi
         /// Get exception message from resources based on exception type and message
         /// </summary>
         /// <param name="exception"></param>
+        /// <param name="localizationCulture">Optional parameter to change localization culture</param>
         /// <returns></returns>
-        private string GetExceptionMessage(Exception exception)
+        private string GetExceptionMessage(Exception exception, CultureInfo localizationCulture = null)
         {
             StringBuilder localizedMessage = new();
-            FormatExceptionMessage(exception, localizedMessage);
+
+            // Localize exception message in language from localizationCulture parameter if set
+            if (localizationCulture is not null)
+            {
+                var currentCultureInfo = Thread.CurrentThread.CurrentCulture;
+                Thread.CurrentThread.CurrentCulture = localizationCulture;
+                Thread.CurrentThread.CurrentUICulture = localizationCulture;
+                FormatExceptionMessage(exception, localizedMessage);
+                Thread.CurrentThread.CurrentCulture = currentCultureInfo;
+                Thread.CurrentThread.CurrentUICulture = currentCultureInfo;
+            }
+            else
+            {
+                FormatExceptionMessage(exception, localizedMessage);
+            }
+
             return localizedMessage.ToString();
         }
 

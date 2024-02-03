@@ -118,7 +118,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
                 if (!adaptorUser.Groups.Any(f => f.ProjectId == projectId))
                 {
-                    throw new OpenStackAPIException("MissingCreateCredentialsPermission", projectId);
+                    throw new AuthenticationTypeException("OpenStack-MissingCreateCredentialsPermission", projectId);
                 }
 
                 OpenStackProjectDTO openStackProject = GetOpenStackInstanceWithProjects(projectId);
@@ -151,10 +151,10 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 _log.Info($"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
                 return openStackCredentials;
             }
-            catch (OpenStackAPIException ex)
+            catch (AuthenticationTypeException ex)
             {
                 _log.Error($"Failed to retrieve OpenStack token for authorized OpenId user: \"{adaptorUser.Username}\". Reason: \"{ex.Message}\"");
-                throw new AuthenticationException("UnableToRetrieveOpenStackCredentials");
+                throw new AuthenticationTypeException("OpenStack-UnableToRetrieveCredentials");
             }
         }
 
@@ -250,12 +250,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
         private OpenStackProjectDTO GetOpenStackInstanceWithProjects(long? projectId)
         {
             DomainObjects.OpenStack.OpenStackProject project = _unitOfWork.OpenStackProjectRepository.GetOpenStackProjectByProjectId(projectId.Value)
-                ?? throw new OpenStackAPIException("NoOpenStackProject", projectId);
+                ?? throw new AuthenticationTypeException("OpenStack-NoOpenStackProject", projectId);
 
             DomainObjects.OpenStack.OpenStackAuthenticationCredentialProject projectCredentials = project.OpenStackAuthenticationCredentialProjects.FirstOrDefault(f => f.IsDefault) ?? project.OpenStackAuthenticationCredentialProjects.FirstOrDefault();
 
             return projectCredentials is null
-                ? throw new OpenStackAPIException("NoCredentialsForOpenStackProject", projectId)
+                ? throw new AuthenticationTypeException("OpenStack-MissingCreateCredentialsPermission", projectId)
                 : new OpenStackProjectDTO()
                 {
                     Name = project.Name,
@@ -297,7 +297,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 ExternalAuthentication.DTO.JsonTypes.KeycloakUserInfoResult userInfo = await openIdClient.GetUserInfoAsync(offline_token);
                 return GetOrRegisterNewOpenIdUser(userInfo.Convert());
             }
-            catch (KeycloakOpenIdException)
+            catch (AuthenticationTypeException)
             {
                 throw new AuthenticationTypeException("InvalidToken");
             }

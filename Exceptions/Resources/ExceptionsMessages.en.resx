@@ -129,7 +129,7 @@
   <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
     <value>None Group does not exist in the system.</value>
   </data>
-  <data name="AuthenticationException_UnableToRetrieveOpenStackCredentials" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-UnableToRetrieveCredentials" xml:space="preserve">
     <value>Unable to retrieve OpenStack application credentials for this user.</value>
   </data>
   <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
@@ -246,37 +246,34 @@
   <data name="JwtDecodeException_NotReadableAccessToken" xml:space="preserve">
     <value>Unable to read provided access_token as JWT token.</value>
   </data>
-  <data name="KeycloakOpenIdException_BadProtocol" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-BadProtocol" xml:space="preserve">
     <value>Other client protocol than 'open-id' connect is not implemented. Please switch the client to 'openid-connect'.</value>
   </data>
-  <data name="KeycloakOpenIdException_BadURLForUser" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-BadURLForUser" xml:space="preserve">
     <value>Bad URL address for external authentication.</value>
   </data>
-  <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-NotInAllowedClientIds" xml:space="preserve">
     <value>User is not in allowed clientIds.</value>
   </data>
-  <data name="KeycloakOpenIdException_NotVerifiedEmail" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-NotVerifiedEmail" xml:space="preserve">
     <value>User does not have a verified email.</value>
   </data>
-  <data name="KeycloakOpenIdException_UserNotActive" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-UserNotActive" xml:space="preserve">
     <value>User account is disabled.</value>
   </data>
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Logged user is not allowed to request this report.</value>
   </data>
-  <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-NotSupportedAuthentication" xml:space="preserve">
     <value>Credentials of type '{0}' are not supported for OpenStack authentication.</value>
   </data>
-  <data name="OpenStackAPIException_MissingCreateCredentialsPermission" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-MissingCreateCredentialsPermission" xml:space="preserve">
     <value>User does not have permission to create OpenStack credentials for project '{0}'.</value>
   </data>
-  <data name="OpenStackAPIException_NoCredentialsForOpenStackProject" xml:space="preserve">
-    <value>There are no assigned user credentials for OpenStack project '{0}'.</value>
-  </data>
-  <data name="OpenStackAPIException_NoOpenStackProject" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-NoOpenStackProject" xml:space="preserve">
     <value>There is no defined OpenStack project '{0}'.</value>
   </data>
-  <data name="OpenStackAPIException_NotSpeficiedUrl" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-NotSpeficiedUrl" xml:space="preserve">
     <value>URL address for OpenStack is not specified or valid.</value>
   </data>
   <data name="PbsException_ClusterUsageException" xml:space="preserve">
@@ -437,5 +434,35 @@
   </data>
   <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
     <value>The specified username '{0}' was already used for this project SSH key.</value>
+  </data>
+  <data name="ClusterAuthenticationException_NotExistingPrivateKeyFile" xml:space="preserve">
+    <value>Private key file located at '{0}' does not exist.</value>
+  </data>
+  <data name="DbContextException_CredentialsProxyMismatch" xml:space="preserve">
+    <value>ClusterAuthenticationCredential with Id '{0}' has ClusterProjectCredentials with different ProxyConnection.</value>
+  </data>
+  <data name="DbContextException_MaxPICount" xml:space="preserve">
+    <value>Project with Id '{0}' has more than one PI.</value>
+  </data>
+  <data name="DbContextException_MigrationCountMismatch" xml:space="preserve">
+    <value>Application and database migrations counts are not the same. Please update the database.</value>
+  </data>
+  <data name="DbContextException_MigrationError" xml:space="preserve">
+    <value>Error occured in database migrations.</value>
+  </data>
+  <data name="DbContextException_MigrationMismatch" xml:space="preserve">
+    <value>Application and database migrations are not the same. Please update the database to the new version.</value>
+  </data>
+  <data name="DbContextException_NotExistingClusterProjectReference" xml:space="preserve">
+    <value>CommandTemplateId '{0}' is referenced to ProjectId '{1}' but in system does not exist ClusterProject reference.</value>
+  </data>
+  <data name="DbContextException_NotSupportedSeedEntity" xml:space="preserve">
+    <value>Databaze seed entity '{0}' is not supported.</value>
+  </data>
+  <data name="InputValidationException_NotExistingSubmittedJobInfo" xml:space="preserve">
+    <value>SubmittedJobInfo with Id '{0}' was not found.</value>
+  </data>
+  <data name="InternalException" xml:space="preserve">
+    <value>Problem occured! Contact the administrators.</value>
   </data>
 </root>

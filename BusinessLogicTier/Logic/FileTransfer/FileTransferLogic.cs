@@ -20,6 +20,8 @@ using System;
 using System.IO;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using HEAppE.Exceptions.Internal;
+using HEAppE.Exceptions.AbstractTypes;
 
 namespace HEAppE.BusinessLogicTier.logic.FileTransfer
 {
@@ -86,7 +88,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
             if (!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
             {
-                throw new InvalidRequestException("NotExistingPrivateKeyFile", clusterUserAuthCredentials.PrivateKeyFile);
+                throw new ClusterAuthenticationException("NotExistingPrivateKeyFile", clusterUserAuthCredentials.PrivateKeyFile);
             }
 
             var transferMethod = new FileTransferMethod

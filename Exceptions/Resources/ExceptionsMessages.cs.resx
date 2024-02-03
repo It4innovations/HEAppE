@@ -129,7 +129,7 @@
   <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
     <value>Uživatel '{0}', který požádal o ověření, byl již smazán ze systému.</value>
   </data>
-  <data name="AuthenticationException_UnableToRetrieveOpenStackCredentials" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-UnableToRetrieveCredentials" xml:space="preserve">
     <value>Nelze získat přihlašovací údaje OpenStack aplikace pro tohoto uživatele.</value>
   </data>
   <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
@@ -213,7 +213,7 @@
   <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
     <value>Neexistuje žádná taková cesta: '{0}'. Zpráva o chybě: '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_NotExistingPrivateKeyFile" xml:space="preserve">
+  <data name="ClusterAuthenticationException_NotExistingPrivateKeyFile" xml:space="preserve">
     <value>Soubor s privátním klíčem umístěný na '{0}' neexistuje.</value>
   </data>
   <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
@@ -249,37 +249,34 @@
   <data name="JwtDecodeException_NotReadableAccessToken" xml:space="preserve">
     <value>Neuvedena URL adresa pro autentizaci uživatele podle '{0}'.</value>
   </data>
-  <data name="KeycloakOpenIdException_BadProtocol" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-BadProtocol" xml:space="preserve">
     <value>Jiný klientův protokol než 'open-id' není implementován. Přepněte prosím klienta na 'openid-connect'.</value>
   </data>
-  <data name="KeycloakOpenIdException_BadURLForUser" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-BadURLForUser" xml:space="preserve">
     <value>Neuvedena URL adresa pro autentizaci uživatele podle '{0}'.</value>
   </data>
-  <data name="KeycloakOpenIdException_NotInAllowedClientIds" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-NotInAllowedClientIds" xml:space="preserve">
     <value>Open-Id: Uživatel není v povolených klientových Id!</value>
   </data>
-  <data name="KeycloakOpenIdException_NotVerifiedEmail" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-NotVerifiedEmail" xml:space="preserve">
     <value>Open-Id: Uživatel nemá ověřený e-mail!</value>
   </data>
-  <data name="KeycloakOpenIdException_UserNotActive" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-UserNotActive" xml:space="preserve">
     <value>Open-Id: Uživatel není aktivní!</value>
   </data>
   <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Přihlášený uživatel nemá povolení žádat o tento report.</value>
   </data>
-  <data name="OpenIdAuthenticationException_NotSupportedAuthentication" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenId-NotSupportedAuthentication" xml:space="preserve">
     <value>Pověření typu '{0}' nejsou podporována pro autentizaci OpenStacku.</value>
   </data>
-  <data name="OpenStackAPIException_MissingCreateCredentialsPermission" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-MissingCreateCredentialsPermission" xml:space="preserve">
     <value>Uživatel nemá oprávnění vytvořit přihlašovací údaje OpenStack pro projekt '{0}'</value>
   </data>
-  <data name="OpenStackAPIException_NoCredentialsForOpenStackProject" xml:space="preserve">
-    <value>Nebyly přiděleny uživatelské přihlašovací údaje pro projekt OpenStack '{0}'!</value>
-  </data>
-  <data name="OpenStackAPIException_NoOpenStackProject" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-NoOpenStackProject" xml:space="preserve">
     <value>Projekt OpenStack '{0}' není definován!</value>
   </data>
-  <data name="OpenStackAPIException_NotSpeficiedUrl" xml:space="preserve">
+  <data name="AuthenticationTypeException_OpenStack-NotSpeficiedUrl" xml:space="preserve">
     <value>Není uvedena URL adresa pro OpenStack.</value>
   </data>
   <data name="PbsException_ClusterUsageException" xml:space="preserve">
@@ -440,5 +437,32 @@
   </data>
   <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
     <value>Zadané uživatelské jméno '{0}' již bylo použito pro tento projekt u SSH klíče.</value>
+  </data>
+  <data name="DbContextException_CredentialsProxyMismatch" xml:space="preserve">
+    <value>ClusterAuthenticationCredential s Id '{0}' má ClusterProjectCredentials s jinou ProxyConnection.</value>
+  </data>
+  <data name="DbContextException_MaxPICount" xml:space="preserve">
+    <value>Projekt s Id '{0}' má více než jedno PI.</value>
+  </data>
+  <data name="DbContextException_MigrationCountMismatch" xml:space="preserve">
+    <value>Počet aplikačních a databázových migrací se neschoduje. Prosím aktualizujte databázi na nejnovější verzi.</value>
+  </data>
+  <data name="DbContextException_MigrationError" xml:space="preserve">
+    <value>Během migrace databázy se vyskytla chyba.</value>
+  </data>
+  <data name="DbContextException_MigrationMismatch" xml:space="preserve">
+    <value>Aplikační a databázové migrace se neschodují. Prosím aktualizujte databázi na nejnovější verzi.</value>
+  </data>
+  <data name="DbContextException_NotExistingClusterProjectReference" xml:space="preserve">
+    <value>CommandTemplateId '{0}' je referencovaná na ProjectId '{1}' ale v systému se reference nenachází.</value>
+  </data>
+  <data name="DbContextException_NotSupportedSeedEntity" xml:space="preserve">
+    <value>Databázová seed entita '{0}' je nepodporovaná.</value>
+  </data>
+  <data name="InputValidationException_NotExistingSubmittedJobInfo" xml:space="preserve">
+    <value>SubmittedJobInfo s Id '{0}' nebylo nalezeno.</value>
+  </data>
+  <data name="InternalException" xml:space="preserve">
+    <value>Nastala neočekávaná výjimka. Kontaktujte administrátora.</value>
   </data>
 </root>
