@@ -111,7 +111,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
             if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForServiceAccount)
             {
-                if (BusinessLogicConfiguration.SharedAccountsPoolMode)
+                if (!BusinessLogicConfiguration.SharedAccountsPoolMode)
                 {
                     //Check if user is already running job - if yes set state to WaitingForUser - else run the job
                     lock (_lockSubmitJobObj)
