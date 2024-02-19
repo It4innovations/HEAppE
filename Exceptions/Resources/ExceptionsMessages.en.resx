@@ -124,10 +124,10 @@
     <value>Logged user '{0}' is not authorized to query task info '{1}'.</value>
   </data>
   <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
-    <value>User '{0}', that requested authentication was already deleted from the database.</value>
+    <value>User '{0}', that requested authentication was already deleted from the HEAppE.</value>
   </data>
   <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
-    <value>None Group does not exist in the system.</value>
+    <value>None Group does not exist in the HEAppE.</value>
   </data>
   <data name="AuthenticationTypeException_OpenStack-UnableToRetrieveCredentials" xml:space="preserve">
     <value>Unable to retrieve OpenStack application credentials for this user.</value>
@@ -139,13 +139,13 @@
     <value>External authentication: User('{0}') has not User group!</value>
   </data>
   <data name="AuthenticationTypeException_InvalidToken" xml:space="preserve">
-    <value>Invalid or not active {0} token provided. Unable to authenticate user by provided credentials.</value>
+    <value>Invalid or not active token provided. Unable to authenticate user by provided credentials.</value>
   </data>
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Current usage for user '{0}' and node type '{1}' was not created by the GetCurrentUsageAndLimitationsForUser method.</value>
   </data>
   <data name="ExternalException_JsonDeserializationException" xml:space="preserve">
-    <value>Failed to deserialize json response from REST request.</value>
+    <value>Failed to deserialize JSON response from REST request.</value>
   </data>
   <data name="FileTransferTemporaryKeyException_PublicKeyMismatch" xml:space="preserve">
     <value>The direct transfer could not be finished due to a public key mismatch.</value>
@@ -178,22 +178,22 @@
     <value>The generic command template does not contain the script path.</value>
   </data>
   <data name="InputValidationException_NotExistingJob" xml:space="preserve">
-    <value>Job '{0}' does not exist in the database.</value>
+    <value>Job '{0}' does not exist in the HEAppE.</value>
   </data>
   <data name="InputValidationException_NotExistingTask" xml:space="preserve">
-    <value>Task '{0}' does not exist in the database.</value>
+    <value>Task '{0}' does not exist in the HEAppE.</value>
   </data>
   <data name="InputValidationException_NotValidJobSpecification" xml:space="preserve">
     <value>Submitted job specification is not valid: \r\n {0}</value>
   </data>
   <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
-    <value>The specified public key is not defined in the database.</value>
+    <value>The specified public key is not defined in the HEAppE.</value>
   </data>
   <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
     <value>The specified HPC identity is not defined in HEAppE!</value>
   </data>
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
-    <value>Unable to submit the job - incorrect job state.</value>
+    <value>Unable to submit the job (incorrect job state).</value>
   </data>
   <data name="InsufficientRoleException_MissingRole" xml:space="preserve">
     <value>User doesn't have required role '{0}' for project '{1}'.</value>
@@ -214,7 +214,7 @@
     <value>Requested path '{0}' was not found. Exception message: '{1}'.</value>
   </data>
   <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
-    <value>This project does not exist in the database for selected cluster.</value>
+    <value>This project does not exist in the HEAppE for selected cluster.</value>
   </data>
   <data name="InvalidRequestException_ParameterIllegalCharacters" xml:space="preserve">
     <value>Parameter '{0}': '{1}' contains illegal characters.</value>
@@ -223,16 +223,16 @@
     <value>Project with accounting string '{0}' already exists.</value>
   </data>
   <data name="InvalidRequestException_ProjectAlreadyExistWithCluster" xml:space="preserve">
-    <value>Project with Id '{0}' is already assigned to cluster Id '{1}'.</value>
+    <value>ProjectId '{0}' is already assigned to ClusterId '{1}'.</value>
   </data>
   <data name="InvalidRequestException_ProjectDeleted" xml:space="preserve">
     <value>Project with accounting string '{0}' was already deleted.</value>
   </data>
   <data name="InvalidRequestException_ProjectNoAssignToCluster" xml:space="preserve">
-    <value>The project with the Id '{0}' has not been assigned to any cluster.</value>
+    <value>The ProjectId'{0}' has not been assigned to any cluster.</value>
   </data>
   <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
-    <value>Project Id '{0}' has no reference to cluster Id '{1}'.</value>
+    <value>ProjectId '{0}' has no reference to ClusterId '{1}'.</value>
   </data>
   <data name="InvalidRequestException_TaskEmptyAttribute" xml:space="preserve">
     <value>'{0}' attribute in the task '{1}' cannot be empty.</value>
@@ -280,7 +280,7 @@
     <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
   <data name="PbsException_GetActualTasksInfo" xml:space="preserve">
-    <value>Exception thrown when retrieving parameters of jobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
   <data name="PbsException_GetAllocatedNodesException" xml:space="preserve">
     <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
@@ -295,55 +295,55 @@
     <value>Unable to parse response from the scheduler.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
-    <value>Requested cluster node type with Id '{0}' does not exist in the database.</value>
+    <value>Requested cluster node type with Id '{0}' does not exist in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterNotExists" xml:space="preserve">
-    <value>Requested cluster with Id '{0}' does not exist in the database.</value>
+    <value>Requested cluster with Id '{0}' does not exist in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNoServiceAccount" xml:space="preserve">
-    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no Service Account Credentials reference in the database.</value>
+    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no Service Account Credentials reference in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
-    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the database.</value>
+    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
-    <value>The specified command template is not defined in the database.</value>
+    <value>The specified command template is not defined in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
     <value>Specified CommandTemplateId '{0}' is not referenced to ProjectId '{1}'.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingFileTransferMethod" xml:space="preserve">
-    <value>Requested FileTransferMethod with Id '{0}' does not exist in the database.</value>
+    <value>Requested FileTransferMethod with Id '{0}' does not exist in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingJobInfo" xml:space="preserve">
-    <value>Requested job info with Id: '{0}' does not exist in the database.</value>
+    <value>Requested job info with Id: '{0}' does not exist in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingPublicKey" xml:space="preserve">
-    <value>The specified public key is not defined in the database.</value>
+    <value>The specified public key is not defined in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_NotExistingTaskInfo" xml:space="preserve">
-    <value>Requested task info with Id: '{0}' does not exist in the database.</value>
+    <value>Requested task info with Id: '{0}' does not exist in the HEAppE</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ProjectNotFound" xml:space="preserve">
-    <value>The specified project is not defined in the database.</value>
+    <value>The specified project is not defined in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
-    <value>ServiceAccountCredentials is not defined in the database for this CommandTemplate.</value>
+    <value>ServiceAccountCredentials is not defined in the HEAppE for this CommandTemplate.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_UserScriptNotDefined" xml:space="preserve">
-    <value>The user-script command parameter for the generic command template is not defined in the database.</value>
+    <value>The user-script command parameter for the generic Command Template is not defined in the HEAppE.</value>
   </data>
   <data name="ResourceUsageException_GroupNotSpecified" xml:space="preserve">
-    <value>Specified Group Id: '{0}' is not specified in the database.</value>
+    <value>SpecifiedGroupId: '{0}' is not specified in the HEAppE.</value>
   </data>
   <data name="ResourceUsageException_JobNotSpecified" xml:space="preserve">
-    <value>Specified Job Id: '{0}' is not specified in the database.</value>
+    <value>SpecifiedJobId: '{0}' is not specified in the HEAppE.</value>
   </data>
   <data name="ResourceUsageException_ReporterNoAccessToJob" xml:space="preserve">
     <value>This reporter does not have access to report for Job: '{0}'.</value>
   </data>
   <data name="ResourceUsageException_UserNotSpecified" xml:space="preserve">
-    <value>Specified User Id: '{0}' is not specified in the database.</value>
+    <value>SpecifiedUserId: '{0}' is not specified in the HEAppE.</value>
   </data>
   <data name="SchedulerException_ConvertingError" xml:space="preserve">
     <value>Error occurred when object was converting property type: '{0}' for input data: '{1}' with format: '{2}'.</value>
@@ -355,7 +355,7 @@
     <value>'{0}' scheduler does not support this endpoint.</value>
   </data>
   <data name="SchedulerException_NotValidCommandTemplateParameter" xml:space="preserve">
-    <value>Parameter '{0}' in the command template '{1}' could not be found either as a property of the task, nor as an additional parameter.</value>
+    <value>Parameter '{0}' in the Command Template '{1}' could not be found either as a property of the task, nor as an additional parameter.</value>
   </data>
   <data name="SchedulerException_NotValidType" xml:space="preserve">
     <value>Scheduler factory with type '{0}' does not exist.</value>
@@ -364,7 +364,7 @@
     <value>Session code '{0}' already expired at '{1}'.</value>
   </data>
   <data name="SessionCodeNotValidException_NotPresent" xml:space="preserve">
-    <value>Session code '{0}' is not present in the database.</value>
+    <value>Session code '{0}' is not present in the HEAppE.</value>
   </data>
   <data name="SftpClientArgumentException_FactoryManagerTypeNotExists" xml:space="preserve">
     <value>File system manager factory with type '{0}' does not exist.</value>
@@ -379,10 +379,10 @@
     <value>Wrong password for the private key that is used for the connection to '{0}'.</value>
   </data>
   <data name="SlurmException_ClusterUsageException" xml:space="preserve">
-    <value>Exception thrown when retrieving usage of Cluster node: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for queue usage: '{3}'.</value>
+    <value>Exception thrown when retrieving usage of ClusterNode: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for queue usage: '{3}'.</value>
   </data>
   <data name="SlurmException_GetActualTasksInfo" xml:space="preserve">
-    <value>Exception thrown when retrieving parameters of jobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
   <data name="SlurmException_GetAllocatedNodesException" xml:space="preserve">
     <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
@@ -406,19 +406,19 @@
     <value>SSH command error: '{0}' Error code: '{1}' SSH command: '{2}'.</value>
   </data>
   <data name="SshCommandException_NoIdentities" xml:space="preserve">
-    <value>Ssh-agent has no identities added.</value>
+    <value>SSH-agent has no identities added.</value>
   </data>
   <data name="SshCommandException_NotCorrespondingPasswordForPrivateKey" xml:space="preserve">
     <value>Wrong password for the private key that is used for the connection to '{0}'.</value>
   </data>
   <data name="UnableToCreateConnectionException_NoActiveConnection" xml:space="preserve">
-    <value>Task Id '{0}' with node IP address '{1}' does not have an active connection.</value>
+    <value>TaskId '{0}' with node IP address '{1}' does not have an active connection.</value>
   </data>
   <data name="UnableToCreateConnectionException_NotRunningTask" xml:space="preserve">
-    <value>Task Id '{0}' is not a currently running task.</value>
+    <value>TaskId '{0}' is not a currently running task.</value>
   </data>
   <data name="UnableToCreateConnectionException_PortAlreadyInUse" xml:space="preserve">
-    <value>Task Id '{0}' with remote node IP address '{1}' already has ssh tunnel for port '{2}'.</value>
+    <value>TaskId '{0}' with remote node IP address '{1}' already has SSH tunnel for port '{2}'.</value>
   </data>
   <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
     <value>Response code for HttpGet is not 200. Check your application.</value>
@@ -439,10 +439,10 @@
     <value>Private key file located at '{0}' does not exist.</value>
   </data>
   <data name="DbContextException_CredentialsProxyMismatch" xml:space="preserve">
-    <value>ClusterAuthenticationCredential with Id '{0}' has ClusterProjectCredentials with different ProxyConnection.</value>
+    <value>ClusterAuthenticationCredentialId '{0}' has ClusterProjectCredentials with different ProxyConnection.</value>
   </data>
   <data name="DbContextException_MaxPICount" xml:space="preserve">
-    <value>Project with Id '{0}' has more than one PI.</value>
+    <value>ProjectId '{0}' has more than one PI.</value>
   </data>
   <data name="DbContextException_MigrationCountMismatch" xml:space="preserve">
     <value>Application and database migrations counts are not the same. Please update the database.</value>
@@ -454,13 +454,13 @@
     <value>Application and database migrations are not the same. Please update the database to the new version.</value>
   </data>
   <data name="DbContextException_NotExistingClusterProjectReference" xml:space="preserve">
-    <value>CommandTemplateId '{0}' is referenced to ProjectId '{1}' but in system does not exist ClusterProject reference.</value>
+    <value>CommandTemplateId '{0}' is referenced to ProjectId '{1}' but in HEAppE does not exist ClusterProject reference.</value>
   </data>
   <data name="DbContextException_NotSupportedSeedEntity" xml:space="preserve">
-    <value>Databaze seed entity '{0}' is not supported.</value>
+    <value>Database seed entity '{0}' is not supported.</value>
   </data>
   <data name="InputValidationException_NotExistingSubmittedJobInfo" xml:space="preserve">
-    <value>SubmittedJobInfo with Id '{0}' was not found.</value>
+    <value>SubmittedJobInfoId '{0}' was not found.</value>
   </data>
   <data name="InternalException" xml:space="preserve">
     <value>Problem occured! Contact the administrators.</value>
