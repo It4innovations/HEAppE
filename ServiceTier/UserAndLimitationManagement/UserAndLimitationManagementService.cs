@@ -129,8 +129,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
             else
             {
-                _log.Error($"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.");
-                throw new OpenIdAuthenticationException("NotSupportedAuthentication", credentials.GetType().Name);
+                throw new AuthenticationTypeException("OpenId-NotSupportedAuthentication", credentials.GetType().Name);
             }
         }
 

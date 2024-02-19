@@ -11,6 +11,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
 
 using log4net;
@@ -63,15 +64,13 @@ namespace HEAppE.DataAccessTier
 
                                     if (lastAppliedMigration != lastDefinedMigration)
                                     {
-                                        _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
-                                        throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
+                                        throw new DbContextException("MigrationMismatch");
                                     }
 
 
                                     if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
                                     {
-                                        _log.Error("Application and database migrations counts are not the same. Please update the database.");
-                                        throw new ApplicationException("Application and database migrations counts are not the same. Please update the database.");
+                                        throw new DbContextException("MigrationCountMismatch");
                                     }
 
                                     _log.Info("Application and database migrations are same. Starting seeding data into database.");
@@ -82,8 +81,7 @@ namespace HEAppE.DataAccessTier
                         }
                         catch (SqlException ex)
                         {
-                            _log.Error("There is not connection to database server.");
-                            throw new ApplicationException("Error occuers in database migrations.", ex);
+                            throw new DbContextException("MigrationError", ex);
                         }
                     }
                 }
@@ -311,9 +309,7 @@ namespace HEAppE.DataAccessTier
                 //if project contact has more than one PI throw exception
                 if (projectContact.Count(x => x.IsPI) > 1)
                 {
-                    string message = $"Project with id='{projectContact.Key}' has more than one PI.";
-                    _log.Error(message);
-                    throw new ApplicationException(message);
+                    throw new DbContextException("MaxPICount", projectContact.Key);
                 }
             }
         }
@@ -330,9 +326,7 @@ namespace HEAppE.DataAccessTier
                 var clusters = clusterAuthenticationCredential.ClusterProjectCredentials.Select(x => x.ClusterProject.Cluster).ToList();
                 if (clusters.Count() >= 1 && clusters.Any(c => c.ProxyConnection != clusters.First().ProxyConnection))
                 {
-                    string message = $"ClusterAuthenticationCredential with id {clusterAuthenticationCredential.Id} has ClusterProjectCredentials with different ProxyConnection.";
-                    _log.Error(message);
-                    throw new ApplicationException(message);
+                    throw new DbContextException("CredentialsProxyMismatch", clusterAuthenticationCredential.Id);
                 }
             }
         }
@@ -352,9 +346,7 @@ namespace HEAppE.DataAccessTier
                 //if does not exist Cluster to Project reference, throw exception
                 if (!clusterProjects.Any(x => x.ClusterId == commandTemplate.ClusterNodeType.ClusterId && x.ProjectId == commandTemplate.ProjectId))
                 {
-                    string message = $"CommandTemplateId={commandTemplate.Id} is referenced to ProjectId={commandTemplate.ProjectId} but in system does not exist ClusterProject reference.";
-                    _log.Error(message);
-                    throw new ApplicationException(message);
+                    throw new DbContextException("NotExistingClusterProjectReference", commandTemplate.Id, commandTemplate.ProjectId);
                 }
             }
         }
@@ -456,7 +448,7 @@ namespace HEAppE.DataAccessTier
                         break;
                     }
                 default:
-                    throw new ApplicationException("Seed entity is not supported.");
+                    throw new DbContextException("NotSupportedSeedEntity", typeof(T).Name);
             }
         }
         #endregion

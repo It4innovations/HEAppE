@@ -44,7 +44,7 @@ namespace HEAppE.OpenStackAPI
 
             if (string.IsNullOrEmpty(openStackAddress))
             {
-                throw new OpenStackAPIException("NotSpeficiedUrl");
+                throw new AuthenticationTypeException("OpenStack-NotSpecifiedUrl");
             }
 
             var options = new RestClientOptions($"{openStackAddress}:{OpenStackSettings.IdentityPort}/")
@@ -65,7 +65,7 @@ namespace HEAppE.OpenStackAPI
         /// </summary>
         /// <param name="project">OpenStack project.</param>
         /// <returns>Authentication response from the rest api with the authentication token.</returns>
-        /// <exception cref="OpenStackAPIException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
+        /// <exception cref="AuthenticationTypeException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
         public async Task<AuthenticationResponse> AuthenticateAsync(OpenStackProjectDTO project)
         {
             var requestObject = AuthenticationRequest.CreateScopedAuthenticationPasswordRequest(project);
@@ -75,7 +75,7 @@ namespace HEAppE.OpenStackAPI
                                         .AddStringBody(requestBody, DataFormat.Json);
 
             RestResponse response = await _basicRestClient.ExecuteAsync(request);
-            AuthenticationResponse result = ParseHelper.ParseJsonOrThrow<AuthenticationResponse, OpenStackAPIException>(response, HttpStatusCode.Created);
+            AuthenticationResponse result = ParseHelper.ParseJsonOrThrow<AuthenticationResponse, AuthenticationTypeException>(response, HttpStatusCode.Created);
             result.AuthToken = (string)response.Headers.Single(p => p.Name == "X-Subject-Token").Value;
 
             return result;
@@ -99,7 +99,7 @@ namespace HEAppE.OpenStackAPI
                                             .AddXAuthTokenToHeader(authResponse.AuthToken);
 
             RestResponse response = await _basicRestClient.ExecuteAsync(restRequest);
-            ApplicationCredentialsResponse result = ParseHelper.ParseJsonOrThrow<ApplicationCredentialsResponse, OpenStackAPIException>(response, HttpStatusCode.Created);
+            ApplicationCredentialsResponse result = ParseHelper.ParseJsonOrThrow<ApplicationCredentialsResponse, AuthenticationTypeException>(response, HttpStatusCode.Created);
 
             return new ApplicationCredentialsDTO
             {

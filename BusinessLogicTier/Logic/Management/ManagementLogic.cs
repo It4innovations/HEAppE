@@ -381,7 +381,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
         {
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-                ?? throw new InputValidationException("ProjectNoReferenceToCluster");
+                ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
 
             var modified = DateTime.UtcNow;
             clusterProject.LocalBasepath = localBasepath.TrimEnd('/');
@@ -405,7 +405,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public void RemoveProjectAssignmentToCluster(long projectId, long clusterId)
         {
             ClusterProject clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-                ?? throw new InputValidationException("ProjectNoReferenceToCluster");
+                ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
 
             var modified = DateTime.UtcNow;
             clusterProject.IsDeleted = true;
