@@ -177,7 +177,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
                     ? "/{task.Specification.ClusterTaskSubdirectory}" 
                     : string.Empty;
 
-                cmdBuilder.Append($"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath}{(sharedAccountsPoolMode ? "true" : "false")};");
+                cmdBuilder.Append($"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
             }
             
             _log.Info($"Create job directory command: \"{cmdBuilder}\"");

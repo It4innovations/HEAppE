@@ -18,7 +18,7 @@ namespace HEAppE.BackgroundThread.Tasks
 
         protected override void RunTask()
         {
-            if (BusinessLogicConfiguration.SharedAccountsPoolMode)
+            if (!BusinessLogicConfiguration.SharedAccountsPoolMode)
             {
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
 
