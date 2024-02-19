@@ -357,7 +357,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 ClusterId = clusterId,
                 ProjectId = projectId,
-                LocalBasepath = localBasepath.EndsWith("/") ? localBasepath.TrimEnd('/') : localBasepath,
+                LocalBasepath = localBasepath.TrimEnd('/') ,
                 CreatedAt = modified,
                 IsDeleted = false,
             };
@@ -384,7 +384,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 ?? throw new InputValidationException("ProjectNoReferenceToCluster");
 
             var modified = DateTime.UtcNow;
-            clusterProject.LocalBasepath = localBasepath.EndsWith("/") ? localBasepath.TrimEnd('/') : localBasepath;
+            clusterProject.LocalBasepath = localBasepath.TrimEnd('/');
             clusterProject.ModifiedAt = modified;
             clusterProject.IsDeleted = false;
             clusterProject.Project.ModifiedAt = modified;
@@ -744,7 +744,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
-                    string localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
 
                     HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
                     if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
