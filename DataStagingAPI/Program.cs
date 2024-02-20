@@ -144,6 +144,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
+    options.SerializerOptions.PropertyNamingPolicy = null;
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
