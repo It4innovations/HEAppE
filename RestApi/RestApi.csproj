@@ -54,7 +54,7 @@
     <Content Update="appsettings.default.json">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Content>
-    <Content Update="log4net.config">
+    <Content Update="Logging\log4net.config">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>

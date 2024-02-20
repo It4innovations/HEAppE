@@ -174,7 +174,7 @@ namespace HEAppE.RestApi
             };
 
             var message = localizedException == exceptionName ? exception.Message : localizedException;
-            builder.AppendLine(message);
+            builder.Append(message);
 
             if (exception.InnerException is not null)
             {

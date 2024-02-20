@@ -3,7 +3,7 @@ using log4net.Layout;
 using log4net.Layout.Pattern;
 using System.IO;
 
-namespace HEAppE.RestApi
+namespace HEAppE.RestApi.Logging
 {
     /// <summary>
     /// Mapper text log level to Enum log value

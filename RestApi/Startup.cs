@@ -173,11 +173,11 @@ namespace HEAppE.RestApi
 
             if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
             {
-                loggerFactory.AddLog4Net("log4netDocker.config");
+                loggerFactory.AddLog4Net("Logging/log4netDocker.config");
             }
             else
             {
-                loggerFactory.AddLog4Net("log4net.config");
+                loggerFactory.AddLog4Net("Logging/log4net.config");
             }
 
             AdoNetAppenderHelper.SetConnectionString(Configuration.GetConnectionString("Logging"));

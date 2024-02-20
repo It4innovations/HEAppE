@@ -1,9 +1,11 @@
 using AspNetCoreRateLimit;
 using FluentValidation;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using log4net;
@@ -12,9 +14,6 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
 using System.Globalization;
 using System.Reflection;
-using System.Text.Json.Serialization;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.ExternalAuthentication.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -53,7 +52,10 @@ builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoption
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
-    conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
+    if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
+    {
+        conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
+    }
 });
 
 //TODO Need to be delete after DI rework
@@ -69,6 +71,7 @@ AdoNetAppenderHelper.SetConnectionString(builder.Configuration.GetConnectionStri
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SchemaFilter<PascalCasingPropertiesFilter>();
     options.SwaggerDoc(APIAdoptions.SwaggerConfiguration.Version, new OpenApiInfo
     {
         Version = APIAdoptions.SwaggerConfiguration.Version,
@@ -141,8 +144,6 @@ builder.Services.AddCors(options =>
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
-    options.SerializerOptions.PropertyNamingPolicy = null;
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
