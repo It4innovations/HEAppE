@@ -320,13 +320,19 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             return _adapter.GetTunnelsInfos(taskInfo, nodeHost);
         }
 
-        public string InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath,
-            Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
+        /// <summary>
+        /// Initialize Cluster Script Directory
+        /// </summary>
+        /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+        /// <param name="localBasepath">Cluster execution path</param>
+        /// <param name="clusterAuthCredentials">Credentials</param> 
+        /// <param name="isServiceAccount">Is servis account</param>
+        public void InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
             try
             {
-                return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
+                _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
             }
             finally
             {

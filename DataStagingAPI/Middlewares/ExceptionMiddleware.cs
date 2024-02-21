@@ -1,11 +1,10 @@
-﻿using HEAppE.Exceptions.AbstractTypes;
+﻿using FluentValidation;
+using HEAppE.Exceptions.AbstractTypes;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Resources;
-using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Localization;
-using Newtonsoft.Json;
-using System.Net;
+using System.Globalization;
 using System.Text;
 
 namespace HEAppE.DataStagingAPI
@@ -16,6 +15,11 @@ namespace HEAppE.DataStagingAPI
     public class ExceptionMiddleware
     {
         #region Instances
+        /// <summary>
+        /// Default Culture
+        /// </summary>
+        private static readonly CultureInfo _defaultCultureInfo = new("en");
+
         /// <summary>
         /// Request delegate
         /// </summary>
@@ -82,26 +86,36 @@ namespace HEAppE.DataStagingAPI
         /// Exception handling change Status code
         /// </summary>
         /// <param name="context">HTTP context</param>
-        /// <param name="exception"></param>
+        /// <param name="exception">Exception</param>
         private async Task HandleException(HttpContext context, Exception exception)
         {
-            ProblemDetails problem = new();
+            ProblemDetails problem = new()
+            {
+                Status = StatusCodes.Status500InternalServerError
+            };
+
+            var logLevel = LogLevel.Error;
             switch (exception)
             {
                 case InputValidationException:
-                    problem.Title = "Input Validation Exception";
+                    problem.Title = "Validation Problem";
                     problem.Detail = GetExceptionMessage(exception);
                     problem.Status = StatusCodes.Status404NotFound;
+                    logLevel = LogLevel.Warning;
+                    break;
+                case AuthenticationTypeException:
+                    problem.Title = "Authentication Problem";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = exception.Message == "InvalidToken" ? StatusCodes.Status401Unauthorized : StatusCodes.Status500InternalServerError;
+                    logLevel = LogLevel.Warning;
                     break;
                 case InternalException:
-                    problem.Title = "Internal Exception";
-                    problem.Detail = GetExceptionMessage(exception);
-                    problem.Status = StatusCodes.Status500InternalServerError;
+                    problem.Title = "Problem";
+                    problem.Detail = _exceptionsLocalizer["InternalException"];
                     break;
                 case ExternalException:
-                    problem.Title = "External Exception";
+                    problem.Title = "External Problem";
                     problem.Detail = GetExceptionMessage(exception);
-                    problem.Status = StatusCodes.Status500InternalServerError;
                     break;
                 case BadHttpRequestException:
                     var badReqException = (BadHttpRequestException)exception;
@@ -114,19 +128,13 @@ namespace HEAppE.DataStagingAPI
                     };
                     break;
                 default:
-                    problem.Title = "Other Exception";
-                    problem.Status = StatusCodes.Status500InternalServerError;
+                    problem.Title = "Problem";
+                    problem.Detail = _exceptionsLocalizer["InternalException"];
                     break;
             }
 
-            _logger.LogInformation("HTTP Response Information:(\"Status Code\":{statusCode} \"Schema\":{scheme} \"Host\": {host} \"Path\": {path} \"QueryString\": {queryString} \"Content-Length\": {contentLength} \"Error\": {error})",
-                                    context.Response.StatusCode,
-                                    context.Request.Scheme,
-                                    context.Request.Host,
-                                    context.Request.Path,
-                                    context.Request.QueryString,
-                                    context.Request.ContentLength,
-                                    exception);
+            // Log exception with default 'en' culture localization
+            _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
 
             context.Response.ContentType = "application/json";
             await context.Response.WriteAsJsonAsync(problem);
@@ -136,11 +144,27 @@ namespace HEAppE.DataStagingAPI
         /// Get exception message from resources based on exception type and message
         /// </summary>
         /// <param name="exception"></param>
+        /// <param name="localizationCulture">Optional parameter to change localization culture</param>
         /// <returns></returns>
-        private string GetExceptionMessage(Exception exception)
+        private string GetExceptionMessage(Exception exception, CultureInfo localizationCulture = null)
         {
             StringBuilder localizedMessage = new();
-            FormatExceptionMessage(exception, localizedMessage);
+
+            // Localize exception message in language from localizationCulture parameter if set
+            if (localizationCulture is not null)
+            {
+                var currentCultureInfo = Thread.CurrentThread.CurrentCulture;
+                Thread.CurrentThread.CurrentCulture = localizationCulture;
+                Thread.CurrentThread.CurrentUICulture = localizationCulture;
+                FormatExceptionMessage(exception, localizedMessage);
+                Thread.CurrentThread.CurrentCulture = currentCultureInfo;
+                Thread.CurrentThread.CurrentUICulture = currentCultureInfo;
+            }
+            else
+            {
+                FormatExceptionMessage(exception, localizedMessage);
+            }
+
             return localizedMessage.ToString();
         }
 
@@ -160,7 +184,7 @@ namespace HEAppE.DataStagingAPI
             };
 
             var message = localizedException == exceptionName ? exception.Message : localizedException;
-            builder.AppendLine(message);
+            builder.Append(message);
 
             if (exception.InnerException is not null)
             {

@@ -2,6 +2,7 @@
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using System;
@@ -12,6 +13,12 @@ namespace HEAppE.FileTransferFramework.NetworkShare
 {
     public class NetworkShareFileSystemManager : AbstractFileSystemManager
     {
+        #region Instances
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
+        #endregion
         #region Constructors
         public NetworkShareFileSystemManager(ILogger logger, FileTransferMethod configuration, FileSystemFactory synchronizerFactory)
             : base(logger, configuration, synchronizerFactory)
@@ -27,7 +34,7 @@ namespace HEAppE.FileTransferFramework.NetworkShare
 
         public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification,_scripts.SubExecutionsPath);
             UnsetReadOnlyForAllFiles(jobClusterDirectoryPath);
             Directory.Delete(jobClusterDirectoryPath, true);
         }

@@ -153,11 +153,11 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
         }
 
-        public bool ValidateUserPermissions(string sessionCode)
+        public bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                (AdaptorUser loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Administrator);
+                (AdaptorUser loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, requestedRole);
                 return loggedUser is not null;
             }
         }

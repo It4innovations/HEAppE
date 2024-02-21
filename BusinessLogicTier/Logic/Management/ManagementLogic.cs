@@ -9,12 +9,14 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
 using log4net;
 using Org.BouncyCastle.Security;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -27,6 +29,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
     {
         protected IUnitOfWork _unitOfWork;
         protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
         public ManagementLogic(IUnitOfWork unitOfWork)
         {
             _unitOfWork = unitOfWork;
@@ -357,10 +364,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 ClusterId = clusterId,
                 ProjectId = projectId,
-                LocalBasepath = localBasepath.TrimEnd('/') ,
+                LocalBasepath = localBasepath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/'}),
                 CreatedAt = modified,
                 IsDeleted = false,
             };
+
             project.ModifiedAt = modified;
             _unitOfWork.ProjectRepository.Update(project);
             _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
@@ -384,7 +392,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
 
             var modified = DateTime.UtcNow;
-            clusterProject.LocalBasepath = localBasepath.TrimEnd('/');
+            clusterProject.LocalBasepath = localBasepath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/' });
             clusterProject.ModifiedAt = modified;
             clusterProject.IsDeleted = false;
             clusterProject.Project.ModifiedAt = modified;
@@ -677,6 +685,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
         {
+            clusterProjectRootDirectory = clusterProjectRootDirectory.Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/' });
             var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
                 .ToList();
 
@@ -704,7 +713,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     string localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
 
                     HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
-                    _ = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
+                    scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
                 }
             }
         }

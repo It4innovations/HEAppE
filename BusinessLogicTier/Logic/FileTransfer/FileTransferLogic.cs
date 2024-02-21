@@ -22,6 +22,7 @@ using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using HEAppE.Exceptions.Internal;
 using HEAppE.Exceptions.AbstractTypes;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.BusinessLogicTier.logic.FileTransfer
 {
@@ -32,11 +33,15 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
         /// Unit of work
         /// </summary>
         private readonly IUnitOfWork _unitOfWork;
-
         /// <summary>
         /// _logger
         /// </summary>
         private readonly ILog _log;
+
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
         #endregion
         #region Constructors
         /// <summary>
@@ -97,7 +102,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                 Port = jobInfo.Specification.FileTransferMethod.Port,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
                 Credentials = new FileTransferKeyCredentials
                 {
                     Username = clusterUserAuthCredentials.Username,
@@ -136,7 +141,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                 Port = jobInfo.Specification.FileTransferMethod.Port,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
                 Credentials = new FileTransferKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,

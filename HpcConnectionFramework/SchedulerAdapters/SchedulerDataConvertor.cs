@@ -12,6 +12,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -26,6 +27,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// </summary>
         protected ConversionAdapterFactory _conversionAdapterFactory;
 
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected static readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
+        
         /// <summary>
         /// Logger
         /// </summary>
@@ -99,7 +105,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 taskAdapter.Runtime = Convert.ToInt32(taskSpecification.WalltimeLimit);
             }
 
-            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
+            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification,_scripts.SubExecutionsPath);
 
             string stdErrFilePath = FileSystemUtils.ConcatenatePaths(workDirectory, taskSpecification.StandardErrorFile);
             taskAdapter.StdErrFilePath = workDirectory.Equals(stdErrFilePath) ? string.Empty : stdErrFilePath;
@@ -230,7 +236,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
                     if (templateParameter.Query == "Task.Workdir")
                     {
-                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
+                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.SubExecutionsPath);
                     }
 
                     if (templateParameter.Query.StartsWith("Task."))

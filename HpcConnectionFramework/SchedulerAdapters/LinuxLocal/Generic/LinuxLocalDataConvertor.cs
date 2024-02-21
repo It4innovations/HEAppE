@@ -133,11 +133,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 commands.Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(taskCommandLine.ToString())) + " ");
                 taskCommandLine.Clear();
             }
-            string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
+
+            string localBasePath = $"{jobSpecification.Cluster.ClusterProjects
+                .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings}";
 
             var jobDir = Path.Join(localBasePath, jobSpecification.Id.ToString());
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {jobDir} {localHpcJobInfo} \"{commands}\";";
+            return $"{_scripts.SubScriptsPath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
         }
         #endregion
         #region Local Methods
