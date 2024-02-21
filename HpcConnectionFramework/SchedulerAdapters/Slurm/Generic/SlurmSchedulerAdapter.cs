@@ -296,29 +296,31 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Get tunnels informations
+        /// Get tunnels information
         /// </summary>
         /// <param name="taskInfo">Task info</param>
         /// <param name="nodeHost">Cluster node address</param>
-        /// <returns></returns>
         public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
 
-        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-            string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        /// <summary>
+        /// Initialize Cluster Script Directory
+        /// </summary>
+        /// <param name="schedulerConnectionConnection">Connector</param>
+        /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+        /// <param name="localBasepath">Cluster execution path</param>
+        /// <param name="isServiceAccount">Is servis account</param>
+        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
         {
-            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
+            _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
         }
-
-        #endregion
-        
-        
+        #endregion     
         #endregion
         #region Private Methods
         /// <summary>
-        /// Get actual tasks (HPC jobs) informations
+        /// Get actual tasks (HPC jobs) information
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="cluster">Cluster"</param>

@@ -13,15 +13,17 @@ namespace HEAppE.Utils
     {
         private const int WAITING_TIME_FOR_SCHEDULER_CLOSING_OUTPUT_AND_ERROR_FILE_STREAMS = 1500;
 
-        public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification)
+        public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string subExecutionsPath)
         {
             string basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
-            return ConcatenatePaths(basePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
+            string localBasePath = $"{basePath}/{subExecutionsPath}";
+
+            return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
         }
 
-        public static string GetTaskClusterDirectoryPath(TaskSpecification taskSpecification)
+        public static string GetTaskClusterDirectoryPath(TaskSpecification taskSpecification, string subExecutionsPath)
         {
-            string basePath = GetJobClusterDirectoryPath(taskSpecification.JobSpecification);
+            string basePath = GetJobClusterDirectoryPath(taskSpecification.JobSpecification, subExecutionsPath);
             string taskSubdirectory = !string.IsNullOrEmpty(taskSpecification.ClusterTaskSubdirectory)
                                         ? $"{taskSpecification.Id}/{taskSpecification.ClusterTaskSubdirectory}"
                                         : $"{taskSpecification.Id}";

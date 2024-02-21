@@ -76,7 +76,7 @@ namespace HEAppE.RestApi
         /// Exception handling change Status code
         /// </summary>
         /// <param name="context">HTTP context</param>
-        /// <param name="exception"></param>
+        /// <param name="exception">Exception</param>
         private async Task HandleException(HttpContext context, Exception exception)
         {
             ProblemDetails problem = new()

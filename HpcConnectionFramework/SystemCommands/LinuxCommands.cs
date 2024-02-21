@@ -3,6 +3,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using log4net;
+using Org.BouncyCastle.Crypto.Generators;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
@@ -25,13 +26,15 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// </summary>
         protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
 
-        #endregion
-        #region Properties
-
         /// <summary>
         /// Command
         /// </summary>
         protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings;
+
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
         /// <summary>
         /// Logger
@@ -50,9 +53,9 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         #endregion
         #region Properties
         /// <summary>
-        /// Execute commnad script path
+        /// Execute command script path
         /// </summary>
-        public string ExecuteCmdScriptPath => _commandScripts.ExecuteCmdPath;
+        public string ExecuteCmdScriptPath => $"{_scripts.SubScriptsPath}/{_commandScripts.ExecuteCmdScriptName}";
 
         #endregion
         #region Constructors
@@ -101,12 +104,11 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="hash">Hash</param>
         public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
         {
-            string inputDirectory = $"{localBasePath}Temp/{hash}/.";
-            string outputDirectory = $"{localBasePath}/{jobInfo.Specification.Id}";
+            string inputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/Temp/{hash}/.";
+            string outputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-                $"{_commandScripts.CopyDataFromTempCmdPath} {inputDirectory} {outputDirectory}");
-            _log.Info(
-                $"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
+                $"{_scripts.SubScriptsPath}/{_commandScripts.CopyDataFromTempCmdScriptName} {inputDirectory} {outputDirectory}");
+            _log.Info($"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
@@ -118,17 +120,17 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path)
         {
             //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
-            string inputDirectory = $"{localBasePath}/{jobInfo.Specification.Id}/{path}";
+            string inputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}/{path}";
             inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;
-            string outputDirectory = $"{localBasePath}Temp/{hash}";
+            string outputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/Temp/{hash}";
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-                $"{_commandScripts.CopyDataToTempCmdPath} {inputDirectory} {outputDirectory}");
+                $"{_scripts.SubScriptsPath}/{_commandScripts.CopyDataToTempCmdScriptName} {inputDirectory} {outputDirectory}");
             _log.Info($"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
         }
 
         /// <summary>
-        /// Allow direct file transfer acces for user
+        /// Allow direct file transfer access for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKey">Public key</param>
@@ -137,12 +139,12 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-                $"{_commandScripts.AddFiletransferKeyCmdPath} {publicKey} {jobInfo.Specification.Id}");
+                $"{_scripts.SubScriptsPath}/{_commandScripts.AddFiletransferKeyCmdScriptName} {publicKey} {jobInfo.Specification.Id}");
             _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
         }
 
         /// <summary>
-        /// Remove direct file transfer acces for user
+        /// Remove direct file transfer access for user
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="publicKeys">Public keys</param>
@@ -152,7 +154,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             foreach (var publicKey in publicKeys)
             {
                 string base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
-                cmdBuilder.Append($"{_commandScripts.RemoveFiletransferKeyCmdPath} {base64PublicKey};");
+                cmdBuilder.Append($"{_scripts.SubScriptsPath}/{_commandScripts.RemoveFiletransferKeyCmdScriptName} {base64PublicKey};");
             }
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
@@ -170,16 +172,16 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode)
         {
             localBasePath = localBasePath.TrimEnd('/');
-            var cmdBuilder = new StringBuilder($"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+            var cmdBuilder = new StringBuilder($"{_scripts.SubScriptsPath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.SubExecutionsPath} {jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
             foreach (var task in jobInfo.Tasks)
             {
-                var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory) 
-                    ? "/{task.Specification.ClusterTaskSubdirectory}" 
+                var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
+                    ? "/{task.Specification.ClusterTaskSubdirectory}"
                     : string.Empty;
 
-                cmdBuilder.Append($"{_commandScripts.CreateJobDirectoryCmdPath} {localBasePath} {jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                cmdBuilder.Append($"{_scripts.SubScriptsPath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.SubExecutionsPath} {jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
             }
-            
+
             _log.Info($"Create job directory command: \"{cmdBuilder}\"");
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
             _log.Info($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
@@ -192,50 +194,46 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="jobInfo">Job information</param>
         public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            string shellCommand = $"rm -Rf {localBasePath}/{jobInfo.Specification.Id}";
+            string shellCommand = $"rm -Rf {localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
             _log.Info($"Job directory \"{jobInfo.Specification.Id}\" was deleted. Result: \"{sshCommand.Result}\"");
         }
 
-        public string InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        /// <summary>
+        /// Initialize Cluster Script Directory
+        /// </summary>
+        /// <param name="schedulerConnectionConnection">Connector</param>
+        /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+        /// <param name="localBasepath">Cluster execution path</param>
+        /// <param name="isServiceAccount">Is servis account</param>
+        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
         {
             var cmdBuilder = new StringBuilder();
-            cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-            
-            string targetDirectory = Path.Combine(clusterProjectRootDirectory, "HEAppE", "Scripts", ".key_scripts").Replace('\\', '/');
-            cmdBuilder.Append($"mkdir -p {targetDirectory} && ");
-
+            string targetDirectory = Path.Combine(clusterProjectRootDirectory, _scripts.SubScriptsPath, ".key_scripts").Replace('\\', '/');
+            cmdBuilder.Append($"rm -rf {_scripts.ScriptsBasePath} && ");
             if (isServiceAccount)
             {
-                var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory
+                cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
+                cmdBuilder.Append($"rm -rf {Path.Combine(_scripts.SubScriptsPath, ".key_scripts").Replace('\\', '/')} && ");
+
+
+                cmdBuilder.Append($"mkdir -p {targetDirectory} && ");
+
+                var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository
                     .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar }, StringSplitOptions.RemoveEmptyEntries);
 
-                cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
                 cmdBuilder.Append($"git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} > /dev/null && ");
-                cmdBuilder.Append($"chmod +x {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*").Replace('\\', '/')} && ");
-                cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath.TrimEnd('/')}|g\" {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
-
-                cmdBuilder.Append($"cp -r {Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectory, "*").Replace('\\', '/')} {targetDirectory} && ");
+                cmdBuilder.Append($"mv {HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/')} {_scripts.SubScriptsPath} && ");
                 cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
-                
-                if (!string.IsNullOrEmpty(keyScriptsDirectoryParts.LastOrDefault()))
-                {
-                    cmdBuilder.Append($"rm -rf {Path.Combine("~/", keyScriptsDirectoryParts.LastOrDefault()).Replace('\\', '/')} && ");
-                }
+
+                // Scripts modifications
+                cmdBuilder.Append($"chmod -R 755 {targetDirectory} && ");
+                cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath}/{_scripts.SubExecutionsPath}|g\" {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
             }
 
-            cmdBuilder.Append($"ln -sf {targetDirectory} ~/");
-
-            try
-            {
-                var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
-                _log.Info($"Initialized Cluster scripts for project");
-                return sshCommand.Result;
-            }
-            catch (SshCommandException ex)
-            {
-                return ex.Message;
-            }
+            cmdBuilder.Append($"ln -sf {targetDirectory} {_scripts.ScriptsBasePath}");
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
+            _log.Info($"Initialized Cluster scripts for project");
         }
         #endregion
     }

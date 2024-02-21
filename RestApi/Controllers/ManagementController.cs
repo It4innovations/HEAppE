@@ -1,5 +1,4 @@
-﻿using System;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
+﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -20,9 +19,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -63,14 +62,14 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         public IActionResult InstanceInformation(string sessionCode)
         {
-            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetInstanceInformation\" Parameters: SessionCode: \"{sessionCode}\"");
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"InstanceInformation\" Parameters: SessionCode: \"{sessionCode}\"");
             ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
             if (!validationResult.IsValid)
             {
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _userAndManagementService.ValidateUserPermissions(sessionCode);
+            _userAndManagementService.ValidateUserPermissions(sessionCode, DomainObjects.UserAndLimitationManagement.Enums.AdaptorUserRoleType.Administrator);
             List<ExtendedProjectInfoExt> activeProjectsExtendedInfo = new();
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
@@ -91,6 +90,37 @@ namespace HEAppE.RestApi.Controllers
                 Projects = activeProjectsExtendedInfo
             });
         }
+
+        /// <summary>
+        /// Get HEAppE Version Information
+        /// </summary>
+        /// <param name="sessionCode">SessionCode</param>
+        /// <returns></returns>
+        [HttpGet("VersionInformation")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(VersionInformationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        public IActionResult VersionInformation(string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"VersionInformation\" Parameters: SessionCode: \"{sessionCode}\"");
+            ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _userAndManagementService.ValidateUserPermissions(sessionCode, DomainObjects.UserAndLimitationManagement.Enums.AdaptorUserRoleType.Submitter);
+            return Ok(new VersionInformationExt()
+            {
+                Name = DeploymentInformationsConfiguration.Name,
+                Description = DeploymentInformationsConfiguration.Description,
+                Version = DeploymentInformationsConfiguration.Version,
+            });
+        }
+
         #endregion
         #region CommandTemplate
         /// <summary>
@@ -348,14 +378,14 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
-            List<(string,string)> usernamePasswords = new()
+            List<(string, string)> usernamePasswords = new()
             {
                 (model.Username, model.Password)
             };
-            
+
             return Ok(_managementService.CreateSecureShellKey(usernamePasswords, model.ProjectId, model.SessionCode));
         }
-        
+
         /// <summary>
         /// Generate SSH key
         /// </summary>
@@ -405,7 +435,7 @@ namespace HEAppE.RestApi.Controllers
 
             return Ok(_managementService.RegenerateSecureShellKey(string.Empty, model.Password, model.PublicKey, model.ProjectId, model.SessionCode));
         }
-        
+
         /// <summary>
         /// Regenerate SSH key
         /// </summary>
@@ -427,7 +457,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_managementService.RegenerateSecureShellKey(model.Username, model.Password,string.Empty, model.ProjectId, model.SessionCode));
+            return Ok(_managementService.RegenerateSecureShellKey(model.Username, model.Password, string.Empty, model.ProjectId, model.SessionCode));
         }
 
         /// <summary>
@@ -455,7 +485,7 @@ namespace HEAppE.RestApi.Controllers
             _managementService.RemoveSecureShellKey(null, model.PublicKey, model.ProjectId, model.SessionCode);
             return Ok("SecureShellKey revoked");
         }
-        
+
         /// <summary>
         /// Remove SSH key
         /// </summary>
@@ -477,7 +507,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.RemoveSecureShellKey(model.Username,null, model.ProjectId, model.SessionCode);
+            _managementService.RemoveSecureShellKey(model.Username, null, model.ProjectId, model.SessionCode);
             return Ok("SecureShellKey revoked");
         }
         #endregion
@@ -502,7 +532,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.InitializeClusterScriptDirectory(model.ProjectId,  model.ClusterProjectRootDirectory, model.SessionCode);
+            _managementService.InitializeClusterScriptDirectory(model.ProjectId, model.ClusterProjectRootDirectory, model.SessionCode);
             return Ok("Cluster script directory was initialized.");
         }
 
@@ -553,7 +583,7 @@ namespace HEAppE.RestApi.Controllers
         public IActionResult TestClusterAccessForAccount(string username, long projectId, string sessionCode)
         {
             _logger.LogDebug($"Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
-            
+
             ValidationResult validationResult = new ManagementValidator(new TestClusterAccessForAccountModel()
             {
                 ProjectId = projectId,

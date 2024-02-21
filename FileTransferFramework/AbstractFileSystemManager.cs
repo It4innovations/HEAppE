@@ -2,6 +2,7 @@
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using System;
@@ -16,6 +17,8 @@ namespace HEAppE.FileTransferFramework
         #region Instances
         protected ILogger _logger;
         protected Dictionary<SynchronizableFiles, Dictionary<string, IFileSynchronizer>> _fileSynchronizers;
+
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
         protected FileTransferMethod _fileSystem;
         protected FileSystemFactory _synchronizerFactory;
         #endregion
@@ -40,7 +43,7 @@ namespace HEAppE.FileTransferFramework
         #region IRexFileSystemManager Members
         public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath);
             CopyAll(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null, jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
         }
 
@@ -66,8 +69,8 @@ namespace HEAppE.FileTransferFramework
 
         public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo, SynchronizableFiles fileType, long offset)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(taskInfo.Specification.JobSpecification);
-            string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(taskInfo.Specification.JobSpecification,_scripts.SubExecutionsPath);
+            string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.SubExecutionsPath);
             FullFileSpecification fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
             IFileSynchronizer synchronizer = CreateFileSynchronizer(fileInfo, taskInfo.Specification.JobSpecification.ClusterUser);
             synchronizer.Offset = offset;
@@ -90,7 +93,7 @@ namespace HEAppE.FileTransferFramework
         {
             foreach (SubmittedTaskInfo taskInfo in jobInfo.Tasks)
             {
-                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification);
+                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.SubExecutionsPath);
 
                 string[] excludedFiles = {
                     taskInfo.Specification.LogFile.RelativePath,
@@ -109,7 +112,7 @@ namespace HEAppE.FileTransferFramework
             List<FileInformation> result = new List<FileInformation>();
             foreach (SubmittedTaskInfo taskInfo in jobInfo.Tasks)
             {
-                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification);
+                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.SubExecutionsPath);
 
                 var changedFiles = ListChangedFilesForTask(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath, jobSubmitTime, jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
                 foreach (var changedFile in changedFiles)
@@ -137,7 +140,7 @@ namespace HEAppE.FileTransferFramework
 
             foreach (SubmittedTaskInfo taskInfo in jobInfo.Tasks)
             {
-                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification);
+                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.SubExecutionsPath);
                 FullFileSpecification fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
                 string sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
 
@@ -166,7 +169,7 @@ namespace HEAppE.FileTransferFramework
 
             foreach (TaskSpecification task in jobSpecification.Tasks)
             {
-                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(task);
+                string taskClusterDirectoryPath = FileSystemUtils.GetTaskClusterDirectoryPath(task, _scripts.SubExecutionsPath);
                 FullFileSpecification fileInfo = CreateSynchronizableFileInfoForType(task, taskClusterDirectoryPath, fileType);
                 string sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
 

@@ -17,6 +17,7 @@
     <ProjectReference Include="..\ConnectionPool\ConnectionPool.csproj" />
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
     <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
+    <ProjectReference Include="..\HpcConnectionFramework\HpcConnectionFramework.csproj" />
     <ProjectReference Include="..\Utils\Utils.csproj" />
   </ItemGroup>
 

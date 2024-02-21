@@ -4,6 +4,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
@@ -18,6 +19,11 @@ namespace HEAppE.FileTransferFramework.Sftp
     {
         #region Instances
         private readonly IConnectionPool _connectionPool;
+
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
         #endregion
         #region Constructors
         public SftpFileSystemManager(ILogger logger, FileTransferMethod configuration, FileSystemFactory synchronizerFactory, IConnectionPool connectionPool)
@@ -30,13 +36,14 @@ namespace HEAppE.FileTransferFramework.Sftp
         public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
         {
             string basePath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+            string localBasePath = $"{basePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings}";
             var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);
                 using (var stream = new MemoryStream())
                 {
-                    string file = basePath + relativeFilePath;
+                    string file = $"{localBasePath}{relativeFilePath}";
                     client.DownloadFile(file, stream);
                     return stream.ToArray();
                 }
@@ -64,7 +71,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         }
         public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
         {
-            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification);
+            string jobClusterDirectoryPath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath);
             var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {

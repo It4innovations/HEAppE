@@ -9,37 +9,32 @@
         /// <summary>
         /// Path to adding file transfer key script
         /// </summary>
-        public string AddFiletransferKeyCmdPath { get; set; }
+        public string AddFiletransferKeyCmdScriptName { get; set; }
 
         /// <summary>
         /// Path to remove file transfer key script
         /// </summary>
-        public string RemoveFiletransferKeyCmdPath { get; set; }
+        public string RemoveFiletransferKeyCmdScriptName { get; set; }
 
         /// <summary>
         /// Path to create job directory script
         /// </summary>
-        public string CreateJobDirectoryCmdPath { get; set; }
+        public string CreateJobDirectoryCmdScriptName { get; set; }
 
         /// <summary>
         /// Path to execute command from Base64
         /// </summary>
-        public string ExecuteCmdPath { get; set; }
-
-        /// <summary>
-        /// Path to execute background command from Base64
-        /// </summary>
-        public string ExecuteBackgroundCmdPath { get; set; }
+        public string ExecuteCmdScriptName { get; set; }
 
         /// <summary>
         /// Path to copy data from temp script
         /// </summary>
-        public string CopyDataFromTempCmdPath { get; set; }
+        public string CopyDataFromTempCmdScriptName { get; set; }
 
         /// <summary>
         /// Path to copy data to temp script
         /// </summary>
-        public string CopyDataToTempCmdPath { get; set; }
+        public string CopyDataToTempCmdScriptName { get; set; }
         #endregion
     }
 }
