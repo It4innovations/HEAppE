@@ -139,7 +139,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
 
             var jobDir = Path.Join(localBasePath, jobSpecification.Id.ToString());
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{_scripts.SubScriptsPath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
+            return $"{_scripts.ScriptsBasePath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
         }
         #endregion
         #region Local Methods
