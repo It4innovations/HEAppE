@@ -1,9 +1,11 @@
-﻿using HEAppE.Exceptions.Internal;
+﻿using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 using log4net;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
-    ///  Ssh command utls
+    ///  Ssh command utils
     /// </summary>
     internal static class SshCommandUtils
     {
@@ -34,7 +36,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             var sshCommand = client.RunCommand(command);
             if (sshCommand.ExitStatus != 0)
             {
-                _log.Error($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
+                if (sshCommand.Error.Contains("No such file or directory"))
+                {
+                    _log.Warn($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
+                    throw new InputValidationException("NoFileOrDirectory");
+                }
+
                 throw new SshCommandException("CommandException", sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
             }
 

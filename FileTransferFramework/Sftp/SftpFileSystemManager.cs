@@ -36,7 +36,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
         {
             string basePath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
-            string localBasePath = $"{basePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings}";
+            string localBasePath = $"{basePath}/{_scripts.SubExecutionsPath}";
             var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {

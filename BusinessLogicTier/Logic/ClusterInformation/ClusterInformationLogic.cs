@@ -52,7 +52,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 throw new InvalidRequestException("ClusterNodeNoReferenceToCluster");
             }
 
-            if (project is null || !project.IsDeleted)
+            if (project is null || project.IsDeleted)
             {
                 throw new InvalidRequestException("The specified project does not exist in the system.");
             }

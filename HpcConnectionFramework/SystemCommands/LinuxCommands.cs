@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -79,8 +80,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         {
             var genericCommandParameters = new List<string>();
             string shellCommand = $"cat {userScriptPath}";
-            var sshCommand =
-                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), shellCommand);
             _log.Info($"Get parameters of script \"{userScriptPath}\", command \"{sshCommand}\"");
 
             foreach (Match match in Regex.Matches(sshCommand.Result,
@@ -104,7 +104,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="hash">Hash</param>
         public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
         {
-            string inputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/Temp/{hash}/.";
+            string inputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}Temp/{hash}/.";
             string outputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}";
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 $"{_scripts.ScriptsBasePath}/{_commandScripts.CopyDataFromTempCmdScriptName} {inputDirectory} {outputDirectory}");
@@ -122,7 +122,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
             string inputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}/{path}";
             inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;
-            string outputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/Temp/{hash}";
+            string outputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}Temp/{hash}";
 
             var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
                 $"{_scripts.ScriptsBasePath}/{_commandScripts.CopyDataToTempCmdScriptName} {inputDirectory} {outputDirectory}");
