@@ -144,9 +144,6 @@
   <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Aktuální využití pro uživatele '{0}' a ClusterNodeType '{1}' nebylo vytvořeno metodou GetCurrentUsageAndLimitationsForUser.</value>
   </data>
-  <data name="ExternalException_JsonDeserializationException" xml:space="preserve">
-    <value>Nepodařilo se deserializovat JSON odpověď z REST požadavku.</value>
-  </data>
   <data name="FileTransferTemporaryKeyException_PublicKeyMismatch" xml:space="preserve">
     <value>Přenos nemohl být dokončen kvůli nesouladu veřejného klíče.</value>
   </data>
@@ -195,11 +192,8 @@
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Odesílání jobu je k dispozici pouze pro joby ve stavu 'konfigurace'.</value>
   </data>
-  <data name="InsufficientRoleException_MissingRole" xml:space="preserve">
-    <value>Uživatel nemá požadovanou roli. Požadovaná role: '{0}'. Aktuální uživatel nemá žádné oprávnění/roli pro projekt '{1}'.</value>
-  </data>
   <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
-    <value>Uživatel nemá '{0}' roli pro vytvoření projektu.</value>
+    <value>Uživatel nemá '{0}' roli pro vytvoření '{1}' projektu.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Autentizace uživatele '{0}' nebyla úspěšná kvůli nesprávným přihlašovacím údajům.</value>
@@ -235,7 +229,7 @@
     <value>ProjektId '{0}' není přiřazen k žádnemu clusteru.</value>
   </data>
   <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
-    <value>Projekt '{0}' nemá žádný odkaz na cluster '{1}'.</value>
+    <value>ProjektId '{0}' nemá žádný odkaz na ClusterId '{1}'.</value>
   </data>
   <data name="InvalidRequestException_TaskEmptyAttribute" xml:space="preserve">
     <value>'{0}' atribut v Task '{1}' nesmí být prázdný.</value>
@@ -464,5 +458,17 @@
   </data>
   <data name="InternalException" xml:space="preserve">
     <value>Nastala neočekávaná výjimka! Kontaktujte administrátora.</value>
+  </data>
+  <data name="InputValidationException_EnumValueMustBeInInterval" xml:space="preserve">
+    <value>'{0}' musí mít tyto hodnoty '{1}'.</value>
+  </data>
+  <data name="InputValidationException_EnumValueMustBeSet" xml:space="preserve">
+    <value>'{0}' musí být nastaven.</value>
+  </data>
+  <data name="SftpClientException_NotSupportedAuthentication" xml:space="preserve">
+    <value>'0' metoda není implementována.</value>
+  </data>
+  <data name="SshClientArgumentException_KeyGenerationException" xml:space="preserve">
+    <value>'{0}' SSH key cannot be generated. The value should be {1}.</value>
   </data>
 </root>

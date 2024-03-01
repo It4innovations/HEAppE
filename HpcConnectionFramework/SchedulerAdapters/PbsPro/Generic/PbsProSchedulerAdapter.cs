@@ -95,7 +95,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (PbsException)
             {
-                throw new PbsException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Result, sshCommandBase64);
+                throw new PbsException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Result, command.Error, sshCommandBase64);
             }
         }
 

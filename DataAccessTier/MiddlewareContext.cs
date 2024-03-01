@@ -198,9 +198,6 @@ namespace HEAppE.DataAccessTier
 
             modelBuilder.Entity<AdaptorUser>()
                 .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
-
-            modelBuilder.Entity<Project>()
-              .Property(p => p.UseAccountingStringForScheduler).HasDefaultValue(true);
         }
         #endregion
         #region Seeding methods

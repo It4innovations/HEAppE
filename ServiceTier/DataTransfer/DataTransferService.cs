@@ -3,6 +3,7 @@ using HEAppE.BusinessLogicTier.Logic.DataTransfer;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.DataTransfer;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -19,63 +20,55 @@ namespace HEAppE.ServiceTier.DataTransfer
     {
         public DataTransferMethodExt RequestDataTransfer(string nodeIPAddress, int nodePort, long submittedTaskInfoId, string sessionCode)
         {
-            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+            SubmittedTaskInfo submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+            if (submittedTaskInfo == null)
             {
-                var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
-                if (submittedTaskInfo == null)
-                {
-                    throw new InputValidationException("Submitted task info not found");
-                }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-                IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                DataTransferMethod dataTransferMethod = dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
-                return dataTransferMethod.ConvertIntToExt();
+                throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
             }
+            AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
+            IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+            DataTransferMethod dataTransferMethod = dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
+            return dataTransferMethod.ConvertIntToExt();
         }
 
         public void CloseDataTransfer(DataTransferMethodExt usedTransferMethod, string sessionCode)
         {
-            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+            SubmittedTaskInfo submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(usedTransferMethod.SubmittedTaskId);
+            if (submittedTaskInfo == null)
             {
-                var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(usedTransferMethod.SubmittedTaskId);
-                if (submittedTaskInfo == null)
-                {
-                    throw new InputValidationException("Submitted task info not found");
-                }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-                IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
+                throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", usedTransferMethod.SubmittedTaskId);
             }
+            AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
+            IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+            dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
         }
 
         public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
         {
-            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+            SubmittedTaskInfo submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+            if (submittedTaskInfo == null)
             {
-                var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
-                if (submittedTaskInfo == null)
-                {
-                    throw new InputValidationException("Submitted task info not found");
-                }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-                IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()), submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
+                throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
             }
+            AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
+            IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+            return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()), submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
         }
 
         public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode)
         {
-            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            using IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+            SubmittedTaskInfo submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
+            if (submittedTaskInfo == null)
             {
-                var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
-                if (submittedTaskInfo == null)
-                {
-                    throw new InputValidationException("Submitted task info not found");
-                }
-                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-                IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
-                return await dataTransferLogic.HttpPostToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()), httpPayload, submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
+                throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
             }
+            AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
+            IDataTransferLogic dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+            return await dataTransferLogic.HttpPostToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()), httpPayload, submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
         }
     }
 }

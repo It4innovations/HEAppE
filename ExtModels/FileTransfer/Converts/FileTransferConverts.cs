@@ -63,12 +63,13 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
         {
             if (!fileTransferProtocol.HasValue)
             {
-                throw new InputValidationException("The file transfer protocol has to be set.");
+                throw new InputValidationException("EnumValueMustBeSet", "File transfer protocol");
             }
 
             if (!Enum.TryParse(fileTransferProtocol.ToString(), out FileTransferProtocolExt convert))
             {
-                throw new InputValidationException("The file transfer protocol type must have value from <1, 2, 4>.");
+
+                throw new InputValidationException("EnumValueMustBeInInterval", "File transfer protocol", "<1, 2, 4>");
             }
 
             return convert;
@@ -78,25 +79,26 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
         {
             if (!protocol.HasValue)
             {
-                throw new InputValidationException("The file transfer protocol has to be set.");
+                throw new InputValidationException("EnumValueMustBeSet", "File transfer protocol");
             }
 
             if (!Enum.TryParse(protocol.ToString(), out FileTransferProtocol convert))
             {
-                throw new InputValidationException("The file transfer protocol type must have value from <1, 2, 4>.");
+                throw new InputValidationException("EnumValueMustBeInInterval", "File transfer protocol", "<1, 2, 4>");
             }
             return convert;
         }
+
         private static SynchronizableFilesExt? ConvertSynchronizableFilesToExt(SynchronizableFiles? fileType)
         {
             if (!fileType.HasValue)
             {
-                throw new InputValidationException("The synchronizable file type has to be set.");
+                throw new InputValidationException("EnumValueMustBeSet", "Synchronizable file type");
             }
 
             if (!Enum.TryParse(fileType.ToString(), out SynchronizableFilesExt convert))
             {
-                throw new InputValidationException("The synchronizable file type must have value from range 0 to 3.");
+                throw new InputValidationException("EnumValueMustBeInInterval", "Synchronizable file type", "<0, 1, 2, 3>");
             }
             return convert;
         }
@@ -105,12 +107,12 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
         {
             if (!fileType.HasValue)
             {
-                throw new InputValidationException("The synchronizable file type has to be set.");
+                throw new InputValidationException("EnumValueMustBeSet", "Synchronizable file type");
             }
 
             if (!Enum.TryParse(fileType.ToString(), out SynchronizableFiles convert))
             {
-                throw new InputValidationException("The synchronizable file type must have value from range 0 to 3.");
+                throw new InputValidationException("EnumValueMustBeInInterval", "Synchronizable file type", "<0, 1, 2, 3>");
             }
             return convert;
         }

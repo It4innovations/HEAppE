@@ -139,12 +139,12 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
         {
             if (!proxyType.HasValue)
             {
-                throw new InputValidationException("The Proxy type must be set.");
+                throw new InputValidationException("EnumValueMustBeSet", "Proxy type");
             }
 
             if (!Enum.TryParse(proxyType.ToString(), out ProxyTypeExt convert))
             {
-                throw new InputValidationException("The Proxy type must have value from <1, 2, 3, 4>.");
+                throw new InputValidationException("EnumValueMustBeInInterval", "Proxy type", "<1, 2, 3, 4>");
             }
 
             return convert;
