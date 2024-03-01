@@ -1,4 +1,11 @@
-﻿using HEAppE.BusinessLogicTier.Configuration;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+
+using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.CertificateGenerator;
@@ -8,21 +15,16 @@ using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework;
-using log4net;
-using Renci.SshNet.Common;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
-using HEAppE.Exceptions.External;
-using System.Reflection;
-using System.Linq;
-using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using HEAppE.Exceptions.Internal;
-using HEAppE.Exceptions.AbstractTypes;
-using HEAppE.HpcConnectionFramework.Configuration;
+
+using log4net;
+
+using Renci.SshNet.Common;
 
 namespace HEAppE.BusinessLogicTier.logic.FileTransfer
 {
@@ -67,7 +69,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             foreach (var activeTemporaryKeyGroup in activeTemporaryKeysGroup)
             {
                 Cluster cluster = activeTemporaryKeyGroup.Key;
-                
+
                 var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
                         new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
                     .ToList();
@@ -91,9 +93,9 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
             var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
-            if (!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
+            if (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKey))
             {
-                throw new ClusterAuthenticationException("NotExistingPrivateKeyFile", clusterUserAuthCredentials.PrivateKeyFile);
+                throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
             }
 
             var transferMethod = new FileTransferMethod
@@ -108,8 +110,8 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     Username = clusterUserAuthCredentials.Username,
                     Password = clusterUserAuthCredentials.Password,
                     FileTransferCipherType = clusterUserAuthCredentials.CipherType,
-                    PrivateKey = File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile),
-                    Passphrase = clusterUserAuthCredentials.PrivateKeyPassword
+                    PrivateKey = clusterUserAuthCredentials.PrivateKey,
+                    Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
                 }
             };
             return transferMethod;

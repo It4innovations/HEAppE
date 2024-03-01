@@ -180,6 +180,14 @@ namespace HEAppE.DataAccessTier
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+            //M:N ClusterProjectCredentials ignore Vault properties
+            modelBuilder.Entity<ClusterAuthenticationCredentials>()
+                //.Ignore(c => c.AuthenticationType)
+                //.Ignore(p => p.CipherType)
+                .Ignore(p => p.Password)
+                .Ignore(p => p.PrivateKey)
+                .Ignore(p => p.PrivateKeyPassphrase);
+
             //M:N relations for ProjectContact
             modelBuilder.Entity<ProjectContact>()
                 .HasKey(pc => new { pc.ProjectId, pc.ContactId });
@@ -235,8 +243,8 @@ namespace HEAppE.DataAccessTier
                 Id = cc.Id,
                 Username = cc.Username,
                 Password = cc.Password,
-                PrivateKeyFile = cc.PrivateKeyFile,
-                PrivateKeyPassword = cc.PrivateKeyPassword,
+                PrivateKey = cc.PrivateKey,
+                PrivateKeyPassphrase = cc.PrivateKeyPassphrase,
                 CipherType = cc.CipherType,
                 IsDeleted = cc.IsDeleted
             }));
@@ -411,44 +419,44 @@ namespace HEAppE.DataAccessTier
             switch (item)
             {
                 case IdentifiableDbEntity identifiableItem:
-                    {
-                        var entity = Set<T>().Find(identifiableItem.Id);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(identifiableItem.Id);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
 
                 case AdaptorUserUserGroupRole userGroupItem:
-                    {
-                        var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId, userGroupItem.AdaptorUserRoleId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId, userGroupItem.AdaptorUserRoleId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case OpenStackAuthenticationCredentialProject openstackCredProject:
-                    {
-                        var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId, openstackCredProject.OpenStackProjectId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId, openstackCredProject.OpenStackProjectId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case OpenStackAuthenticationCredentialDomain openstackCredDomain:
-                    {
-                        var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case ClusterProjectCredential clusterProjectCredentials:
-                    {
-                        var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case ProjectContact projectContact:
-                    {
-                        var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 default:
-                    throw new DbContextException("NotSupportedSeedEntity", typeof(T).Name);
+                throw new DbContextException("NotSupportedSeedEntity", typeof(T).Name);
             }
         }
         #endregion

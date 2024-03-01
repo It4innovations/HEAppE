@@ -1,13 +1,15 @@
-﻿using HEAppE.Exceptions.Internal;
-using HEAppE.CertificateGenerator.Configuration;
-using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.Utils;
-using Renci.SshNet;
-using Renci.SshNet.Common;
-using System;
+﻿using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+
+using HEAppE.CertificateGenerator.Configuration;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Exceptions.Internal;
+using HEAppE.Utils;
+
+using Renci.SshNet;
+using Renci.SshNet.Common;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
@@ -36,10 +38,10 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                         => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, credentials.Username, credentials.Password),
 
                 ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey
-                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKey
-                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PasswordViaProxy
                         => CreateConnectionObjectUsingPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
@@ -48,10 +50,10 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                         => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractiveViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
 
                 ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy
-                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
-                        => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
@@ -207,21 +209,22 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 PrivateKeyConnectionInfo connectionInfo = port switch
                 {
                     null => new PrivateKeyConnectionInfo(
                                 masterNodeName,
                                 username,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                                new PrivateKeyFile(stream, privateKeyPassword)),
                     _ => new PrivateKeyConnectionInfo(
                                 masterNodeName,
                                 port.Value,
                                 username,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                                new PrivateKeyFile(stream, privateKeyPassword))
                 };
 
                 var client = new SshClient(connectionInfo);
@@ -239,29 +242,29 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
             switch (CipherGeneratorConfiguration.Type)
             {
                 case DomainObjects.FileTransfer.FileTransferCipherType.Unknown:
-                    throw new SshCommandException($"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
+                throw new SshCommandException($"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
                 case DomainObjects.FileTransfer.FileTransferCipherType.RSA3072:
                 case DomainObjects.FileTransfer.FileTransferCipherType.RSA4096:
-                    {
-                        RSA key = RSA.Create();
-                        string encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
-                        key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
-                        string pk = key.ExportRSAPrivateKeyPem();
-                        privateKeyMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(pk));
-                    }
-                    break;
+                {
+                    RSA key = RSA.Create();
+                    string encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
+                    key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
+                    string pk = key.ExportRSAPrivateKeyPem();
+                    privateKeyMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(pk));
+                }
+                break;
                 case DomainObjects.FileTransfer.FileTransferCipherType.nistP256:
                 case DomainObjects.FileTransfer.FileTransferCipherType.nistP521:
-                    {
-                        ECDsa key = ECDsa.Create();
-                        string encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
-                        key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
-                        string pk = key.ExportECPrivateKeyPem();
-                        privateKeyMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(pk));
-                    }
-                    break;
+                {
+                    ECDsa key = ECDsa.Create();
+                    string encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
+                    key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
+                    string pk = key.ExportECPrivateKeyPem();
+                    privateKeyMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(pk));
+                }
+                break;
                 default:
-                    throw new SshCommandException($"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
+                throw new SshCommandException($"Unknown cipher type for the private key that is used for the connection to \"{masterNodeName}\"!");
             }
             return privateKeyMemoryStream;
         }
@@ -280,10 +283,11 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 PrivateKeyConnectionInfo connectionInfo = port switch
                 {
                     null => new PrivateKeyConnectionInfo(
@@ -294,7 +298,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                                 proxyPort,
                                 proxyUsername ?? string.Empty,
                                 proxyPassword ?? string.Empty,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                                new PrivateKeyFile(stream, privateKeyPassword)),
                     _ => new PrivateKeyConnectionInfo(
                                 masterNodeName,
                                 port.Value,
@@ -304,7 +308,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                                 proxyPort,
                                 proxyUsername ?? string.Empty,
                                 proxyPassword ?? string.Empty,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                                new PrivateKeyFile(stream, privateKeyPassword))
                 };
 
                 var client = new SshClient(connectionInfo);
@@ -326,23 +330,24 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(string masterNodeName, string username, string password, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(string masterNodeName, string username, string password, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 var connectionInfo = port switch
                 {
                     null => new ConnectionInfo(
                                 masterNodeName,
                                 username,
                                 new PasswordAuthenticationMethod(username, password),
-                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword))),
+                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword))),
                     _ => new ConnectionInfo(
                                 masterNodeName,
                                 port.Value,
                                 username,
                                 new PasswordAuthenticationMethod(username, password),
-                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword)))
+                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword)))
                 };
 
                 var client = new SshClient(connectionInfo);
@@ -369,10 +374,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string password, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string password, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
+
                 var connectionInfo = new ConnectionInfo(
                                                      masterNodeName,
                                                      port ?? 22,
@@ -383,7 +390,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                                                      proxyUsername ?? string.Empty,
                                                      proxyPassword ?? string.Empty,
                                                      new PasswordAuthenticationMethod(username, password),
-                                                     new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword)));
+                                                     new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword)));
 
                 var client = new SshClient(connectionInfo);
                 return client;

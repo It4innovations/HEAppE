@@ -1,4 +1,7 @@
-﻿using HEAppE.DataAccessTier.IRepository.ClusterInformation;
+﻿using System;
+using System.Linq;
+
+using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
@@ -12,7 +15,8 @@ using HEAppE.DataAccessTier.Repository.JobManagement.Command;
 using HEAppE.DataAccessTier.Repository.JobManagement.JobInformation;
 using HEAppE.DataAccessTier.Repository.OpenStack;
 using HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
-using System;
+using HEAppE.DataAccessTier.Vault;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.DataAccessTier.UnitOfWork
 {
@@ -21,6 +25,8 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         #region Instances
         private readonly MiddlewareContext _context;
         private bool _disposed = false;
+
+        private IVaultConnector _vaultConnector { get; set; } = new VaultConnector();
 
         private IAdaptorUserGroupRepository _adaptorUserGroupRepository;
         private IAdaptorUserRoleRepository _adaptorUserRoleRepository;
@@ -133,7 +139,8 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
 
-                return _clusterAuthenticationCredentialsRepository = _clusterAuthenticationCredentialsRepository ?? new ClusterAuthenticationCredentialsRepository(_context);
+                return _clusterAuthenticationCredentialsRepository = _clusterAuthenticationCredentialsRepository
+                    ?? new ClusterAuthenticationCredentialsRepository(_context, _vaultConnector);
             }
         }
 
@@ -330,7 +337,27 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         /// </summary>
         public void Save()
         {
-            _context.SaveChanges();
+            // prepare vault entities
+            var vaultEntries = _context.ChangeTracker.Entries<ClusterAuthenticationCredentials>()
+                .Select(x => x.Entity)
+                .ToList();
+
+            var changes = _context.SaveChanges();
+
+            SavePreparedEntitiesToVault(changes);
+
+
+            void SavePreparedEntitiesToVault(int dbChanges)
+            {
+                if ((dbChanges < vaultEntries.Count))
+                {
+                    // TODO logging
+                }
+                foreach (var ve in vaultEntries)
+                {
+                    _vaultConnector.SetClusterAuthenticationCredentials(ve.ExportVaultData());
+                }
+            }
         }
         #endregion
         #region IDisposable Methods

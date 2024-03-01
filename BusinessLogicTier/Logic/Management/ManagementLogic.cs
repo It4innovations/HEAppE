@@ -1,4 +1,12 @@
-﻿using HEAppE.CertificateGenerator;
+﻿using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Transactions;
+
+using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -12,16 +20,10 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
+
 using log4net;
+
 using Org.BouncyCastle.Security;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -171,10 +173,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
-           var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                                                             .CreateScheduler(cluster, project)
-                                                             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
-                                                             .ToList();
+            var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                                                              .CreateScheduler(cluster, project)
+                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
+                                                              .ToList();
 
             List<CommandTemplateParameter> templateParameters = new();
             foreach (string parameter in commandTemplateParameters)
@@ -364,7 +366,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 ClusterId = clusterId,
                 ProjectId = projectId,
-                LocalBasepath = localBasepath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/'}),
+                LocalBasepath = localBasepath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/' }),
                 CreatedAt = modified,
                 IsDeleted = false,
             };
@@ -482,12 +484,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             SSHGenerator sshGenerator = new();
             string passphrase = StringUtils.GetRandomString();
             SecureShellKey secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
-            string keyPath = GetUniquePrivateKeyPath(project.AccountingString);
-            new FileInfo(keyPath).Directory.Create();
-            File.WriteAllText(keyPath, secureShellKey.PrivateKeyPEM);
 
-            ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
-            ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, keyPath, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
+            ClusterAuthenticationCredentials serviceCredentials = CreateClusterAuthenticationCredentials(username, password, secureShellKey.PrivateKeyPEM, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
+            ClusterAuthenticationCredentials nonServiceCredentials = CreateClusterAuthenticationCredentials(username, password, secureShellKey.PrivateKeyPEM, passphrase, secureShellKey.PublicKeyFingerprint, clusterProjects.FirstOrDefault()?.Cluster);
 
             foreach (ClusterProject clusterProject in clusterProjects)
             {
@@ -543,8 +542,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.WriteAllText(credentials.PrivateKeyFile, secureShellKey.PrivateKeyPEM);
-                credentials.PrivateKeyPassword = passphrase;
+                credentials.PrivateKey = secureShellKey.PrivateKeyPEM;
+                credentials.PrivateKeyPassphrase = passphrase;
                 credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
                 credentials.CipherType = secureShellKey.CipherType;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
@@ -580,7 +579,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.Delete(credentials.PrivateKeyFile);
                 credentials.IsDeleted = true;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
                 {
@@ -624,8 +622,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.WriteAllText(credentials.PrivateKeyFile, secureShellKey.PrivateKeyPEM);
-                credentials.PrivateKeyPassword = passphrase;
+                credentials.PrivateKey = secureShellKey.PrivateKeyPEM;
+                credentials.PrivateKeyPassphrase = passphrase;
                 credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
                 credentials.CipherType = secureShellKey.CipherType;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
@@ -663,7 +661,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.Delete(credentials.PrivateKeyFile);
                 credentials.IsDeleted = true;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
                 {
@@ -766,23 +763,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         }
 
         #region Private methods
-        /// <summary>
-        /// Returns the path to the private key file for the specified project
-        /// </summary>
-        /// <param name="accountingString"></param>
-        /// <returns></returns>
-        private string GetUniquePrivateKeyPath(string accountingString)
-        {
-            string directoryPath = Path.Combine(CertificateGeneratorConfiguration.GeneratedKeysDirectory, accountingString);
-            if (!Directory.Exists(directoryPath))
-            {
-                Directory.CreateDirectory(directoryPath);
-            }
-            //get count of files in directory and increment by 1
-            int nextId =  Directory.GetFiles(directoryPath).Length + 1;
-            string keyPath = Path.Combine(directoryPath, $"{CertificateGeneratorConfiguration.GeneratedKeyPrefix}_{nextId:D2}");
-            return keyPath;
-        }
 
         /// <summary>
         /// Initializes a new project with the specified parameters
@@ -849,14 +829,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="publicKeyFingerprint"></param>
         /// <param name="cluster"></param>
         /// <returns></returns>
-        private static ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(string username, string password, string keyPath, string passphrase, string publicKeyFingerprint, Cluster cluster)
+        private static ClusterAuthenticationCredentials CreateClusterAuthenticationCredentials(string username, string password, string privateKey, string passphrase, string publicKeyFingerprint, Cluster cluster)
         {
             ClusterAuthenticationCredentials credentials = new()
             {
                 Username = username,
                 Password = password,
-                PrivateKeyFile = keyPath,
-                PrivateKeyPassword = passphrase,
+                PrivateKey = privateKey,
+                PrivateKeyPassphrase = passphrase,
                 CipherType = CipherGeneratorConfiguration.Type,
                 PublicKeyFingerprint = publicKeyFingerprint,
                 ClusterProjectCredentials = new List<ClusterProjectCredential>(),

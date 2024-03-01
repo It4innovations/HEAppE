@@ -1,8 +1,4 @@
-﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.Utils
 {
@@ -13,68 +9,68 @@ namespace HEAppE.Utils
     {
         public static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential, Cluster cluster)
         {
-          if (cluster.ProxyConnection is null)
-          {
-            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
+            if (cluster.ProxyConnection is null)
             {
-              return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
+                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
+                }
+
+                if (!string.IsNullOrEmpty(credential.PrivateKey))
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                }
+
+                if (!string.IsNullOrEmpty(credential.Password))
+                {
+                    switch (cluster.ConnectionProtocol)
+                    {
+                        case ClusterConnectionProtocol.MicrosoftHpcApi:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+
+                        case ClusterConnectionProtocol.Ssh:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+
+                        case ClusterConnectionProtocol.SshInteractive:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
+
+                        default:
+                        return ClusterAuthenticationCredentialsAuthType.Password;
+                    }
+                }
+            }
+            else
+            {
+                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
+                }
+
+                if (!string.IsNullOrEmpty(credential.PrivateKey))
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+                }
+
+                if (!string.IsNullOrEmpty(credential.Password))
+                {
+                    switch (cluster.ConnectionProtocol)
+                    {
+                        case ClusterConnectionProtocol.MicrosoftHpcApi:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+
+                        case ClusterConnectionProtocol.Ssh:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+
+                        case ClusterConnectionProtocol.SshInteractive:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
+
+                        default:
+                        return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
+                    }
+                }
             }
 
-            if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
-            {
-              return ClusterAuthenticationCredentialsAuthType.PrivateKey;
-            }
-
-            if (!string.IsNullOrEmpty(credential.Password))
-            {
-              switch (cluster.ConnectionProtocol)
-              {
-                case ClusterConnectionProtocol.MicrosoftHpcApi:
-                return ClusterAuthenticationCredentialsAuthType.Password;
-
-                case ClusterConnectionProtocol.Ssh:
-                return ClusterAuthenticationCredentialsAuthType.Password;
-
-                case ClusterConnectionProtocol.SshInteractive:
-                return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
-
-                default:
-                return ClusterAuthenticationCredentialsAuthType.Password;
-              }
-            }
-          }
-          else
-          {
-            if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
-            {
-              return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
-            }
-
-            if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
-            {
-              return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
-            }
-
-            if (!string.IsNullOrEmpty(credential.Password))
-            {
-              switch (cluster.ConnectionProtocol)
-              {
-                case ClusterConnectionProtocol.MicrosoftHpcApi:
-                return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                case ClusterConnectionProtocol.Ssh:
-                return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                case ClusterConnectionProtocol.SshInteractive:
-                return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
-
-                default:
-                return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-              }
-            }
-          }
-
-          return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
+            return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
     }
 }
