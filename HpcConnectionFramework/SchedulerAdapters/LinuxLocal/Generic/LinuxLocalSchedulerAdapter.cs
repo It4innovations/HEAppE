@@ -11,6 +11,7 @@ using log4net;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -97,11 +98,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
 
             //compose command with parameters of job and task IDs
-            shellCommandSb.Append($"{_scripts.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{jobSpecification.Id}/");
+            shellCommandSb.Append($"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{jobSpecification.Id}/");
             jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
             //log local HPC Run script to log file
-            shellCommandSb.Append($" >> {localBasePath}/{jobSpecification.Id}/job_log.txt");
+            shellCommandSb.Append($" >> {localBasePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{jobSpecification.Id}/job_log.txt");
             shellCommand = shellCommandSb.ToString();
 
             sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
@@ -135,8 +136,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             StringBuilder commandSb = new();
             var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
                                                         .Distinct();
-
-            localClusterJobIds.ToList().ForEach(id => commandSb.Append($"{_scripts.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {id};"));
+            localClusterJobIds.ToList().ForEach(id => commandSb.Append($"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(_scripts.SubExecutionsPath, id.ToString())};"));
             string command = commandSb.ToString();
 
             _log.Info($"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{command}\", message \"{message}\"");
@@ -328,7 +328,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct();
             foreach (var jobId in scheduledJobIdsList)
             {
-                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_scripts.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobId}/");
+                string jobDirPath = Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobId);
+                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}");
                 _log.Info($"Get actual task info id=\"{jobId}\", command \"{command}\"");
                 submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
             }

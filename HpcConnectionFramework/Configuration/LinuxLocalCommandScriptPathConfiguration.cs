@@ -5,7 +5,28 @@
     /// </summary>
     public sealed class LinuxLocalCommandScriptPathConfiguration
     {
+        #region Instances
+        private string _scriptsBasePath = "~/.local_hpc_scripts";
+        #endregion
         #region Properties
+        /// <summary>
+        /// Script Base Path
+        /// </summary>
+        public string ScriptsBasePath
+        {
+            get
+            {
+                return _scriptsBasePath;
+            }
+            set
+            {
+                if (!string.IsNullOrEmpty(value))
+                {
+                    _scriptsBasePath = value.Replace("\\","/").TrimEnd('/');
+                }
+            }
+        }
+
         /// <summary>
         /// Path to Prepare LocalHPC job directory
         /// </summary>

@@ -7,6 +7,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
     {
         LinuxLocal = 1,
         PbsPro = 2,
-        Slurm = 4
+        Slurm = 4,
+        HyperQueue = 8
     }
 }
