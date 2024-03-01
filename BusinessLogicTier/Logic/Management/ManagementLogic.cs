@@ -111,6 +111,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 Description = description,
                 IsGeneric = false,
                 IsEnabled = true,
+                Project = project,
                 ClusterNodeType = commandTemplate.ClusterNodeType,
                 ClusterNodeTypeId = commandTemplate.ClusterNodeTypeId,
                 ExtendedAllocationCommand = extendedAllocationCommand,
@@ -455,7 +456,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 {
                     //get existing secure key
                     var existingKey = existingCredentials.FirstOrDefault();
-                    if (existingKey != null)
+                    if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKeyFile))
+                    {
+                        continue;
+                    }
+                    else if (existingKey != null)
                     {
                         //get PUBLIC KEY FROM PRIVATE KEY
                         SecureShellKey sshKey = SSHGenerator.GetPublicKeyFromPrivateKey(existingKey);
@@ -738,22 +743,22 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             List<long> noAccessClusterIds = new();
-            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
+            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username).Where(x=>!x.IsDeleted))
             {
                 if (clusterAuthCredentials.IsDeleted)
                 {
                     continue;
                 }
-                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
+                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject).Where(x=>!x.IsDeleted))
                 {
-                    if (clusterAuthCredentials.IsDeleted)
+                    if (clusterAuthCredentials.IsDeleted || clusterProjectCredential.IsDeleted || clusterProjectCredential.ClusterProject.IsDeleted)
                     {
                         continue;
                     }
 
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
-
+                    
                     HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
                     if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
                     {
