@@ -176,7 +176,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             foreach (var task in jobInfo.Tasks)
             {
                 var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
-                    ? "/{task.Specification.ClusterTaskSubdirectory}"
+                    ? $"/{task.Specification.ClusterTaskSubdirectory}"
                     : string.Empty;
 
                 cmdBuilder.Append($"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.SubExecutionsPath} {jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");

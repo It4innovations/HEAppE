@@ -276,11 +276,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
                 if (cluster.UpdateJobStateByServiceAccount.Value)
                 {
-                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks)).ToList();
+                    actualUnfinishedSchedulerTasksInfo = GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks), true).ToList();
                 }
                 else
                 {
-                    userJobsGroup.ForEach(f => actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks))));
+                    userJobsGroup.ForEach(f => actualUnfinishedSchedulerTasksInfo.AddRange(GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks), false)));
                 }
 
                 bool isNeedUpdateJobState = false;
@@ -606,16 +606,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return dbJobInfo;
         }
 
-        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork, IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks)
+        private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork, IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount)
         {
             var unfinishedTasks = jobTasks.Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
                                            .ToList();
 
             var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
-            var cluster = jobSpecification.Cluster;
-            var serviceAccount = unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId);
-
-            return scheduler.GetActualTasksInfo(unfinishedTasks, serviceAccount);
+            
+            ClusterAuthenticationCredentials account = useServiceAccount ? 
+                unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId) 
+                : jobSpecification.ClusterUser;
+            
+            return scheduler.GetActualTasksInfo(unfinishedTasks, account);
         }
 
         private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)

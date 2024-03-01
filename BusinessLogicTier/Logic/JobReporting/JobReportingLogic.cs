@@ -48,7 +48,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         public IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId)
         {
 
-            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects().Where(x => projects.Any(y => y.Id == x.ProjectId) && x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId && !y.IsDeleted && y.AdaptorUserRoleId == (long)AdaptorUserRoleType.GroupReporter));
+            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects().Where(x => projects.Any(y => y.Id == x.ProjectId) && x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId && !y.IsDeleted && y.AdaptorUserRole.ContainedRoleTypes.Any(a => a == AdaptorUserRoleType.GroupReporter)));
             var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport()
             {
                 AdaptorUserGroup = adaptorUserGroup,

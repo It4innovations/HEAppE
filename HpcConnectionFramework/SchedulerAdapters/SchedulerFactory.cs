@@ -6,10 +6,11 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement;
-using System;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -44,6 +45,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                     SchedulerType.PbsPro => new PbsProSchedulerFactory(),
                     SchedulerType.Slurm => new SlurmSchedulerFactory(),
                     SchedulerType.LinuxLocal => new LinuxLocalSchedulerFactory(),
+                    SchedulerType.HyperQueue => new HyperQueueSchedulerFactory(),
                     _ => throw new SchedulerException("NotValidType", type),
                 };
                 _schedulerFactoryPoolSingletons.Add(type, factoryInstance);
