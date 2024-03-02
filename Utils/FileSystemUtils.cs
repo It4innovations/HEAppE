@@ -78,20 +78,6 @@ namespace HEAppE.Utils
             }
         }
 
-        private static string TrimSharedPathProtocol(string sharedPath)
-        {
-            string trimmedPath;
-            int startIndex;
-            if (sharedPath.StartsWith(@"\\"))
-                trimmedPath = sharedPath.TrimStart('\\');
-            else if ((startIndex = sharedPath.IndexOf("://")) != -1)
-                trimmedPath = sharedPath.Substring(startIndex + 3);
-            else
-                throw new ArgumentException("The path " + sharedPath +
-                                            " is not a correctly formed shared path (it does not start with \"\\\\\" or \"protocolName://\").");
-            return trimmedPath;
-        }
-
 
         public static string ConcatenatePaths(string startPath, string endPath)
         {

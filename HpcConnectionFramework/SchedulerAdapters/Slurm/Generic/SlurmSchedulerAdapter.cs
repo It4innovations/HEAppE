@@ -85,7 +85,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             }
             catch (SlurmException)
             {
-                throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Result, sshCommandBase64);
+                throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Error, command.Result, sshCommandBase64);
             }
         }
 

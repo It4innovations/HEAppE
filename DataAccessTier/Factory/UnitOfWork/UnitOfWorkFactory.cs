@@ -35,8 +35,7 @@ namespace HEAppE.DataAccessTier.Factory.UnitOfWork
                 case UnitOfWorkType.Database:
                     return new DatabaseUnitOfWorkFactory();
             }
-            throw new ArgumentException("Unit of work factory for type " + type +
-                                        " is not implemented. Check the switch in HaaSMiddleware.DataAccessLayer.Factory.UnitOfWork.AbstractUnitOfWorkFactory.CreateUnitOfWorkFactory(UnitOfWorkType type) method.");
+            throw new ArgumentException($"Unit of work factory for type {type} is not implemented. Check the switch in HaaSMiddleware.DataAccessLayer.Factory.UnitOfWork.AbstractUnitOfWorkFactory.CreateUnitOfWorkFactory(UnitOfWorkType type) method.");
         }
         #endregion
         #region Abstract Methods

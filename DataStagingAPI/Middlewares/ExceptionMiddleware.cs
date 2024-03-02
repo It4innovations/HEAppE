@@ -137,6 +137,7 @@ namespace HEAppE.DataStagingAPI
             _logger.Log(logLevel, exception, GetExceptionMessage(exception, _defaultCultureInfo));
 
             context.Response.ContentType = "application/json";
+            context.Response.StatusCode = problem.Status.Value;
             await context.Response.WriteAsJsonAsync(problem);
         }
 

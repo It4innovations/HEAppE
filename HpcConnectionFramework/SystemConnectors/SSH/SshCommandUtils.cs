@@ -1,7 +1,6 @@
 ﻿using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using log4net;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
@@ -13,7 +12,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <summary>
         /// Log4Net logger
         /// </summary>
-        static ILog _log;
+        private static readonly ILog _log;
         #endregion
         #region Constructors
         /// <summary>
@@ -33,7 +32,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <returns></returns>
         internal static SshCommandWrapper RunSshCommand(SshClientAdapter client, string command)
         {
-            var sshCommand = client.RunCommand(command);
+            SshCommandWrapper sshCommand = client.RunCommand(command);
             if (sshCommand.ExitStatus != 0)
             {
                 if (sshCommand.Error.Contains("No such file or directory"))
