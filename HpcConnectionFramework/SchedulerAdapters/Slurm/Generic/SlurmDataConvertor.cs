@@ -182,7 +182,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             {
                 foreach (var task in jobSpecification.Tasks)
                 {
-                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)}{globalJobParameters});echo $_{task.Id};_{task.Id}_parsed=$(set -- $_{task.Id};echo $4);");
+                    tasks.Add($"_{task.Id}=$({(string)ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd)}{globalJobParameters} 2>&1); if [ $? -gt 0 ]; then echo $_{task.Id}; exit 0; else echo $_{task.Id};_{task.Id}_parsed=$(set -- $_{task.Id};echo $4);fi;");
                 }
             }
 

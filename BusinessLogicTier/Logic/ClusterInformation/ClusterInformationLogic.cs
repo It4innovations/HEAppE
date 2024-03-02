@@ -54,7 +54,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
             if (project is null || project.IsDeleted)
             {
-                throw new InvalidRequestException("The specified project does not exist in the system.");
+                throw new RequestedObjectDoesNotExistException($"ProjectNotFound");
             }
 
             var clusterProjectIds = nodeType.Cluster.ClusterProjects.Where(x => x.ProjectId == projectId).Select(y=>y.ProjectId);

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HEAppE.Exceptions.Internal;
+using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -34,7 +35,7 @@ namespace HEAppE.CertificateGenerator.Generators
         {
             if (size % 512 != 0)
             {
-                throw new ArgumentException("Key Size of RSA cypher should be n * 1024!");
+                throw new SshClientArgumentException("KeyGenerationException", "RSA", "n * 1024");
             }
 
             _size = size;
@@ -50,7 +51,7 @@ namespace HEAppE.CertificateGenerator.Generators
         {
             if (size % 512 != 0)
             {
-                throw new ArgumentException("Key Size of RSA cypher should be n * 1024!");
+                throw new SshClientArgumentException("KeyGenerationException", "RSA", "n * 1024");
             }
 
             _size = size;
@@ -73,14 +74,14 @@ namespace HEAppE.CertificateGenerator.Generators
         /// <returns></returns>
         public override string ToPrivateKey()
         {
-            var builder = new StringBuilder();
-            builder.AppendLine("-----BEGIN RSA PRIVATE KEY-----");
-            var privateKeyBytes = Convert.ToBase64String(((RSA)_key).ExportRSAPrivateKey()).ToCharArray();
-            for (var i = 0; i < privateKeyBytes.Length; i += 64)
+            StringBuilder builder = new();
+            _ = builder.AppendLine("-----BEGIN RSA PRIVATE KEY-----");
+            char[] privateKeyBytes = Convert.ToBase64String(((RSA)_key).ExportRSAPrivateKey()).ToCharArray();
+            for (int i = 0; i < privateKeyBytes.Length; i += 64)
             {
-                builder.AppendLine(new string(privateKeyBytes, i, Math.Min(64, privateKeyBytes.Length - i)));
+                _ = builder.AppendLine(new string(privateKeyBytes, i, Math.Min(64, privateKeyBytes.Length - i)));
             }
-            builder.AppendLine("-----END RSA PRIVATE KEY-----");
+            _ = builder.AppendLine("-----END RSA PRIVATE KEY-----");
             return builder.ToString();
         }
 
@@ -90,14 +91,14 @@ namespace HEAppE.CertificateGenerator.Generators
         /// <returns></returns>
         public override string ToPublicKey()
         {
-            var builder = new StringBuilder();
-            builder.AppendLine("-----BEGIN PUBLIC KEY-----");
-            var publicKeyBytes = Convert.ToBase64String(((RSA)_key).ExportRSAPublicKey()).ToCharArray();
-            for (var i = 0; i < publicKeyBytes.Length; i += 64)
+            StringBuilder builder = new();
+            _ = builder.AppendLine("-----BEGIN PUBLIC KEY-----");
+            char[] publicKeyBytes = Convert.ToBase64String(((RSA)_key).ExportRSAPublicKey()).ToCharArray();
+            for (int i = 0; i < publicKeyBytes.Length; i += 64)
             {
-                builder.AppendLine(new string(publicKeyBytes, i, Math.Min(64, publicKeyBytes.Length - i)));
+                _ = builder.AppendLine(new string(publicKeyBytes, i, Math.Min(64, publicKeyBytes.Length - i)));
             }
-            builder.AppendLine("-----END PUBLIC KEY-----");
+            _ = builder.AppendLine("-----END PUBLIC KEY-----");
             return builder.ToString();
         }
 
@@ -108,11 +109,11 @@ namespace HEAppE.CertificateGenerator.Generators
         public override string ToPuTTYPublicKey()
         {
             byte[] sshrsaBytes = Encoding.Default.GetBytes("ssh-rsa");
-            var parameters = ((RSA)_key).ExportParameters(false);
+            RSAParameters parameters = ((RSA)_key).ExportParameters(false);
             byte[] n = parameters.Modulus;
             byte[] e = parameters.Exponent;
             string publicBase64Key;
-            using (var ms = new MemoryStream())
+            using (MemoryStream ms = new())
             {
                 ms.Write(ToBytes(sshrsaBytes.Length), 0, 4);
                 ms.Write(sshrsaBytes, 0, sshrsaBytes.Length);
