@@ -44,9 +44,10 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(58)]
         [ProducesResponseType(typeof(UserGroupListReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult ListAdaptorUserGroups(string sessionCode)
         {
             _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"ListAdaptorUserGroups\" Parameters: SessionCode: \"{sessionCode}\"");
@@ -71,9 +72,10 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(166)]
         [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             var model = new UserResourceUsageReportModel()
@@ -105,9 +107,10 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(168)]
         [ProducesResponseType(typeof(UserGroupReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             var model = new UserGroupResourceUsageReportModel()
@@ -138,9 +141,10 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(168)]
         [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult AggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode)
         {
             var model = new GetAggredatedUserGroupResourceUsageReportModel()
@@ -169,9 +173,10 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(86)]
         [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult ResourceUsageReportForJob(string sessionCode, long jobId)
         {
             var model = new ResourceUsageReportForJobModel()
@@ -198,9 +203,10 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(IEnumerable<JobStateAggregationReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult JobAgregationReport(string sessionCode)
         {
             _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"GetJobsStateAgregationReport\" Parameters: SessionCode: \"{sessionCode}\"");
@@ -222,9 +228,10 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(IEnumerable<UserGroupDetailedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult JobsDetailedReport(string sessionCode)
         {
             _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"JobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");

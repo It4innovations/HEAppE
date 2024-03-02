@@ -54,12 +54,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 
             if (job.Id != 0 && _unitOfWork.JobSpecificationRepository.GetById(job.Id) == null)
             {
-                _messageBuilder.AppendLine($"Job with Id {job.Id} does not exist in the system");
+                _ = _messageBuilder.AppendLine($"Job with Id {job.Id} does not exist in the system");
             }
 
             if (job.Tasks.Count <= 0)
             {
-                _messageBuilder.AppendLine("Job must have at least one task");
+                _ = _messageBuilder.AppendLine("Job must have at least one task");
             }
 
             //Task Dependency
@@ -79,13 +79,13 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 //Validation cluster in tasks
                 if (job.Tasks[i].CommandTemplate.ClusterNodeType.Cluster.Id != job.Cluster.Id)
                 {
-                    _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same HPC Cluster as job " +
+                    _ = _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same HPC Cluster as job " +
                                                $"\"{job.Name}\".");
                 }
 
                 if (job.FileTransferMethodId != job.Tasks[i].CommandTemplate.ClusterNodeType.FileTransferMethodId)
                 {
-                    _messageBuilder.AppendLine($"Command template \"{job.Tasks[i].CommandTemplate.Id}\" for task " +
+                    _ = _messageBuilder.AppendLine($"Command template \"{job.Tasks[i].CommandTemplate.Id}\" for task " +
                                                $"\"{job.Tasks[i].Name}\" has different file transfer method " +
                                                $"\"{job.Tasks[i].CommandTemplate.ClusterNodeType.FileTransferMethodId}\" " +
                                                $"than job file transfer method \"{job.FileTransferMethodId}\".");
@@ -93,7 +93,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 
                 if (job.Tasks[i].CommandTemplate.ClusterNodeType.Id != job.Tasks[i].ClusterNodeTypeId)
                 {
-                    _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same ClusterNodeTypeId " +
+                    _ = _messageBuilder.AppendLine($"Task \"{job.Tasks[i].Name}\" must used same ClusterNodeTypeId " +
                                                $"\"{job.Tasks[i].ClusterNodeTypeId}\" which is defined in CommandTemplate " +
                                                $"(ClusterNodeTypeId=\"{job.Tasks[i].CommandTemplate.ClusterNodeType.Id}\").");
                 }
@@ -101,17 +101,17 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 
                 if (job.Tasks[i].DependsOn != null && job.Tasks[i].DependsOn.Count > 0)
                 {
-                    List<TaskSpecification> prevTasks = new List<TaskSpecification>();
-                    foreach (var dependTask in job.Tasks[i].DependsOn)
+                    List<TaskSpecification> prevTasks = new();
+                    foreach (TaskDependency dependTask in job.Tasks[i].DependsOn)
                     {
                         if (dependTask.TaskSpecification == dependTask.ParentTaskSpecification)
                         {
                             //Inself reference
-                            _messageBuilder.AppendLine($"Depending task \"{dependTask.TaskSpecification.Name}\" for task " +
+                            _ = _messageBuilder.AppendLine($"Depending task \"{dependTask.TaskSpecification.Name}\" for task " +
                                                        $"\"{job.Tasks[i].Name}\" references inself.");
                         }
 
-                        var prevTask = prevTasks.FirstOrDefault(w => ReferenceEquals(w, dependTask.ParentTaskSpecification));
+                        TaskSpecification prevTask = prevTasks.FirstOrDefault(w => ReferenceEquals(w, dependTask.ParentTaskSpecification));
                         if (prevTask is null)
                         {
                             prevTasks.Add(dependTask.ParentTaskSpecification);
@@ -119,12 +119,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                         else
                         {
                             //Same dependency
-                            _messageBuilder.AppendLine($"Depending task \"{dependTask.ParentTaskSpecification.Name}\" for task " +
+                            _ = _messageBuilder.AppendLine($"Depending task \"{dependTask.ParentTaskSpecification.Name}\" for task " +
                                                        $"\"{job.Tasks[i].Name}\" twice same reference.");
                         }
 
                         bool previousTask = false;
-                        for (int j = (i - 1); j >= 0; j--)
+                        for (int j = i - 1; j >= 0; j--)
                         {
                             if (dependTask.ParentTaskSpecification == job.Tasks[j])
                             {
@@ -135,7 +135,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                         if (!previousTask)
                         {
                             //Circular dependency
-                            _messageBuilder.AppendLine(
+                            _ = _messageBuilder.AppendLine(
                                 $"Depending task \"{dependTask.ParentTaskSpecification.Name}\" for task \"{job.Tasks[i].Name}\" " +
                                 $"can reference only on previous task.");
                         }
@@ -148,14 +148,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         {
             if (task.Id != 0 && _unitOfWork.TaskSpecificationRepository.GetById(task.Id) == null)
             {
-                _messageBuilder.AppendLine($"Task with Id {task.Id} does not exist in the system");
+                _ = _messageBuilder.AppendLine($"Task with Id {task.Id} does not exist in the system");
             }
 
             ValidateWallTimeLimit(task);
 
             if (task.CommandTemplate == null)
             {
-                _messageBuilder.AppendLine($"Command Template does not exist.");
+                _ = _messageBuilder.AppendLine($"Command Template does not exist.");
                 return;
             }
 
@@ -165,18 +165,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                     (task.CommandParameterValues == null ||
                      !task.CommandParameterValues.Any(w => w.TemplateParameter == parameter)))
                 {
-                    _messageBuilder.AppendLine($"Command Template parameter \"{parameter.Identifier}\" does not have a value.");
+                    _ = _messageBuilder.AppendLine($"Command Template parameter \"{parameter.Identifier}\" does not have a value.");
                 }
             }
 
             if (task.ClusterNodeTypeId != task.CommandTemplate.ClusterNodeTypeId)
             {
-                _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
+                _ = _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
             }
 
             if (!task.CommandTemplate.IsEnabled)
             {
-                _messageBuilder.AppendLine($"Task {task.Name} has specified deleted CommandTemplateId \"{task.CommandTemplate.Id}\"");
+                _ = _messageBuilder.AppendLine($"Task {task.Name} has specified deleted CommandTemplateId \"{task.CommandTemplate.Id}\"");
             }
 
             if (task.CommandTemplate.IsGeneric)
@@ -188,24 +188,24 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
             {
                 if (task.CommandTemplate.ProjectId != task.JobSpecification.ProjectId)
                 {
-                    _messageBuilder.AppendLine($"Task {task.Name} has specified CommandTemplateId \"{task.CommandTemplate.Id}\" which is not referenced to ProjectId \"{task.JobSpecification.ProjectId}\" at JobSpecification");
+                    _ = _messageBuilder.AppendLine($"Task {task.Name} has specified CommandTemplateId \"{task.CommandTemplate.Id}\" which is not referenced to ProjectId \"{task.JobSpecification.ProjectId}\" at JobSpecification");
                 }
             }
         }
 
         private void ValidateWallTimeLimit(TaskSpecification task)
         {
-            var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
+            ClusterNodeType clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
                 .GetClusterNodeTypeById(task.ClusterNodeTypeId);
             if (clusterNodeType == null)
             {
-                _messageBuilder.AppendLine($"Requested ClusterNodeType with Id {task.ClusterNodeTypeId} does not exist in the system");
+                _ = _messageBuilder.AppendLine($"Requested ClusterNodeType with Id {task.ClusterNodeTypeId} does not exist in the system");
                 return;
             }
 
             if (task.WalltimeLimit.HasValue && task.WalltimeLimit.Value > clusterNodeType.MaxWalltime)
             {
-                _messageBuilder.AppendLine(
+                _ = _messageBuilder.AppendLine(
                     $"Defined task {task.Name} has set higher WalltimeLimit ({task.WalltimeLimit.Value}) than the maximum on this cluster node, " +
                     $"maximal WallTimeLimit is {clusterNodeType.MaxWalltime}");
             }
@@ -213,26 +213,26 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 
         private void ValidateRequestedProject(JobSpecification job)
         {
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(job.ClusterId, job.ProjectId);
+            ClusterProject clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(job.ClusterId, job.ProjectId);
             if (clusterProject == null || clusterProject.IsDeleted)
             {
-                _messageBuilder.AppendLine($"Requested project with Id {job.ProjectId} has no reference to cluster with Id {job.ClusterId}.");
+                _ = _messageBuilder.AppendLine($"Requested project with Id {job.ProjectId} has no reference to cluster with Id {job.ClusterId}.");
             }
         }
 
         private void ValidateRequestedCluster(JobSpecification job)
         {
-            var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
+            Cluster clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
                 .GetClusterById(job.ClusterId);
 
             if (clusterNodeType == null)
             {
-                _messageBuilder.AppendLine($"Requested Cluster with Id {job.ClusterId} does not exist in the system");
+                _ = _messageBuilder.AppendLine($"Requested Cluster with Id {job.ClusterId} does not exist in the system");
             }
 
             if (job.FileTransferMethod?.ClusterId != job.ClusterId)
             {
-                _messageBuilder.AppendLine($"Job {job.Name} has wrong FileTransferMethod");
+                _ = _messageBuilder.AppendLine($"Job {job.Name} has wrong FileTransferMethod");
             }
         }
 
@@ -240,9 +240,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         {
             Dictionary<string, string> genericCommandParametres = new();
             //Regex.Matches(task.CommandTemplate.CommandParameters, @"%%\{([\w\.]+)\}", RegexOptions.Compiled)
-            foreach (var commandParameterValue in task.CommandParameterValues)
+            foreach (CommandTemplateParameterValue commandParameterValue in task.CommandParameterValues)
             {
-                var key = commandParameterValue.CommandParameterIdentifier;
+                string key = commandParameterValue.CommandParameterIdentifier;
                 string value = commandParameterValue.Value;
                 if (!string.IsNullOrEmpty(value))
                 {
@@ -255,22 +255,22 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 
             if (!scriptPathParameterName.Success)
             {
-                _messageBuilder.AppendLine($"CommandTemplate is wrong");
+                _ = _messageBuilder.AppendLine($"CommandTemplate is wrong");
             }
             string clusterPathToUserScript = genericCommandParametres.FirstOrDefault(x => x.Key == scriptPathParameterName.Groups[1].Value).Value;
             if (string.IsNullOrWhiteSpace(clusterPathToUserScript))
             {
-                _messageBuilder.AppendLine($"User script path parameter, for generic command template, does not have a value.");
+                _ = _messageBuilder.AppendLine($"User script path parameter, for generic command template, does not have a value.");
             }
 
-            var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster, clusterPathToUserScript, task.JobSpecification.ProjectId);
+            IEnumerable<string> scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster, clusterPathToUserScript, task.JobSpecification.ProjectId);
 
             foreach (string parameter in scriptDefinedParametres)
             {
                 if (!genericCommandParametres.Select(x => x.Value).Any(x => Regex.IsMatch(x, $"{parameter}=\\\\\".+\\\\\"")))
                 {
 
-                    _messageBuilder.AppendLine($"Task specification does not contain '{parameter}' parameter.");
+                    _ = _messageBuilder.AppendLine($"Task specification does not contain '{parameter}' parameter.");
                 }
             }
         }
@@ -282,14 +282,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 Project project = _unitOfWork.ProjectRepository.GetById(projectId);
                 if (project is null && project.IsDeleted)
                 {
-                    throw new InputValidationException($"Project with ID '{projectId}' is not present in the system");
+                    throw new RequestedObjectDoesNotExistException("ProjectNotFound");
                 }
-                var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
+                ClusterAuthenticationCredentials serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
                 return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
             }
             catch (Exception)
             {
-                _messageBuilder.AppendLine($"Unable to read or locate script at '{userScriptPath}'.");
+                _ = _messageBuilder.AppendLine($"Unable to read or locate script at '{userScriptPath}'.");
                 return Enumerable.Empty<string>();
             }
         }

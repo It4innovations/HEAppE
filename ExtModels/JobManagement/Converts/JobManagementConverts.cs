@@ -54,10 +54,6 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                                 ParentTaskSpecification = tasksSpecs[dependentTask]
                             });
                         }
-                        else
-                        {
-                            //throw new InputValidationException($"Depending task \"{dependentTask.Name}\" for task \"{taskExt.Name}\" contains wrong task dependency.");
-                        }
                     }
                     convertedTaskSpec.DependsOn = taskDependency;
                 }

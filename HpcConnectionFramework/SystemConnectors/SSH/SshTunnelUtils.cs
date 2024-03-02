@@ -1,4 +1,5 @@
-﻿using HEAppE.Exceptions.Internal;
+﻿using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using Renci.SshNet;
@@ -52,7 +53,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                     var allocatedPortsForJob = allocatedAddressWithPorts[nodeHost];
                     if (allocatedPortsForJob.FirstOrDefault(f => f.RemotePort == nodePort).LocalPort is null)
                     {
-                        throw new UnableToCreateTunnelException("PortAlreadyInUse", taskId, nodeHost, nodePort);
+                        throw new UnableToCreateConnectionException("PortAlreadyInUse", taskId, nodeHost, nodePort);
                     }
                     else
                     {

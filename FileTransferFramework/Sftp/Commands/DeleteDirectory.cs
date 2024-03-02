@@ -1,4 +1,5 @@
-﻿using System;
+﻿using HEAppE.Exceptions.Internal;
+using System;
 
 namespace HEAppE.FileTransferFramework.Sftp.Commands
 {
@@ -19,7 +20,7 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
         #region Methods
         public void ProcessResult(SftpCommandResult result)
         {
-            throw new Exception("ProcessResult method is not defined!");
+            throw new SftpClientException("NotSupportedAuthentication", "ProcessResult");
         }
         #endregion
     }

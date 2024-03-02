@@ -48,8 +48,7 @@ namespace HEAppE.BusinessLogicTier.Factory
         case BusinessLogicType.Poco:
         return new PocoLogicFactory();
       }
-      throw new ArgumentException("Business logic factory for type " + type +
-                                  " is not implemented. Check the switch in HaaSMiddleware.BusinessLogicTier.Factory.AbstracLogicFactory.CreateLogicFactory(BusinessLogicType type) method.");
+      throw new ArgumentException($"Business logic factory for type {type} is not implemented. Check the switch in HaaSMiddleware.BusinessLogicTier.Factory.AbstracLogicFactory.CreateLogicFactory(BusinessLogicType type) method.");
     }
     #endregion
 
