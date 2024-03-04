@@ -30,11 +30,7 @@ namespace HEAppE.FileTransferFramework.Sftp.Commands
         public IEnumerable<SftpFile> ProcessResult(SftpCommandResult result)
         {
             var text = Regex.Replace(result.Output, @"\s{2,}", " ");
-            var lines = Regex.Split(text, "\r\n|\r|\n").ToList();
-
-            //Remove first (command) and last line
-            lines.RemoveAt(0);
-            lines.RemoveAt(lines.Count - 1);
+            var lines = Regex.Split(text, "\r\n|\r|\n").Where(w => !string.IsNullOrEmpty(w) && !w.StartsWith("sftp>")).ToList();
 
             var files = new List<SftpFile>();
             foreach (var line in lines)
