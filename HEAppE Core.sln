@@ -43,7 +43,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Exceptions", "Exceptions\Ex
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4D73689B-CCF2-41A2-BE02-3E9EEE43724A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DataAccessTier.Tests", "Tests\DataAccessTier.Tests\DataAccessTier.Tests.csproj", "{9A2D593C-B618-4737-B7AB-2978F51D9E9E}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataAccessTier.Tests", "Tests\DataAccessTier.Tests\DataAccessTier.Tests.csproj", "{9A2D593C-B618-4737-B7AB-2978F51D9E9E}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BusinessLogicTier.Tests", "Tests\BusinessLogicTier.Logic.Managment.Tests\BusinessLogicTier.Tests.csproj", "{E39169CD-C647-4BC1-97C3-94D08F49A68F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -131,12 +133,17 @@ Global
 		{9A2D593C-B618-4737-B7AB-2978F51D9E9E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9A2D593C-B618-4737-B7AB-2978F51D9E9E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9A2D593C-B618-4737-B7AB-2978F51D9E9E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E39169CD-C647-4BC1-97C3-94D08F49A68F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E39169CD-C647-4BC1-97C3-94D08F49A68F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E39169CD-C647-4BC1-97C3-94D08F49A68F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E39169CD-C647-4BC1-97C3-94D08F49A68F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{9A2D593C-B618-4737-B7AB-2978F51D9E9E} = {4D73689B-CCF2-41A2-BE02-3E9EEE43724A}
+		{E39169CD-C647-4BC1-97C3-94D08F49A68F} = {4D73689B-CCF2-41A2-BE02-3E9EEE43724A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {A9A30F62-3C31-4DCA-8F22-DBEF673E7EEF}

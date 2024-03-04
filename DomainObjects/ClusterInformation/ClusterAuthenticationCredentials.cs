@@ -69,18 +69,18 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         public void ImportVaultData(ClusterProjectCredentialVaultPart data)
         {
-            var fromBase64PK = Encoding.Unicode.GetString(Convert.FromBase64String(data.PrivateKey));
+            var fromBase64PK = Encoding.UTF8.GetString(Convert.FromBase64String(data.PrivateKey));
             _vaultData = data with { PrivateKey = fromBase64PK };
         }
 
-        public ClusterProjectCredentialVaultPart ExportVaultData()
+        public ClusterProjectCredentialVaultPart ExportVaultData(bool withPrivateKeyEncode = true)
         {
             if (_vaultData.Id != Id)
             {
-                var base64PK = Convert.ToBase64String(Encoding.Unicode.GetBytes(PrivateKey));
-                _vaultData = _vaultData with { Id = Id, PrivateKey = base64PK };
+                _vaultData = _vaultData with { Id = Id };
             }
-            return _vaultData;
+            var base64PK = Convert.ToBase64String(Encoding.UTF8.GetBytes(PrivateKey.Replace("\r\n", "\n"))); // Replace CRLF with LF
+            return withPrivateKeyEncode ? _vaultData with { PrivateKey = base64PK } : _vaultData;
         }
         #endregion
     }

@@ -157,7 +157,6 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             string passphrase, string comment = null)
         {
             using var fileStream = new StringReader(privateKey);
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
             var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
             var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
             var publicKey = keyPair.Public;

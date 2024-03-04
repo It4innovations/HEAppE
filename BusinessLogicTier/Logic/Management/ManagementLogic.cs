@@ -458,7 +458,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 {
                     //get existing secure key
                     var existingKey = existingCredentials.FirstOrDefault();
-                    if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKeyFile))
+                    if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKey))
                     {
                         continue;
                     }
@@ -740,13 +740,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             List<long> noAccessClusterIds = new();
-            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username).Where(x=>!x.IsDeleted))
+            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username).Where(x => !x.IsDeleted))
             {
                 if (clusterAuthCredentials.IsDeleted)
                 {
                     continue;
                 }
-                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject).Where(x=>!x.IsDeleted))
+                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject).Where(x => !x.IsDeleted))
                 {
                     if (clusterAuthCredentials.IsDeleted || clusterProjectCredential.IsDeleted || clusterProjectCredential.ClusterProject.IsDeleted)
                     {
@@ -755,7 +755,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
-                    
+
                     HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
                     if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
                     {

@@ -42,6 +42,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 
         public override void Insert(ClusterAuthenticationCredentials entity)
         {
+            _vaultConnector.SetClusterAuthenticationCredentials(entity.ExportVaultData());
             base.Insert(entity);
         }
 
