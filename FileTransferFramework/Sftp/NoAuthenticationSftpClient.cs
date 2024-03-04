@@ -13,14 +13,16 @@ namespace HEAppE.FileTransferFramework.Sftp
         #region Instances
         private readonly string _masterNodeName;
         private readonly string _userName;
+        private readonly int _port;
         private readonly ILogger _logger;
         #endregion
         #region Constructors
-        public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string userName)
-            : base(new ConnectionInfo(masterNodeName, userName, new PasswordAuthenticationMethod(userName, string.Empty)))
+        public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string userName, int? port)
+            : base(new ConnectionInfo(masterNodeName, port ?? 22, userName, new PasswordAuthenticationMethod(userName, string.Empty)))
         {
             _masterNodeName = masterNodeName;
             _userName = userName;
+            _port = port ?? 22;
             _logger = logger;
 
             CheckInputParameters();
@@ -42,14 +44,9 @@ namespace HEAppE.FileTransferFramework.Sftp
         #region Local Methods
         private SftpCommandResult RunCommand(string command)
         {
-            string batchName = "/sftp/" + Guid.NewGuid().ToString();
-            File.WriteAllText(batchName, command);
-
-            if (string.IsNullOrWhiteSpace(batchName)) { throw new SftpClientArgumentException("NullArgument", "commandText"); }
-
             var sshCommand = new SftpCommandResult
             {
-                CommandText = batchName
+                CommandText = command
             };
 
             string output = string.Empty;
@@ -58,14 +55,18 @@ namespace HEAppE.FileTransferFramework.Sftp
             {
                 proc.StartInfo.FileName = "sftp";
                 proc.StartInfo.WorkingDirectory = "/usr/bin/";
-                proc.StartInfo.Arguments = $"-b {batchName} {_userName}@{_masterNodeName}";
-                _logger.LogInformation(proc.StartInfo.Arguments);
+                proc.StartInfo.Arguments = $"-P {_port} -q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName}";
                 proc.StartInfo.UseShellExecute = false;
+                proc.StartInfo.RedirectStandardInput = true;
                 proc.StartInfo.RedirectStandardOutput = true;
                 proc.StartInfo.RedirectStandardError = true;
+                proc.StartInfo.CreateNoWindow = true;
                 proc.EnableRaisingEvents = true;
-                proc.Start();
 
+                _logger.LogInformation(proc.StartInfo.Arguments);
+                proc.Start();
+                proc.StandardInput.WriteLine(command);
+                proc.StandardInput.WriteLine("quit");
                 output = proc.StandardOutput.ReadToEnd();
                 error = proc.StandardError.ReadToEnd();
 
@@ -79,8 +80,6 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
 
             sshCommand.Output = output;
-            File.Delete(batchName);
-
             return sshCommand;
         }
 
