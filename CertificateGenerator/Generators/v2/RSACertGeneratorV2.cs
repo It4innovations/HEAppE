@@ -117,6 +117,30 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             pemWriter.Writer.Flush();
             return stringWriter.ToString();
         }
+        public new static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKeyPath,
+            string passphrase, string comment= null)
+        {
+            var fileStream = System.IO.File.OpenText(privateKeyPath);
+            var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
+            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
+            var publicKey = keyPair.Public;
+            byte[] publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+            string base64PublicKey = Convert.ToBase64String(publicKeyBytes);
+
+            StringBuilder formattedPublicKey = new StringBuilder();
+            formattedPublicKey.Append("ssh-rsa ");
+            formattedPublicKey.Append(base64PublicKey);
+            
+            if (!string.IsNullOrEmpty(comment))
+            {
+                formattedPublicKey.Append($" {comment}");
+            }
+            else
+            {
+                formattedPublicKey.Append($" {_publicComment}");
+            }
+            return formattedPublicKey.ToString();
+        }
 
         /// <summary>
         /// Converts the public key to PEM format.

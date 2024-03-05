@@ -26,7 +26,7 @@ namespace HEAppE.DomainObjects.JobManagement
 
         [Required]
         public bool IsDeleted { get; set; } = false;
-        public virtual List<ClusterProjectCredentials> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredentials>();
+        public virtual List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredential>();
 
         public override string ToString()
         {

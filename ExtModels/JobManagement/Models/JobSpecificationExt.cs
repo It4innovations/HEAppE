@@ -4,10 +4,13 @@ using System.Runtime.Serialization;
 namespace HEAppE.ExtModels.JobManagement.Models
 {
     [DataContract(Name = "JobSpecificationExt")]
-    public abstract class JobSpecificationExt
+    public class JobSpecificationExt
     {
         [DataMember(Name = "Name"), StringLength(50)]
         public string Name { get; set; }
+        
+        [DataMember(Name = "ProjectId", IsRequired = true)]
+        public long ProjectId { get; set; }
 
         [DataMember(Name = "WaitingLimit")]
         public int? WaitingLimit { get; set; }
@@ -37,17 +40,16 @@ namespace HEAppE.ExtModels.JobManagement.Models
         public long? FileTransferMethodId { get; set; }
 
         [DataMember(Name = "IsExtraLong")]
-        public bool? IsExtraLong { get; set; } = false;
+        public bool IsExtraLong { get; set; } = false;
 
         [DataMember(Name = "EnvironmentVariables")]
         public EnvironmentVariableExt[] EnvironmentVariables { get; set; }
 
         [DataMember(Name = "Tasks")]
         public TaskSpecificationExt[] Tasks { get; set; }
-
         public override string ToString()
         {
-            return $"JobSpecificationExt(name={Name}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
+            return $"JobSpecificationExt(name={Name}; project={ProjectId}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
         }
     }
 }

@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
@@ -11,6 +12,7 @@ using System.Globalization;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 {
@@ -25,6 +27,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// </summary>
         protected ConversionAdapterFactory _conversionAdapterFactory;
 
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected static readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
+        
         /// <summary>
         /// Logger
         /// </summary>
@@ -74,7 +81,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="taskSpecification">Task specification</param>
         /// <param name="schedulerAllocationCmd">Scheduler allocation cmd</param>
         /// <returns></returns>
-        /// <exception cref="ApplicationException"></exception>
+        /// <exception cref="SchedulerException"></exception>
         public virtual object ConvertTaskSpecificationToTask(JobSpecification jobSpecification, TaskSpecification taskSpecification, object schedulerAllocationCmd)
         {
             ISchedulerTaskAdapter taskAdapter = _conversionAdapterFactory.CreateTaskAdapter(schedulerAllocationCmd);
@@ -91,14 +98,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
             // Do not change!!! Task name on the cluster is set as ID of the used task specification to enable pairing of cluster task info with DB task info.
             taskAdapter.Name = taskSpecification.Id.ToString(CultureInfo.InvariantCulture);
-            taskAdapter.Project = taskSpecification.Project.AccountingString;
+            taskAdapter.Project = taskSpecification.Project.UseAccountingStringForScheduler ? taskSpecification.Project.AccountingString : null;
 
             if (Convert.ToInt32(taskSpecification.WalltimeLimit) > 0)
             {
                 taskAdapter.Runtime = Convert.ToInt32(taskSpecification.WalltimeLimit);
             }
 
-            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
+            string workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification,_scripts.SubExecutionsPath);
 
             string stdErrFilePath = FileSystemUtils.ConcatenatePaths(workDirectory, taskSpecification.StandardErrorFile);
             taskAdapter.StdErrFilePath = workDirectory.Equals(stdErrFilePath) ? string.Empty : stdErrFilePath;
@@ -118,7 +125,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
             taskAdapter.ClusterAllocationName = taskSpecification.ClusterNodeType.ClusterAllocationName;
             taskAdapter.CpuHyperThreading = taskSpecification.CpuHyperThreading ?? false;
 
-            CommandTemplate template = taskSpecification.CommandTemplate ?? throw new ApplicationException(@$"Command Template ""{taskSpecification.CommandTemplate.Name}"" for task ""{taskSpecification.Name}"" does not exist in the adaptor configuration.");
+            CommandTemplate template = taskSpecification.CommandTemplate ?? throw new SchedulerException("NotExistingCommandTemplate", taskSpecification.CommandTemplate.Name, taskSpecification.Name);
 
             // Extended allocation parameters from command template
             taskAdapter.ExtendedAllocationCommand = template.ExtendedAllocationCommand;
@@ -229,7 +236,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
 
                     if (templateParameter.Query == "Task.Workdir")
                     {
-                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification);
+                        templateParameterValueFromQuery = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.SubExecutionsPath);
                     }
 
                     if (templateParameter.Query.StartsWith("Task."))
@@ -248,7 +255,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="commandLine">Command line</param>
         /// <param name="templateParameters">Template parameters</param>
         /// <returns></returns>
-        /// <exception cref="ApplicationException"></exception>
+        /// <exception cref="SchedulerException"></exception>
         protected static string ReplaceTemplateDirectivesInCommand(string commandLine, Dictionary<string, string> templateParameters)
         {
             if (string.IsNullOrEmpty(commandLine))
@@ -263,8 +270,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 {
                     return templateParameters[parameterIdentifier];
                 }
-                throw new ApplicationException(@$"Parameter ""{parameterIdentifier}"" in the command template ""{commandLine}"" 
-                                                could not be found either as a property of the task, nor as an additional parameter.");
+                throw new SchedulerException("NotValidCommandTemplateParameter", parameterIdentifier, commandLine);
             });
             return replacedCommandLine;
         }
@@ -374,10 +380,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                         }
                 }
             }
-            catch (Exception)
-            {
-                _log.Error($"Error occurred when object was converting property type: \"{type}\" for input data: \"{obj}\" with format: \"{format}\"");
-                throw;
+            catch
+            { 
+                throw new SchedulerException("ConvertingError", type, obj, format);
             }
         }
         #endregion

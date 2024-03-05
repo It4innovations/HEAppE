@@ -1,4 +1,5 @@
-﻿using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+﻿using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -8,9 +9,8 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
     {
         Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials);
         Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials, long projectId);
-        IEnumerable<ResourceUsageExt> GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode);
         IEnumerable<ProjectResourceUsageExt> CurrentUsageAndLimitationsForCurrentUserByProject(string sessionCode);
         IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode);
-        bool ValidateUserPermissions(string sessionCode);
+        bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole);
     }
 }

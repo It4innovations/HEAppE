@@ -1,11 +1,11 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using log4net;
 using Renci.SshNet;
 using System;
@@ -62,7 +62,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="SlurmException"></exception>
         public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var schedulerJobIdClusterAllocationNamePairs = new List<(string ScheduledJobId, string ClusterAllocationName)>();
@@ -83,11 +83,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
 
                 return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, schedulerJobIdClusterAllocationNamePairs);
             }
-            catch (FormatException e)
+            catch (SlurmException)
             {
-                throw new Exception(@$"Exception thrown when submitting a job: ""{jobSpecification.Name}"" to the cluster: ""{jobSpecification.Cluster.Name}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script error message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommandBase64}"".\n", e);
+                throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Error, command.Result, sshCommandBase64);
             }
         }
 
@@ -162,11 +160,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
                 return _convertor.ReadQueueActualInformation(nodeType, command.Result);
             }
-            catch (FormatException e)
+            catch (SlurmException)
             {
-                throw new Exception($@"Exception thrown when retrieving usage of Cluster node: ""{nodeType.Name}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for queue usage: ""{sshCommand}""\n", e);
+                throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand);
             }
         }
 
@@ -194,11 +190,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
                                                   .ToList(); ;
             }
-            catch (FormatException e)
+            catch (SlurmException)
             {
-                throw new Exception($@"Exception thrown when retrieving allocation nodes used by running task (HPC job): ""{taskInfo.ScheduledJobId}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommand}""\n", e);
+                throw new SlurmException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result, command.Error, sshCommand);
             }
         }
 
@@ -239,9 +233,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
 
         /// <summary>
@@ -299,26 +296,37 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
         }
 
         /// <summary>
-        /// Get tunnels informations
+        /// Get tunnels information
         /// </summary>
         /// <param name="taskInfo">Task info</param>
         /// <param name="nodeHost">Cluster node address</param>
-        /// <returns></returns>
         public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
-        #endregion
+
+        /// <summary>
+        /// Initialize Cluster Script Directory
+        /// </summary>
+        /// <param name="schedulerConnectionConnection">Connector</param>
+        /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+        /// <param name="localBasepath">Cluster execution path</param>
+        /// <param name="isServiceAccount">Is servis account</param>
+        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        {
+            _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
+        }
+        #endregion     
         #endregion
         #region Private Methods
         /// <summary>
-        /// Get actual tasks (HPC jobs) informations
+        /// Get actual tasks (HPC jobs) information
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="cluster">Cluster"</param>
         /// <param name="schedulerJobIdClusterAllocationNamePairs">Scheduler job id´s pair</param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="SlurmException"></exception>
         private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<(string ScheduledJobId, string ClusterAllocationName)> schedulerJobIdClusterAllocationNamePairs)
         {
             SshCommandWrapper command = null;
@@ -343,11 +351,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
                 return submittedTasksInfo;
             }
-            catch (FormatException e)
+            catch (SlurmException)
             {
-                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList())}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommand}""\n", e);
+                throw new SlurmException("GetActualTasksInfo", string.Join(", ", 
+                    schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()), command.Result, command.Error, sshCommand);
             }
         }
         #endregion

@@ -9,7 +9,7 @@
         /// <summary>
         /// Account rotation
         /// </summary>
-        public static bool ClusterAccountRotation { get; set; }
+        public static bool SharedAccountsPoolMode { get; set; }
 
         /// <summary>
         /// Limit of generated file transfer key per job

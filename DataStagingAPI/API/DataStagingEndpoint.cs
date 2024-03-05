@@ -61,7 +61,7 @@ namespace HEAppE.DataStagingAPI.API
               });
 
 
-            group.MapGet("ListChangedFilesForJob", ([FromQuery] string sessionCode, [FromQuery] long submittedJobInfoId, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator) =>
+            group.MapGet("ListChangedFilesForJob", ([FromQuery(Name = "SessionCode")] string sessionCode, [FromQuery(Name = "SubmittedJobInfoId")] long submittedJobInfoId, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator) =>
             {
                 var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
                 validator.ValidateAndThrow(model);

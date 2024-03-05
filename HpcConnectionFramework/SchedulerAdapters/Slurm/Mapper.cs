@@ -21,34 +21,34 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
             return taskState switch
             {
                 SlurmTaskState.Requeued
-                 or SlurmTaskState.Pending
-                 or SlurmTaskState.RequeueHold
-                 or SlurmTaskState.RequeueFed
-                 or SlurmTaskState.ResvDelHold => TaskState.Queued,
+                    or SlurmTaskState.Pending
+                    or SlurmTaskState.RequeueHold
+                    or SlurmTaskState.RequeueFed
+                    or SlurmTaskState.ResvDelHold => TaskState.Queued,
 
                 SlurmTaskState.Configuring
-                 or SlurmTaskState.StageOut
-                 or SlurmTaskState.Signaling => TaskState.Configuring,
+                    or SlurmTaskState.StageOut
+                    or SlurmTaskState.Signaling => TaskState.Configuring,
 
                 SlurmTaskState.Completed
-                 or SlurmTaskState.SpecialExit => TaskState.Finished,
+                    or SlurmTaskState.SpecialExit => TaskState.Finished,
 
                 SlurmTaskState.Stopped
-                 or SlurmTaskState.Canceled
-                 or SlurmTaskState.Suspended
-                 or SlurmTaskState.Resizing => TaskState.Canceled,
+                    or SlurmTaskState.Canceled
+                    or SlurmTaskState.Suspended
+                    or SlurmTaskState.Resizing => TaskState.Canceled,
 
                 SlurmTaskState.Running
-                 or SlurmTaskState.Completing => TaskState.Running,
+                    or SlurmTaskState.Completing => TaskState.Running,
 
                 SlurmTaskState.Failed
-                 or SlurmTaskState.BootFailed
-                 or SlurmTaskState.NodeFail
-                 or SlurmTaskState.Deadline
-                 or SlurmTaskState.Timeout
-                 or SlurmTaskState.OutOfMemory
-                 or SlurmTaskState.Preempted
-                 or SlurmTaskState.Revoked => TaskState.Failed,
+                    or SlurmTaskState.BootFailed
+                    or SlurmTaskState.NodeFail
+                    or SlurmTaskState.Deadline
+                    or SlurmTaskState.Timeout
+                    or SlurmTaskState.OutOfMemory
+                    or SlurmTaskState.Preempted
+                    or SlurmTaskState.Revoked => TaskState.Failed,
 
                 _ => TaskState.Failed
             };
@@ -61,32 +61,57 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
         /// <returns></returns>
         internal static IEnumerable<string> GetAllocatedNodes(string responseMessage)
         {
-            var allocatedNodesForJob = new List<string>();
-            foreach (Match match in Regex.Matches(responseMessage, @"(?<AllocationNode>[^,]+)", RegexOptions.IgnoreCase | RegexOptions.Compiled))
+            List<string> nodes = new List<string>();
+            string pattern = @"([^\[,]+)(\[[^\]]+\])?";
+
+            foreach (Match match in Regex.Matches(responseMessage, pattern))
             {
-                if (match.Success && match.Groups.Count == 2)
+                string nodeName = match.Groups[1].Value;
+                string rangePart = match.Groups[2].Value;
+
+                if (string.IsNullOrEmpty(rangePart))
                 {
-                    var allocationValue = match.Groups.GetValueOrDefault("AllocationNode").Value;
-                    if (allocationValue.Contains("[") && allocationValue.Contains("]"))
-                    {
-                        int openBracketIndex = allocationValue.IndexOf('[');
-                        int closeBracketIndex = allocationValue.IndexOf(']');
-                        var subAllocationValue = allocationValue[..openBracketIndex];
-                        var rangeArrayIndexes = allocationValue[(openBracketIndex + 1)..closeBracketIndex].Split("-")
-                                                                                                           .Select(s => int.Parse(s))
-                                                                                                           .ToArray();
-                        for (int i = rangeArrayIndexes[0]; i <= rangeArrayIndexes[1]; i++)
-                        {
-                            allocatedNodesForJob.Add(subAllocationValue + i.ToString("D2"));
-                        }
-                    }
-                    else
-                    {
-                        allocatedNodesForJob.Add(allocationValue);
-                    }
+                    nodes.Add(nodeName);
+                }
+                else
+                {
+                    List<string> expandedNodes = ExpandRange(nodeName, rangePart);
+                    nodes.AddRange(expandedNodes);
                 }
             }
-            return allocatedNodesForJob;
+
+            return nodes;
+        }
+
+        static List<string> ExpandRange(string nodeName, string rangePart)
+        {
+            List<string> expandedNodes = new List<string>();
+
+            string[] ranges = rangePart.Trim('[', ']').Split(',');
+
+            foreach (string range in ranges)
+            {
+                if (range.Contains("-"))
+                {
+                    string[] parts = range.Split('-');
+                    int start = int.Parse(parts[0]);
+                    int end = int.Parse(parts[1]);
+
+                    int paddingLength = parts[0].Length; // Get the length of the first part
+
+                    for (int i = start; i <= end; i++)
+                    {
+                        string paddedI = i.ToString($"D{paddingLength}");
+                        expandedNodes.Add($"{nodeName}{paddedI}");
+                    }
+                }
+                else
+                {
+                    expandedNodes.Add($"{nodeName}{range}");
+                }
+            }
+
+            return expandedNodes;
         }
     }
 }

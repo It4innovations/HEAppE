@@ -1,12 +1,11 @@
 ﻿using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
-using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement.Exceptions;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
@@ -44,54 +43,54 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 
         public async Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials)
         {
-            try
+            AuthenticationCredentials credentialsIn;
+            if (credentials is PasswordCredentialsExt)
             {
-                AuthenticationCredentials credentialsIn;
-                if (credentials is PasswordCredentialsExt)
+                credentialsIn = new PasswordCredentials
                 {
-                    credentialsIn = new PasswordCredentials
-                    {
-                        Username = credentials.Username,
-                        Password = ((PasswordCredentialsExt)credentials).Password
-                    };
-                }
-                else if (credentials is DigitalSignatureCredentialsExt)
-                {
-                    credentialsIn = new DigitalSignatureCredentials
-                    {
-                        Username = credentials.Username,
-                        DigitalSignature = Array.ConvertAll(((DigitalSignatureCredentialsExt)credentials).DigitalSignature, b => unchecked((byte)b)),
-                        SignedContent = StringUtils.CombineContentWithSalt(credentials.Username)
-                    };
-                }
-                else if (credentials is OpenIdCredentialsExt openIdCredentials)
-                {
-                    //Username is extracted from the access_token later.
-                    credentialsIn = new OpenIdCredentials
-                    {
-                        OpenIdAccessToken = openIdCredentials.OpenIdAccessToken,
-                    };
-                }
-                else
-                {
-                    var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
-                    _log.Error(message);
-                    throw new ArgumentException(message);
-                }
-
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    IUserAndLimitationManagementLogic userLogic =
-                        LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    var result = await userLogic.AuthenticateUserAsync(credentialsIn);
-                    return result;
-                }
+                    Username = credentials.Username,
+                    Password = ((PasswordCredentialsExt)credentials).Password
+                };
             }
-            catch (Exception exc)
+            else if (credentials is DigitalSignatureCredentialsExt)
             {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                credentialsIn = new DigitalSignatureCredentials
+                {
+                    Username = credentials.Username,
+                    DigitalSignature = Array.ConvertAll(((DigitalSignatureCredentialsExt)credentials).DigitalSignature, b => unchecked((byte)b)),
+                    SignedContent = StringUtils.CombineContentWithSalt(credentials.Username)
+                };
             }
+            else if (credentials is OpenIdCredentialsExt openIdCredentials)
+            {
+                //Username is extracted from the access_token later.
+                credentialsIn = new OpenIdCredentials
+                {
+                    OpenIdAccessToken = openIdCredentials.OpenIdAccessToken,
+                };
+            }
+            else if (credentials is LexisCredentialsExt lexisCredentialsExt)
+            {
+                //Username is extracted from the access_token later.
+                credentialsIn = new LexisCredentials
+                {
+                    OpenIdLexisAccessToken = lexisCredentialsExt.OpenIdAccessToken,
+                };
+            }
+            else
+            {
+                var message = $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
+                _log.Error(message);
+                throw new ArgumentException(message);
+            }
+            string result = string.Empty;
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                IUserAndLimitationManagementLogic userLogic =
+                    LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                result = await userLogic.AuthenticateUserAsync(credentialsIn);
+            }
+            return result;
         }
 
         public async Task<OpenStackApplicationCredentialsExt> AuthenticateUserToOpenStackAsync(AuthenticationCredentialsExt credentials, long projectId)
@@ -130,129 +129,98 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
             else
             {
-                string errorMessage = $"Credentials of type {credentials.GetType().Name} are not supported for OpenStack authentication.";
-                _log.Error(errorMessage);
-                throw new ArgumentException(errorMessage);
-            }
-        }
-
-        [Obsolete]
-        public IEnumerable<ResourceUsageExt> GetCurrentUsageAndLimitationsForCurrentUser(string sessionCode)
-        {
-            try
-            {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
-                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.GetCurrentUsageAndLimitationsForUser(loggedUser).Select(s => s.ConvertIntToExt());
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                throw new AuthenticationTypeException("OpenId-NotSupportedAuthentication", credentials.GetType().Name);
             }
         }
 
         public IEnumerable<ProjectResourceUsageExt> CurrentUsageAndLimitationsForCurrentUserByProject(string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
-                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser).Select(s => s.ConvertIntToExt());
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
+                IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser, projects).Select(s => s.ConvertIntToExt());
             }
         }
 
         public IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Reporter, null);
-                    IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-                    return userLogic.ProjectsForCurrentUser(loggedUser).Select(p => p.ConvertIntToExt());
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return null;
+                (AdaptorUser loggedUser, var projects) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
+                IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                return userLogic.ProjectsForCurrentUser(loggedUser, projects).Select(p => p.ConvertIntToExt());
             }
         }
 
-        public bool ValidateUserPermissions(string sessionCode)
+        public bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole)
         {
-            try
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                {
-                    AdaptorUser loggedUser = GetValidatedUserForSessionCode(sessionCode, unitOfWork, UserRoleType.Administrator, null);
-                    return loggedUser is not null;
-                }
-            }
-            catch (Exception exc)
-            {
-                ExceptionHandler.ThrowProperExternalException(exc);
-                return false;
+                (AdaptorUser loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, requestedRole);
+                return loggedUser is not null;
             }
         }
 
         /// <summary>
         /// Get user for given <paramref name="sessionCode"/> and check if the user has <paramref name="requiredUserRole"/>.
         /// </summary>
-        /// <param name="sessionCode">User session code.</param>
-        /// <param name="unitOfWork">Unit of work.</param>
-        /// <param name="requiredUserRole">Required user role.</param>
-        /// <param name="projectId">Project ID (is is null, then test for all projects)</param>
+        /// <param name="sessionCode">User session code</param>
+        /// <param name="unitOfWork">Unit of work</param>
+        /// <param name="requiredUserRole">Allowed User role</param>
+        /// <param name="projectId">Project Id /param>
         /// <returns>AdaptorUser object if user has required user role.</returns>
         /// <exception cref="InsufficientRoleException">Is thrown if the user doesn't have <paramref name="requiredUserRole"/>.</exception>
-        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, UserRoleType requiredUserRole, long? projectId)
+        /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
+        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, AdaptorUserRoleType requiredUserRole, long projectId)
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            if (projectId.HasValue)
-            {
-                CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value);
-            }
-            else if (ServiceTierSettings.SingleProjectId.HasValue)
-            {
-                CheckUserRoleForProject(loggedUser, requiredUserRole, ServiceTierSettings.SingleProjectId.Value);
-            }
-            else
-            {
-                loggedUser.Groups.Select(x => x.ProjectId).ToList().ForEach(projectId => CheckUserRoleForProject(loggedUser, requiredUserRole, projectId.Value));
-            }
-
+            CheckUserRoleForProject(loggedUser, requiredUserRole, projectId);
             return loggedUser;
+        }
+
+        public static (AdaptorUser, IEnumerable<DomainObjects.JobManagement.Project> projectIds) GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, AdaptorUserRoleType allowedRole)
+        {
+            IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+
+            var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == allowedRole) &&
+                                                                                x.AdaptorUserGroup.Project != null &&
+                                                                                !x.AdaptorUserGroup.Project.IsDeleted &&
+                                                                                x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow &&
+                                                                                !x.IsDeleted)
+                                                                                .Select(y => y.AdaptorUserGroup.Project);
+            return (loggedUser, projectIds);
         }
 
         /// <summary>
         /// Check whether the user has any of the allowed roles to access given functionality.
         /// </summary>
         /// <param name="user">User account with roles.</param>
-        /// <param name="requiredUserRole">Required user role.</param>
-        /// <param name="projectId">Project ID</param>
-        /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="allowedRoles"/></exception>
-        private static void CheckUserRoleForProject(AdaptorUser user, UserRoleType requiredUserRole, long projectId)
+        /// <param name="requiredUserRole">Allowed user role.</param>
+        /// <param name="projectId">Project Id</param>
+        /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="requiredUserRole"/></exception>
+        /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
+        private static void CheckUserRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId)
         {
-            bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => (UserRoleType)x.AdaptorUserRoleId == requiredUserRole && x.AdaptorUserGroup.ProjectId == projectId && !x.AdaptorUserGroup.Project.IsDeleted && x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow);
+            bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => x.AdaptorUserRole.ContainedRoleTypes
+                                                                    .Any(a => a == requiredUserRole) 
+                                                                        && x.AdaptorUserGroup.ProjectId == projectId
+                                                                        && !x.AdaptorUserGroup.Project.IsDeleted
+                                                                        && x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow
+                                                                        && !x.IsDeleted);
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-                var requiredRoleModel = unitOfWork.AdaptorUserRoleRepository.GetById((long)requiredUserRole);
-                throw InsufficientRoleException.CreateMissingRoleException(requiredRoleModel, user.GetRolesForProject(projectId), projectId);
+                var project = unitOfWork.ProjectRepository.GetById(projectId);
+                if (project is null || project.IsDeleted || project.EndDate < DateTime.UtcNow)
+                {
+                    throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+                }
+
+                throw new InsufficientRoleException("MissingRoleForProjectCreation", requiredUserRole.ToString(), projectId);
             }
         }
     }

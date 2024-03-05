@@ -3,6 +3,6 @@
     public enum UsageTypeExt
     {
         CoreHours = 1,
-        NodeHours
+        NodeHours = 2
     }
 }

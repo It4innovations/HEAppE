@@ -142,21 +142,9 @@ namespace HEAppE.RestApi.InputValidator
         private string ValidateCreateJobModel(CreateJobByProjectModel validationObj)
         {
             _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
-            if (validationObj.JobSpecification.ProjectId.HasValue)
+            if (validationObj.JobSpecification.ProjectId <= 0)
             {
-                //todo: single project heappe - if is single project, then check if project id is same
-                if (validationObj.JobSpecification.ProjectId.Value <= 0)
-                {
-                    _messageBuilder.AppendLine("ProjectId must be greater than 0.");
-                }
-                if (ServiceTierSettings.SingleProjectId.HasValue && ServiceTierSettings.SingleProjectId.Value != validationObj.JobSpecification.ProjectId.Value)
-                {
-                    _messageBuilder.AppendLine($"ProjectId must be set to '{ServiceTierSettings.SingleProjectId.Value}' because this is single project HEAppE instance.");
-                }
-            }
-            else if (!ServiceTierSettings.SingleProjectId.HasValue)
-            {
-                _messageBuilder.AppendLine("ProjectId must be set, because this is non single project HEAppE instance.");
+                _messageBuilder.AppendLine("ProjectId must be greater than 0.");
             }
 
             ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
@@ -166,22 +154,6 @@ namespace HEAppE.RestApi.InputValidator
             }
             return _messageBuilder.ToString();
         }
-
-        private string ValidateCreateJobModel(CreateJobByAccountingStringModel validationObj)
-        {
-            _ = ValidateJobSpecificationExt(validationObj.JobSpecification);
-            if (string.IsNullOrEmpty(validationObj.JobSpecification.AccountingString))
-            {
-                _messageBuilder.AppendLine("AccountingString cannot be null or empty");
-            }
-            ValidationResult validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
-            if (!validationResult.IsValid)
-            {
-                _messageBuilder.AppendLine(validationResult.Message);
-            }
-            return _messageBuilder.ToString();
-        }
-
         private string ValidateJobSpecificationExt(JobSpecificationExt job)
         {
             if (string.IsNullOrEmpty(job.Name))

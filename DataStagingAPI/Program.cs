@@ -1,16 +1,19 @@
 using AspNetCoreRateLimit;
 using FluentValidation;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
-using HEAppE.ExtModels.General.Models;
+using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using log4net;
 using MicroKnights.Log4NetHelper;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
+using System.Globalization;
 using System.Reflection;
-using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -19,6 +22,7 @@ builder.Logging.ClearProviders();
 if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Docker")
 {
     builder.Logging.AddLog4Net("Logging/log4netDocker.config");
+    builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings.json", false, false);
     builder.Configuration.AddJsonFile("/opt/heappe/confs/appsettings-data.json", false, false);
 }
 else
@@ -40,8 +44,19 @@ builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrateg
 
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
+
+builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
+
+builder.Services.AddHttpClient("userOrgApi", conf =>
+{
+    if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
+    {
+        conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
+    }
+});
 
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
@@ -56,6 +71,7 @@ AdoNetAppenderHelper.SetConnectionString(builder.Configuration.GetConnectionStri
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>
 {
+    options.SchemaFilter<PascalCasingPropertiesFilter>();
     options.SwaggerDoc(APIAdoptions.SwaggerConfiguration.Version, new OpenApiInfo
     {
         Version = APIAdoptions.SwaggerConfiguration.Version,
@@ -98,6 +114,23 @@ builder.Services.AddSwaggerGen(options =>
     options.AddSecurityRequirement(requirement);
 });
 
+
+//Localization and resources
+builder.Services.AddLocalization();
+
+builder.Services.Configure<RequestLocalizationOptions>(options =>
+{
+    var supportedCultures = new List<CultureInfo>
+                {
+                    new CultureInfo("en"),
+                    new CultureInfo("cs")
+                };
+
+    options.DefaultRequestCulture = new RequestCulture("en");
+    options.SupportedCultures = supportedCultures;
+});
+
+
 //CORS
 builder.Services.AddCors(options =>
 {
@@ -111,17 +144,15 @@ builder.Services.AddCors(options =>
 
 builder.Services.ConfigureHttpJsonOptions(options =>
 {
-    options.SerializerOptions.Converters.Add(new JsonStringEnumConverter());
     options.SerializerOptions.PropertyNamingPolicy = null;
     options.SerializerOptions.PropertyNameCaseInsensitive = true;
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddValidatorsFromAssemblyContaining<Program>(ServiceLifetime.Singleton);
-builder.Services.AddTransient<IValidator<AuthorizedSubmittedJobIdModel>, AuthorizedSubmittedJobIdModelValidator>();
+builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLifetime.Singleton);
 
 var app = builder.Build();
-
+LogicFactory.ServiceProvider = app.Services;
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {

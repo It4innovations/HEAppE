@@ -1,9 +1,11 @@
-﻿using HEAppE.BusinessLogicTier.Logic.JobReporting.Converts;
+﻿using HEAppE.Exceptions.External;
+using HEAppE.BusinessLogicTier.Logic.JobReporting.Converts;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using log4net;
 using System;
 using System.Collections.Generic;
@@ -43,9 +45,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns list of all UserGroups and all Projects in groups
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<UserGroupListReport> UserGroupListReport()
+        public IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId)
         {
-            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndProject();
+
+            var adaptorUserGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects().Where(x => projects.Any(y => y.Id == x.ProjectId) && x.AdaptorUserUserGroupRoles.Any(y => y.AdaptorUserId == userId && !y.IsDeleted && y.AdaptorUserRole.ContainedRoleTypes.Any(a => a == AdaptorUserRoleType.GroupReporter)));
             var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport()
             {
                 AdaptorUserGroup = adaptorUserGroup,
@@ -63,39 +66,34 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <exception cref="ApplicationException"></exception>
         public ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds)
         {
-            var job = _unitOfWork.SubmittedJobInfoRepository.GetById(jobId);
-            if (job is null)
+            var job = _unitOfWork.SubmittedJobInfoRepository.GetById(jobId) ?? throw new ResourceUsageException("JobNotSpecified", jobId);
+
+            if (!reporterGroupIds.Intersect(job.Project.AdaptorUserGroups.Select(x => x.Id)).Any())
             {
-                throw new ApplicationException($"Specified Job Id: \"{jobId}\" is not specified in system!");
+                throw new ResourceUsageException("ReporterNoAccessToJob", jobId);
             }
 
-            if (reporterGroupIds.Any(x => x == job.Project.Id))
+            return new ProjectReport
             {
-                var projectReport = new ProjectReport
-                {
-                    Clusters = GetClusterReportsForJob(job),
-                    Project = job.Project
-                };
-                return projectReport;
-            }
-            else
-            {
-                throw new ApplicationException($"This reporter cannot view report for Job: \"{jobId}\" because reporter has not access to job's project!");
-            }
+                Clusters = GetClusterReportsForJob(job),
+                Project = job.Project
+            };
         }
 
         /// <summary>
         /// Returns aggregated job reports by state
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport()
+        public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects)
         {
-            return _unitOfWork.SubmittedJobInfoRepository.GetAll().GroupBy(g => g.State)
-                                                                  .Select(s => new JobStateAggregationReport
-                                                                  {
-                                                                      State = s.Key,
-                                                                      Count = s.Count()
-                                                                  }).ToList();
+            return _unitOfWork.SubmittedJobInfoRepository.GetAll()
+                                                            .Where(x => projects.Any(y => y.Id == x.Project.Id))
+                                                            .GroupBy(g => g.State)
+                                                            .Select(s => new JobStateAggregationReport
+                                                            {
+                                                                State = s.Key,
+                                                                Count = s.Count()
+                                                            }).ToList();
         }
 
         /// <summary>
@@ -116,11 +114,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <returns></returns>
         public IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime)
         {
-            AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId);
-            if (user == null)
-            {
-                throw new ApplicationException($"Specified User Id: \"{userId}\" is not specified in system!");
-            }
+            AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId) ?? throw new ResourceUsageException("UserNotSpecified", userId);
             var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
             var reporterAndUserGroupsIntersect = reporterGroupIds.Intersect(userGroups);
             return AggregatedUserGroupResourceUsageReport(reporterAndUserGroupsIntersect, startTime, endTime);
@@ -136,11 +130,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <exception cref="ApplicationException"></exception>
         public UserGroupReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime)
         {
-            AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId);
-            if (group is null)
-            {
-                throw new ApplicationException($"Specified Group Id: \"{groupId}\" is not specified in system!");
-            }
+            AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
 
             var userGroupReport = new UserGroupReport
             {

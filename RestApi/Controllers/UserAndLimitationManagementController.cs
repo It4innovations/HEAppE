@@ -1,4 +1,4 @@
-﻿using HEAppE.BusinessLogicTier.Logic;
+﻿using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
@@ -8,7 +8,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
-using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -42,34 +41,51 @@ namespace HEAppE.RestApi.Controllers
         /// </summary>
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
-        [HttpPost("AuthenticateUserOpenId")]
+        [HttpPost("AuthenticateLexisToken")]
         [RequestSizeLimit(2048)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(typeof(UnauthorizedResult), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public async Task<IActionResult> AuthenticateLexisTokenAsync(AuthenticateLexisTokenModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateLexisToken\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(await _service.AuthenticateUserAsync(model.Credentials));
+        }
+
+        /// <summary>
+        /// Provide user authentication via OpenId token.
+        /// </summary>
+        /// <param name="model">Authentication credentials</param>
+        /// <returns></returns>
+        [HttpPost("AuthenticateUserOpenId")]
+        [RequestSizeLimit(4096)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(typeof(UnauthorizedResult), StatusCodes.Status401Unauthorized)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AuthenticateUserOpenIdAsync(AuthenticateUserOpenIdModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenId\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenId\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(await _service.AuthenticateUserAsync(model.Credentials));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(await _service.AuthenticateUserAsync(model.Credentials));
         }
 
         /// <summary>
@@ -78,33 +94,23 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">Authentication credentials</param>
         /// <returns></returns>
         [HttpPost("AuthenticateUserOpenStack")]
-        [RequestSizeLimit(2088)]
+        [RequestSizeLimit(4096)]
         [ProducesResponseType(typeof(OpenStackApplicationCredentialsExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AuthenticateUserOpenStackAsync(AuthenticateUserOpenIdOpenStackModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenStack\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserOpenStack\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials, model.ProjectId));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(await _service.AuthenticateUserToOpenStackAsync(model.Credentials, model.ProjectId));
         }
 
         /// <summary>
@@ -116,30 +122,20 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(148)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AuthenticateUserPasswordAsync(AuthenticateUserPasswordModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserPassword\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserPassword\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(await _service.AuthenticateUserAsync(model.Credentials));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(await _service.AuthenticateUserAsync(model.Credentials));
         }
 
         /// <summary>
@@ -151,101 +147,45 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(4000)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public async Task<IActionResult> AuthenticateUserDigitalSignatureAsync(AuthenticateUserDigitalSignatureModel model)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserDigitalSignature\" Parameters: \"{model}\"");
+            ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateUserDigitalSignature\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(await _service.AuthenticateUserAsync(model.Credentials));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(await _service.AuthenticateUserAsync(model.Credentials));
         }
 
         /// <summary>
         /// Get current resource usage
         /// </summary>
-        /// <param name="model">Session code</param>
-        /// <returns></returns>
-        [HttpPost("GetCurrentUsageAndLimitationsForCurrentUser")]
-        [RequestSizeLimit(60)]
-        [ProducesResponseType(typeof(IEnumerable<ResourceUsageExt>), StatusCodes.Status200OK)]
-        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-        [Obsolete]
-        public IActionResult Obsolete_GetCurrentUsageAndLimitationsForCurrentUser(GetCurrentUsageAndLimitationsForCurrentUserModel model)
-        {
-            try
-            {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{model}\"");
-                ValidationResult validationResult = new UserAndLimitationManagementValidator(model).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
-
-                return Ok(_service.GetCurrentUsageAndLimitationsForCurrentUser(model.SessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
-        }
-
-        /// <summary>
-        /// Get current resource usage
-        /// </summary>
-        /// <param name="model">Session code</param>
+        /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("CurrentUsageAndLimitationsForCurrentUser")]
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<ProjectResourceUsageExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult CurrentUsageAndLimitationsForCurrentUser(string sessionCode)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{sessionCode}\"");
+            ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetCurrentUsageAndLimitationsForCurrentUser\" Parameters: \"{sessionCode}\"");
-                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(_service.CurrentUsageAndLimitationsForCurrentUserByProject(sessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_service.CurrentUsageAndLimitationsForCurrentUserByProject(sessionCode));
         }
 
         /// <summary>
@@ -257,30 +197,20 @@ namespace HEAppE.RestApi.Controllers
         [RequestSizeLimit(60)]
         [ProducesResponseType(typeof(IEnumerable<ProjectReferenceExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult ProjectsForCurrentUser(string sessionCode)
         {
-            try
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetProjectsForCurrentUser\" Parameters: \"{sessionCode}\"");
+            ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+            if (!validationResult.IsValid)
             {
-                _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"GetProjectsForCurrentUser\" Parameters: \"{sessionCode}\"");
-                ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
-                if (!validationResult.IsValid)
-                {
-                    ExceptionHandler.ThrowProperExternalException(new InputValidationException(validationResult.Message));
-                }
+                throw new InputValidationException(validationResult.Message);
+            }
 
-                return Ok(_service.ProjectsForCurrentUser(sessionCode));
-            }
-            catch (Exception exception)
-            {
-                if (exception is InputValidationException)
-                {
-                    BadRequest(exception.Message);
-                }
-                return Problem(null, null, null, exception.Message);
-            }
+            return Ok(_service.ProjectsForCurrentUser(sessionCode));
         }
         #endregion
     }

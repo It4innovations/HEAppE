@@ -1,5 +1,7 @@
 ﻿using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.Management;
+using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.Management.Models;
 using System;
@@ -44,7 +46,22 @@ namespace HEAppE.ExtModels.Management.Converts
             {
                 KeyType = key.CipherType.ConvertIntToExt(),
                 PublicKeyOpenSSH = key.PublicKeyInAuthorizedKeysFormat,
-                PublicKeyPEM = key.PublicKeyPEM
+                PublicKeyPEM = key.PublicKeyPEM,
+                Username = key.Username
+            };
+            return convert;
+        }
+
+        public static ClusterProjectExt ConvertIntToExt(this ClusterProject cp)
+        {
+            var convert = new ClusterProjectExt()
+            {
+                ClusterId = cp.ClusterId,
+                ProjectId = cp.ProjectId,
+                LocalBasepath = cp.LocalBasepath,
+                CreatedAt = cp.CreatedAt,
+                ModifiedAt = cp.ModifiedAt,
+                IsDeleted = cp.IsDeleted
             };
             return convert;
         }

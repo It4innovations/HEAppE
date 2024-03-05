@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.Exceptions.Internal;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
@@ -6,7 +7,6 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
 using log4net;
 using Renci.SshNet;
 using System;
@@ -69,7 +69,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="jobSpecification">Job specification</param>
         /// <param name="credentials">Credentials</param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="PbsException"></exception>
         public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification, ClusterAuthenticationCredentials credentials)
         {
             var jobIdsWithJobArrayIndexes = new List<string>();
@@ -93,11 +93,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 }
                 return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, jobIdsWithJobArrayIndexes);
             }
-            catch (FormatException e)
+            catch (PbsException)
             {
-                throw new Exception(@$"Exception thrown when submitting a job: ""{jobSpecification.Name}"" to the cluster: ""{jobSpecification.Cluster.Name}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script error message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommandBase64}"".\n", e);
+                throw new PbsException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Result, command.Error, sshCommandBase64);
             }
         }
 
@@ -108,7 +106,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="cluster">Cluster</param>
         /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="PbsException"></exception>
         public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
         {
             IEnumerable<string> jobIdsWithJobArrayIndexes = Enumerable.Empty<string>();
@@ -140,7 +138,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 var reducedjobIdsWithJobArrayIndexes = jobIdsWithJobArrayIndexes.Except(missingJobIds);
                 if (!missingJobIds.Any() || reducedjobIdsWithJobArrayIndexes.Count() >= jobIdsWithJobArrayIndexes.Count())
                 {
-                    throw new Exception(ce.Message);
+                    throw new PbsException(ce.Message, ce.Args);
                 }
 
                 if (!reducedjobIdsWithJobArrayIndexes.Any())
@@ -171,10 +169,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (SshCommandException ce)
             {
-
-                if (!Regex.Match(ce.Message, "qdel: Job has finished", RegexOptions.Compiled).Success)
+                if (!ce.Contains("qdel: Job has finished"))
                 {
-                    throw ce;
+                    throw;
                 }
             }
         }
@@ -184,7 +181,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="connectorClient">Connector</param>
         /// <param name="nodeType">Cluster node type</param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="PbsException"></exception>
         public virtual ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
         {
             SshCommandWrapper command = null;
@@ -196,11 +193,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
                 return _convertor.ReadQueueActualInformation(nodeType, command.Result);
             }
-            catch (FormatException e)
+            catch (PbsException)
             {
-                throw new Exception($@"Exception thrown when retrieving parameters of queue: ""{nodeType.Name}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommand}""\n", e);
+                throw new PbsException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand);
             }
         }
 
@@ -228,11 +223,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
                                                   .ToList();
             }
-            catch (FormatException e)
+            catch (PbsException)
             {
-                throw new Exception($@"Exception thrown when retrieving allocation nodes used by running task (HPC job): ""{taskInfo.ScheduledJobId}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommand}""\n", e);
+                throw new PbsException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result, command.Error, sshCommand);
             }
         }
 
@@ -273,9 +266,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job information</param>
-        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
 
         /// <summary>
@@ -333,14 +329,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         }
 
         /// <summary>
-        /// Get tunnels informations
+        /// Get tunnels information
         /// </summary>
         /// <param name="taskInfo">Task info</param>
         /// <param name="nodeHost">Cluster node address</param>
-        /// <returns></returns>
         public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
+        }
+
+        /// <summary>
+        /// Initialize Cluster Script Directory
+        /// </summary>
+        /// <param name="schedulerConnectionConnection">Connector</param>
+        /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+        /// <param name="localBasepath">Cluster execution path</param>
+        /// <param name="isServiceAccount">Is servis account</param>
+        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        {
+            _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
         }
         #endregion
         #endregion
@@ -352,7 +359,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// <param name="cluster">Cluster</param>
         /// <param name="scheduledJobIds">Scheduler job id´s</param>
         /// <returns></returns>
-        /// <exception cref="Exception"></exception>
+        /// <exception cref="PbsException"></exception>
         private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster, IEnumerable<string> scheduledJobIds)
         {
             SshCommandWrapper command = null;
@@ -367,11 +374,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 var submittedTasksInfo = _convertor.ReadParametersFromResponse(cluster, command.Result);
                 return submittedTasksInfo;
             }
-            catch (FormatException e)
+            catch (PbsException)
             {
-                throw new Exception($@"Exception thrown when retrieving parameters of jobIds: ""{string.Join(", ", scheduledJobIds)}"". 
-                                       Submission script result: ""{command.Result}"".\nSubmission script message: ""{command.Error}"".\n
-                                       Command line for job submission: ""{sshCommand}""\n", e);
+                throw new PbsException("GetActualTasksInfo", string.Join(", ", scheduledJobIds), command.Result, command.Error, sshCommand);
             }
         }
 

@@ -23,7 +23,7 @@ namespace HEAppE.ExternalAuthentication
                 UserName = obj.EmailVerified && !string.IsNullOrWhiteSpace(obj.Email)
                                  ? $"{ExternalAuthConfiguration.HEAppEUserPrefix}{obj.Email}"
                                  : $"{ExternalAuthConfiguration.HEAppEUserPrefix}{Regex.Replace(obj.PreferredUsername, @"\s+", " ", RegexOptions.Compiled)}",
-                Projects = GetProjectWithRoleMapping(obj) ?? new List<ProjectOpenId>()
+                Projects = GetProjectWithRoleMapping(obj)
             };
         }
 
@@ -43,7 +43,7 @@ namespace HEAppE.ExternalAuthentication
 
                         if (projects is null)
                         {
-                            throw new Exception($"Open-Id: There are not defined project Ids \"{string.Join(",", ExternalAuthConfiguration.Projects.Select(s => s.Name))}\" in Open-Id server!");
+                            continue;
                         }
                         hasMappedGroup = true;
                         foreach (ExternalAuthProjectConfiguration project in projects)
@@ -71,15 +71,14 @@ namespace HEAppE.ExternalAuthentication
 
                     if (!hasMappedGroup)
                     {
-                        throw new Exception("Open-Id: Project-role mapping is not correctly defined!");
+                        continue;
                     }
                 }
                 return projectRoleMapping.Values;
             }
             catch (Exception)
             {
-                //TODO Log
-                return default;
+                return new List<ProjectOpenId>();
             }
         }
     }

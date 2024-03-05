@@ -1,4 +1,4 @@
-﻿using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+﻿using HEAppE.Exceptions.Internal;
 using log4net;
 using Renci.SshNet;
 using System;
@@ -18,6 +18,11 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         private readonly string _masterNodeName;
 
         /// <summary>
+        /// Port
+        /// </summary>
+        private readonly int? _port;
+
+        /// <summary>
         /// Username
         /// </summary>
         private readonly string _userName;
@@ -28,25 +33,28 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 		protected ILog _log;
         #endregion
         #region Constructors
+
         /// <summary>
         /// Constructor
         /// </summary>
         /// <param name="masterNodeName">Master node name</param>
+        /// <param name="port"></param>
         /// <param name="userName">Username</param>
         /// <exception cref="ArgumentException"></exception>
-        public NoAuthenticationSshClient(string masterNodeName, string userName) : base(new ConnectionInfo(masterNodeName, userName, new PasswordAuthenticationMethod("notUsed", "notUsed")))//cannot be null
+        public NoAuthenticationSshClient(string masterNodeName, int? port, string userName) : base(new ConnectionInfo(masterNodeName, userName, new PasswordAuthenticationMethod("notUsed", "notUsed")))//cannot be null
         {
             if (string.IsNullOrWhiteSpace(masterNodeName))
             {
-                throw new ArgumentException($"Argument 'masterNodeName' cannot be null or empty");
+                throw new SshClientArgumentException("NullArgument", "masterNodeName");
             }
 
             if (string.IsNullOrWhiteSpace(userName))
             {
-                throw new ArgumentException($"Argument 'userName' cannot be null or empty");
+                throw new SshClientArgumentException("NullArgument", "userName");
             }
 
             _masterNodeName = masterNodeName;
+            _port = port;
             _userName = userName;
 
             _log = LogManager.GetLogger(typeof(NoAuthenticationSshClient));
@@ -64,12 +72,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         {
             if (string.IsNullOrWhiteSpace(commandText))
             {
-                throw new ArgumentException($"Argument 'commandText' cannot be null or empty");
+                throw new SshClientArgumentException("NullArgument", "commandText");
             }
 
             if (!CheckIsAgentHasIdentities())
             {
-                throw new SshCommandException("Ssh-agent has no identities added!");
+                throw new SshCommandException("NoIdentities");
             };
 
             var sshCommand = new SshCommandWrapper
@@ -83,7 +91,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                 {
                     FileName = "ssh",
                     WorkingDirectory = "/usr/bin/",
-                    Arguments = $"-q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName} \"{commandText}\"",
+                    Arguments = $"{(_port.HasValue ? $"-p {_port.Value}" : string.Empty)} -q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName} \"{commandText}\"",
                     UseShellExecute = false,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true

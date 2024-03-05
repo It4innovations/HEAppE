@@ -1,19 +1,23 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+
 using HEAppE.DomainObjects;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.DomainObjects.Notifications;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
+
 using log4net;
+
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
 
 namespace HEAppE.DataAccessTier
 {
@@ -60,8 +64,13 @@ namespace HEAppE.DataAccessTier
 
                                     if (lastAppliedMigration != lastDefinedMigration)
                                     {
-                                        _log.Error("Application and database migrations are not the same. Please update the database to the new version.");
-                                        throw new ApplicationException("Application and database migrations are not the same. Please update the database to the new version.");
+                                        throw new DbContextException("MigrationMismatch");
+                                    }
+
+
+                                    if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
+                                    {
+                                        throw new DbContextException("MigrationCountMismatch");
                                     }
 
                                     _log.Info("Application and database migrations are same. Starting seeding data into database.");
@@ -72,8 +81,7 @@ namespace HEAppE.DataAccessTier
                         }
                         catch (SqlException ex)
                         {
-                            _log.Error("There is not connection to database server.");
-                            throw new ApplicationException("Error occuers in database migrations.", ex);
+                            throw new DbContextException("MigrationError", ex);
                         }
                     }
                 }
@@ -161,20 +169,35 @@ namespace HEAppE.DataAccessTier
                 .HasForeignKey(cp => new { cp.ProjectId });
 
             //M:N relations for ClusterProjectCredentials
-            modelBuilder.Entity<ClusterProjectCredentials>()
+            modelBuilder.Entity<ClusterProjectCredential>()
                 .HasKey(cpc => new { cpc.ClusterProjectId, cpc.ClusterAuthenticationCredentialsId });
-            modelBuilder.Entity<ClusterProjectCredentials>()
+            modelBuilder.Entity<ClusterProjectCredential>()
                 .HasOne(cpc => cpc.ClusterProject)
                 .WithMany(c => c.ClusterProjectCredentials)
                 .HasForeignKey(cpc => new { cpc.ClusterProjectId });
-            modelBuilder.Entity<ClusterProjectCredentials>()
+            modelBuilder.Entity<ClusterProjectCredential>()
                 .HasOne(cp => cp.ClusterAuthenticationCredentials)
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+            //M:N relations for ProjectContact
+            modelBuilder.Entity<ProjectContact>()
+                .HasKey(pc => new { pc.ProjectId, pc.ContactId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Project)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ProjectId });
+            modelBuilder.Entity<ProjectContact>()
+                .HasOne(pc => pc.Contact)
+                .WithMany(p => p.ProjectContacts)
+                .HasForeignKey(pc => new { pc.ContactId });
+
             modelBuilder.Entity<Project>()
                 .HasIndex(p => p.AccountingString)
                 .IsUnique();
+
+            modelBuilder.Entity<AdaptorUser>()
+                .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
         }
         #endregion
         #region Seeding methods
@@ -183,8 +206,6 @@ namespace HEAppE.DataAccessTier
         private void EnsureDatabaseSeeded()
         {
             _log.Info("Seed data into tha database started.");
-
-            InsertOrUpdateSeedData(MiddlewareContextSettings.Languages);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserRoles);
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUsers);
@@ -221,11 +242,13 @@ namespace HEAppE.DataAccessTier
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectContacts, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjectCredentials, false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserGroups);
-            InsertOrUpdateSeedData(UserRoleUtils.GetAllUserRoles(MiddlewareContextSettings.AdaptorUserUserGroupRoles), false);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AdaptorUserUserGroupRoles, false);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplates);
             InsertOrUpdateSeedData(MiddlewareContextSettings.CommandTemplateParameters);
@@ -254,7 +277,7 @@ namespace HEAppE.DataAccessTier
                                                                 .ToList();
                 if (clusters.Count() >= 1)
                 {
-                    clusterAuthenticationCredential.AuthenticationType = GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
+                    clusterAuthenticationCredential.AuthenticationType = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
                 }
             });
 
@@ -267,7 +290,25 @@ namespace HEAppE.DataAccessTier
             _log.Info("Seed validation has started.");
             ValidateCommandTemplateToProjectReference(MiddlewareContextSettings.CommandTemplates, MiddlewareContextSettings.ClusterProjects);
             ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings.ClusterAuthenticationCredentials);
+            ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
             _log.Info("Seed validation completed.");
+        }
+
+        /// <summary>
+        /// Validate CommandTemplate to Project reference
+        /// </summary>
+        /// <param name="projectContacts"></param>
+        /// <exception cref="NotImplementedException"></exception>
+        private void ValidateProjectContactReferences(List<ProjectContact> projectContacts)
+        {
+            foreach (var projectContact in projectContacts.GroupBy(x => x.ProjectId))
+            {
+                //if project contact has more than one PI throw exception
+                if (projectContact.Count(x => x.IsPI) > 1)
+                {
+                    throw new DbContextException("MaxPICount", projectContact.Key);
+                }
+            }
         }
 
         /// <summary>
@@ -282,9 +323,7 @@ namespace HEAppE.DataAccessTier
                 var clusters = clusterAuthenticationCredential.ClusterProjectCredentials.Select(x => x.ClusterProject.Cluster).ToList();
                 if (clusters.Count() >= 1 && clusters.Any(c => c.ProxyConnection != clusters.First().ProxyConnection))
                 {
-                    string message = $"ClusterAuthenticationCredential with id {clusterAuthenticationCredential.Id} has ClusterProjectCredentials with different ProxyConnection.";
-                    _log.Error(message);
-                    throw new ApplicationException(message);
+                    throw new DbContextException("CredentialsProxyMismatch", clusterAuthenticationCredential.Id);
                 }
             }
         }
@@ -304,9 +343,7 @@ namespace HEAppE.DataAccessTier
                 //if does not exist Cluster to Project reference, throw exception
                 if (!clusterProjects.Any(x => x.ClusterId == commandTemplate.ClusterNodeType.ClusterId && x.ProjectId == commandTemplate.ProjectId))
                 {
-                    string message = $"CommandTemplateId={commandTemplate.Id} is referenced to ProjectId={commandTemplate.ProjectId} but in system does not exist ClusterProject reference.";
-                    _log.Error(message);
-                    throw new ApplicationException(message);
+                    throw new DbContextException("NotExistingClusterProjectReference", commandTemplate.Id, commandTemplate.ProjectId);
                 }
             }
         }
@@ -395,81 +432,21 @@ namespace HEAppE.DataAccessTier
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
-                case ClusterProjectCredentials clusterProjectCredentials:
+                case ClusterProjectCredential clusterProjectCredentials:
                     {
                         var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
+                case ProjectContact projectContact:
+                    {
+                        var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
                 default:
-                    throw new ApplicationException("Seed entity is not supported.");
+                    throw new DbContextException("NotSupportedSeedEntity", typeof(T).Name);
             }
-        }
-
-        private static ClusterAuthenticationCredentialsAuthType GetCredentialsAuthenticationType(ClusterAuthenticationCredentials credential, Cluster cluster)
-        {
-            if (cluster.ProxyConnection is null)
-            {
-                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
-                }
-
-                if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PrivateKey;
-                }
-
-                if (!string.IsNullOrEmpty(credential.Password))
-                {
-                    switch (cluster.ConnectionProtocol)
-                    {
-                        case ClusterConnectionProtocol.MicrosoftHpcApi:
-                            return ClusterAuthenticationCredentialsAuthType.Password;
-
-                        case ClusterConnectionProtocol.Ssh:
-                            return ClusterAuthenticationCredentialsAuthType.Password;
-
-                        case ClusterConnectionProtocol.SshInteractive:
-                            return ClusterAuthenticationCredentialsAuthType.PasswordInteractive;
-
-                        default:
-                            return ClusterAuthenticationCredentialsAuthType.Password;
-                    }
-                }
-            }
-            else
-            {
-                if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKeyFile))
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
-                }
-
-                if (!string.IsNullOrEmpty(credential.PrivateKeyFile))
-                {
-                    return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
-                }
-
-                if (!string.IsNullOrEmpty(credential.Password))
-                {
-                    switch (cluster.ConnectionProtocol)
-                    {
-                        case ClusterConnectionProtocol.MicrosoftHpcApi:
-                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                        case ClusterConnectionProtocol.Ssh:
-                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-
-                        case ClusterConnectionProtocol.SshInteractive:
-                            return ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy;
-
-                        default:
-                            return ClusterAuthenticationCredentialsAuthType.PasswordViaProxy;
-                    }
-                }
-            }
-
-            return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
         #endregion
         #region Entities
@@ -507,15 +484,8 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<JobSpecification> JobSpecifications { get; set; }
         public virtual DbSet<TaskSpecification> TaskSpecifications { get; set; }
         public virtual DbSet<Project> Projects { get; set; }
+        public virtual DbSet<Contact> Contacts { get; set; }
         public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
-        #endregion
-
-        #region Notifications Entities
-        public virtual DbSet<Language> Languages { get; set; }
-        public virtual DbSet<MessageLocalization> MessageLocalizations { get; set; }
-        public virtual DbSet<MessageTemplate> MessageTemplates { get; set; }
-        public virtual DbSet<MessageTemplateParameter> MessageTemplateParameters { get; set; }
-        public virtual DbSet<Notification> Notifications { get; set; }
         #endregion
 
         #region UserAndLimitationManagement Entities
@@ -523,7 +493,6 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<AdaptorUserGroup> AdaptorUserGroups { get; set; }
         public virtual DbSet<AdaptorUserUserGroupRole> AdaptorUserUserGroups { get; set; }
         public virtual DbSet<AdaptorUserRole> AdaptorUserRoles { get; set; }
-        public virtual DbSet<ResourceLimitation> ResourceLimitations { get; set; }
         public virtual DbSet<SessionCode> SessionCodes { get; set; }
         public virtual DbSet<OpenStackSession> OpenStackSessions { get; set; }
         #endregion

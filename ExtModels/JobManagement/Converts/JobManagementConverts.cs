@@ -54,10 +54,6 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                                 ParentTaskSpecification = tasksSpecs[dependentTask]
                             });
                         }
-                        else
-                        {
-                            //throw new InputValidationException($"Depending task \"{dependentTask.Name}\" for task \"{taskExt.Name}\" contains wrong task dependency.");
-                        }
                     }
                     convertedTaskSpec.DependsOn = taskDependency;
                 }
@@ -236,6 +232,23 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 AccountingString = project.AccountingString,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
+                CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
+            };
+            return convert;
+        }
+
+        public static ExtendedProjectInfoExt ConvertIntToExtendedInfoExt(this Project project)
+        {
+            ExtendedProjectInfoExt convert = new()
+            {
+                Id = project.Id,
+                Name = project.Name,
+                Description = project.Description,
+                AccountingString = project.AccountingString,
+                StartDate = project.StartDate,
+                EndDate = project.EndDate,
+                PrimaryInvestigatorContact = project.ProjectContacts.FirstOrDefault(x => x.IsPI)?.Contact.Email,
+                Contacts = project.ProjectContacts.OrderByDescending(x => x.IsPI).Select(x => x.Contact.Email).ToArray(),
                 CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
             };
             return convert;

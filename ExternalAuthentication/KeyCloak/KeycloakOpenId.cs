@@ -1,6 +1,6 @@
-﻿using HEAppE.ExternalAuthentication.Configuration;
+﻿using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.JsonTypes;
-using HEAppE.ExternalAuthentication.KeyCloak.Exceptions;
 using HEAppE.RestUtils;
 using RestSharp;
 using RestSharp.Authenticators;
@@ -33,7 +33,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         {
             if (string.IsNullOrEmpty(ExternalAuthConfiguration.BaseUrl))
             {
-                throw new KeycloakOpenIdException($"Not specify URL address for authentication user by \"{ExternalAuthConfiguration.Protocol}\"");
+                throw new AuthenticationTypeException("OpenId-BadURLForUser");
             }
 
             if (ExternalAuthConfiguration.Protocol == "openid-connect")
@@ -52,7 +52,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
             }
             else
             {
-                throw new NotImplementedException("Other client protocol than 'open-id' connect is not implemented. Please switch the client to 'openid-connect'.");
+                throw new AuthenticationTypeException("OpenId-BadProtocol");
             }
 
         }
@@ -66,7 +66,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// <param name="password">User password.</param>
         /// <param name="clientId">Client name.</param>
         /// <returns></returns>
-        /// <exception cref="KeycloakOpenIdException">When fails autentication</exception>
+        /// <exception cref="AuthenticationTypeException">When fails autentication</exception>
         private async Task<OpenIdUserAuthenticationResult> AuthenticateUserWithPasswordImplAsync(string username, string password, string clientId)
         {
             RestRequest restRequest = new RestRequest($"realms/{ExternalAuthConfiguration.RealmName}/protocol/{ExternalAuthConfiguration.Protocol}/token", Method.Post)
@@ -77,7 +77,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
                                            .AddParameter("password", password, ParameterType.GetOrPost);
 
             var response = await _basicRestClient.ExecuteAsync(restRequest);
-            return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
+            return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, AuthenticationTypeException>(response, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -85,7 +85,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// </summary>
         /// <param name="offlineToken">OpenId offline-token</param>
         /// <returns>Introspected user information</returns>
-        /// <exception cref="KeycloakOpenIdException">When fails to get user information from token</exception>
+        /// <exception cref="AuthenticationTypeException">When fails to get user information from token</exception>
         public async Task<KeycloakUserInfoResult> GetUserInfoAsync(string offlineToken)
         {
             _basicRestClient.UseAuthenticator(new JwtAuthenticator(offlineToken));
@@ -96,7 +96,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
                                             .AddParameter("scope", "openid", ParameterType.GetOrPost);
 
             var response = await _basicRestClient.ExecuteAsync(restRequest);
-            return ParseHelper.ParseJsonOrThrow<KeycloakUserInfoResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
+            return ParseHelper.ParseJsonOrThrow<KeycloakUserInfoResult, AuthenticationTypeException>(response, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -104,7 +104,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// </summary>
         /// <param name="accessToken">OpenId access-token</param>
         /// <returns>Instrospected token information</returns>
-        /// <exception cref="KeycloakOpenIdException">When fails to exchange token</exception>
+        /// <exception cref="AuthenticationTypeException">When fails to exchange token</exception>
         public async Task<OpenIdUserAuthenticationResult> ExchangeTokenAsync(string accessToken)
         {
             var restRequest = new RestRequest($"realms/{ExternalAuthConfiguration.RealmName}/protocol/{ExternalAuthConfiguration.Protocol}/token", Method.Post)
@@ -118,7 +118,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
                                         .AddParameter("grant_type", "urn:ietf:params:oauth:grant-type:token-exchange", ParameterType.GetOrPost);
 
             var response = await _basicRestClient.ExecuteAsync(restRequest);
-            return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
+            return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, AuthenticationTypeException>(response, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -126,7 +126,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// </summary>
         /// <param name="accessToken">OpenId access-token</param>
         /// <returns>Instrospected token info</returns>
-        /// <exception cref="KeycloakOpenIdException">When fails to introspect token</exception>
+        /// <exception cref="AuthenticationTypeException">When fails to introspect token</exception>
         public async Task<KeycloakTokenIntrospectionResult> TokenIntrospectionAsync(string accessToken)
         {
             _basicRestClient.UseAuthenticator(new HttpBasicAuthenticator(ExternalAuthConfiguration.ClientId, ExternalAuthConfiguration.SecretId));
@@ -135,7 +135,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
                                             .AddParameter("token", accessToken, ParameterType.GetOrPost);
 
             var response = await _basicRestClient.ExecuteAsync(restRequest);
-            return ParseHelper.ParseJsonOrThrow<KeycloakTokenIntrospectionResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
+            return ParseHelper.ParseJsonOrThrow<KeycloakTokenIntrospectionResult, AuthenticationTypeException>(response, HttpStatusCode.OK);
         }
 
         /// <summary>
@@ -143,7 +143,7 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
         /// </summary>
         /// <param name="refreshToken">OpenId refresh-token</param>
         /// <returns>Instrospected token info</returns>
-        /// <exception cref="KeycloakOpenIdException">When fails to refresh the token</exception>
+        /// <exception cref="AuthenticationTypeException">When fails to refresh the token</exception>
         public async Task<OpenIdUserAuthenticationResult> RefreshAccessTokenAsync(string refreshToken)
         {
             _basicRestClient.UseAuthenticator(new HttpBasicAuthenticator(ExternalAuthConfiguration.ClientId, ExternalAuthConfiguration.SecretId));
@@ -153,35 +153,32 @@ namespace HEAppE.ExternalAuthentication.KeyCloak
                                             .AddParameter("grant_type", "refresh_token", ParameterType.GetOrPost);
 
             var response = await _basicRestClient.ExecuteAsync(restRequest);
-            return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, KeycloakOpenIdException>(response, HttpStatusCode.OK);
+            return ParseHelper.ParseJsonOrThrow<OpenIdUserAuthenticationResult, AuthenticationTypeException>(response, HttpStatusCode.OK);
         }
 
         /// <summary>
         /// Validation open-id introspected token
         /// </summary>
         /// <param name="introspectedToken">Introspected-token</param>
-        /// <exception cref="KeycloakOpenIdException">When validation is not valid</exception>
+        /// <exception cref="AuthenticationTypeException">When validation is not valid</exception>
         public static void ValidateUserToken(KeycloakTokenIntrospectionResult introspectedToken)
         {
             if (!(introspectedToken.Active && ExternalAuthConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId) && introspectedToken.EmailVerified))
             {
-                StringBuilder textBuilder = new();
                 if (!introspectedToken.Active)
                 {
-                    textBuilder.AppendLine("Open-Id: User is not active!");
+                    throw new AuthenticationTypeException("OpenId-UserNotActive");
                 }
 
                 if (!introspectedToken.EmailVerified)
                 {
-                    textBuilder.AppendLine("Open-Id: User does not verified email!");
+                    throw new AuthenticationTypeException("OpenId-NotVerifiedEmail");
                 }
 
                 if (!ExternalAuthConfiguration.AllowedClientIds.Contains(introspectedToken.ClientId))
                 {
-                    textBuilder.AppendLine("Open-Id: User is not in allowed clientIds!");
+                    throw new AuthenticationTypeException("OpenId-NotInAllowedClientIds");
                 }
-
-                throw new KeycloakOpenIdException(textBuilder.ToString());
             }
         }
         #endregion

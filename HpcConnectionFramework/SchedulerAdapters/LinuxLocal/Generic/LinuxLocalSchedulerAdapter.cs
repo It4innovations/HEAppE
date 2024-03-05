@@ -1,3 +1,4 @@
+using HEAppE.Exceptions.Internal;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -10,6 +11,7 @@ using log4net;
 using Renci.SshNet;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 
@@ -39,17 +41,22 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <summary>
         /// Command Script Paths
         /// </summary>
-        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.CommandScriptsPathSettings;
+        protected readonly CommandScriptPathConfiguration _commandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings;
 
         /// <summary>
         /// Command
         /// </summary>
-        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
+        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.LinuxLocalCommandScriptPathSettings;
 
         /// <summary>
-        /// Generic commnad key parameter
+        /// Generic command key parameter
         /// </summary>
         protected static readonly string _genericCommandKeyParameter = HPCConnectionFrameworkConfiguration.GenericCommandKeyParameter;
+
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
         /// <summary>
         /// Localhost used as DomainName when not supported from cluster 
@@ -85,21 +92,21 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
             string sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.ExecuteCmdPath} {sshCommandBase64}");
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_scripts.ScriptsBasePath}/{_commandScripts.ExecuteCmdScriptName} {sshCommandBase64}");
 
             shellCommandSb.Clear();
             string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
 
             //compose command with parameters of job and task IDs
-            shellCommandSb.Append($"{_linuxLocalCommandScripts.RunLocalCmdPath} {localBasePath}/{jobSpecification.Id}/");
+            shellCommandSb.Append($"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{jobSpecification.Id}/");
             jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
             //log local HPC Run script to log file
-            shellCommandSb.Append($" >> {localBasePath}/{jobSpecification.Id}/job_log.txt");
+            shellCommandSb.Append($" >> {localBasePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{jobSpecification.Id}/job_log.txt");
             shellCommand = shellCommandSb.ToString();
 
             sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_commandScripts.ExecuteBackgroundCmdPath} {sshCommandBase64}");
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath}/run_background_command.sh {sshCommandBase64}");
 
             return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new string[] { $"{jobSpecification.Id}" });
         }
@@ -122,15 +129,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// Cancel job
         /// </summary>
         /// <param name="connectorClient">Connector</param>
-        /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
+        /// <param name="submitedTasksInfo">Submitted tasks idÂ´s</param>
         /// <param name="message">Message</param>
         public virtual void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
         {
             StringBuilder commandSb = new();
             var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
                                                         .Distinct();
-
-            localClusterJobIds.ToList().ForEach(id => commandSb.Append($"{_linuxLocalCommandScripts.CancelJobCmdPath} {id};"));
+            localClusterJobIds.ToList().ForEach(id => commandSb.Append($"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(_scripts.SubExecutionsPath, id.ToString())};"));
             string command = commandSb.ToString();
 
             _log.Info($"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{command}\", message \"{message}\"");
@@ -150,7 +156,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 NodeType = nodeType
             };
 
-            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), _linuxLocalCommandScripts.CountJobsCmdPath);
+            var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{ _scripts.SubScriptsPath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}");
             _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
             if (int.TryParse(command.Result, out int totalJobs))
             {
@@ -222,9 +228,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        /// <param name="localBasePath"></param>
+        /// <param name="sharedAccountsPoolMode"></param>
+        public virtual void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
+            bool sharedAccountsPoolMode)
         {
-            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath);
+            _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
 
         /// <summary>
@@ -268,7 +277,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="nodePort">Cluster node port</param>
         public void CreateTunnel(object connectorClient, SubmittedTaskInfo taskInfo, string nodeHost, int nodePort)
         {
-            throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
+            throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
         }
 
 
@@ -279,18 +288,29 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <param name="taskInfo">Task info</param>
         public void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo)
         {
-            throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
+            throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
         }
 
         /// <summary>
-        /// Get tunnels informations
+        /// Get tunnels information
         /// </summary>
         /// <param name="taskInfo">Task info</param>
         /// <param name="nodeHost">Cluster node address</param>
-        /// <returns></returns>
         public IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost)
         {
-            throw new Exception($"{nameof(LinuxLocal)} Scheduler does not suport this endpoint.");
+            throw new SchedulerException("NotSupportedEndpoint", nameof(LinuxLocal));
+        }
+
+        /// <summary>
+        /// Initialize Cluster Script Directory
+        /// </summary>
+        /// <param name="schedulerConnectionConnection">Connector</param>
+        /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+        /// <param name="localBasepath">Cluster execution path</param>
+        /// <param name="isServiceAccount">Is servis account</param>
+        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        {
+            _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
         }
         #endregion
         #endregion
@@ -308,7 +328,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct();
             foreach (var jobId in scheduledJobIdsList)
             {
-                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_linuxLocalCommandScripts.GetJobInfoCmdPath} {jobId}/");
+                string jobDirPath = Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobId);
+                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}");
                 _log.Info($"Get actual task info id=\"{jobId}\", command \"{command}\"");
                 submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
             }

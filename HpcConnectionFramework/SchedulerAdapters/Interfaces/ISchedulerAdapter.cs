@@ -27,7 +27,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys);
 
-        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
+        void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode);
 
         void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
 
@@ -40,5 +40,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
         void RemoveTunnel(object connectorClient, SubmittedTaskInfo taskInfo);
 
         IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost);
+        void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount);
     }
 }

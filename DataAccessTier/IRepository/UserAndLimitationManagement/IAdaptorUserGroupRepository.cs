@@ -6,7 +6,7 @@ namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement
     public interface IAdaptorUserGroupRepository : IRepository<AdaptorUserGroup>
     {
         AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id);
-        IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndProject();
+        IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndActiveProjects();
         AdaptorUserGroup GetDefaultSubmitterGroup();
         AdaptorUserGroup GetGroupByUniqueName(string groupName);
     }

@@ -1,9 +1,10 @@
-﻿using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.Exceptions;
+﻿using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 using log4net;
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
 {
     /// <summary>
-    ///  Ssh command utls
+    ///  Ssh command utils
     /// </summary>
     internal static class SshCommandUtils
     {
@@ -11,7 +12,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <summary>
         /// Log4Net logger
         /// </summary>
-        static ILog _log;
+        private static readonly ILog _log;
         #endregion
         #region Constructors
         /// <summary>
@@ -31,11 +32,16 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         /// <returns></returns>
         internal static SshCommandWrapper RunSshCommand(SshClientAdapter client, string command)
         {
-            var sshCommand = client.RunCommand(command);
+            SshCommandWrapper sshCommand = client.RunCommand(command);
             if (sshCommand.ExitStatus != 0)
             {
-                _log.Error($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
-                throw new SshCommandException($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
+                if (sshCommand.Error.Contains("No such file or directory"))
+                {
+                    _log.Warn($"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
+                    throw new InputValidationException("NoFileOrDirectory");
+                }
+
+                throw new SshCommandException("CommandException", sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
             }
 
             if (sshCommand.Error.Length > 0)

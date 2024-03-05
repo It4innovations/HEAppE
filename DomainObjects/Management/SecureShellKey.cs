@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
 
 namespace HEAppE.DomainObjects.Management
 {

@@ -3,7 +3,6 @@ using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
-using HEAppE.DataAccessTier.IRepository.Notifications;
 using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using System;
@@ -19,6 +18,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository { get; }
         IClusterRepository ClusterRepository { get; }
         IProjectRepository ProjectRepository { get; }
+        IContactRepository ContactRepository { get; }
         IClusterProjectRepository ClusterProjectRepository { get; }
         IClusterProxyConnectionRepository ClusterProxyConnectionRepository { get; }
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }
@@ -41,15 +41,9 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         ITaskSpecificationRepository TaskSpecificationRepository { get; }
         ITaskParalizationSpecificationRepository TaskParalizationSpecificationRepository { get; }
         ITaskSpecificationRequiredNodeRepository TaskSpecificationRequiredNodeRepository { get; }
-        ILanguageRepository LanguageRepository { get; }
-        IMessageLocalizationRepository MessageLocalizationRepository { get; }
-        IMessageTemplateRepository MessageTemplateRepository { get; }
-        IMessageTemplateParameterRepository MessageTemplateParameterRepository { get; }
-        INotificationRepository NotificationRepository { get; }
         IAdaptorUserRepository AdaptorUserRepository { get; }
         IAdaptorUserGroupRepository AdaptorUserGroupRepository { get; }
         IAdaptorUserRoleRepository AdaptorUserRoleRepository { get; }
-        IResourceLimitationRepository ResourceLimitationRepository { get; }
         ISessionCodeRepository SessionCodeRepository { get; }
         IOpenStackSessionRepository OpenStackSessionRepository { get; }
         #endregion

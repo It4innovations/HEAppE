@@ -6,6 +6,7 @@ using HEAppE.DomainObjects.Management;
 using log4net;
 using System;
 using System.Reflection;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.CertificateGenerator
 {
@@ -78,10 +79,35 @@ namespace HEAppE.CertificateGenerator
                 CipherType = CipherGeneratorConfiguration.Type,
                 PrivateKeyPEM = _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase),
                 PublicKeyPEM = _certGeneratorV2.ToPublicKeyInPEM(),
-                PublicKeyInAuthorizedKeysFormat = _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(),
+                PublicKeyInAuthorizedKeysFormat = _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(username),
                 PublicKeyFingerprint = _certGeneratorV2.GetPublicKeyFingerprint()
             };
             return key;
+        }
+        public static SecureShellKey GetPublicKeyFromPrivateKey(ClusterAuthenticationCredentials existingKey)
+        {
+            switch(CipherGeneratorConfiguration.Type)
+            {
+                case FileTransferCipherType.nistP256:
+                case FileTransferCipherType.nistP521:
+                    return new SecureShellKey()
+                    {
+                        Username = existingKey.Username,
+                        CipherType = CipherGeneratorConfiguration.Type,
+                        PublicKeyPEM = ECDsaCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
+                        PublicKeyInAuthorizedKeysFormat = ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword, existingKey.Username)
+                    };
+                case FileTransferCipherType.RSA3072:
+                case FileTransferCipherType.RSA4096:
+                default:
+                    return new SecureShellKey()
+                    {
+                        Username = existingKey.Username,
+                        CipherType = CipherGeneratorConfiguration.Type,
+                        PublicKeyPEM = RSACertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
+                        PublicKeyInAuthorizedKeysFormat = RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword, existingKey.Username)
+                    };
+            };
         }
 
         /// <summary>

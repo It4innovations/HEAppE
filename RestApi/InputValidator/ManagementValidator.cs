@@ -1,5 +1,8 @@
-﻿using HEAppE.RestApiModels.Management;
+﻿using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
+using System;
+using System.Linq;
 
 namespace HEAppE.RestApi.InputValidator
 {
@@ -16,22 +19,206 @@ namespace HEAppE.RestApi.InputValidator
                 CreateCommandTemplateModel ext => ValidateCreateCommandTemplateModel(ext),
                 ModifyCommandTemplateModel ext => ValidateModifyCommandTemplateModel(ext),
                 RemoveCommandTemplateModel ext => ValidateRemoveCommandTemplateModel(ext),
+                CreateSecureShellKeyModelObsolete ext => ValidateCreateSecureShellKeyModelObsolete(ext),
+                RegenerateSecureShellKeyModelObsolete ext => ValidateRecreateSecureShellKeyModel(ext),
+                RemoveSecureShellKeyModelObsolete ext => ValidateRemoveSecureShellKeyModel(ext),
                 CreateSecureShellKeyModel ext => ValidateCreateSecureShellKeyModel(ext),
-                RecreateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
+                RegenerateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModel ext => ValidateRemoveSecureShellKeyModel(ext),
+                CreateProjectModel ext => ValidateCreateProjectModel(ext),
+                ModifyProjectModel ext => ValidateModifyProjectModel(ext),
+                RemoveProjectModel ext => ValidateRemoveProjectModel(ext),
+                CreateProjectAssignmentToClusterModel ext => ValidateCreateProjectAssignmentToClusterModel(ext),
+                ModifyProjectAssignmentToClusterModel ext => ValidateModifyProjectAssignmentToClusterModel(ext),
+                RemoveProjectAssignmentToClusterModel ext => ValidateRemoveProjectAssignmentToClusterModel(ext),
+                InitializeClusterScriptDirectoryModel ext => ValidateInitializeClusterScriptDirectoryModel(ext),
+                TestClusterAccessForAccountModelObsolete ext => ValidateTestClusterAccessForAccountModel(ext),
+                TestClusterAccessForAccountModel ext => ValidateTestClusterAccessForAccountModel(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
         }
 
-        private string ValidateRemoveSecureShellKeyModel(RemoveSecureShellKeyModel ext)
+        private string ValidateTestClusterAccessForAccountModel(TestClusterAccessForAccountModelObsolete ext)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
-            if (string.IsNullOrEmpty(ext.PublicKey))
+            if (!sessionCodeValidation.IsValid)
             {
-                _messageBuilder.AppendLine("PublicKey can not be null or empty.");
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
             }
+            
+            ValidateId(ext.ProjectId, "ProjectId");
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateTestClusterAccessForAccountModel(TestClusterAccessForAccountModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+            if (string.IsNullOrEmpty(ext.Username))
+            {
+                _messageBuilder.AppendLine("Username can not be null or empty.");
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateInitializeClusterScriptDirectoryModel(InitializeClusterScriptDirectoryModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            var validationResult = new PathValidator(ext.ClusterProjectRootDirectory).Validate();
+            
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+            
+            ValidateId(ext.ProjectId, "ProjectId");
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateProjectAssignmentToClusterModel(CreateProjectAssignmentToClusterModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            var validationResult = new PathValidator(ext.LocalBasepath).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
+            ValidateId(ext.ClusterId, "ClusterId");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyProjectAssignmentToClusterModel(ModifyProjectAssignmentToClusterModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            var validationResult = new PathValidator(ext.LocalBasepath).Validate();
+            if (!validationResult.IsValid)
+            {
+                _messageBuilder.AppendLine(validationResult.Message);
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
+            ValidateId(ext.ClusterId, "ClusterId");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveProjectAssignmentToClusterModel(RemoveProjectAssignmentToClusterModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
+            ValidateId(ext.ClusterId, "ClusterId");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateProjectModel(CreateProjectModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (string.IsNullOrEmpty(ext.AccountingString))
+            {
+                _messageBuilder.AppendLine("AccountingString can not be null or empty.");
+            }
+
+            if (ext.StartDate > ext.EndDate)
+            {
+                _messageBuilder.AppendLine("StartDate can not be after EndDate.");
+            }
+
+            if (!ext.UsageType.HasValue)
+            {
+                var validValues = Enum.GetValues(typeof(UsageType)).Cast<UsageType>();
+                string validValueString = string.Join(", ", validValues.Select(e => $"{(int)e} ({e})"));
+                _messageBuilder.AppendLine($"UsageType must be set, please choose between {validValueString}.");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyProjectModel(ModifyProjectModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (ext.StartDate > ext.EndDate)
+            {
+                _messageBuilder.AppendLine("StartDate can not be after EndDate.");
+            }
+
+            if (!ext.UsageType.HasValue)
+            {
+                var validValues = Enum.GetValues(typeof(UsageType)).Cast<UsageType>();
+                string validValueString = string.Join(", ", validValues.Select(e => $"{(int)e} ({e})"));
+                _messageBuilder.AppendLine($"UsageType must be set, please choose between {validValueString}.");
+            }
+
+            ValidateId(ext.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveProjectModel(RemoveProjectModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateSecureShellKeyModelObsolete(CreateSecureShellKeyModelObsolete ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (string.IsNullOrEmpty(ext.Username))
+            {
+                _messageBuilder.AppendLine("Username can not be null or empty.");
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
             if (!sessionCodeValidation.IsValid)
             {
                 _messageBuilder.AppendLine(sessionCodeValidation.Message);
@@ -39,17 +226,29 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateRecreateSecureShellKeyModel(RecreateSecureShellKeyModel ext)
+        private string ValidateRecreateSecureShellKeyModel(RegenerateSecureShellKeyModelObsolete ext)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
-            if (string.IsNullOrEmpty(ext.Username))
-            {
-                _messageBuilder.AppendLine("Username can not be null or empty.");
-            }
             if (string.IsNullOrEmpty(ext.PublicKey))
             {
                 _messageBuilder.AppendLine("PublicKey can not be null or empty.");
             }
+            ValidateId(ext.ProjectId, "ProjectId");
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveSecureShellKeyModel(RemoveSecureShellKeyModelObsolete ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (string.IsNullOrEmpty(ext.PublicKey))
+            {
+                _messageBuilder.AppendLine("PublicKey can not be null or empty.");
+            }
+            ValidateId(ext.ProjectId, "ProjectId");
             if (!sessionCodeValidation.IsValid)
             {
                 _messageBuilder.AppendLine(sessionCodeValidation.Message);
@@ -60,15 +259,15 @@ namespace HEAppE.RestApi.InputValidator
         private string ValidateCreateSecureShellKeyModel(CreateSecureShellKeyModel ext)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
-            if (string.IsNullOrEmpty(ext.Username))
+            foreach(string username in ext.Credentials.Select(x=>x.Username))
             {
-                _messageBuilder.AppendLine("Username can not be null or empty.");
+                if (string.IsNullOrEmpty(username))
+                {
+                    _messageBuilder.AppendLine("Username can not be null or empty.");
+                }
             }
 
-            if (ext.AccountingStrings == null || ext.AccountingStrings.Length == 0)
-            {
-                _messageBuilder.AppendLine("Projects can not be null or empty.");
-            }
+            ValidateId(ext.ProjectId, "ProjectId");
 
             if (!sessionCodeValidation.IsValid)
             {
@@ -76,6 +275,37 @@ namespace HEAppE.RestApi.InputValidator
             }
             return _messageBuilder.ToString();
         }
+
+        private string ValidateRecreateSecureShellKeyModel(RegenerateSecureShellKeyModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (string.IsNullOrEmpty(ext.Username))
+            {
+                _messageBuilder.AppendLine("Username can not be null or empty.");
+            }
+            ValidateId(ext.ProjectId, "ProjectId");
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveSecureShellKeyModel(RemoveSecureShellKeyModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (string.IsNullOrEmpty(ext.Username))
+            {
+                _messageBuilder.AppendLine("Username can not be null or empty.");
+            }
+            ValidateId(ext.ProjectId, "ProjectId");
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
 
         private string ValidateRemoveCommandTemplateModel(RemoveCommandTemplateModel model)
         {

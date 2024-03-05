@@ -1,9 +1,6 @@
 ﻿using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.BusinessLogicTier.Logic;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
-using HEAppE.BusinessLogicTier.Logic.FileTransfer.Exceptions;
-using HEAppE.BusinessLogicTier.Logic.JobManagement.Exceptions;
 using HEAppE.CertificateGenerator;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -12,19 +9,22 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.FileTransferFramework;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters;
-using HEAppE.Utils;
 using log4net;
 using Renci.SshNet.Common;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.Utils;
+using HEAppE.Exceptions.External;
 using System.Reflection;
-using System.Runtime.CompilerServices;
+using System.Linq;
+using System;
+using System.IO;
+using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using HEAppE.Exceptions.Internal;
+using HEAppE.Exceptions.AbstractTypes;
+using HEAppE.HpcConnectionFramework.Configuration;
 
-namespace HEAppE.BusinesslogicTier.logic.FileTransfer
+namespace HEAppE.BusinessLogicTier.logic.FileTransfer
 {
     public class FileTransferLogic : IFileTransferLogic
     {
@@ -33,11 +33,15 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
         /// Unit of work
         /// </summary>
         private readonly IUnitOfWork _unitOfWork;
-
         /// <summary>
         /// _logger
         /// </summary>
         private readonly ILog _log;
+
+        /// <summary>
+        /// Script Configuration
+        /// </summary>
+        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
         #endregion
         #region Constructors
         /// <summary>
@@ -63,16 +67,18 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             foreach (var activeTemporaryKeyGroup in activeTemporaryKeysGroup)
             {
                 Cluster cluster = activeTemporaryKeyGroup.Key;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster);
-
+                
                 var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
-                    new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
+                        new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
                     .ToList();
 
-
-
-                clusterUserActiveTempKey.ForEach(f => scheduler.RemoveDirectFileTransferAccessForUser(f.Select(S => S.PublicKey), f.Key.ClusterUser, f.Key.Cluster));
-
+                foreach (var tempKey in clusterUserActiveTempKey)
+                {
+                    var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, tempKey.Key.Project);
+                    scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
+                        tempKey.Key.ClusterUser, tempKey.Key.Cluster);
+                }
 
                 activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
                 _unitOfWork.Save();
@@ -87,15 +93,16 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
             if (!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
             {
-                throw new Exception($"""Private key file located at "{clusterUserAuthCredentials.PrivateKeyFile}" does not exist""");
+                throw new ClusterAuthenticationException("NotExistingPrivateKeyFile", clusterUserAuthCredentials.PrivateKeyFile);
             }
 
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
+                Port = jobInfo.Specification.FileTransferMethod.Port,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
                 Credentials = new FileTransferKeyCredentials
                 {
                     Username = clusterUserAuthCredentials.Username,
@@ -116,7 +123,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 
             if (jobInfo.FileTransferTemporaryKeys.Count(c => !c.IsDeleted) > BusinessLogicConfiguration.GeneratedFileTransferKeyLimitPerJob)
             {
-                throw new FileTransferTemporaryKeyException("It was reached the limit of generated ssh keys for job used by direct transfer!");
+                throw new FileTransferTemporaryKeyException("SshKeyGenerationLimit");
             }
 
             var certGenerator = new SSHGenerator();
@@ -131,9 +138,10 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
+                Port = jobInfo.Specification.FileTransferMethod.Port,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification),
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
                 Credentials = new FileTransferKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,
@@ -150,7 +158,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
                     PublicKey = publicKey,
                 });
 
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project).AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
 
             _unitOfWork.Save();
             return transferMethod;
@@ -165,10 +173,10 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == publicKey);
             if (temporaryKey is null)
             {
-                throw new FileTransferTemporaryKeyException("The direct transfer could not be finished due to a public key mismatch!");
+                throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
             }
 
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster).RemoveDirectFileTransferAccessForUser(
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project).RemoveDirectFileTransferAccessForUser(
                 new string[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser, jobInfo.Specification.Cluster);
 
             temporaryKey.IsDeleted = true;
@@ -210,8 +218,7 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
 
             foreach (var fileTransferMethodGroup in fileTransferMethodGroups)
             {
-                IRexFileSystemManager fileManager =
-                    FileSystemFactory.GetInstance(fileTransferMethodGroup.Key.Protocol).CreateFileSystemManager(fileTransferMethodGroup.Key);
+                IRexFileSystemManager fileManager = FileSystemFactory.GetInstance(fileTransferMethodGroup.Key.Protocol).CreateFileSystemManager(fileTransferMethodGroup.Key);
                 foreach (var jobInfo in fileTransferMethodGroup)
                 {
                     DateTime synchronizationTime = DateTime.UtcNow;
@@ -276,22 +283,16 @@ namespace HEAppE.BusinesslogicTier.logic.FileTransfer
             }
             catch (SftpPathNotFoundException exception)
             {
-                _log.Warn($"{loggedUser} is requesting not existing file '{relativeFilePath}'");
-                ExceptionHandler.ThrowProperExternalException(new InvalidRequestException(exception.Message));
+                throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
             }
-
-            return null;
         }
 
         public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)
         {
             FileTransferMethod fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(fileTransferMethodById);
-            if (fileTransferMethod == null)
-            {
-                _log.Error("Requested FileTransferMethod with Id=" + fileTransferMethodById + " does not exist in the system.");
-                throw new RequestedObjectDoesNotExistException("Requested FileTransferMethod with Id=" + fileTransferMethodById + " does not exist in the system.");
-            }
-            return fileTransferMethod;
+            return fileTransferMethod == null
+                ? throw new RequestedObjectDoesNotExistException("NotExistingFileTransferMethod", fileTransferMethodById)
+                : fileTransferMethod;
         }
 
         public virtual IEnumerable<FileTransferMethod> GetFileTransferMethodsByClusterId(long clusterId)

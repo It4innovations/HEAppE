@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Dynamic;
 
 namespace HEAppE.HpcConnectionFramework.Configuration
 {
@@ -24,19 +25,14 @@ namespace HEAppE.HpcConnectionFramework.Configuration
         public static TunnelConfiguration TunnelSettings { get; } = new TunnelConfiguration();
 
         /// <summary>
-        /// Command scripts path configuration
-        /// </summary>
-        public static CommandScriptPathConfiguration CommandScriptsPathSettings { get; } = new CommandScriptPathConfiguration();
-
-        /// <summary>
-        /// Linux local command scripts path configuration
-        /// </summary>
-        public static LinuxLocalCommandScriptPathConfiguration LinuxLocalCommandScriptPathSettings { get; } = new LinuxLocalCommandScriptPathConfiguration();
-
-        /// <summary>
         /// Clusters connection Pool configuration
         /// </summary>
-        public static Dictionary<string, ClusterConnectionPoolConfiguration> ClustersConnectionPoolSettings { get; } = new Dictionary<string, ClusterConnectionPoolConfiguration>();
+        public static ClusterConnectionPoolConfiguration ClustersConnectionPoolSettings { get; } = new ClusterConnectionPoolConfiguration();
+
+        /// <summary>
+        /// Clusters scripts configuration
+        /// </summary>
+        public static ScriptsConfiguration ScriptsSettings { get; } = new ScriptsConfiguration();
         #endregion
     }
 }

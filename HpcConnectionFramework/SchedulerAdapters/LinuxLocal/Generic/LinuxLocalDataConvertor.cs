@@ -7,6 +7,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +23,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
         /// <summary>
         /// Command
         /// </summary>
-        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.LinuxLocalCommandScriptPathSettings;
+        protected readonly LinuxLocalCommandScriptPathConfiguration _linuxLocalCommandScripts = HPCConnectionFrameworkConfiguration.ScriptsSettings.LinuxLocalCommandScriptPathSettings;
         #endregion
         #region Constructors
         /// <summary>
@@ -132,10 +133,13 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
                 commands.Append(Convert.ToBase64String(Encoding.UTF8.GetBytes(taskCommandLine.ToString())) + " ");
                 taskCommandLine.Clear();
             }
-            string localBasePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
 
+            string localBasePath = $"{jobSpecification.Cluster.ClusterProjects
+                .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath}";
+
+            var jobDir = Path.Join(localBasePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobSpecification.Id.ToString());
             //preparation script, prepares job info file to the job directory at local linux "cluster"
-            return $"{_linuxLocalCommandScripts.PrepareJobDirCmdPath} {localBasePath}/{jobSpecification.Id}/ {localHpcJobInfo} \"{commands}\";";
+            return $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.PrepareJobDirCmdScriptName} {jobDir} {localHpcJobInfo} \"{commands}\";";
         }
         #endregion
         #region Local Methods
