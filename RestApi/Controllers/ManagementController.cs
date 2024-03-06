@@ -375,7 +375,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("SecureShellKey")]
         [RequestSizeLimit(300)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -405,7 +405,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("GenerateSecureShellKey")]
         [RequestSizeLimit(1000)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -431,7 +431,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPut("SecureShellKey")]
         [RequestSizeLimit(1000)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PublicKeyExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -457,7 +457,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPut("RegenerateSecureShellKey")]
         [RequestSizeLimit(1000)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(PublicKeyExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

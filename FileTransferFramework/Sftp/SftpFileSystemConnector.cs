@@ -62,7 +62,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                         => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
-                        => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username),
+                        => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
 
                 _ => throw new NotImplementedException("SFTP authentication credentials authentication type is not allowed!")
             };
@@ -373,9 +373,9 @@ namespace HEAppE.FileTransferFramework.Sftp
             }
         }
 
-        private NoAuthenticationSftpClient CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string username)
+        private NoAuthenticationSftpClient CreateConnectionObjectUsingNoAuthentication(string masterNodeName, string username, int? port)
         {
-            return new NoAuthenticationSftpClient(_logger, masterNodeName, username);
+            return new NoAuthenticationSftpClient(_logger, masterNodeName, username, port);
         }
         #endregion
     }

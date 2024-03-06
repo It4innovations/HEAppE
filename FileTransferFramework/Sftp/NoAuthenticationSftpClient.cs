@@ -13,14 +13,16 @@ namespace HEAppE.FileTransferFramework.Sftp
         #region Instances
         private readonly string _masterNodeName;
         private readonly string _userName;
+        private readonly int _port;
         private readonly ILogger _logger;
         #endregion
         #region Constructors
-        public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string userName)
-            : base(new ConnectionInfo(masterNodeName, userName, new PasswordAuthenticationMethod(userName, string.Empty)))
+        public NoAuthenticationSftpClient(ILogger logger, string masterNodeName, string userName, int? port)
+            : base(new ConnectionInfo(masterNodeName, port ?? 22, userName, new PasswordAuthenticationMethod(userName, string.Empty)))
         {
             _masterNodeName = masterNodeName;
             _userName = userName;
+            _port = port ?? 22;
             _logger = logger;
 
             CheckInputParameters();
@@ -53,7 +55,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             {
                 proc.StartInfo.FileName = "sftp";
                 proc.StartInfo.WorkingDirectory = "/usr/bin/";
-                proc.StartInfo.Arguments = $"{_userName}@{_masterNodeName}";
+                proc.StartInfo.Arguments = $"-P {_port} -q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName}";
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.RedirectStandardInput = true;
                 proc.StartInfo.RedirectStandardOutput = true;
