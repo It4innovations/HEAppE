@@ -186,8 +186,7 @@ namespace HEAppE.DataAccessTier
                 //.Ignore(p => p.CipherType)
                 .Ignore(p => p.Password)
                 .Ignore(p => p.PrivateKey)
-                .Ignore(p => p.PrivateKeyPassphrase)
-                .Ignore(p => p.PrivateKeyCertificate);
+                .Ignore(p => p.PrivateKeyPassphrase);
 
             //M:N relations for ProjectContact
             modelBuilder.Entity<ProjectContact>()
