@@ -9,10 +9,11 @@ namespace HEAppE.DomainObjects.ClusterInformation;
 public record ClusterProjectCredentialVaultPart(long Id,
         string Password,
         string PrivateKey,
-        string PrivateKeyPassword
+        string PrivateKeyPassword,
+        string PrivateKeyCertificate
         )
 {
-    private ClusterProjectCredentialVaultPart() : this(-1, "", "", "") { }
+    private ClusterProjectCredentialVaultPart() : this(-1, "", "", "", "") { }
 
     /// <summary>
     /// Gets the default empty cluster project credential vault part.
