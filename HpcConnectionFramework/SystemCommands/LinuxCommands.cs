@@ -1,17 +1,17 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.Exceptions.External;
-using HEAppE.Exceptions.Internal;
-using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-using log4net;
-using Org.BouncyCastle.Crypto.Generators;
-using Renci.SshNet;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+
+using log4net;
+
+using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
@@ -228,7 +228,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
 
                 // Scripts modifications
                 cmdBuilder.Append($"chmod -R 755 {targetDirectory} && ");
-                cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath}/{_scripts.SubExecutionsPath}|g\" {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
+                cmdBuilder.Append($"sed -i 's|TODO|{localBasepath}/{_scripts.SubExecutionsPath}|g' {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
             }
 
             cmdBuilder.Append($"ln -sf {targetDirectory} {_scripts.ScriptsBasePath}");
