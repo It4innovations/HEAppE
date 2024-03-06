@@ -34,6 +34,12 @@ namespace HEAppE.DomainObjects.ClusterInformation
             set { _vaultData = _vaultData with { PrivateKey = value }; }
         }
 
+        public string PrivateKeyCertificate
+        {
+            get { return _vaultData.PrivateKeyCertificate; }
+            set { _vaultData = _vaultData with { PrivateKeyCertificate = value }; }
+        }
+
         [StringLength(50)]
         public string PrivateKeyPassphrase
         {

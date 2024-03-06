@@ -698,6 +698,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
             {
+                _logger.Warn($"{clusterAuthCredentials.PrivateKey}");
                 if (clusterAuthCredentials.IsDeleted)
                 {
                     continue;

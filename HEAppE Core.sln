@@ -45,7 +45,12 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Tests", "Tests", "{4D73689B
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DataAccessTier.Tests", "Tests\DataAccessTier.Tests\DataAccessTier.Tests.csproj", "{9A2D593C-B618-4737-B7AB-2978F51D9E9E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BusinessLogicTier.Tests", "Tests\BusinessLogicTier.Logic.Managment.Tests\BusinessLogicTier.Tests.csproj", "{E39169CD-C647-4BC1-97C3-94D08F49A68F}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BusinessLogicTier.Tests", "Tests\BusinessLogicTier.Logic.Managment.Tests\BusinessLogicTier.Tests.csproj", "{E39169CD-C647-4BC1-97C3-94D08F49A68F}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{0C88B7F5-A175-470D-BB5B-5010FAE92740}"
+	ProjectSection(SolutionItems) = preProject
+		InitVault.sh = InitVault.sh
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

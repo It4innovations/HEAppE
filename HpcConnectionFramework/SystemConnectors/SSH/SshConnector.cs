@@ -58,6 +58,9 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
 
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyWithCertificate
+                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
+
                 _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
             };
         }
@@ -213,6 +216,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
         {
             try
             {
+
                 using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 PrivateKeyConnectionInfo connectionInfo = port switch
                 {
@@ -225,6 +229,40 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                                 port.Value,
                                 username,
                                 new PrivateKeyFile(stream, privateKeyPassword))
+                };
+
+                var client = new SshClient(connectionInfo);
+                return client;
+            }
+            catch (Exception e)
+            {
+                throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
+            }
+        }
+        private static object CreateConnectionObjectUsingPrivateKeyAndCertificateAuthentication(string masterNodeName, string username, string privateKey, string certificateKey, string privateKeyPassword, int? port)
+        {
+            try
+            {
+
+                using var pkStream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
+                using var certStream = new MemoryStream(Encoding.UTF8.GetBytes(certificateKey));
+
+                PrivateKeyFile privateKeyFile = string.IsNullOrEmpty(privateKeyPassword) ? new PrivateKeyFile(pkStream) : new PrivateKeyFile(pkStream, privateKeyPassword);
+                var cert = new PrivateKeyFile(certStream);
+
+                var keys = new PrivateKeyFile[] { privateKeyFile, cert };
+
+                PrivateKeyConnectionInfo connectionInfo = port switch
+                {
+                    null => new PrivateKeyConnectionInfo(
+                                masterNodeName,
+                                username,
+                                keys),
+                    _ => new PrivateKeyConnectionInfo(
+                                masterNodeName,
+                                port.Value,
+                                username,
+                                keys)
                 };
 
                 var client = new SshClient(connectionInfo);
