@@ -59,7 +59,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyWithCertificate
-                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
+                        => CreateConnectionObjectUsingPrivateKeyAndCertificateAuthentication(masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, credentials.PrivateKeyCertificate, port),
 
                 _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
             };
