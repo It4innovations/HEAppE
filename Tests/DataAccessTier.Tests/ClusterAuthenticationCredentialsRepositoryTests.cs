@@ -24,10 +24,11 @@ public class ClusterAuthenticationCredentialsRepositoryTests : IAsyncLifetime
 
     private ClusterAuthenticationCredentials TestEntity = new HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials()
     {
-        AuthenticationType = HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey,
+        AuthenticationType = HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentialsAuthType.PrivateKeyWithCertificate,
         CipherType = HEAppE.DomainObjects.FileTransfer.FileTransferCipherType.Unknown,
         IsGenerated = true,
         Password = "password1",
+        PrivateKeyCertificate = "cert",
         PrivateKey =
         """
         -----BEGIN RSA PRIVATE KEY-----
