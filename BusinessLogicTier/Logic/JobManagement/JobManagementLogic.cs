@@ -1,4 +1,10 @@
-﻿using HEAppE.Exceptions.External;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Transactions;
+
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -10,16 +16,12 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils.Validation;
+
 using log4net;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -98,7 +100,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 }
                 var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id)
                     ?? throw new InvalidRequestException("NotExistingProject");
-                
+
                 //Create job directory
                 SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster, jobInfo.Project).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode);
                 return jobInfo;
@@ -382,7 +384,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         .FirstOrDefault();
                     string userParametersParameterName = commandTemplate.TemplateParameters
                         .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
-                        .FirstOrDefault().Identifier;
+                        .FirstOrDefault()?.Identifier;
                     string parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
 
                     task.CommandParameterValues.Add(new CommandTemplateParameterValue()
@@ -612,11 +614,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                            .ToList();
 
             var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
-            
-            ClusterAuthenticationCredentials account = useServiceAccount ? 
-                unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId) 
+
+            ClusterAuthenticationCredentials account = useServiceAccount ?
+                unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId)
                 : jobSpecification.ClusterUser;
-            
+
             return scheduler.GetActualTasksInfo(unfinishedTasks, account);
         }
 
