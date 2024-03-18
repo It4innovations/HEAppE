@@ -1,5 +1,6 @@
-﻿using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.ExtModels.FileTransfer.Models
 {
@@ -14,6 +15,9 @@ namespace HEAppE.ExtModels.FileTransfer.Models
 
         [DataMember(Name = "PrivateKey")]
         public string PrivateKey { get; set; }
+
+        [DataMember(Name = "PrivateKeyCertificate")]
+        public string PrivateKeyCertificate { get; set; }
 
         [DataMember(Name = "PublicKey")]
         public string PublicKey { get; set; }

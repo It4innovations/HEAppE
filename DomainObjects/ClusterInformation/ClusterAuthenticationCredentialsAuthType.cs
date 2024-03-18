@@ -11,6 +11,6 @@
         PasswordAndPrivateKeyViaProxy = 7,
         PrivateKeyViaProxy = 8,
         PrivateKeyInSshAgent = 9,
-        PrivateKeyWithCertificate = 10
+        PrivateKeyInVaultAndInSshAgent = 10
     }
 }

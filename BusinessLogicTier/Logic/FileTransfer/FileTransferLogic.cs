@@ -111,6 +111,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     Password = clusterUserAuthCredentials.Password,
                     FileTransferCipherType = clusterUserAuthCredentials.CipherType,
                     PrivateKey = clusterUserAuthCredentials.PrivateKey,
+                    PrivateKeyCertificate = clusterUserAuthCredentials.PrivateKeyCertificate,
                     Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
                 }
             };

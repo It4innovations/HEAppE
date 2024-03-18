@@ -24,7 +24,7 @@ public class ClusterAuthenticationCredentialsRepositoryTests : IAsyncLifetime
 
     private ClusterAuthenticationCredentials TestEntity = new HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials()
     {
-        AuthenticationType = HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentialsAuthType.PrivateKeyWithCertificate,
+        AuthenticationType = HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent,
         CipherType = HEAppE.DomainObjects.FileTransfer.FileTransferCipherType.Unknown,
         IsGenerated = true,
         Password = "password1",

@@ -7,6 +7,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication
         public FileTransferCipherType FileTransferCipherType { get; set; }
         public string Password { get; set; }
         public string PrivateKey { get; set; }
+        public string PrivateKeyCertificate { get; set; }
         public string PublicKey { get; set; }
         public string Passphrase { get; set; }
     }
