@@ -118,13 +118,13 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             {
                 return Enumerable.Empty<ClusterAuthenticationCredentials>();
             }
-            _log.Warn($"Import WithVaultData");
+
             foreach (var item in credentials)
             {
-                _log.Warn($"Import VaultInfo for id:{item.Id}");
+                _log.Debug($"Import VaultInfo for id:{item.Id}");
                 var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
 
-                _log.Warn($"Import Result : {vaultData}");
+                _log.Debug($"Import Result : {vaultData}");
 
                 item.ImportVaultData(vaultData);
             }

@@ -244,7 +244,8 @@ namespace HEAppE.DataAccessTier
                 PrivateKey = cc.PrivateKey,
                 PrivateKeyPassphrase = cc.PrivateKeyPassphrase,
                 CipherType = cc.CipherType,
-                IsDeleted = cc.IsDeleted
+                IsDeleted = cc.IsDeleted,
+                AuthenticationType = cc.AuthenticationType
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
