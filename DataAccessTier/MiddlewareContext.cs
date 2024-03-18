@@ -447,13 +447,13 @@ namespace HEAppE.DataAccessTier
                 }
                 case ClusterProjectCredential clusterProjectCredentials:
                 {
-                    var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
-                    if (entity is ClusterProjectCredential clusterProjectCredentialEntity)
-                    {
-                        var vaultData = new VaultConnector().GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id);
-                        clusterProjectCredentialEntity.ClusterAuthenticationCredentials.ImportVaultData(vaultData);
-                    }
-                    UpdateEntityOrAddItem(entity, item);
+                    var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId) as ClusterProjectCredential;
+                    var clusterProjectCredentialEntity = item as ClusterProjectCredential;
+
+                    var vaultData = new VaultConnector().GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id);
+                    clusterProjectCredentialEntity.ClusterAuthenticationCredentials.ImportVaultData(vaultData);
+
+                    UpdateEntityOrAddItem(entity, clusterProjectCredentialEntity);
                     break;
                 }
                 case ProjectContact projectContact:
