@@ -139,14 +139,15 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                 SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath)
             };
 
-            if (jobInfo.Specification.ClusterUser is { AuthenticationType: ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent } credentials)
+            _log.Warn($"ClusterUser: {jobInfo.Specification.ClusterUser}");
+            if (jobInfo.Specification.ClusterUser.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
             {
                 transferMethod.Credentials = new FileTransferKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,
-                    FileTransferCipherType = credentials.CipherType,
-                    PrivateKey = credentials.PrivateKey,
-                    PrivateKeyCertificate = credentials.PrivateKeyCertificate,
+                    FileTransferCipherType = jobInfo.Specification.ClusterUser.CipherType,
+                    PrivateKey = jobInfo.Specification.ClusterUser.PrivateKey,
+                    PrivateKeyCertificate = jobInfo.Specification.ClusterUser.PrivateKeyCertificate,
                     PublicKey = publicKey
                 };
 
