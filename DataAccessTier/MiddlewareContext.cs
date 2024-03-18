@@ -281,6 +281,7 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
+
             ClusterAuthenticationCredentials.ToList().ForEach(clusterAuthenticationCredential =>
             {
                 var clusters = clusterAuthenticationCredential.ClusterProjectCredentials

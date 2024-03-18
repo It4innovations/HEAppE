@@ -70,7 +70,7 @@ namespace HEAppE.Utils
                 }
             }
 
-            return ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
+            return credential.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent ? ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent : ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent;
         }
     }
 }
