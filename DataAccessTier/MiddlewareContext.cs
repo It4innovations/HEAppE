@@ -236,6 +236,7 @@ namespace HEAppE.DataAccessTier
                 ProxyConnectionId = c.ProxyConnectionId
             }));
 
+            _log.Warn($"ClusterAuth: {MiddlewareContextSettings.ClusterAuthenticationCredentials}");
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc => new ClusterAuthenticationCredentials
             {
                 Id = cc.Id,
