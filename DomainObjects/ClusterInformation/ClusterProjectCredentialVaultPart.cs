@@ -20,7 +20,7 @@ public record ClusterProjectCredentialVaultPart(long Id,
     /// </summary>
     public static ClusterProjectCredentialVaultPart Empty => new ClusterProjectCredentialVaultPart();
 
-    public string AsVaultDataJsonObject() => $"{{ \"data\":{JsonSerializer.Serialize(this)}}}";
+    public string AsVaultDataJsonObject() => $"{{ \"data\":{JsonSerializer.Serialize(this)}}}"; 
 
     public static ClusterProjectCredentialVaultPart FromVaultJsonData(string json)
     {

@@ -12,6 +12,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
     [Table("ClusterAuthenticationCredentials")]
     public partial class ClusterAuthenticationCredentials : IdentifiableDbEntity
     {
+
         #region Properties
         [Required]
         [StringLength(50)]
@@ -75,6 +76,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         public void ImportVaultData(ClusterProjectCredentialVaultPart data)
         {
+
             var fromBase64PK = Encoding.UTF8.GetString(Convert.FromBase64String(data.PrivateKey));
             var fromBase64PKCert = Encoding.UTF8.GetString(Convert.FromBase64String(data.PrivateKeyCertificate));
             _vaultData = data with { PrivateKey = fromBase64PK, PrivateKeyCertificate = fromBase64PKCert };
