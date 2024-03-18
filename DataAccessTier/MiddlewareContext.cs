@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 
+using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -447,6 +448,11 @@ namespace HEAppE.DataAccessTier
                 case ClusterProjectCredential clusterProjectCredentials:
                 {
                     var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
+                    if (entity is ClusterProjectCredential clusterProjectCredentialEntity)
+                    {
+                        var vaultData = new VaultConnector().GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id);
+                        clusterProjectCredentialEntity.ClusterAuthenticationCredentials.ImportVaultData(vaultData);
+                    }
                     UpdateEntityOrAddItem(entity, item);
                     break;
                 }
