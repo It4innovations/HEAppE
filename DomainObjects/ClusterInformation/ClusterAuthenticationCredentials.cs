@@ -71,7 +71,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
         #region Override Methods
         public override string ToString()
         {
-            return $"ClusterAuthenticationCredentials: Username={Username}, AuthenticationType={nameof(AuthenticationType)}, CipherType={CipherType}";
+            return $"ClusterAuthenticationCredentials: Username={Username}, AuthenticationType={AuthenticationType}, CipherType={CipherType}";
         }
 
         public void ImportVaultData(ClusterProjectCredentialVaultPart data)
