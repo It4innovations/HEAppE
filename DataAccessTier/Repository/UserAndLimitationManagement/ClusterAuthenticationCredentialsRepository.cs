@@ -1,6 +1,5 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using System.Reflection;
 
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Vault;
@@ -13,7 +12,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
     internal class ClusterAuthenticationCredentialsRepository : GenericRepository<ClusterAuthenticationCredentials>, IClusterAuthenticationCredentialsRepository
     {
         private readonly IVaultConnector _vaultConnector;
-        private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        private static readonly ILog _log = LogManager.GetLogger(typeof(ClusterAuthenticationCredentialsRepository));
         #region Constructors
         internal ClusterAuthenticationCredentialsRepository(MiddlewareContext context, IVaultConnector vaultConnector)
                 : base(context)
@@ -119,11 +118,13 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             {
                 return Enumerable.Empty<ClusterAuthenticationCredentials>();
             }
+            _log.Warn($"Import WithVaultData");
             foreach (var item in credentials)
             {
+                _log.Warn($"Import VaultInfo for id:{item.Id}");
                 var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
 
-                _log.Warn($"Import VaultInfo for id:{item.Id}. Reuslt : {vaultData}");
+                _log.Warn($"Import Result : {vaultData}");
 
                 item.ImportVaultData(vaultData);
             }
