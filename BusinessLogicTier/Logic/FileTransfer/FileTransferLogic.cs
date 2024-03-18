@@ -129,30 +129,48 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                 throw new FileTransferTemporaryKeyException("SshKeyGenerationLimit");
             }
 
-            var certGenerator = new SSHGenerator();
-            string publicKey = certGenerator.ToPuTTYPublicKey();
-
-            while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
-            {
-                certGenerator.Regenerate();
-                publicKey = certGenerator.ToPuTTYPublicKey();
-            }
-
-            var transferMethod = new FileTransferMethod
+            string publicKey = string.Empty;
+            FileTransferMethod transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
                 Port = jobInfo.Specification.FileTransferMethod.Port,
                 Cluster = jobInfo.Specification.Cluster,
                 ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
-                Credentials = new FileTransferKeyCredentials
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath)
+            };
+
+            if (jobInfo.Specification.ClusterUser is { AuthenticationType: ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent } credentials)
+            {
+                transferMethod.Credentials = new FileTransferKeyCredentials
+                {
+                    Username = jobInfo.Specification.ClusterUser.Username,
+                    FileTransferCipherType = credentials.CipherType,
+                    PrivateKey = credentials.PrivateKey,
+                    PrivateKeyCertificate = credentials.PrivateKeyCertificate,
+                    PublicKey = publicKey
+                };
+
+            }
+            else
+            {
+
+                var certGenerator = new SSHGenerator();
+                publicKey = certGenerator.ToPuTTYPublicKey();
+
+                while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
+                {
+                    certGenerator.Regenerate();
+                    publicKey = certGenerator.ToPuTTYPublicKey();
+                }
+
+                transferMethod.Credentials = new FileTransferKeyCredentials
                 {
                     Username = jobInfo.Specification.ClusterUser.Username,
                     FileTransferCipherType = certGenerator.CipherType,
                     PrivateKey = certGenerator.ToPrivateKey(),
                     PublicKey = publicKey
-                }
-            };
+                };
+            }
 
             jobInfo.FileTransferTemporaryKeys.Add(
                 new FileTransferTemporaryKey()

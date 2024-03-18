@@ -127,6 +127,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
                 _log.Debug($"Import Result : {vaultData}");
 
                 item.ImportVaultData(vaultData);
+                _log.Debug($"Decoded private key: {item.PrivateKey}");
             }
             return credentials;
         }
