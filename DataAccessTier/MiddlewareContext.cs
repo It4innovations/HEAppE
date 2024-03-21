@@ -237,7 +237,6 @@ namespace HEAppE.DataAccessTier
                 ProxyConnectionId = c.ProxyConnectionId
             }));
 
-            _log.Warn($"ClusterAuth: {MiddlewareContextSettings.ClusterAuthenticationCredentials}");
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterAuthenticationCredentials?.Select(cc => new ClusterAuthenticationCredentials
             {
                 Id = cc.Id,
@@ -450,10 +449,12 @@ namespace HEAppE.DataAccessTier
                     var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId) as ClusterProjectCredential;
                     var clusterProjectCredentialEntity = item as ClusterProjectCredential;
 
-                    var vaultData = new VaultConnector().GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id);
-                    clusterProjectCredentialEntity.ClusterAuthenticationCredentials.ImportVaultData(vaultData);
+                    var vaultConnector = new VaultConnector();
+                    var vaultData = vaultConnector.GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id);
 
                     UpdateEntityOrAddItem(entity, clusterProjectCredentialEntity);
+
+                    vaultConnector.SetClusterAuthenticationCredentials(vaultData);
                     break;
                 }
                 case ProjectContact projectContact:
