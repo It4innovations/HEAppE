@@ -10,6 +10,9 @@ namespace HEAppE.DataAccessTier.Vault;
 
 internal class VaultConnector : IVaultConnector
 {
+    private const string _vaultBaseAddress = "http://vaultagent:8100";
+    private const string _clusterAuthenticationCredentialsPath = "v1/HEAppE/data/ClusterAuthenticationCredentials";
+
     protected readonly ILog _log = LogManager.GetLogger(typeof(VaultConnector));
     public void DeleteClusterAuthenticationCredentials(long id)
     {
@@ -19,8 +22,8 @@ internal class VaultConnector : IVaultConnector
     public ClusterProjectCredentialVaultPart GetClusterAuthenticationCredentials(long id)
     {
         using var httpClient = new HttpClient();
-        httpClient.BaseAddress = new Uri("http://vaultagent:8100");
-        var path = @$"v1/HEAppE/data/ClusterAuthenticationCredentials/{id}";
+        httpClient.BaseAddress = new Uri(_vaultBaseAddress);
+        var path = $"{_clusterAuthenticationCredentialsPath}/{id}";
         try
         {
             var resultTask = httpClient.GetStringAsync(path);
@@ -40,8 +43,8 @@ internal class VaultConnector : IVaultConnector
     public void SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data)
     {
         using var httpClient = new HttpClient();
-        httpClient.BaseAddress = new Uri("http://vaultagent:8100");
-        var path = $@"v1/HEAppE/data/ClusterAuthenticationCredentials/{data.Id}";
+        httpClient.BaseAddress = new Uri(_vaultBaseAddress);
+        var path = $"{_clusterAuthenticationCredentialsPath}/{data.Id}";
         var content = data.AsVaultDataJsonObject();
         var payload = new StringContent(content, Encoding.UTF8, "application/json");
         var messageTask = httpClient.PostAsync(path, payload);
