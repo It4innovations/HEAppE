@@ -91,6 +91,27 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
             };
             return convert;
         }
+        
+        public static ExtendedCommandTemplateExt ConvertIntToExtendedExt(this CommandTemplate commandTemplate)
+        {
+            var convert = new ExtendedCommandTemplateExt()
+            {
+                Id = commandTemplate.Id,
+                Name = commandTemplate.Name,
+                Description = commandTemplate.Description,
+                ExtendedAllocationCommand = commandTemplate.ExtendedAllocationCommand,
+                IsGeneric = commandTemplate.IsGeneric,
+                PreparationScript = commandTemplate.PreparationScript,
+                ExecutableFile = commandTemplate.ExecutableFile,
+                CommandParameters = commandTemplate.CommandParameters,
+                ProjectId = commandTemplate.ProjectId.HasValue? commandTemplate.ProjectId.Value : 0,
+                ClusterNodeTypeId = commandTemplate.ClusterNodeTypeId.HasValue? commandTemplate.ClusterNodeTypeId.Value : 0,
+                TemplateParameters = commandTemplate.TemplateParameters.Where(w => string.IsNullOrEmpty(w.Query) && w.IsVisible)
+                    .Select(s => s.ConvertIntToExtendedExt())
+                    .ToArray()
+            };
+            return convert;
+        }
 
         private static CommandTemplateParameterExt ConvertIntToExt(this CommandTemplateParameter templateParameter)
         {
@@ -98,6 +119,18 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
             {
                 Identifier = templateParameter.Identifier,
                 Description = templateParameter.Description
+            };
+            return convert;
+        }
+        
+        public static ExtendedCommandTemplateParameterExt ConvertIntToExtendedExt(this CommandTemplateParameter templateParameter)
+        {
+            var convert = new ExtendedCommandTemplateParameterExt
+            {
+                Id = templateParameter.Id,
+                Identifier = templateParameter.Identifier,
+                Description = templateParameter.Description,
+                Query = templateParameter.Query
             };
             return convert;
         }

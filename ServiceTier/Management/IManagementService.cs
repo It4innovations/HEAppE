@@ -9,8 +9,10 @@ namespace HEAppE.ServiceTier.Management
 {
     public interface IManagementService
     {
-        CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript, string sessionCode);
-        CommandTemplateExt ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript, string sessionCode);
+        ExtendedCommandTemplateExt CreateCommandTemplateModel(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode);
+        CommandTemplateExt CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript, string sessionCode);
+        ExtendedCommandTemplateExt ModifyCommandTemplateModel(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript, long modelClusterNodeTypeId, string modelSessionCode);
+        CommandTemplateExt ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript, string sessionCode);
         void RemoveCommandTemplate(long commandTemplateId, string sessionCode);
         ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, string sessionCode);
         ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler, string sessionCode);
@@ -23,5 +25,11 @@ namespace HEAppE.ServiceTier.Management
         void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
         void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode);
         bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username);
+        ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
+            string modelDescription, long modelCommandTemplateId, string modelSessionCode);
+        ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery, string modelDescription, string modelSessionCode);
+        string RemoveCommandTemplateParameter(long modelId, string modelSessionCode);
+        List<ExtendedCommandTemplateExt> ListCommandTemplates(long projectId, string sessionCode);
+        ExtendedCommandTemplateExt ListCommandTemplate(long commandTemplateId, string sessionCode);
     }
 }

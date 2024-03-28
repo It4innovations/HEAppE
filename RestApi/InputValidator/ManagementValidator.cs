@@ -16,9 +16,14 @@ namespace HEAppE.RestApi.InputValidator
         {
             string message = _validationObject switch
             {
+                CreateCommandTemplateFromGenericModel ext => ValidateCreateCommandTemplateModel(ext),
                 CreateCommandTemplateModel ext => ValidateCreateCommandTemplateModel(ext),
+                ModifyCommandTemplateFromGenericModel ext => ValidateModifyCommandTemplateModel(ext),
                 ModifyCommandTemplateModel ext => ValidateModifyCommandTemplateModel(ext),
                 RemoveCommandTemplateModel ext => ValidateRemoveCommandTemplateModel(ext),
+                CreateCommandTemplateParameterModel ext => ValidateCreateCommandTemplateParameterModel(ext),
+                ModifyCommandTemplateParameterModel ext => ValidateModifyCommandTemplateParameterModel(ext),
+                RemoveCommandTemplateParameterModel ext => ValidateRemoveCommandTemplateParameterModel(ext),
                 CreateSecureShellKeyModelObsolete ext => ValidateCreateSecureShellKeyModelObsolete(ext),
                 RegenerateSecureShellKeyModelObsolete ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModelObsolete ext => ValidateRemoveSecureShellKeyModel(ext),
@@ -34,10 +39,85 @@ namespace HEAppE.RestApi.InputValidator
                 InitializeClusterScriptDirectoryModel ext => ValidateInitializeClusterScriptDirectoryModel(ext),
                 TestClusterAccessForAccountModelObsolete ext => ValidateTestClusterAccessForAccountModel(ext),
                 TestClusterAccessForAccountModel ext => ValidateTestClusterAccessForAccountModel(ext),
+                ListCommandTemplatesModel ext => ValidateListCommandTemplatesModel(ext),
+                ListCommandTemplateModel ext => ValidateListCommandTemplateModel(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateListCommandTemplateModel(ListCommandTemplateModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.Id, "Id");
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateListCommandTemplatesModel(ListCommandTemplatesModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveCommandTemplateParameterModel(RemoveCommandTemplateParameterModel ext)
+        {
+            ValidateId(ext.Id, "Id");
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyCommandTemplateParameterModel(ModifyCommandTemplateParameterModel ext)
+        {
+            
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (string.IsNullOrEmpty(ext.Identifier))
+            {
+                _messageBuilder.AppendLine("Identifier can not be null or empty.");
+            }
+
+            ValidateId(ext.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateCommandTemplateParameterModel(CreateCommandTemplateParameterModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (string.IsNullOrEmpty(ext.Identifier))
+            {
+                _messageBuilder.AppendLine("Identifier can not be null or empty.");
+            }
+
+            ValidateId(ext.CommandTemplateId, "CommandTemplateId");
+
+            return _messageBuilder.ToString();
         }
 
         private string ValidateTestClusterAccessForAccountModel(TestClusterAccessForAccountModelObsolete ext)
@@ -318,9 +398,26 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
+        private string ValidateModifyCommandTemplateModel(ModifyCommandTemplateFromGenericModel fromGenericModel)
+        {
+            ValidateId(fromGenericModel.CommandTemplateId, nameof(fromGenericModel.CommandTemplateId));
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(fromGenericModel.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (ContainsIllegalCharactersForPath(fromGenericModel.ExecutableFile))
+            {
+                _messageBuilder.AppendLine("ExecutableFile contains illegal characters.");
+            }
+
+            return _messageBuilder.ToString();
+        }
+        
         private string ValidateModifyCommandTemplateModel(ModifyCommandTemplateModel model)
         {
-            ValidateId(model.CommandTemplateId, nameof(model.CommandTemplateId));
+            ValidateId(model.Id, nameof(model.Id));
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)
             {
@@ -335,9 +432,25 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
+        private string ValidateCreateCommandTemplateModel(CreateCommandTemplateFromGenericModel fromGenericModel)
+        {
+            ValidateId(fromGenericModel.GenericCommandTemplateId, nameof(fromGenericModel.GenericCommandTemplateId));
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(fromGenericModel.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (ContainsIllegalCharactersForPath(fromGenericModel.ExecutableFile))
+            {
+                _messageBuilder.AppendLine("ExecutableFile contains illegal characters.");
+            }
+
+            return _messageBuilder.ToString();
+        }
+        
         private string ValidateCreateCommandTemplateModel(CreateCommandTemplateModel model)
         {
-            ValidateId(model.GenericCommandTemplateId, nameof(model.GenericCommandTemplateId));
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)
             {
@@ -347,6 +460,15 @@ namespace HEAppE.RestApi.InputValidator
             if (ContainsIllegalCharactersForPath(model.ExecutableFile))
             {
                 _messageBuilder.AppendLine("ExecutableFile contains illegal characters.");
+            }
+            
+            //validate template params
+            foreach(var parameter in model.TemplateParameters)
+            {
+                if (string.IsNullOrEmpty(parameter.Identifier))
+                {
+                    _messageBuilder.AppendLine("Identifier can not be null or empty.");
+                }
             }
 
             return _messageBuilder.ToString();
