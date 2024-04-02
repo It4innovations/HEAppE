@@ -64,6 +64,9 @@ namespace HEAppE.FileTransferFramework.Sftp
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
 
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
+                        => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
+
                 _ => throw new NotImplementedException("SFTP authentication credentials authentication type is not allowed!")
             };
         }
