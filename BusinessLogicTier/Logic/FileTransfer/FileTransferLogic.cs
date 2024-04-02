@@ -193,7 +193,13 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             Cluster cluster = jobInfo.Specification.Cluster;
 
+            if (jobInfo.Specification.ClusterUser.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
+            {
+                return;
+            }
+
             var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == publicKey);
+
             if (temporaryKey is null)
             {
                 throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
