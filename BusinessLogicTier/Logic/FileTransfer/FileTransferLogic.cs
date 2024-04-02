@@ -152,28 +152,27 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     PrivateKeyCertificate = credentials.PrivateKeyCertificate,
                     PublicKey = credentials.PublicKeyFingerprint
                 };
-
+                return transferMethod;
             }
-            else
+
+
+            var certGenerator = new SSHGenerator();
+            publicKey = certGenerator.ToPuTTYPublicKey();
+
+            while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
             {
-
-                var certGenerator = new SSHGenerator();
+                certGenerator.Regenerate();
                 publicKey = certGenerator.ToPuTTYPublicKey();
-
-                while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
-                {
-                    certGenerator.Regenerate();
-                    publicKey = certGenerator.ToPuTTYPublicKey();
-                }
-
-                transferMethod.Credentials = new FileTransferKeyCredentials
-                {
-                    Username = jobInfo.Specification.ClusterUser.Username,
-                    FileTransferCipherType = certGenerator.CipherType,
-                    PrivateKey = certGenerator.ToPrivateKey(),
-                    PublicKey = publicKey
-                };
             }
+
+            transferMethod.Credentials = new FileTransferKeyCredentials
+            {
+                Username = jobInfo.Specification.ClusterUser.Username,
+                FileTransferCipherType = certGenerator.CipherType,
+                PrivateKey = certGenerator.ToPrivateKey(),
+                PublicKey = publicKey
+            };
+
 
             jobInfo.FileTransferTemporaryKeys.Add(
                 new FileTransferTemporaryKey()

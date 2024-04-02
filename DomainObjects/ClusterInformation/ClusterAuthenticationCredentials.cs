@@ -48,6 +48,7 @@ namespace HEAppE.DomainObjects.ClusterInformation
             set { _vaultData = _vaultData with { PrivateKeyPassword = value }; }
         }
 
+        //VAULT
         [Required]
         public ClusterAuthenticationCredentialsAuthType AuthenticationType { get; set; }
 
@@ -56,7 +57,6 @@ namespace HEAppE.DomainObjects.ClusterInformation
         public FileTransferCipherType CipherType { get; set; }
 
 
-        //VAULT
 
         [StringLength(200)]
         public string PublicKeyFingerprint { get; set; }
