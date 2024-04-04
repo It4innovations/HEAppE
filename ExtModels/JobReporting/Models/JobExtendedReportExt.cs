@@ -4,14 +4,16 @@ using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.JobReporting.Models
 {
-    [DataContract(Name = "JobReportExt")]
-    public class JobReportExt
+    [DataContract(Name = "JobExtendedReportExt")]
+    public class JobExtendedReportExt
     {
         [DataMember]
         public long Id { get; set; }
         [DataMember]
         public string Name { get; set; }
         [DataMember]
-        public List<TaskReportExt> Tasks { get; set; }
+        public JobStateExt State { get; set; }
+        [DataMember]
+        public List<TaskExtendedReportExt> Tasks { get; set; }
     }
 }

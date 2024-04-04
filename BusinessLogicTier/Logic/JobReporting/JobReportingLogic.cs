@@ -100,7 +100,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns Resource Usage Report for all Jobs
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<UserGroupReport> JobsDetailedReport(IEnumerable<long> groupIds)
+        public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds)
         {
             return AggregatedUserGroupResourceUsageReport(groupIds, DateTime.MinValue, DateTime.UtcNow);
         }
@@ -112,7 +112,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime)
+        public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime)
         {
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId) ?? throw new ResourceUsageException("UserNotSpecified", userId);
             var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
@@ -128,17 +128,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
         /// <exception cref="ApplicationException"></exception>
-        public UserGroupReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime)
+        public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime)
         {
             AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
-
-            var userGroupReport = new UserGroupReport
-            {
-                AdaptorUserGroup = group,
-                Project = GetProjectReport(group.Project, startTime, endTime),
-                UsageType = DomainObjects.JobReporting.Enums.UsageType.CoreHours
-            };
-            return userGroupReport;
+            return GetProjectReport(group.Project, startTime, endTime);
         }
 
         /// <summary>
@@ -149,7 +142,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public IEnumerable<UserGroupReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
+        public IEnumerable<ProjectReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
         {
             return groupIds.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime)).ToList();
         }
@@ -164,6 +157,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <returns></returns>
         private ProjectReport GetProjectReport(Project project, DateTime startTime, DateTime endTime)
         {
+            if (project == null)
+            {
+                return null;
+            }
             var projectReport = new ProjectReport()
             {
                 Project = project,

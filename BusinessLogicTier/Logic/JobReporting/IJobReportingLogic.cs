@@ -9,10 +9,10 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
     {
         IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId);
         IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects);
-        IEnumerable<UserGroupReport> JobsDetailedReport(IEnumerable<long> groupIds);
+        IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds);
         ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds);
-        IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime);
-        UserGroupReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime);
-        IEnumerable<UserGroupReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime);
+        IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime);
+        ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime);
+        IEnumerable<ProjectReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime);
     }
 }

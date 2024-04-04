@@ -13,8 +13,6 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember]
         public string Name { get; set; }
         [DataMember]
-        public string Description { get; set; }
-        [DataMember]
         public List<JobReportExt> Jobs { get; set; }
     }
 }

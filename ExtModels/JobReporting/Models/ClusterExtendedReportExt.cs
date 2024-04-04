@@ -1,22 +1,21 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.JobReporting.Models
 {
-    [DataContract(Name = "ProjectReportExt")]
-    public class ProjectReportExt
+    [DataContract(Name = "ClusterExtendedReportExt")]
+    public class ClusterExtendedReportExt
     {
         [DataMember]
         public long Id { get; set; }
         [DataMember]
         public string Name { get; set; }
-        [DataMember]
-        public string AccountingString { get; set; }
+        [Required]
+        public string Description { get; set; }
         [DataMember]
         public double? TotalUsage { get; set; }
         [DataMember]
-        public UsageTypeExt UsageType { get; set; }
-        [DataMember]
-        public List<ClusterReportExt> Clusters { get; set; }
+        public List<ClusterNodeExtendedTypeReportExt> ClusterNodeTypes { get; set; }
     }
 }
