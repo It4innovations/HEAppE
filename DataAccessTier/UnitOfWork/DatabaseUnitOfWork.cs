@@ -355,6 +355,15 @@ namespace HEAppE.DataAccessTier.UnitOfWork
                 }
                 foreach (var ve in vaultEntries)
                 {
+                    // if private key is empty, try to get it from vault to be sure that it is relevant and not some relation access issue
+                    if (string.IsNullOrEmpty(ve.PrivateKey))
+                    {
+                        var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(ve.Id);
+                        if (vaultData != null && vaultData.PrivateKey != ve.PrivateKey)
+                        {
+                            ve.ImportVaultData(vaultData);
+                        }
+                    }
                     _vaultConnector.SetClusterAuthenticationCredentials(ve.ExportVaultData());
                 }
             }
