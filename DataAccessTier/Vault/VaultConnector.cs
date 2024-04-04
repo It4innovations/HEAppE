@@ -50,5 +50,6 @@ internal class VaultConnector : IVaultConnector
         var messageTask = httpClient.PostAsync(path, payload);
         messageTask.Wait(10000);
         var result = messageTask.Result;
+        _log.Debug($"Update vault ClusterProjectCredential with ID: {data.Id}");
     }
 }
