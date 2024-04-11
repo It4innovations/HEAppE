@@ -16,12 +16,13 @@ namespace HEAppE.ExtModels.JobManagement.Converts
     public static class JobManagementConverts
     {
         #region Methods for Object Converts
-        public static JobSpecification ConvertExtToInt(this JobSpecificationExt jobSpecification, long projectId)
+        public static JobSpecification ConvertExtToInt(this JobSpecificationExt jobSpecification, long projectId, long? subProject)
         {
             var result = new JobSpecification
             {
                 Name = jobSpecification.Name,
                 ProjectId = projectId,
+                SubProjectId = subProject,
                 WaitingLimit = jobSpecification.WaitingLimit ?? 0,
                 WalltimeLimit = jobSpecification.WalltimeLimit,
                 NotificationEmail = jobSpecification.NotificationEmail,

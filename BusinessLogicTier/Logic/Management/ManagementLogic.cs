@@ -1051,6 +1051,42 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 })
                 .ToList();
         }
+        
+        #region SubProject
+        /// <summary>
+        /// Creates a new subproject if it does not exist
+        /// </summary>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
+        public SubProject CreateSubProject(string identifier, long projectId)
+        {
+            SubProject subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
+            if (subProject is not null && (subProject.IsDeleted || subProject.EndDate > DateTime.UtcNow))
+            {
+                throw new InputValidationException("SubProjectDeletedOrEnded");
+            }
+            else if(subProject is not null)
+            {
+                //already exists, reuse it
+                return subProject;
+            }
+            else
+            {
+                //create new 
+                SubProject newSubProject = new()
+                {
+                    Identifier = identifier,
+                    CreatedAt = DateTime.UtcNow,
+                    IsDeleted = false,
+                    ProjectId = projectId
+                };
+                _unitOfWork.SubProjectRepository.Insert(newSubProject);
+                _unitOfWork.Save();
+                return subProject;
+            }
+        }
+        
+        #endregion
 
         #region Private methods
         private void AddCommandTemplateParameterToCommandTemplate(CommandTemplate commandTemplate, CommandTemplateParameter commandTemplateParameter)

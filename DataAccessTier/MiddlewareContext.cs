@@ -195,6 +195,11 @@ namespace HEAppE.DataAccessTier
             modelBuilder.Entity<Project>()
                 .HasIndex(p => p.AccountingString)
                 .IsUnique();
+            
+            //Subproject Identifier and ProjectId unique constraint
+            modelBuilder.Entity<SubProject>()
+                .HasIndex(sp => new { sp.Identifier, sp.ProjectId })
+                .IsUnique();
 
             modelBuilder.Entity<AdaptorUser>()
                 .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
@@ -484,6 +489,7 @@ namespace HEAppE.DataAccessTier
         public virtual DbSet<JobSpecification> JobSpecifications { get; set; }
         public virtual DbSet<TaskSpecification> TaskSpecifications { get; set; }
         public virtual DbSet<Project> Projects { get; set; }
+        public virtual DbSet<SubProject> SubProjects { get; set; }
         public virtual DbSet<Contact> Contacts { get; set; }
         public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
         #endregion
