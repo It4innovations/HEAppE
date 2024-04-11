@@ -773,6 +773,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("SubProjectId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("SubmitterGroupId")
                         .HasColumnType("bigint");
 
@@ -794,6 +797,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("FileTransferMethodId");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("SubProjectId");
 
                     b.HasIndex("SubmitterGroupId");
 
@@ -869,6 +874,51 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("ContactId");
 
                     b.ToTable("ProjectContact");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.SubProject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Identifier")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("Identifier", "ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("SubProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskDependency", b =>
@@ -1613,6 +1663,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.SubProject", "SubProject")
+                        .WithMany("JobSpecifications")
+                        .HasForeignKey("SubProjectId");
+
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "SubmitterGroup")
                         .WithMany()
                         .HasForeignKey("SubmitterGroupId");
@@ -1628,6 +1682,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("FileTransferMethod");
 
                     b.Navigation("Project");
+
+                    b.Navigation("SubProject");
 
                     b.Navigation("Submitter");
 
@@ -1649,6 +1705,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.Navigation("Contact");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.SubProject", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("SubProjects")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Project");
                 });
@@ -1925,6 +1992,13 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("CommandTemplates");
 
                     b.Navigation("ProjectContacts");
+
+                    b.Navigation("SubProjects");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.SubProject", b =>
+                {
+                    b.Navigation("JobSpecifications");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskSpecification", b =>
