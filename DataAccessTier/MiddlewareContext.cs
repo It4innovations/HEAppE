@@ -200,6 +200,22 @@ namespace HEAppE.DataAccessTier
             modelBuilder.Entity<SubProject>()
                 .HasIndex(sp => new { sp.Identifier, sp.ProjectId })
                 .IsUnique();
+            
+            //M:N relations for ClusterNodeTypeAggregationAccounting
+            modelBuilder.Entity<ClusterNodeTypeAggregationAccounting>()
+                .HasKey(cna => new { cna.ClusterNodeTypeAggregationId, cna.AccountingId });
+            modelBuilder.Entity<ClusterNodeTypeAggregationAccounting>()
+                .HasOne(cna => cna.ClusterNodeTypeAggregation)
+                .WithMany(cna => cna.ClusterNodeTypeAggregationAccountings)
+                .HasForeignKey(cna => cna.ClusterNodeTypeAggregationId);
+            
+            //M:N relations for ProjectClusterNodeTypeAggregation
+            modelBuilder.Entity<ProjectClusterNodeTypeAggregation>()
+                .HasKey(pcna => new { pcna.ProjectId, pcna.ClusterNodeTypeAggregationId });
+            modelBuilder.Entity<ProjectClusterNodeTypeAggregation>()
+                .HasOne(pcna => pcna.Project)
+                .WithMany(pcna => pcna.ProjectClusterNodeTypeAggregations)
+                .HasForeignKey(pcna => pcna.ProjectId);
 
             modelBuilder.Entity<AdaptorUser>()
                 .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
