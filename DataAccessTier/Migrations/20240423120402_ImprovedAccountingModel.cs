@@ -21,8 +21,7 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "ClusterNodeTypeAggregationId",
                 table: "ClusterNodeType",
                 type: "bigint",
-                nullable: false,
-                defaultValue: 0L);
+                nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "Accounting",
@@ -176,8 +175,7 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "ClusterNodeType",
                 column: "ClusterNodeTypeAggregationId",
                 principalTable: "ClusterNodeTypeAggregation",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                principalColumn: "Id");
 
             migrationBuilder.AddForeignKey(
                 name: "FK_JobSpecification_SubProject_SubProjectId",

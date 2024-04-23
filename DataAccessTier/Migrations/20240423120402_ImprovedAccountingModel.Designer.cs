@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20240423114627_ImprovedAccountingModel")]
+    [Migration("20240423120402_ImprovedAccountingModel")]
     partial class ImprovedAccountingModel
     {
         /// <inheritdoc />
@@ -143,7 +143,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ClusterId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("ClusterNodeTypeAggregationId")
+                    b.Property<long?>("ClusterNodeTypeAggregationId")
                         .HasColumnType("bigint");
 
                     b.Property<int>("CoresPerNode")
@@ -1579,9 +1579,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", "ClusterNodeTypeAggregation")
                         .WithMany("ClusterNodeTypes")
-                        .HasForeignKey("ClusterNodeTypeAggregationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ClusterNodeTypeAggregationId");
 
                     b.HasOne("HEAppE.DomainObjects.FileTransfer.FileTransferMethod", "FileTransferMethod")
                         .WithMany()

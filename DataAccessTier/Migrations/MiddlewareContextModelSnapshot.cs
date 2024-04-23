@@ -140,7 +140,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ClusterId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("ClusterNodeTypeAggregationId")
+                    b.Property<long?>("ClusterNodeTypeAggregationId")
                         .HasColumnType("bigint");
 
                     b.Property<int>("CoresPerNode")
@@ -1576,9 +1576,7 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", "ClusterNodeTypeAggregation")
                         .WithMany("ClusterNodeTypes")
-                        .HasForeignKey("ClusterNodeTypeAggregationId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("ClusterNodeTypeAggregationId");
 
                     b.HasOne("HEAppE.DomainObjects.FileTransfer.FileTransferMethod", "FileTransferMethod")
                         .WithMany()

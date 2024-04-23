@@ -260,9 +260,18 @@ namespace HEAppE.DataAccessTier
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
+            
+            InsertOrUpdateSeedData(MiddlewareContextSettings.Accountings);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypeAggregations);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypeAggregationAccounting, false);
+            
+            
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterNodeTypes);
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.SubProjects);
+            
+            InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectClusterNodeTypeAggregations, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectContacts, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.ClusterProjects);

@@ -173,6 +173,19 @@
             "IsDeleted":false
          }
       ],
+      "SubProjects":[
+        {
+            "Id":1,
+            "Identifier":"{Identifier}",
+            "Description":"{Description}",
+            "StartDate":"{StartDate}",
+            "EndDate":"{EndDate}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ProjectId":1
+        }
+      ],
       "ClusterNodeTypes":[
          {
             "Id":1,
@@ -185,8 +198,49 @@
             "MaxWalltime":"{MaxWalltime}",
             "ClusterId":1,
             "FileTransferMethodId":1,
-            "ClusterAllocationName":null
+            "ClusterAllocationName":null,
+            "ClusterNodeTypeAggregationId": 1
          }
+      ],
+      "Accountings":[
+         {
+            "Id":1,
+            "Formula":"neco * neco + neco",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ValidityFrom":"{ValidityFrom}",
+            "ValidityTo":"{ValidityTo}"
+         }
+      ],
+      "ClusterNodeTypeAggregations":[
+        {
+            "Id":1,
+            "Name":"{Name}",
+            "Description":"{Description}",
+            "AllocationType":"{AllocationType}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ValidFrom":"{ValidFrom}",
+            "ValidTo":"{ValidTo}"
+        }
+      ],
+      "ClusterNodeTypeAggregationAccounting":[
+        {
+            "ClusterNodeTypeAggregationId":1,
+            "AccountingId":1
+        }
+      ],
+      "ProjectClusterNodeTypeAggregations":[
+        {
+            "ProjectId":1,
+            "ClusterNodeTypeAggregationId":1,
+            "AllocationAmount":{AllocationAmount},
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false
+        }
       ],
       "CommandTemplates":[
          {
