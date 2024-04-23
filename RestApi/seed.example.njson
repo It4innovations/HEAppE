@@ -222,8 +222,8 @@
             "CreatedAt":"{CreatedAt}",
             "ModifiedAt":null,
             "IsDeleted":false,
-            "ValidFrom":"{ValidFrom}",
-            "ValidTo":"{ValidTo}"
+            "ValidityFrom":"{ValidFrom}",
+            "ValidityTo":"{ValidTo}"
         }
       ],
       "ClusterNodeTypeAggregationAccounting":[
