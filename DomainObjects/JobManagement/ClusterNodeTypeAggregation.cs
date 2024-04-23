@@ -31,10 +31,7 @@ public class ClusterNodeTypeAggregation : IdentifiableDbEntity
 
     public DateTime? ValidityTo { get; set; }
     
-    [ForeignKey("ClusterNodeType")]
-    public long ClusterNodeTypeId { get; set; }
-    public virtual ClusterNodeType ClusterNodeType { get; set; }
-    
     public virtual List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccountings { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
     public virtual List<ProjectClusterNodeTypeAggregation> ProjectClusterNodeTypeAggregations { get; set; } = new List<ProjectClusterNodeTypeAggregation>();
+    public virtual List<ClusterNodeType> ClusterNodeTypes { get; set; } = new List<ClusterNodeType>();
 }

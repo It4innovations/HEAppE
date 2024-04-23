@@ -13,6 +13,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds);
         IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime);
         ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime);
-        IEnumerable<ProjectReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime);
+        IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime);
     }
 }

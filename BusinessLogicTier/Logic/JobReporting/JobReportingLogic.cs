@@ -102,7 +102,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <returns></returns>
         public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds)
         {
-            return AggregatedUserGroupResourceUsageReport(groupIds, DateTime.MinValue, DateTime.UtcNow);
+            return groupIds.Select(groupId => UserGroupResourceUsageReport(groupId, DateTime.MinValue, DateTime.UtcNow)).ToList();
         }
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId) ?? throw new ResourceUsageException("UserNotSpecified", userId);
             var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
             var reporterAndUserGroupsIntersect = reporterGroupIds.Intersect(userGroups);
-            return AggregatedUserGroupResourceUsageReport(reporterAndUserGroupsIntersect, startTime, endTime);
+            return reporterGroupIds.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime)).ToList();
         }
 
         /// <summary>
@@ -133,6 +133,12 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
             return GetProjectReport(group.Project, startTime, endTime);
         }
+        
+        public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime, DateTime endTime)
+        {
+            AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
+            return GetProjectAggregatedReport(group.Project, startTime, endTime);
+        }
 
         /// <summary>
         /// Returns aggregated UserGroup Resource Usage Report for specific user (all referenced Groups to User)
@@ -142,9 +148,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public IEnumerable<ProjectReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
+        public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
         {
-            return groupIds.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime)).ToList();
+            return groupIds.Select(groupId => UserGroupResourceAggregatedUsageReport(groupId, startTime, endTime)).ToList();
         }
         #endregion
         #region Private Methods
@@ -168,6 +174,33 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             };
             return projectReport;
         }
+        
+        private ProjectAggregatedReport GetProjectAggregatedReport(Project project, DateTime startTime, DateTime endTime)
+        {
+            if (project == null)
+            {
+                return null;
+            }
+            var projectReport = new ProjectAggregatedReport()
+            {
+                Project = project,
+                SubProjects = GetSubProjectAggregatedReports(project, startTime, endTime),
+                Clusters = GetClusterAggregatedReports(project, startTime, endTime)
+            };
+            return projectReport;
+        }
+
+        private List<SubProjectAggregatedReport> GetSubProjectAggregatedReports(Project project, DateTime startTime, DateTime endTime)
+        {
+            var subProjects = project.SubProjects.Where(x => x.StartDate >= startTime &&
+                                                             x.EndDate <= endTime).ToList();
+            var subProjectReports = subProjects.Select(subProject => new SubProjectAggregatedReport()
+            {
+                SubProject = subProject,
+                Clusters = GetClusterAggregatedReports(subProject.Project, startTime, endTime)
+            }).ToList();
+            return subProjectReports;
+        }
 
         /// <summary>
         /// Returns Cluster reports for specified Project
@@ -187,6 +220,44 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
                 ClusterNodeTypes = GetClusterNodeTypeReports(cluster, project, startTime, endTime)
             }).ToList();
             return clusterReports;
+        }
+        
+        private List<ClusterAggregatedReport> GetClusterAggregatedReports(Project project, DateTime startTime, DateTime endTime)
+        {
+            var clusters = project.ClusterProjects.Where(cp => cp.Project.Id == project.Id)
+                .Select(x => x.Cluster)
+                .Distinct().ToList();
+            var clusterReports = clusters.Select(cluster => new ClusterAggregatedReport()
+            {
+                Cluster = cluster,
+                ClusterNodeTypesAggregations = GetClusterNodeTypeAggregationReports(cluster, project, startTime, endTime)
+            }).ToList();
+            return clusterReports;
+        }
+
+        private List<ClusterNodeTypeAggregatedReport> GetClusterNodeTypeAggregationReports(Cluster cluster, Project project, DateTime startTime, DateTime endTime)
+        {
+            var nodeTypeGrouping = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
+                .Distinct()
+                .OrderBy(x => x.Id)
+                .GroupBy(u => u.ClusterNodeTypeAggregation)
+                .ToList();
+
+            var reports = new List<ClusterNodeTypeAggregatedReport>();
+            foreach (var group in nodeTypeGrouping)
+            {
+                var aggregationReport = new ClusterNodeTypeAggregatedReport()
+                {
+                    ClusterNodeTypeAggregation = group.Key,
+                    ClusterNodeTypes = group.Select(nodeType => new ClusterNodeTypeReport()
+                    {
+                        ClusterNodeType = nodeType,
+                        Jobs = GetJobReports(nodeType.Id, project.Id, startTime, endTime)
+                    }).ToList()
+                };
+                reports.Add(aggregationReport);
+            }
+            return reports;
         }
 
         /// <summary>

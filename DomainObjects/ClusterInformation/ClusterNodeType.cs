@@ -48,7 +48,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         public virtual List<CommandTemplate> PossibleCommands { get; set; } = new List<CommandTemplate>();
         
-        public virtual List<ClusterNodeTypeAggregation> Aggregations { get; set; } = new List<ClusterNodeTypeAggregation>();
+        [ForeignKey("ClusterNodeTypeAggregation")]
+        public long ClusterNodeTypeAggregationId { get; set; }
+        public virtual ClusterNodeTypeAggregation ClusterNodeTypeAggregation { get; set; }
 
         public override string ToString()
         {

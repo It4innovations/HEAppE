@@ -209,6 +209,61 @@ namespace HEAppE.ExtModels.JobReporting.Converts
 
             return convert;
         }
+        
+        public static ProjectAggregatedReportExt ConvertIntToExt(this ProjectAggregatedReport report)
+        {
+            var convert = new ProjectAggregatedReportExt()
+            {
+                Id = report.Project.Id,
+                Name = report.Project.Name,
+                AccountingString = report.Project.AccountingString,
+                TotalUsage = report.TotalUsage,
+                UsageType = report.Project.UsageType.ConvertIntToExt(),
+                SubProjects = report.SubProjects.Select(x => x.ConvertIntToExt()).ToList(),
+                Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList()
+            };
+
+            return convert;
+        }
+        
+        public static SubProjectAggregatedReportExt ConvertIntToExt(this SubProjectAggregatedReport report)
+        {
+            var convert = new SubProjectAggregatedReportExt()
+            {
+                Id = report.SubProject.Id,
+                Name = report.SubProject.Identifier,
+                TotalUsage = report.TotalUsage,
+                Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList(),
+            };
+
+            return convert;
+        }
+        
+        public static ClusterAggregatedReportExt ConvertIntToExt(this ClusterAggregatedReport report)
+        {
+            var convert = new ClusterAggregatedReportExt()
+            {
+                Id = report.Cluster.Id,
+                Name = report.Cluster.Name,
+                TotalUsage = report.TotalUsage,
+                ClusterNodeTypesAggregations = report.ClusterNodeTypesAggregations.Select(x => x.ConvertIntToExt()).ToList()
+            };
+
+            return convert;
+        }
+        
+        public static ClusterNodeTypeAggregatedReportExt ConvertIntToExt(this ClusterNodeTypeAggregatedReport report)
+        {
+            var convert = new ClusterNodeTypeAggregatedReportExt()
+            {
+                Id = report.ClusterNodeTypeAggregation.Id,
+                Name = report.ClusterNodeTypeAggregation.Name,
+                TotalUsage = report.TotalUsage,
+                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToExt()).ToList()
+            };
+
+            return convert;
+        }
 
         public static ClusterDetailedReportExt ConvertIntToDetailedExt(this ClusterReport report)
         {
