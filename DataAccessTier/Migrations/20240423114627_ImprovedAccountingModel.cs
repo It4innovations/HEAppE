@@ -17,6 +17,13 @@ namespace HEAppE.DataAccessTier.Migrations
                 type: "bigint",
                 nullable: true);
 
+            migrationBuilder.AddColumn<long>(
+                name: "ClusterNodeTypeAggregationId",
+                table: "ClusterNodeType",
+                type: "bigint",
+                nullable: false,
+                defaultValue: 0L);
+
             migrationBuilder.CreateTable(
                 name: "Accounting",
                 columns: table => new
@@ -48,18 +55,11 @@ namespace HEAppE.DataAccessTier.Migrations
                     ModifiedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     IsDeleted = table.Column<bool>(type: "bit", nullable: false),
                     ValidityFrom = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ValidityTo = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    ClusterNodeTypeId = table.Column<long>(type: "bigint", nullable: false)
+                    ValidityTo = table.Column<DateTime>(type: "datetime2", nullable: true)
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_ClusterNodeTypeAggregation", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_ClusterNodeTypeAggregation_ClusterNodeType_ClusterNodeTypeId",
-                        column: x => x.ClusterNodeTypeId,
-                        principalTable: "ClusterNodeType",
-                        principalColumn: "Id",
-                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -146,9 +146,9 @@ namespace HEAppE.DataAccessTier.Migrations
                 column: "SubProjectId");
 
             migrationBuilder.CreateIndex(
-                name: "IX_ClusterNodeTypeAggregation_ClusterNodeTypeId",
-                table: "ClusterNodeTypeAggregation",
-                column: "ClusterNodeTypeId");
+                name: "IX_ClusterNodeType_ClusterNodeTypeAggregationId",
+                table: "ClusterNodeType",
+                column: "ClusterNodeTypeAggregationId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ClusterNodeTypeAggregationAccounting_AccountingId",
@@ -172,6 +172,14 @@ namespace HEAppE.DataAccessTier.Migrations
                 column: "ProjectId");
 
             migrationBuilder.AddForeignKey(
+                name: "FK_ClusterNodeType_ClusterNodeTypeAggregation_ClusterNodeTypeAggregationId",
+                table: "ClusterNodeType",
+                column: "ClusterNodeTypeAggregationId",
+                principalTable: "ClusterNodeTypeAggregation",
+                principalColumn: "Id",
+                onDelete: ReferentialAction.Cascade);
+
+            migrationBuilder.AddForeignKey(
                 name: "FK_JobSpecification_SubProject_SubProjectId",
                 table: "JobSpecification",
                 column: "SubProjectId",
@@ -182,6 +190,10 @@ namespace HEAppE.DataAccessTier.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.DropForeignKey(
+                name: "FK_ClusterNodeType_ClusterNodeTypeAggregation_ClusterNodeTypeAggregationId",
+                table: "ClusterNodeType");
+
             migrationBuilder.DropForeignKey(
                 name: "FK_JobSpecification_SubProject_SubProjectId",
                 table: "JobSpecification");
@@ -205,9 +217,17 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IX_JobSpecification_SubProjectId",
                 table: "JobSpecification");
 
+            migrationBuilder.DropIndex(
+                name: "IX_ClusterNodeType_ClusterNodeTypeAggregationId",
+                table: "ClusterNodeType");
+
             migrationBuilder.DropColumn(
                 name: "SubProjectId",
                 table: "JobSpecification");
+
+            migrationBuilder.DropColumn(
+                name: "ClusterNodeTypeAggregationId",
+                table: "ClusterNodeType");
         }
     }
 }

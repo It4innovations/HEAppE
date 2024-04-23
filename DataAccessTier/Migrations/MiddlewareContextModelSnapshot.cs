@@ -140,6 +140,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ClusterId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("ClusterNodeTypeAggregationId")
+                        .HasColumnType("bigint");
+
                     b.Property<int>("CoresPerNode")
                         .HasColumnType("int");
 
@@ -179,6 +182,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClusterId");
+
+                    b.HasIndex("ClusterNodeTypeAggregationId");
 
                     b.HasIndex("FileTransferMethodId");
 
@@ -365,9 +370,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("AllocationType")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<long>("ClusterNodeTypeId")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -393,8 +395,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("ClusterNodeTypeId");
 
                     b.ToTable("ClusterNodeTypeAggregation");
                 });
@@ -1574,11 +1574,19 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany("NodeTypes")
                         .HasForeignKey("ClusterId");
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", "ClusterNodeTypeAggregation")
+                        .WithMany("ClusterNodeTypes")
+                        .HasForeignKey("ClusterNodeTypeAggregationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("HEAppE.DomainObjects.FileTransfer.FileTransferMethod", "FileTransferMethod")
                         .WithMany()
                         .HasForeignKey("FileTransferMethodId");
 
                     b.Navigation("Cluster");
+
+                    b.Navigation("ClusterNodeTypeAggregation");
 
                     b.Navigation("FileTransferMethod");
                 });
@@ -1610,17 +1618,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.Navigation("SubmittedJob");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", "ClusterNodeType")
-                        .WithMany("Aggregations")
-                        .HasForeignKey("ClusterNodeTypeId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ClusterNodeType");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregationAccounting", b =>
@@ -2113,8 +2110,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", b =>
                 {
-                    b.Navigation("Aggregations");
-
                     b.Navigation("PossibleCommands");
 
                     b.Navigation("RequestedNodeGroups");
@@ -2128,6 +2123,8 @@ namespace HEAppE.DataAccessTier.Migrations
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", b =>
                 {
                     b.Navigation("ClusterNodeTypeAggregationAccountings");
+
+                    b.Navigation("ClusterNodeTypes");
 
                     b.Navigation("ProjectClusterNodeTypeAggregations");
                 });
