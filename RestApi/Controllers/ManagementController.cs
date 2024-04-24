@@ -582,6 +582,119 @@ namespace HEAppE.RestApi.Controllers
             return Ok("Removed assignment of the Project to the Cluster.");
         }
         #endregion
+
+        #region SubProject
+        /// <summary>
+        /// List SubProject
+        /// </summary>
+        /// <param name="subProjectId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpGet("SubProject")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ListSubProject(long subProjectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListSubProject\" Parameters: SessionCode: \"{sessionCode}\"");
+            var model = new ListSubProjectModel()
+            {
+                Id = subProjectId,
+                SessionCode = sessionCode
+            };
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(_managementService.ListSubProject(subProjectId, sessionCode));
+        }
+        /// <summary>
+        /// Create SubProject
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpPost("SubProject")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateSubProject(CreateSubProjectModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var subProject = _managementService.CreateSubProject(model.ProjectId, model.Identifier, model.Description, model.StartDate, model.EndDate, model.SessionCode);
+            return Ok(subProject);
+        }
+        /// <summary>
+        /// Modify SubProject
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpPut("SubProject")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifySubProject(ModifySubProjectModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifySubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var subProject = _managementService.ModifySubProject(model.Id, model.Identifier, model.Description, model.StartDate, model.EndDate, model.SessionCode);
+            return Ok(subProject);
+        }
+        /// <summary>
+        /// Remove SubProject
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpDelete("SubProject")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveSubProject(RemoveSubProjectModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveSubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveSubProject(model.Id, model.SessionCode);
+            return Ok("SubProject was deleted.");
+        }
+
+        #endregion
         #region SecureShellKey
         /// <summary>
         /// Generate SSH key

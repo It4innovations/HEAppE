@@ -1086,7 +1086,68 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 return newSubProject;
             }
         }
-        
+
+        public SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
+            DateTime modelStartDate, DateTime? modelEndDate)
+        {
+            //test if not exist subproject with the same identifier
+            if (_unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, modelProjectId) != null)
+            {
+                throw new InputValidationException("SubProjectIdentifierAlreadyExists");
+            }
+            SubProject newSubProject = new()
+            {
+                Identifier = modelIdentifier,
+                Description = modelDescription,
+                CreatedAt = DateTime.UtcNow,
+                StartDate = modelStartDate,
+                EndDate = modelEndDate,
+                IsDeleted = false,
+                ProjectId = modelProjectId
+            };
+            _unitOfWork.SubProjectRepository.Insert(newSubProject);
+            _unitOfWork.Save();
+            return newSubProject;
+        }
+
+        public SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate,
+            DateTime? modelEndDate)
+        {
+            SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
+                                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+            if (!subProject.IsDeleted)
+            {
+                throw new InputValidationException("NotPermitted");
+            }
+            var subProjectWithSameIdentifier = _unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, subProject.ProjectId);
+            if (subProjectWithSameIdentifier != null && subProjectWithSameIdentifier.Id != modelId)
+            {
+                throw new InputValidationException("SubProjectIdentifierAlreadyExists");
+            }
+            subProject.Identifier = modelIdentifier;
+            subProject.Description = modelDescription;
+            subProject.StartDate = modelStartDate;
+            subProject.EndDate = modelEndDate;
+            subProject.ModifiedAt = DateTime.UtcNow;
+            _unitOfWork.SubProjectRepository.Update(subProject);
+            _unitOfWork.Save();
+            return subProject;
+        }
+
+        public void RemoveSubProject(long modelId)
+        {
+            SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
+                                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+            if (!subProject.IsDeleted)
+            {
+                throw new InputValidationException("NotPermitted");
+            }
+            subProject.IsDeleted = true;
+            subProject.ModifiedAt = DateTime.UtcNow;
+            _unitOfWork.SubProjectRepository.Update(subProject);
+            _unitOfWork.Save();
+        }
+
         #endregion
 
         #region Private methods

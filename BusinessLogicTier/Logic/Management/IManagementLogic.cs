@@ -33,5 +33,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         void RemoveCommandTemplateParameter(long modelId);
         List<CommandTemplate> ListCommandTemplates(long projectId);
         SubProject CreateSubProject(string identifier, long projectId);
+        SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
+        SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
+        void RemoveSubProject(long modelId);
     }
 }
