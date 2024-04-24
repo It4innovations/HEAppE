@@ -174,7 +174,7 @@
          }
       ],
       "SubProjects":[
-        {
+         {
             "Id":1,
             "Identifier":"{Identifier}",
             "Description":"{Description}",
@@ -184,7 +184,7 @@
             "ModifiedAt":null,
             "IsDeleted":false,
             "ProjectId":1
-        }
+         }
       ],
       "ClusterNodeTypes":[
          {
@@ -199,7 +199,7 @@
             "ClusterId":1,
             "FileTransferMethodId":1,
             "ClusterAllocationName":null,
-            "ClusterNodeTypeAggregationId": 1
+            "ClusterNodeTypeAggregationId":1
          }
       ],
       "Accountings":[
@@ -214,7 +214,7 @@
          }
       ],
       "ClusterNodeTypeAggregations":[
-        {
+         {
             "Id":1,
             "Name":"{Name}",
             "Description":"{Description}",
@@ -224,23 +224,23 @@
             "IsDeleted":false,
             "ValidityFrom":"{ValidFrom}",
             "ValidityTo":"{ValidTo}"
-        }
+         }
       ],
       "ClusterNodeTypeAggregationAccounting":[
-        {
+         {
             "ClusterNodeTypeAggregationId":1,
             "AccountingId":1
-        }
+         }
       ],
       "ProjectClusterNodeTypeAggregations":[
-        {
+         {
             "ProjectId":1,
             "ClusterNodeTypeAggregationId":1,
-            "AllocationAmount":{AllocationAmount},
+            "AllocationAmount":"{AllocationAmount}",
             "CreatedAt":"{CreatedAt}",
             "ModifiedAt":null,
             "IsDeleted":false
-        }
+         }
       ],
       "CommandTemplates":[
          {
@@ -301,7 +301,7 @@
             "Id":1,
             "ServerHostname":"{ServerHostNameDNS}",
             "Protocol":2,
-            "Port": null,
+            "Port":null,
             "ClusterId":1
          }
       ],
