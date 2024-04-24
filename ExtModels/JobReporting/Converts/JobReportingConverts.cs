@@ -73,6 +73,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             {
                 Id = report.SubmittedJobInfo.Id,
                 Name = report.SubmittedJobInfo.Name,
+                SubProject = report.SubmittedJobInfo.Specification.SubProject?.Identifier,
                 Tasks = report.Tasks.Select(x => x.ConvertIntToExt()).ToList()
             };
 

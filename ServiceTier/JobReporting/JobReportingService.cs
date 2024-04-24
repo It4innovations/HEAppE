@@ -48,20 +48,22 @@ namespace HEAppE.ServiceTier.JobReporting
             }
         }
 
-        public IEnumerable<ProjectReportExt> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
+        public IEnumerable<ProjectReportExt> UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime,
+            string[] subProjects, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 (AdaptorUser loggedUser, var _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.GroupReporter);
                 IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
                 var reporterGroups = loggedUser.Groups.Select(x => x.Id).Distinct().ToList();
-                return jobReportingLogic.UserResourceUsageReport(userId, reporterGroups, startTime, endTime)
+                return jobReportingLogic.UserResourceUsageReport(userId, reporterGroups, startTime, endTime, subProjects)
                     .Where(s => s != null) 
                     .Select(g => g.ConvertIntToExt());
             }
         }
 
-        public ProjectReportExt UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
+        public ProjectReportExt UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime,
+            string[] subProjects, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
@@ -77,7 +79,7 @@ namespace HEAppE.ServiceTier.JobReporting
                     throw new NotAllowedException("NotAllowedToRequestReport");
                 }
                 IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                return jobReportingLogic.UserGroupResourceUsageReport(groupId, startTime, endTime).ConvertIntToExt();
+                return jobReportingLogic.UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects).ConvertIntToExt();
             }
         }
 
@@ -120,7 +122,7 @@ namespace HEAppE.ServiceTier.JobReporting
             }
         }
 
-        public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string sessionCode)
+        public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
@@ -131,7 +133,7 @@ namespace HEAppE.ServiceTier.JobReporting
                 //get only groups which are in projects which are allowed for logged user
                 var reportAllowedGroupIds = userGroupIds.Where(g => projects.Any(project => project.Id == loggedUser.Groups.FirstOrDefault(group => group.Id == g).ProjectId)).ToList();
 
-                return reportingLogic.JobsDetailedReport(reportAllowedGroupIds)
+                return reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects)
                     .Where(s => s != null) 
                     .Select(s => s.ConvertIntToDetailedExt());
             }

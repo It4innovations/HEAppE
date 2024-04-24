@@ -172,6 +172,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 StartTime = jobInfo.StartTime,
                 EndTime = jobInfo.EndTime,
                 TotalAllocatedTime = jobInfo.TotalAllocatedTime,
+                SubProject = jobInfo.Specification.SubProject?.Identifier,
                 Tasks = jobInfo.Tasks.Select(s => s.ConvertIntToExt())
                                        .ToArray()
             };

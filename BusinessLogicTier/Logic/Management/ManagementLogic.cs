@@ -1061,7 +1061,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public SubProject CreateSubProject(string identifier, long projectId)
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
-            if (subProject is not null && (subProject.IsDeleted || subProject.EndDate > DateTime.UtcNow))
+            if (subProject is not null && (subProject.IsDeleted || subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
             {
                 throw new InputValidationException("SubProjectDeletedOrEnded");
             }
@@ -1077,12 +1077,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 {
                     Identifier = identifier,
                     CreatedAt = DateTime.UtcNow,
+                    StartDate = DateTime.UtcNow,
                     IsDeleted = false,
                     ProjectId = projectId
                 };
                 _unitOfWork.SubProjectRepository.Insert(newSubProject);
                 _unitOfWork.Save();
-                return subProject;
+                return newSubProject;
             }
         }
         
