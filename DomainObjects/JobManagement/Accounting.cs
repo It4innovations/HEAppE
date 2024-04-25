@@ -25,6 +25,8 @@ public class Accounting : IdentifiableDbEntity
     public DateTime ValidityFrom { get; set; }
 
     public DateTime? ValidityTo { get; set; }
+    [NotMapped]
+    public bool IsValid => ValidityFrom <= DateTime.UtcNow && (ValidityTo == null || ValidityTo >= DateTime.UtcNow);
     
     public virtual List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccountings { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
 }

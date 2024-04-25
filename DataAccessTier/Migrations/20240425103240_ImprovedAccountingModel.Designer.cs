@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20240425060450_ImprovedAccountingModel")]
+    [Migration("20240425103240_ImprovedAccountingModel")]
     partial class ImprovedAccountingModel
     {
         /// <inheritdoc />
@@ -799,8 +799,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ProjectId")
                         .HasColumnType("bigint");
 
-                    b.Property<long>("ResourceConsumed")
-                        .HasColumnType("bigint");
+                    b.Property<double>("ResourceConsumed")
+                        .HasColumnType("float");
 
                     b.Property<string>("ScheduledJobId")
                         .HasColumnType("nvarchar(max)");

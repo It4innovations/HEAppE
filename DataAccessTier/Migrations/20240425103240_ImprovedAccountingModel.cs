@@ -11,12 +11,12 @@ namespace HEAppE.DataAccessTier.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AddColumn<long>(
+            migrationBuilder.AddColumn<double>(
                 name: "ResourceConsumed",
                 table: "SubmittedTaskInfo",
-                type: "bigint",
+                type: "float",
                 nullable: false,
-                defaultValue: 0L);
+                defaultValue: 0.0);
 
             migrationBuilder.AddColumn<long>(
                 name: "SubProjectId",

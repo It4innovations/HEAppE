@@ -10,4 +10,5 @@ public class ClusterNodeTypeAggregationAccounting
     
     public long AccountingId { get; set; }
     public virtual Accounting Accounting { get; set; }
+    
 }

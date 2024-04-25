@@ -474,6 +474,18 @@ namespace HEAppE.DataAccessTier
                         UpdateEntityOrAddItem(entity, item);
                         break;
                     }
+                case ClusterNodeTypeAggregationAccounting clusterNodeTypeAggregationAccounting:
+                    {
+                        var entity = Set<T>().Find(clusterNodeTypeAggregationAccounting.ClusterNodeTypeAggregationId, clusterNodeTypeAggregationAccounting.AccountingId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
+                case ProjectClusterNodeTypeAggregation projectClusterNodeTypeAggregation:
+                    {
+                        var entity = Set<T>().Find(projectClusterNodeTypeAggregation.ProjectId, projectClusterNodeTypeAggregation.ClusterNodeTypeAggregationId);
+                        UpdateEntityOrAddItem(entity, item);
+                        break;
+                    }
                 default:
                     throw new DbContextException("NotSupportedSeedEntity", typeof(T).Name);
             }
