@@ -796,6 +796,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<long>("ResourceConsumed")
+                        .HasColumnType("bigint");
+
                     b.Property<string>("ScheduledJobId")
                         .HasColumnType("nvarchar(max)");
 

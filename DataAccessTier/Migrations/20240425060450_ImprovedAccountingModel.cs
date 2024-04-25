@@ -12,6 +12,13 @@ namespace HEAppE.DataAccessTier.Migrations
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.AddColumn<long>(
+                name: "ResourceConsumed",
+                table: "SubmittedTaskInfo",
+                type: "bigint",
+                nullable: false,
+                defaultValue: 0L);
+
+            migrationBuilder.AddColumn<long>(
                 name: "SubProjectId",
                 table: "JobSpecification",
                 type: "bigint",
@@ -218,6 +225,10 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropIndex(
                 name: "IX_ClusterNodeType_ClusterNodeTypeAggregationId",
                 table: "ClusterNodeType");
+
+            migrationBuilder.DropColumn(
+                name: "ResourceConsumed",
+                table: "SubmittedTaskInfo");
 
             migrationBuilder.DropColumn(
                 name: "SubProjectId",
