@@ -952,6 +952,34 @@ namespace HEAppE.RestApi.Controllers
             _logger.LogInformation(message);
             return testClusterAccess ? Ok(message) : BadRequest(message);
         }
+        
+        /// <summary>
+        /// Compute accounting - calculate accounting via accounting formulas
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpPost("ComputeAccounting")]
+        [RequestSizeLimit(500)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ComputeAccounting(ComputeAccountingModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ComputeAccounting\"");
+
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.ComputeAccounting(model.StartTime, model.EndTime, model.SessionCode);
+            return Ok("Accounting was computed.");
+        }
 
         #endregion
         #region Private Methods

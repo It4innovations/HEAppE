@@ -379,6 +379,19 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (var user, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Administrator);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                foreach (var project in projects)
+                {
+                    managementLogic.ComputeAccounting(modelStartTime, modelEndTime, project.Id);
+                }
+            }
+        }
+
         #endregion
     }
 }

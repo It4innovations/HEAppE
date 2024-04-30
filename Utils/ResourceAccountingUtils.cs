@@ -16,7 +16,7 @@ public class ResourceAccountingUtils
             return 0;
         }
         accountingFormula = accountingFormula.Replace(" ", string.Empty);
-        var accountingFormulaProperties = accountingFormula.Split("+-*/%".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
+        var accountingFormulaProperties = accountingFormula.Split("+-*/%()".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
         var filteredParsedParameters = parsedParameters.Where(w => accountingFormulaProperties.Contains(w.Key));
     
         foreach (var accountingFormulaProperty in filteredParsedParameters)
@@ -32,7 +32,7 @@ public class ResourceAccountingUtils
                     }
                 }
                     
-                accountingFormula = accountingFormula.Replace(accountingFormulaProperty.Key, value.ToString());
+                accountingFormula = accountingFormula.Replace(accountingFormulaProperty.Key, value.ToString().Replace(',', '.'));
             }
             catch (Exception ex)
             {

@@ -642,8 +642,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             var accountingFormula = dbTaskInfo.NodeType
                 .ClusterNodeTypeAggregation
                 .ClusterNodeTypeAggregationAccountings
-                .FirstOrDefault(x=>!x.Accounting.IsDeleted && x.Accounting.IsValid)?
-                .Accounting.Formula;
+                .FirstOrDefault(x=>!x.Accounting.IsDeleted && x.Accounting.IsValid(clusterTaskInfo.StartTime, clusterTaskInfo.EndTime))
+                ?.Accounting.Formula;
             
             if (clusterTaskInfo is null)
             {

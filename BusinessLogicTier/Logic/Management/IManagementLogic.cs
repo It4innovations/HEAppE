@@ -36,5 +36,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
         SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
         void RemoveSubProject(long modelId);
+        void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId);
     }
 }

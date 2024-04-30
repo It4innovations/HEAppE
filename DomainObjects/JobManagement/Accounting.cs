@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Runtime.InteropServices.JavaScript;
 using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.DomainObjects.JobManagement;
@@ -25,8 +26,7 @@ public class Accounting : IdentifiableDbEntity
     public DateTime ValidityFrom { get; set; }
 
     public DateTime? ValidityTo { get; set; }
-    [NotMapped]
-    public bool IsValid => ValidityFrom <= DateTime.UtcNow && (ValidityTo == null || ValidityTo >= DateTime.UtcNow);
+    public bool IsValid(DateTime? startTime, DateTime? endTime) => (startTime.HasValue && ValidityFrom <= startTime) && (ValidityTo == null || (endTime.HasValue && ValidityTo >= endTime));
     
     public virtual List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccountings { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
 }

@@ -45,10 +45,27 @@ namespace HEAppE.RestApi.InputValidator
                 CreateSubProjectModel ext => ValidateCreateSubProjectModel(ext),
                 ModifySubProjectModel ext => ValidateModifySubProjectModel(ext),
                 RemoveSubProjectModel ext => ValidateRemoveSubProjectModel(ext),
+                ComputeAccountingModel ext => ValidateComputeAccountingModel(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateComputeAccountingModel(ComputeAccountingModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (ext.StartTime > ext.EndTime)
+            {
+                _messageBuilder.AppendLine("StartTime can not be after EndTime.");
+            }
+
+            return _messageBuilder.ToString();
         }
 
         private string ValidateRemoveSubProjectModel(RemoveSubProjectModel ext)

@@ -1148,6 +1148,50 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
         }
 
+        public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId)
+        {
+            //get all submittedtasks from project and compute with formula
+            var project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            if (project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            
+            var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
+                .GetAll()
+                .Where(t=>t.StartTime >= modelStartTime 
+                          && t.EndTime <= modelEndTime 
+                          && t.Project.Id == projectId)
+                .ToList();
+            
+            //compute accounting
+            foreach (var submittedTask in submittedTasks)
+            {
+                //compute accounting
+                string accountingFormula = submittedTask
+                    .Specification
+                    .ClusterNodeType
+                    .ClusterNodeTypeAggregation
+                    .ClusterNodeTypeAggregationAccountings
+                    .FirstOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
+                    ?.Accounting.Formula;
+                //parse all parameters to dictionary... JobId=486063 JobName=13 ...
+                var parsedParameters = submittedTask.AllParameters
+                    .Split(' ')
+                    .Select(x => x.Split('='))
+                    .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
+
+                double result = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, parsedParameters, _logger); 
+                submittedTask.ResourceConsumed = result;
+                _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTask);
+                _unitOfWork.Save();
+            }
+        }
+
         #endregion
 
         #region Private methods
