@@ -839,12 +839,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="clusterProjectRootDirectory"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
+        public string InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
         {
             clusterProjectRootDirectory = clusterProjectRootDirectory.Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/' });
             var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
                 .ToList();
-
+            int numberOfAccounts = 0;
+            int numberOfInitializedAccounts = 0;
             if (!clusterAuthenticationCredentials.Any())
             {
                 throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
@@ -859,7 +860,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
                 foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
                 {
-                    if (clusterAuthCredentials.IsDeleted)
+                    if (clusterProjectCredential.IsDeleted)
                     {
                         continue;
                     }
@@ -867,11 +868,17 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
                     string localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
-
+                    numberOfAccounts++;
                     HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
-                    scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
+                    bool isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
+                    if (isInitialized)
+                    {
+                        numberOfInitializedAccounts++;
+                    }
                 }
             }
+
+            return $"Initialized {numberOfInitializedAccounts} of {numberOfAccounts} possible active accounts.";
         }
 
         /// <summary>
