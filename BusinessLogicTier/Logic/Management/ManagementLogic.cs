@@ -1179,7 +1179,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     .ClusterNodeTypeAggregationAccountings
                     .FirstOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
                     ?.Accounting.Formula;
-                //parse all parameters to dictionary... JobId=486063 JobName=13 ...
+                
+                //parse all parameters to dictionary
                 var parsedParameters = submittedTask.AllParameters
                     .Split(' ')
                     .Select(x => x.Split('='))
