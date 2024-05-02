@@ -25,7 +25,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
         ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
         void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
-        string InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
+        List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
         bool TestClusterAccessForAccount(long projectId, string username);
         CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
             string modelDescription, long modelCommandTemplateId);

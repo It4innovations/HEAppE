@@ -839,13 +839,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="clusterProjectRootDirectory"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public string InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
+        public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
         {
             clusterProjectRootDirectory = clusterProjectRootDirectory.Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/' });
             var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
                 .ToList();
-            int numberOfAccounts = 0;
-            int numberOfInitializedAccounts = 0;
+            Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();
             if (!clusterAuthenticationCredentials.Any())
             {
                 throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
@@ -868,17 +867,44 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
                     string localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
-                    numberOfAccounts++;
                     HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
                     bool isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
                     if (isInitialized)
                     {
-                        numberOfInitializedAccounts++;
+                        if(!clusterInitReports.ContainsKey(cluster))
+                        {
+                            clusterInitReports.Add(cluster, new ClusterInitReport()
+                            {
+                                Cluster = cluster,
+                                NumberOfInitializedAccounts = 1
+                            });
+                        }
+                        else
+                        {
+                            clusterInitReports[cluster].NumberOfInitializedAccounts++;
+                        }
+                        _logger.Info($"Initialized cluster script directory for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
+                    }
+                    else
+                    {
+                        if (!clusterInitReports.ContainsKey(cluster))
+                        {
+                            clusterInitReports.Add(cluster, new ClusterInitReport()
+                            {
+                                Cluster = cluster,
+                                NumberOfNotInitializedAccounts = 1
+                            });
+                        }
+                        else
+                        {
+                            clusterInitReports[cluster].NumberOfNotInitializedAccounts++;
+                        }
+                        _logger.Error($"Initialization of cluster script directory failed for project {project.Id} on cluster {cluster.Id} with account {clusterProjectCredential.ClusterAuthenticationCredentials.Username}.");
                     }
                 }
             }
 
-            return $"Initialized {numberOfInitializedAccounts} of {numberOfAccounts} possible active accounts.";
+            return clusterInitReports.Values.ToList();
         }
 
         /// <summary>
