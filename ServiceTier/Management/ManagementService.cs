@@ -339,6 +339,18 @@ namespace HEAppE.ServiceTier.Management
                 return subProject.ConvertIntToExt();
             }
         }
+        
+        public List<SubProjectExt> ListSubProjects(long projectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                Project project = unitOfWork.ProjectRepository.GetById(projectId)
+                                        ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId);
+                List<SubProject> subProjects = project.SubProjects.ToList();
+                return subProjects.Select(x => x.ConvertIntToExt()).ToList();
+            }
+        }
 
         public SubProjectExt CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
             DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode)

@@ -42,6 +42,7 @@ namespace HEAppE.RestApi.InputValidator
                 ListCommandTemplatesModel ext => ValidateListCommandTemplatesModel(ext),
                 ListCommandTemplateModel ext => ValidateListCommandTemplateModel(ext),
                 ListSubProjectModel ext => ValidateListSubProjectModel(ext),
+                ListSubProjectsModel ext => ValidateListSubProjectsModel(ext),
                 CreateSubProjectModel ext => ValidateCreateSubProjectModel(ext),
                 ModifySubProjectModel ext => ValidateModifySubProjectModel(ext),
                 RemoveSubProjectModel ext => ValidateRemoveSubProjectModel(ext),
@@ -49,6 +50,18 @@ namespace HEAppE.RestApi.InputValidator
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateListSubProjectsModel(ListSubProjectsModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.Id, "Id");
+            return _messageBuilder.ToString();
         }
 
         private string ValidateRemoveSubProjectModel(RemoveSubProjectModel ext)

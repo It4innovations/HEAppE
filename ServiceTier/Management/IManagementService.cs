@@ -64,6 +64,7 @@ namespace HEAppE.ServiceTier.Management
         List<ExtendedCommandTemplateExt> ListCommandTemplates(long projectId, string sessionCode);
         ExtendedCommandTemplateExt ListCommandTemplate(long commandTemplateId, string sessionCode);
         SubProjectExt ListSubProject(long subProjectId, string sessionCode);
+        List<SubProjectExt> ListSubProjects(long projectId, string sessionCode);
         SubProjectExt CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode);
         SubProjectExt ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode);
         void RemoveSubProject(long modelId, string modelSessionCode);

@@ -585,6 +585,37 @@ namespace HEAppE.RestApi.Controllers
 
         #region SubProject
         /// <summary>
+        /// List SubProjects
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpGet("SubProjects")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ListSubProjects(long projectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListSubProjects\" Parameters: SessionCode: \"{sessionCode}\"");
+            var model = new ListSubProjectsModel()
+            {
+                Id = projectId,
+                SessionCode = sessionCode
+            };
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(_managementService.ListSubProjects(projectId, sessionCode));
+        }
+        /// <summary>
         /// List SubProject
         /// </summary>
         /// <param name="subProjectId"></param>
@@ -615,6 +646,7 @@ namespace HEAppE.RestApi.Controllers
 
             return Ok(_managementService.ListSubProject(subProjectId, sessionCode));
         }
+        
         /// <summary>
         /// Create SubProject
         /// </summary>
