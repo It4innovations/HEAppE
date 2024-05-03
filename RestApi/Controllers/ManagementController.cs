@@ -863,7 +863,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("InitializeClusterScriptDirectory")]
         [RequestSizeLimit(1000)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(List<ClusterInitReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -878,8 +878,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.InitializeClusterScriptDirectory(model.ProjectId, model.ClusterProjectRootDirectory, model.SessionCode);
-            return Ok("Cluster script directory was initialized.");
+            return Ok(_managementService.InitializeClusterScriptDirectory(model.ProjectId, model.ClusterProjectRootDirectory, model.SessionCode));
         }
 
         /// <summary>

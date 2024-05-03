@@ -51,7 +51,7 @@ namespace HEAppE.ServiceTier.Management
             string sessionCode);
 
         void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
-        void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode);
+        List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode);
         bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username);
 
         ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,

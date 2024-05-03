@@ -327,16 +327,25 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="localBasepath">Cluster execution path</param>
         /// <param name="clusterAuthCredentials">Credentials</param> 
         /// <param name="isServiceAccount">Is servis account</param>
-        public void InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
+        public bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
         {
-            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+            ConnectionInfo schedulerConnection = null;
             try
             {
-                _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
+                schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+                return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Cluster script directory initialization failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}", ex);
+                return false;
             }
             finally
             {
-                _connectionPool.ReturnConnection(schedulerConnection);
+                if (schedulerConnection != null)
+                {
+                    _connectionPool.ReturnConnection(schedulerConnection);
+                }
             }
         }
 
