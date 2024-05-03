@@ -26,10 +26,4 @@
     <ProjectReference Include="..\Utils\Utils.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Reference Include="Renci.SshNet">
-      <HintPath>..\dll\Renci.SshNet.dll</HintPath>
-    </Reference>
-  </ItemGroup>
-
 </Project>
