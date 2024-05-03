@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
 using System;
@@ -42,6 +42,7 @@ namespace HEAppE.RestApi.InputValidator
                 ListCommandTemplatesModel ext => ValidateListCommandTemplatesModel(ext),
                 ListCommandTemplateModel ext => ValidateListCommandTemplateModel(ext),
                 ListSubProjectModel ext => ValidateListSubProjectModel(ext),
+                ListSubProjectsModel ext => ValidateListSubProjectsModel(ext),
                 CreateSubProjectModel ext => ValidateCreateSubProjectModel(ext),
                 ModifySubProjectModel ext => ValidateModifySubProjectModel(ext),
                 RemoveSubProjectModel ext => ValidateRemoveSubProjectModel(ext),
@@ -65,6 +66,18 @@ namespace HEAppE.RestApi.InputValidator
                 _messageBuilder.AppendLine("StartTime can not be after EndTime.");
             }
 
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateListSubProjectsModel(ListSubProjectsModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.Id, "Id");
             return _messageBuilder.ToString();
         }
 
