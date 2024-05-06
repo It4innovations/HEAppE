@@ -10,7 +10,6 @@ namespace HEAppE.DataAccessTier
     public class MiddlewareContextSettings
     {
         public static string ConnectionString { get; set; }
-
         public static List<AdaptorUser> AdaptorUsers { get; set; } = new List<AdaptorUser>();
 
         public static List<AdaptorUserRole> AdaptorUserRoles { get; set; } = new List<AdaptorUserRole>();
