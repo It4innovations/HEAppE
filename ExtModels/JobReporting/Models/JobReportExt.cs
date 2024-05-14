@@ -12,7 +12,7 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember]
         public string Name { get; set; }
         [DataMember]
-        public string SubProject { get; set; }
+        public JobStateExt State { get; set; }
         [DataMember]
         public List<TaskReportExt> Tasks { get; set; }
     }

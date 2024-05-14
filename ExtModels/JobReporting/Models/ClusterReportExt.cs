@@ -11,6 +11,8 @@ namespace HEAppE.ExtModels.JobReporting.Models
         public long Id { get; set; }
         [DataMember]
         public string Name { get; set; }
+        [Required]
+        public string Description { get; set; }
         [DataMember]
         public double? TotalUsage { get; set; }
         [DataMember]

@@ -11,7 +11,6 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using HEAppE.DomainObjects.JobManagement;
 using Project = HEAppE.DomainObjects.JobManagement.Project;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting
@@ -53,7 +52,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var userGroupReports = adaptorUserGroups.Select(adaptorUserGroup => new UserGroupListReport()
             {
                 AdaptorUserGroup = adaptorUserGroup,
-                Project = GetProjectReport(adaptorUserGroup.Project, DateTime.MinValue, DateTime.UtcNow, null),
+                Project = GetProjectReport(adaptorUserGroup.Project, DateTime.MinValue, DateTime.UtcNow),
                 UsageType = adaptorUserGroup.Project.UsageType
             }).ToList();
             return userGroupReports;
@@ -101,27 +100,24 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// Returns Resource Usage Report for all Jobs
         /// </summary>
         /// <returns></returns>
-        public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects)
+        public IEnumerable<UserGroupReport> JobsDetailedReport(IEnumerable<long> groupIds)
         {
-            return groupIds.Select(groupId => UserGroupResourceUsageReport(groupId, DateTime.MinValue, DateTime.UtcNow, subProjects)).ToList();
+            return AggregatedUserGroupResourceUsageReport(groupIds, DateTime.MinValue, DateTime.UtcNow);
         }
 
         /// <summary>
         /// Returns report for specific user
         /// </summary>
         /// <param name="userId">User ID</param>
-        /// <param name="reporterGroupIds"></param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        /// <param name="subProjects"></param>
         /// <returns></returns>
-        public IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds,
-            DateTime startTime, DateTime endTime, string[] subProjects)
+        public IEnumerable<UserGroupReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds, DateTime startTime, DateTime endTime)
         {
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId) ?? throw new ResourceUsageException("UserNotSpecified", userId);
             var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
             var reporterAndUserGroupsIntersect = reporterGroupIds.Intersect(userGroups);
-            return reporterGroupIds.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects)).ToList();
+            return AggregatedUserGroupResourceUsageReport(reporterAndUserGroupsIntersect, startTime, endTime);
         }
 
         /// <summary>
@@ -130,20 +126,19 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="groupId">Group ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        /// <param name="subProjects"></param>
         /// <returns></returns>
         /// <exception cref="ApplicationException"></exception>
-        public ProjectReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime,
-            string[] subProjects)
+        public UserGroupReport UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime)
         {
             AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
-            return GetProjectReport(group.Project, startTime, endTime, subProjects);
-        }
-        
-        public ProjectAggregatedReport UserGroupResourceAggregatedUsageReport(long groupId, DateTime startTime, DateTime endTime)
-        {
-            AdaptorUserGroup group = _unitOfWork.AdaptorUserGroupRepository.GetByIdWithAdaptorUserGroups(groupId) ?? throw new ResourceUsageException("GroupNotSpecified", groupId);
-            return GetProjectAggregatedReport(group.Project, startTime, endTime);
+
+            var userGroupReport = new UserGroupReport
+            {
+                AdaptorUserGroup = group,
+                Project = GetProjectReport(group.Project, startTime, endTime),
+                UsageType = DomainObjects.JobReporting.Enums.UsageType.CoreHours
+            };
+            return userGroupReport;
         }
 
         /// <summary>
@@ -154,115 +149,27 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
         /// <returns></returns>
-        public IEnumerable<ProjectAggregatedReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
+        public IEnumerable<UserGroupReport> AggregatedUserGroupResourceUsageReport(IEnumerable<long> groupIds, DateTime startTime, DateTime endTime)
         {
-            return groupIds.Select(groupId => UserGroupResourceAggregatedUsageReport(groupId, startTime, endTime)).ToList();
+            return groupIds.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime)).ToList();
         }
         #endregion
         #region Private Methods
-
         /// <summary>
         /// Returns project report for specified Project
         /// </summary>
         /// <param name="project">Project</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        /// <param name="subProjects"></param>
         /// <returns></returns>
-        private ProjectReport GetProjectReport(Project project, DateTime startTime, DateTime endTime,
-            string[] subProjects)
+        private ProjectReport GetProjectReport(Project project, DateTime startTime, DateTime endTime)
         {
-            if (project == null)
-            {
-                return null;
-            }
             var projectReport = new ProjectReport()
             {
                 Project = project,
-                Clusters = GetClusterReports(project, startTime, endTime, subProjects)
+                Clusters = GetClusterReports(project, startTime, endTime)
             };
             return projectReport;
-        }
-        
-        private ProjectAggregatedReport GetProjectAggregatedReport(Project project, DateTime startTime, DateTime endTime)
-        {
-            if (project == null)
-            {
-                return null;
-            }
-            var projectReport = new ProjectAggregatedReport()
-            {
-                Project = project,
-                SubProjects = GetSubProjectAggregatedReports(project, startTime, endTime),
-                Clusters = GetClusterAggregatedReports(project, startTime, endTime)
-            };
-            return projectReport;
-        }
-
-        private List<SubProjectAggregatedReport> GetSubProjectAggregatedReports(Project project, DateTime startTime, DateTime endTime)
-        {
-            var subProjectReports = project.SubProjects.Select(subProject => new SubProjectAggregatedReport()
-            {
-                SubProject = subProject,
-                Clusters = GetClusterSubProjectAggregatedReports(subProject, startTime, endTime)
-            }).ToList();
-            return subProjectReports;
-        }
-
-        private List<ClusterAggregatedReport> GetClusterSubProjectAggregatedReports(SubProject subProject, DateTime startTime, DateTime endTime)
-        {
-            var clusters = subProject.Project.ClusterProjects.Where(cp => cp.Project.Id == subProject.Project.Id)
-                .Select(x => x.Cluster)
-                .Distinct().ToList();
-            var clusterReports = clusters.Select(cluster => new ClusterAggregatedReport()
-            {
-                Cluster = cluster,
-                ClusterNodeTypesAggregations = GetClusterNodeTypeSubProjectAggregationReports(cluster, subProject, startTime, endTime)
-            }).ToList();
-            return clusterReports;
-        }
-
-        private List<ClusterNodeTypeAggregatedReport> GetClusterNodeTypeSubProjectAggregationReports(Cluster cluster, SubProject subProject, DateTime startTime, DateTime endTime)
-        {
-            var nodeTypeGrouping = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
-                .Distinct()
-                .OrderBy(x => x.Id)
-                .GroupBy(u => u.ClusterNodeTypeAggregation)
-                .ToList();
-
-            var reports = new List<ClusterNodeTypeAggregatedReport>();
-            foreach (var group in nodeTypeGrouping)
-            {
-                var aggregationReport = new ClusterNodeTypeAggregatedReport()
-                {
-                    ClusterNodeTypeAggregation = group.Key,
-                    ClusterNodeTypes = group.Select(nodeType => new ClusterNodeTypeReport()
-                    {
-                        ClusterNodeType = nodeType,
-                        Jobs = GetJobSubProjectReports(nodeType.Id, subProject, startTime, endTime)
-                    }).ToList()
-                };
-                reports.Add(aggregationReport);
-            }
-            return reports;
-        }
-
-        private List<JobReport> GetJobSubProjectReports(long nodeTypeId, SubProject subProject, DateTime startTime, DateTime endTime)
-        {
-            var jobsInSubProject = _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAdaptorUserAndProject()
-                .Where(x => x.Project.Id == subProject.ProjectId &&
-                            x.Specification.SubProjectId.HasValue &&
-                            x.Specification.SubProjectId.Value == subProject.Id &&
-                            x.StartTime >= startTime &&
-                            x.EndTime <= endTime &&
-                            x.Tasks.Any(y => y.NodeType.Id == nodeTypeId));
-            
-            var jobReports = jobsInSubProject.Select(job => new JobReport()
-            {
-                SubmittedJobInfo = job,
-                Tasks = GetTaskReportsForJob(job, nodeTypeId, subProject.ProjectId)
-            }).ToList();
-            return jobReports;
         }
 
         /// <summary>
@@ -271,10 +178,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="project"></param>
         /// <param name="startTime"></param>
         /// <param name="endTime"></param>
-        /// <param name="subProjects"></param>
         /// <returns></returns>
-        private List<ClusterReport> GetClusterReports(Project project, DateTime startTime, DateTime endTime,
-            string[] subProjects)
+        private List<ClusterReport> GetClusterReports(Project project, DateTime startTime, DateTime endTime)
         {
             var clusters = project.ClusterProjects.Where(cp => cp.Project.Id == project.Id)
                                                     .Select(x => x.Cluster)
@@ -282,59 +187,18 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var clusterReports = clusters.Select(cluster => new ClusterReport()
             {
                 Cluster = cluster,
-                ClusterNodeTypes = GetClusterNodeTypeReports(cluster, project, startTime, endTime, subProjects)
+                ClusterNodeTypes = GetClusterNodeTypeReports(cluster, project, startTime, endTime)
             }).ToList();
             return clusterReports;
-        }
-        
-        private List<ClusterAggregatedReport> GetClusterAggregatedReports(Project project, DateTime startTime, DateTime endTime)
-        {
-            var clusters = project.ClusterProjects.Where(cp => cp.Project.Id == project.Id)
-                .Select(x => x.Cluster)
-                .Distinct().ToList();
-            var clusterReports = clusters.Select(cluster => new ClusterAggregatedReport()
-            {
-                Cluster = cluster,
-                ClusterNodeTypesAggregations = GetClusterNodeTypeAggregationReports(cluster, project, startTime, endTime)
-            }).ToList();
-            return clusterReports;
-        }
-
-        private List<ClusterNodeTypeAggregatedReport> GetClusterNodeTypeAggregationReports(Cluster cluster, Project project, DateTime startTime, DateTime endTime)
-        {
-            var nodeTypeGrouping = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
-                .Distinct()
-                .OrderBy(x => x.Id)
-                .GroupBy(u => u.ClusterNodeTypeAggregation)
-                .ToList();
-
-            var reports = new List<ClusterNodeTypeAggregatedReport>();
-            foreach (var group in nodeTypeGrouping)
-            {
-                var aggregationReport = new ClusterNodeTypeAggregatedReport()
-                {
-                    ClusterNodeTypeAggregation = group.Key,
-                    ClusterNodeTypes = group.Select(nodeType => new ClusterNodeTypeReport()
-                    {
-                        ClusterNodeType = nodeType,
-                        Jobs = GetJobReports(nodeType.Id, project.Id, startTime, endTime, null)
-                    }).ToList()
-                };
-                reports.Add(aggregationReport);
-            }
-            return reports;
         }
 
         /// <summary>
         /// Returns ClusterNodeType reports for specified Project
         /// </summary>
-        /// <param name="cluster"></param>
         /// <param name="project">Project</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        /// <param name="subProjects"></param>
-        private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Cluster cluster, Project project,
-            DateTime startTime, DateTime endTime, string[] subProjects)
+        private List<ClusterNodeTypeReport> GetClusterNodeTypeReports(Cluster cluster, Project project, DateTime startTime, DateTime endTime)
         {
             var nodeTypes = cluster.ClusterProjects.SelectMany(x => x.Cluster.NodeTypes)
                                                     .Distinct()
@@ -344,7 +208,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var nodeTypeReports = nodeTypes.Select(nodeType => new ClusterNodeTypeReport()
             {
                 ClusterNodeType = nodeType,
-                Jobs = GetJobReports(nodeType.Id, project.Id, startTime, endTime, subProjects)
+                Jobs = GetJobReports(nodeType.Id, project.Id, startTime, endTime)
             }).ToList();
             return nodeTypeReports;
         }
@@ -356,25 +220,20 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <param name="projectId">Project ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        /// <param name="subProjects"></param>
         /// <returns></returns>
-        private List<JobReport> GetJobReports(long nodeTypeId, long projectId, DateTime startTime, DateTime endTime, string[] subProjects)
+        private List<JobReport> GetJobReports(long nodeTypeId, long projectId, DateTime startTime, DateTime endTime)
         {
-            var jobsInProjectQuery = _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAdaptorUserAndProject()
-                .Where(x => x.Project.Id == projectId &&
-                            x.StartTime >= startTime &&
-                            x.EndTime <= endTime &&
-                            x.Tasks.Any(y => y.NodeType.Id == nodeTypeId));
-            if (subProjects != null && subProjects.Any())
-            {
-                jobsInProjectQuery = jobsInProjectQuery.Where(job => subProjects.Contains(job.Specification.SubProject?.Identifier));
-            }
-            var jobReports = jobsInProjectQuery.Select(job => new JobReport()
+            var jobsInProject = _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAdaptorUserAndProject()
+                                                                                    .Where(x => x.Project.Id == projectId &&
+                                                                                                x.StartTime >= startTime &&
+                                                                                                x.EndTime <= endTime &&
+                                                                                                x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
+                                                                                                .ToList();
+            var jobReports = jobsInProject.Select(job => new JobReport()
             {
                 SubmittedJobInfo = job,
                 Tasks = GetTaskReportsForJob(job, nodeTypeId, projectId)
             }).ToList();
-
             return jobReports;
         }
 
@@ -392,7 +251,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var taskReports = tasks.Select(task => new TaskReport()
             {
                 SubmittedTaskInfo = task,
-                Usage = Math.Round(task.ResourceConsumed, 3)
+                Usage = JobReportingLogicConverts.CalculateUsedResourcesForTask(task) ?? 0
             }).ToList();
             return taskReports;
         }

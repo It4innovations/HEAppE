@@ -203,10 +203,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
 
-        public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
+        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
             string localBasepath, bool isServiceAccount)
         {
-            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
+            _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
         }
         #endregion
     }

@@ -25,17 +25,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
         ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
         void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
-        List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
+        void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
         bool TestClusterAccessForAccount(long projectId, string username);
         CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
             string modelDescription, long modelCommandTemplateId);
         CommandTemplateParameter ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery, string modelDescription);
         void RemoveCommandTemplateParameter(long modelId);
         List<CommandTemplate> ListCommandTemplates(long projectId);
-        SubProject CreateSubProject(string identifier, long projectId);
-        SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
-        SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
-        void RemoveSubProject(long modelId);
-        void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId);
     }
 }

@@ -81,6 +81,6 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
         /// <param name="localBasepath">Cluster execution path</param>
         /// <param name="isServiceAccount">Is servis account</param>
-        bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount);
+        void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount);
     }
 }

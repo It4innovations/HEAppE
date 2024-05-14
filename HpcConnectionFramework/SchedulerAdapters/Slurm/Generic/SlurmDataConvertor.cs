@@ -97,15 +97,14 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo() { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
                                                           .ToList(),
                 ErrorMessage = default,
-                AllParameters = obj.IsJobArrayJob ? obj.AggregateSchedulerResponseParameters : obj.SchedulerResponseParameters,
-                ParsedParameters = obj.ParsedParameters
+                AllParameters = obj.IsJobArrayJob ? obj.AggregateSchedulerResponseParameters : obj.SchedulerResponseParameters
             };
         }
 
         /// <summary>
         /// Read job parameters from scheduler
         /// </summary>
-        /// <param name="jobSpecification">JobSpecification</param>
+        /// <param name="cluster">Cluster</param>
         /// <param name="responseMessage">Scheduler response message</param>
         /// <returns></returns>
         /// <exception cref="SlurmException"></exception>
@@ -131,12 +130,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                             Value = (s.Groups.GetValueOrDefault("Value").Value is "(null)" or "N/A" or "Unknown" ? string.Empty : s.Groups.GetValueOrDefault("Value").Value)
                                         })
                                         .Distinct();
-                
-                var parsedParameters = parameters.ToDictionary(i => i.Key, j => j.Value);
-                var schedulerResultObj = new SlurmJobInfo(jobResponseMessage, parsedParameters);
 
-                FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parsedParameters);
-                
+                var schedulerResultObj = new SlurmJobInfo(jobResponseMessage);
+                FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parameters.ToDictionary(i => i.Key, j => j.Value));
+
                 if (!schedulerResultObj.IsJobArrayJob)
                 {
                     jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
@@ -155,7 +152,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                     continue;
                 }
 
-                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
+                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
                 aggregateResultObj = schedulerResultObj;
             }
 

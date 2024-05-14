@@ -483,7 +483,4 @@
   <data name="InputValidationException_NotPermitted" xml:space="preserve">
     <value />
   </data>
-  <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
-    <value>Specifikovaný SubProject je smazaný nebo neplatný.</value>
-  </data>
 </root>

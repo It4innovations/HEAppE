@@ -27,17 +27,6 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             {
                 Id = report.SubmittedTaskInfo.Id,
                 Name = report.SubmittedTaskInfo.Name,
-                Usage = report.Usage
-            };
-
-            return convert;
-        }
-        public static TaskExtendedReportExt ConvertIntToExtendedExt(this TaskReport report)
-        {
-            var convert = new TaskExtendedReportExt()
-            {
-                Id = report.SubmittedTaskInfo.Id,
-                Name = report.SubmittedTaskInfo.Name,
                 StartTime = report.SubmittedTaskInfo.StartTime,
                 EndTime = report.SubmittedTaskInfo.EndTime,
                 State = report.SubmittedTaskInfo.State.ConvertIntToExt(),
@@ -47,7 +36,6 @@ namespace HEAppE.ExtModels.JobReporting.Converts
 
             return convert;
         }
-        
 
         public static TaskDetailedReportExt ConvertIntToDetailedExt(this TaskReport report)
         {
@@ -73,20 +61,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             {
                 Id = report.SubmittedJobInfo.Id,
                 Name = report.SubmittedJobInfo.Name,
-                SubProject = report.SubmittedJobInfo.Specification.SubProject?.Identifier,
-                Tasks = report.Tasks.Select(x => x.ConvertIntToExt()).ToList()
-            };
-
-            return convert;
-        }
-        
-        public static JobExtendedReportExt ConvertIntToExtendedExt(this JobReport report)
-        {
-            var convert = new JobExtendedReportExt()
-            {
-                Id = report.SubmittedJobInfo.Id,
-                Name = report.SubmittedJobInfo.Name,
-                Tasks = report.Tasks.Select(x => x.ConvertIntToExtendedExt()).ToList(),
+                Tasks = report.Tasks.Select(x => x.ConvertIntToExt()).ToList(),
                 State = report.SubmittedJobInfo.State.ConvertIntToExt()
             };
 
@@ -117,21 +92,8 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             {
                 Id = report.ClusterNodeType.Id,
                 Name = report.ClusterNodeType.Name,
-                Jobs = report.Jobs.Select(x => x.ConvertIntToExt()).ToList(),
-                TotalUsage = report.TotalUsage
-            };
-
-            return convert;
-        }
-        
-        public static ClusterNodeExtendedTypeReportExt ConvertIntToExtendedExt(this ClusterNodeTypeReport report)
-        {
-            var convert = new ClusterNodeExtendedTypeReportExt()
-            {
-                Id = report.ClusterNodeType.Id,
-                Name = report.ClusterNodeType.Name,
                 Description = report.ClusterNodeType.Description,
-                Jobs = report.Jobs.Select(x => x.ConvertIntToExtendedExt()).ToList(),
+                Jobs = report.Jobs.Select(x => x.ConvertIntToExt()).ToList(),
                 TotalUsage = report.TotalUsage
             };
 
@@ -159,27 +121,13 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             {
                 Id = report.Cluster.Id,
                 Name = report.Cluster.Name,
+                Description = report.Cluster.Description,
                 ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToExt()).ToList(),
                 TotalUsage = report.TotalUsage
             };
 
             return convert;
         }
-        
-        public static ClusterExtendedReportExt ConvertIntToExtendedExt(this ClusterReport report)
-        {
-            var convert = new ClusterExtendedReportExt()
-            {
-                Id = report.Cluster.Id,
-                Name = report.Cluster.Name,
-                Description = report.Cluster.Description,
-                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToExtendedExt()).ToList(),
-                TotalUsage = report.TotalUsage
-            };
-
-            return convert;
-        }
-
 
         public static ProjectReportExt ConvertIntToExt(this ProjectReport report)
         {
@@ -187,80 +135,10 @@ namespace HEAppE.ExtModels.JobReporting.Converts
             {
                 Id = report.Project.Id,
                 Name = report.Project.Name,
-                AccountingString = report.Project.AccountingString,
-                Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList(),
-                TotalUsage = report.TotalUsage,
-                UsageType = report.Project.UsageType.ConvertIntToExt()
-            };
-
-            return convert;
-        }
-        
-        public static ProjectExtendedReportExt ConvertIntToExtendedExt(this ProjectReport report)
-        {
-            var convert = new ProjectExtendedReportExt()
-            {
-                Id = report.Project.Id,
-                Name = report.Project.Name,
                 Description = report.Project.Description,
                 AccountingString = report.Project.AccountingString,
-                Clusters = report.Clusters.Select(x => x.ConvertIntToExtendedExt()).ToList(),
-                TotalUsage = report.TotalUsage
-            };
-
-            return convert;
-        }
-        
-        public static ProjectAggregatedReportExt ConvertIntToExt(this ProjectAggregatedReport report)
-        {
-            var convert = new ProjectAggregatedReportExt()
-            {
-                Id = report.Project.Id,
-                Name = report.Project.Name,
-                AccountingString = report.Project.AccountingString,
-                TotalUsage = report.TotalUsage,
-                UsageType = report.Project.UsageType.ConvertIntToExt(),
-                SubProjects = report.SubProjects.Select(x => x.ConvertIntToExt()).ToList(),
-                Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList()
-            };
-
-            return convert;
-        }
-        
-        public static SubProjectAggregatedReportExt ConvertIntToExt(this SubProjectAggregatedReport report)
-        {
-            var convert = new SubProjectAggregatedReportExt()
-            {
-                Id = report.SubProject.Id,
-                Name = report.SubProject.Identifier,
-                TotalUsage = report.TotalUsage,
                 Clusters = report.Clusters.Select(x => x.ConvertIntToExt()).ToList(),
-            };
-
-            return convert;
-        }
-        
-        public static ClusterAggregatedReportExt ConvertIntToExt(this ClusterAggregatedReport report)
-        {
-            var convert = new ClusterAggregatedReportExt()
-            {
-                Id = report.Cluster.Id,
-                Name = report.Cluster.Name,
-                TotalUsage = report.TotalUsage,
-                ClusterNodeTypesAggregations = report.ClusterNodeTypesAggregations.Select(x => x.ConvertIntToExt()).ToList()
-            };
-
-            return convert;
-        }
-        
-        public static ClusterNodeTypeAggregatedReportExt ConvertIntToExt(this ClusterNodeTypeAggregatedReport report)
-        {
-            var convert = new ClusterNodeTypeAggregatedReportExt()
-            {
-                Id = report.ClusterNodeTypeAggregation.Id,
-                Name = report.ClusterNodeTypeAggregation.Name,
-                TotalUsage = report.TotalUsage,
-                ClusterNodeTypes = report.ClusterNodeTypes.Select(x => x.ConvertIntToExt()).ToList()
+                TotalUsage = report.TotalUsage
             };
 
             return convert;

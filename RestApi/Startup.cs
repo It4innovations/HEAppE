@@ -26,7 +26,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Reflection;
-using HEAppE.DataAccessTier.Configuration;
 
 namespace HEAppE.RestApi
 {
@@ -78,7 +77,6 @@ namespace HEAppE.RestApi
             Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
             Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
             MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
-            Configuration.Bind("DatabaseMigrationSettings", new DatabaseMigrationSettings());
             Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
             Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
             Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
