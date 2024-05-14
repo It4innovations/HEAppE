@@ -327,25 +327,16 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// <param name="localBasepath">Cluster execution path</param>
         /// <param name="clusterAuthCredentials">Credentials</param> 
         /// <param name="isServiceAccount">Is servis account</param>
-        public bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
+        public void InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
         {
-            ConnectionInfo schedulerConnection = null;
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
             try
             {
-                schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
-                return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
-            }
-            catch (Exception ex)
-            {
-                _log.Error($"Cluster script directory initialization failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}", ex);
-                return false;
+                _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
             }
             finally
             {
-                if (schedulerConnection != null)
-                {
-                    _connectionPool.ReturnConnection(schedulerConnection);
-                }
+                _connectionPool.ReturnConnection(schedulerConnection);
             }
         }
 
@@ -357,10 +348,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 _connectionPool.ReturnConnection(schedulerConnection);
                 return true;
             }
-            catch (Exception ex)
+            catch (Exception)
             {
                 _log.Info(
-                    $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
+                    $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}");
                 return false;
             }
         }

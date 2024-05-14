@@ -66,7 +66,6 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="userId">User ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        /// <param name="subProjects">SubProjects</param>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
         [HttpGet("UserResourceUsageReport")]
@@ -77,7 +76,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, [FromQuery] string[] subProjects, string sessionCode)
+        public IActionResult UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             var model = new UserResourceUsageReportModel()
             {
@@ -93,7 +92,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_service.UserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, subProjects, model.SessionCode));
+            return Ok(_service.UserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
         }
 
         /// <summary>
@@ -102,7 +101,6 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="groupId">Group ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
-        /// <param name="subProjects">SubProjects</param>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
         [HttpGet("UserGroupResourceUsageReport")]
@@ -113,7 +111,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, [FromQuery] string[] subProjects, string sessionCode)
+        public IActionResult UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
         {
             var model = new UserGroupResourceUsageReportModel()
             {
@@ -129,7 +127,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_service.UserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, subProjects, model.SessionCode));
+            return Ok(_service.UserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
         }
 
         /// <summary>
@@ -224,7 +222,6 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get job detailed report
         /// </summary>
-        /// <param name="subProjects">SubProjects</param>
         /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("JobsDetailedReport")]
@@ -235,7 +232,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult JobsDetailedReport([FromQuery] string[] subProjects, string sessionCode)
+        public IActionResult JobsDetailedReport(string sessionCode)
         {
             _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"JobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");
             ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
@@ -244,7 +241,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_service.JobsDetailedReport(subProjects, sessionCode));
+            return Ok(_service.JobsDetailedReport(sessionCode));
         }
         #endregion
     }

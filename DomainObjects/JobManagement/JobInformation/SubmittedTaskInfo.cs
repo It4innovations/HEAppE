@@ -45,12 +45,6 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation
         [Column(TypeName = "text")]
         public string AllParameters { get; set; }
 
-        [NotMapped]
-        public Dictionary<string, string> ParsedParameters { get; set; }
-        /// <summary>
-        /// Computed by accounting formula dynamically
-        /// </summary>
-        public double ResourceConsumed { get; set; } = 0;
         public virtual Project Project { get; set; }
 
         public virtual TaskSpecification Specification { get; set; }
