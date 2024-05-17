@@ -206,7 +206,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
         /// <param name="localBasepath">Cluster execution path</param>
         /// <param name="isServiceAccount">Is servis account</param>
-        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
         {
             var cmdBuilder = new StringBuilder();
             string targetDirectory = Path.Combine(clusterProjectRootDirectory, _scripts.SubScriptsPath, ".key_scripts").Replace('\\', '/');
@@ -232,9 +232,20 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             }
 
             cmdBuilder.Append($"ln -sf {targetDirectory} {_scripts.ScriptsBasePath}");
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
-            _log.Info($"Initialized Cluster scripts for project");
+
+            try
+            {
+                var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
+                _log.Info($"Cluster scripts initialization result: \"{sshCommand.Result}\"");
+            }
+            catch (SshCommandException ex)
+            {
+                _log.Error($"Cluster scripts initialization failed: \"{ex.Message}\"");
+                return false;
+            }
+            return true;
         }
+
         #endregion
     }
 }
