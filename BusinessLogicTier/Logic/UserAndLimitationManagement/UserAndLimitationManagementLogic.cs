@@ -151,7 +151,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 _log.Info($"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
                 return openStackCredentials;
             }
-            catch (AuthenticationTypeException ex)
+            catch (AuthenticationTypeException)
             {
                 throw new AuthenticationTypeException("OpenStack-UnableToRetrieveCredentials");
             }
@@ -468,8 +468,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
             else
             {
-                adaptorUserWithGroupRole.AdaptorUserRole = userRole;
-                adaptorUserWithGroupRole.IsDeleted = false;
+                if (adaptorUserWithGroupRole.AdaptorUserRole == userRole)
+                {
+                    adaptorUserWithGroupRole.IsDeleted = false;
+                }
+
+                user.CreateSpecificUserRoleForUser(group, userRole.RoleType);
+                user.AdaptorUserUserGroupRoles.Remove(adaptorUserWithGroupRole);
             }
         }
 
