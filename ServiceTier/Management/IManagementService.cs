@@ -23,7 +23,7 @@ namespace HEAppE.ServiceTier.Management
         List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, string sessionCode);
         PublicKeyExt RegenerateSecureShellKey(string username, string password, string publicKey, long projectId, string sessionCode);
         void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
-        void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode);
+        List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode);
         bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username);
         ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
             string modelDescription, long modelCommandTemplateId, string modelSessionCode);

@@ -52,6 +52,16 @@ namespace HEAppE.ExtModels.Management.Converts
             return convert;
         }
 
+        public static ClusterInitReportExt ConvertIntToExt(this ClusterInitReport report)
+        {
+            var convert = new ClusterInitReportExt()
+            {
+                ClusterName = report.Cluster.Name,
+                IsClusterInitialized = report.IsClusterInitialized
+            };
+            return convert;
+        }
+
         public static ClusterProjectExt ConvertIntToExt(this ClusterProject cp)
         {
             var convert = new ClusterProjectExt()
