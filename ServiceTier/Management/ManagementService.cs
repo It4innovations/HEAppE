@@ -218,13 +218,13 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode)
+        public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory);
+                return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory).Select(x => x.ConvertIntToExt()).ToList();
             }
         }
 
@@ -260,12 +260,12 @@ namespace HEAppE.ServiceTier.Management
             {
                 CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(modelId)
                     ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
-                if(!commandTemplateParameter.IsEnabled)
+                if (!commandTemplateParameter.IsEnabled)
                 {
                     //unauthorized
                     throw new InputValidationException("NotPermitted");
                 }
-                
+
                 //command template not found or not enabled
                 if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
                 {
@@ -324,7 +324,7 @@ namespace HEAppE.ServiceTier.Management
                 else
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value);
-                    return commandTemplate.ConvertIntToExtendedExt();   
+                    return commandTemplate.ConvertIntToExtendedExt();
                 }
             }
         }
