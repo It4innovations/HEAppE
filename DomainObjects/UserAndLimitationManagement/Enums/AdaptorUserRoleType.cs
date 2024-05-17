@@ -33,6 +33,11 @@
         /// <summary>
         /// User with this role can create new project and use management API.
         /// </summary>
-        ManagementAdmin = 6
+        ManagementAdmin = 6,
+        
+        /// <summary>
+        /// User with this role can manage command templates, can submit and check his own jobs.
+        /// </summary>
+        Manager = 7
     }
 }

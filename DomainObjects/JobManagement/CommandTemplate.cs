@@ -46,9 +46,16 @@ namespace HEAppE.DomainObjects.JobManagement
         public long? ProjectId { get; set; }
         public virtual Project Project { get; set; }
 
+        [ForeignKey("CreatedFrom")]
+        public long? CreatedFromId { get; set; }
+        public virtual CommandTemplate CreatedFrom { get; set; }
+        
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? ModifiedAt { get; set; }
+        
         public override string ToString()
         {
-            return String.Format("CommandTemplate: Id={0}, Name={1}, ExecutableFile={2}", Id, Name, ExecutableFile);
+            return $"CommandTemplate({base.ToString()}; Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; CommandParameters: {CommandParameters}; PreparationScript: {PreparationScript}; IsGeneric: {IsGeneric}; IsEnabled: {IsEnabled}; ClusterNodeTypeId: {ClusterNodeTypeId}; ProjectId: {ProjectId}; CreatedFromId: {CreatedFromId}; CreatedAt: {CreatedAt}; ModifiedAt: {ModifiedAt})";
         }
     }
 }

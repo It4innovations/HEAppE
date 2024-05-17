@@ -12,17 +12,31 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Extensions
             AdaptorUserRoleType.GroupReporter,
             AdaptorUserRoleType.Submitter,
             AdaptorUserRoleType.Maintainer,
+            AdaptorUserRoleType.Manager,
             AdaptorUserRoleType.ManagementAdmin,
             AdaptorUserRoleType.Administrator 
         };
 
-        private static readonly List<AdaptorUserRoleType> _managementAdminSubRoles = new() { AdaptorUserRoleType.ManagementAdmin };
+        private static readonly List<AdaptorUserRoleType> _managementAdminSubRoles = new()
+        {
+            AdaptorUserRoleType.ManagementAdmin
+        };
+        
+        private static readonly List<AdaptorUserRoleType> _managerSubRoles = new()
+        {
+            AdaptorUserRoleType.Manager,
+            AdaptorUserRoleType.Reporter,
+            AdaptorUserRoleType.GroupReporter,
+            AdaptorUserRoleType.Submitter
+        };
 
         private static readonly List<AdaptorUserRoleType> _maintainerSubRoles = new() 
         { 
             AdaptorUserRoleType.Reporter,
             AdaptorUserRoleType.GroupReporter,
             AdaptorUserRoleType.Submitter,
+            AdaptorUserRoleType.Manager,
+            AdaptorUserRoleType.ManagementAdmin,
             AdaptorUserRoleType.Maintainer 
         };
 
@@ -39,7 +53,10 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Extensions
             AdaptorUserRoleType.GroupReporter 
         };
 
-        private static readonly List<AdaptorUserRoleType> _reporterSubRoles = new() { AdaptorUserRoleType.Reporter };
+        private static readonly List<AdaptorUserRoleType> _reporterSubRoles = new()
+        {
+            AdaptorUserRoleType.Reporter
+        };
 
         public static IEnumerable<AdaptorUserRoleType> GetAllowedRolesForUserRoleType(this AdaptorUserRoleType userRoleType)
         {
@@ -51,6 +68,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Extensions
                 AdaptorUserRoleType.GroupReporter => _groupReporterSubRoles,
                 AdaptorUserRoleType.Reporter => _reporterSubRoles,
                 AdaptorUserRoleType.ManagementAdmin => _managementAdminSubRoles,
+                AdaptorUserRoleType.Manager => _managerSubRoles,
                 _ => new List<AdaptorUserRoleType>(),
             };
         }

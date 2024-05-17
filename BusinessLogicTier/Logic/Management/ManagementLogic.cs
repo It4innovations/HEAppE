@@ -39,6 +39,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork = unitOfWork;
         }
 
+
+
         /// <summary>
         /// Create a command template based on a generic command template
         /// </summary>
@@ -52,7 +54,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         /// <exception cref="InputValidationException"></exception>
-        public CommandTemplate CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
+        public CommandTemplate CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
+            long projectId, string description, string extendedAllocationCommand, string executableFile,
+            string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
             Project project = _unitOfWork.ProjectRepository.GetById(projectId);
@@ -76,7 +80,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InputValidationException("CommandTemplateDeleted");
             }
 
-            CommandTemplateParameter commandTemplateParameter = commandTemplate.TemplateParameters.FirstOrDefault(f => f.IsVisible);
+            CommandTemplateParameter commandTemplateParameter =
+                commandTemplate.TemplateParameters.FirstOrDefault(f => f.IsVisible);
             if (string.IsNullOrEmpty(commandTemplateParameter?.Identifier))
             {
                 throw new RequestedObjectDoesNotExistException("UserScriptNotDefined");
@@ -88,11 +93,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
-            ClusterAuthenticationCredentials serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
+            ClusterAuthenticationCredentials serviceAccount =
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
+                    projectId);
             List<string> commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                                                             .CreateScheduler(cluster, project)
-                                                             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
-                                                             .ToList();
+                .CreateScheduler(cluster, project)
+                .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
+                .ToList();
 
             List<CommandTemplateParameter> templateParameters = new();
             foreach (string parameter in commandTemplateParameters)
@@ -118,7 +125,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 ExecutableFile = executableFile,
                 PreparationScript = preparationScript,
                 TemplateParameters = templateParameters,
-                CommandParameters = string.Join(' ', commandTemplateParameters.Select(x => $"%%{"{"}{x}{"}"}"))
+                CommandParameters = string.Join(' ', commandTemplateParameters.Select(x => $"%%{"{"}{x}{"}"}")),
+                CreatedFromId = commandTemplate.CreatedFromId,
+                CreatedFrom = commandTemplate,
+                CreatedAt = DateTime.UtcNow
             };
 
             _logger.Info($"Creating new command template: {newCommandTemplate.Name}");
@@ -126,6 +136,116 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
 
             return newCommandTemplate;
+        }
+
+        public CommandTemplate CreateCommandTemplate(string modelName, string modelDescription,
+            string modelExtendedAllocationCommand,
+            string modelExecutableFile, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId)
+        {
+            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
+            if (clusterNodeType is null)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
+            }
+            
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
+                modelProjectId);
+
+            if (clusterProject is null || clusterProject.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, modelProjectId);
+            }
+
+            Project project = clusterProject.Project;
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            
+            CommandTemplate commandTemplate = new()
+            {
+                Name = modelName,
+                Description = modelDescription,
+                IsGeneric = false,
+                IsEnabled = true,
+                Project = project,
+                ProjectId = project.Id,
+                ClusterNodeType = clusterNodeType,
+                ClusterNodeTypeId = clusterNodeType.Id,
+                ExtendedAllocationCommand = modelExtendedAllocationCommand,
+                ExecutableFile = modelExecutableFile,
+                PreparationScript = modelPreparationScript,
+                TemplateParameters = new List<CommandTemplateParameter>(),
+                CommandParameters = string.Empty,
+                CreatedAt = DateTime.UtcNow,
+                CreatedFrom = null
+            };
+
+            _logger.Info($"Creating new command template: {commandTemplate}");
+            _unitOfWork.CommandTemplateRepository.Insert(commandTemplate);
+            _unitOfWork.Save();
+
+            return commandTemplate;
+        }
+        
+        public CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription,
+            string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
+            long modelClusterNodeTypeId)
+        {
+            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelId);
+            if (commandTemplate is null)
+            {
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            }
+
+            if (!commandTemplate.IsEnabled)
+            {
+                throw new InputValidationException("CommandTemplateDeleted");
+            }
+            
+            if(commandTemplate.CreatedFrom is not null)
+            {
+                throw new InvalidRequestException("CommandTemplateNotStatic");
+            }
+
+            Project project = commandTemplate.Project;
+            if (project is null)
+            {
+                throw new InvalidRequestException("NotPermitted");
+            }
+            
+            if (project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+
+            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
+            if (clusterNodeType is null)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
+            }
+            
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
+                project.Id);
+            
+            if (clusterProject is null || clusterProject.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, project.Id);
+            }
+            
+            commandTemplate.Name = modelName;
+            commandTemplate.Description = modelDescription;
+            commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
+            commandTemplate.ExecutableFile = modelExecutableFile;
+            commandTemplate.PreparationScript = modelPreparationScript;
+            commandTemplate.ClusterNodeType = clusterNodeType;
+            commandTemplate.ClusterNodeTypeId = clusterNodeType.Id;
+            commandTemplate.ModifiedAt = DateTime.UtcNow;
+            
+            _logger.Info($"Modifying command template: {commandTemplate}");
+            _unitOfWork.Save();
+
+            return commandTemplate;
         }
 
         /// <summary>
@@ -141,18 +261,29 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         /// <exception cref="InputValidationException"></exception>
-        public CommandTemplate ModifyCommandTemplate(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
+        public CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException($"ProjectNotFound");
-            }
-
+            
             if (commandTemplate is null)
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            }
+            
+            if(commandTemplate.CreatedFrom is null)
+            {
+                throw new InvalidRequestException("CommandTemplateNotFromGeneric");
+            }
+            
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null)
+            {
+                throw new InvalidRequestException("NotPermitted");
+            }
+            
+            if (project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
 
             if (!commandTemplate.IsEnabled)
@@ -172,7 +303,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             Cluster cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
-           var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
                                                              .CreateScheduler(cluster, project)
                                                              .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
                                                              .ToList();
@@ -197,7 +328,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             commandTemplate.TemplateParameters.AddRange(templateParameters);
             commandTemplate.ExecutableFile = executableFile;
             commandTemplate.CommandParameters = string.Join(' ', commandTemplateParameters.Select(x => $"%%{"{"}{x}{"}"}"));
+            commandTemplate.ModifiedAt = DateTime.UtcNow;
 
+            _logger.Info($"Modifying command template: {commandTemplate}");
             _unitOfWork.Save();
             return commandTemplate;
         }
@@ -211,7 +344,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
 
-            _logger.Info($"Removing command template: {commandTemplate.Name}");
+            _logger.Info($"Removing command template: {commandTemplate}");
             commandTemplate.IsEnabled = false;
             _unitOfWork.Save();
         }
@@ -303,6 +436,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public DomainObjects.JobManagement.Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            if (project is null)
+            {
+                throw new InvalidRequestException("NotPermitted");
+            }
+            
+            if (project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
 
             project.UsageType = usageType;
             project.Name = modelName ?? project.Name;
@@ -327,6 +469,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public void RemoveProject(long id)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            if (project is null)
+            {
+                throw new InvalidRequestException("NotPermitted");
+            }
+            
+            if (project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
 
             project.IsDeleted = true;
             project.ModifiedAt = DateTime.UtcNow;
@@ -770,7 +921,160 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return !noAccessClusterIds.Any();
         }
 
+        public CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
+            string modelDescription, long modelCommandTemplateId)
+        {
+            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId);
+            if (commandTemplate is null)
+            {
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            }
+            
+            if (!commandTemplate.IsEnabled)
+            {
+                throw new InputValidationException("CommandTemplateDeleted");
+            }
+            
+            //if is not static
+            if (commandTemplate.CreatedFrom is not null)
+            {
+                throw new InvalidRequestException("CommandTemplateNotStatic");
+            }
+            
+            //if identifier already exists in command template
+            if (commandTemplate.TemplateParameters.Exists(x => x.Identifier == modelIdentifier))
+            {
+                throw new InputValidationException("CommandTemplateAlreadyParameterExists");
+            }
+
+            CommandTemplateParameter commandTemplateParameter = new()
+            {
+                Identifier = modelIdentifier,
+                Query = modelQuery,
+                Description = modelDescription,
+                CommandTemplate = commandTemplate,
+                CommandTemplateId = commandTemplate.Id,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _unitOfWork.CommandTemplateParameterRepository.Insert(commandTemplateParameter);
+            AddCommandTemplateParameterToCommandTemplate(commandTemplate, commandTemplateParameter);
+            _unitOfWork.Save();
+
+            return commandTemplateParameter;
+        }
+
+        public CommandTemplateParameter ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery,
+            string modelDescription)
+        {
+            CommandTemplateParameter commandTemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetById(modelId);
+            if (commandTemplateParameter is null)
+            {
+                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+            }
+            
+            if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+            {
+                throw new InputValidationException("CommandTemplateDeleted");
+            }
+            
+            //if is not static
+            if (commandTemplateParameter.CommandTemplate.CreatedFrom is not null)
+            {
+                throw new InvalidRequestException("CommandTemplateNotStatic");
+            }
+            
+            //if identifier already exists in command template
+            if (!commandTemplateParameter.CommandTemplate.TemplateParameters.Exists(x => x.Identifier == modelIdentifier))
+            {
+                string previousIdentifier = commandTemplateParameter.Identifier;
+                commandTemplateParameter.Identifier = modelIdentifier;
+                ModifyCommandTemplateParameterFromCommandTemplate(commandTemplateParameter.CommandTemplate, commandTemplateParameter, previousIdentifier);
+            }
+            
+            commandTemplateParameter.Query = modelQuery;
+            commandTemplateParameter.Description = modelDescription;
+            commandTemplateParameter.ModifiedAt = DateTime.UtcNow;
+
+            _unitOfWork.CommandTemplateParameterRepository.Update(commandTemplateParameter);
+            _unitOfWork.Save();
+
+            return commandTemplateParameter;
+        }
+
+        public void RemoveCommandTemplateParameter(long modelId)
+        {
+            CommandTemplateParameter commandTemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetById(modelId);
+            if (commandTemplateParameter is null)
+            {
+                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+            }
+            
+            if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+            {
+                throw new InputValidationException("CommandTemplateDeleted");
+            }
+            
+            //if is not static
+            if (commandTemplateParameter.CommandTemplate.CreatedFrom is not null)
+            {
+                throw new InvalidRequestException("CommandTemplateNotStatic");
+            }
+
+            RemoveCommandTemplateParameterFromCommandTemplate(commandTemplateParameter.CommandTemplate, commandTemplateParameter);
+            commandTemplateParameter.IsEnabled = false;
+            commandTemplateParameter.ModifiedAt = DateTime.UtcNow;
+            commandTemplateParameter.IsVisible = false;
+            _unitOfWork.Save();
+        }
+
+        public List<CommandTemplate> ListCommandTemplates(long projectId)
+        {
+            return _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(projectId)
+                .Where(x => x.IsEnabled)
+                .Select(template => new CommandTemplate
+                {
+                    Id = template.Id,
+                    Name = template.Name,
+                    Description = template.Description,
+                    ExtendedAllocationCommand = template.ExtendedAllocationCommand,
+                    PreparationScript = template.PreparationScript,
+                    ExecutableFile = template.ExecutableFile,
+                    CommandParameters = template.CommandParameters,
+                    IsEnabled = template.IsEnabled,
+                    IsGeneric = template.IsGeneric,
+                    CreatedAt = template.CreatedAt,
+                    ModifiedAt = template.ModifiedAt,
+                    CreatedFrom = template.CreatedFrom,
+                    ClusterNodeType = template.ClusterNodeType,
+                    TemplateParameters = template.TemplateParameters.Where(x => x.IsEnabled).ToList()
+                })
+                .ToList();
+        }
+
         #region Private methods
+        private void AddCommandTemplateParameterToCommandTemplate(CommandTemplate commandTemplate, CommandTemplateParameter commandTemplateParameter)
+        {
+            //if commandTemplate.CommandParameters does not contain commandTemplateParameter.Identifier
+            if (!commandTemplate.CommandParameters.Contains(commandTemplateParameter.Identifier))
+            {
+                commandTemplate.CommandParameters = string.Join(' ', commandTemplate.TemplateParameters.Select(x => $"%%{"{"}{x.Identifier}{"}"}"));
+            }
+        }
+
+        private void ModifyCommandTemplateParameterFromCommandTemplate(CommandTemplate commandTemplate,
+            CommandTemplateParameter commandTemplateParameter, string previousIdentifier)
+        {
+            // modify commandTemplate.CommandParameters, replace %%{previousIdentifier} with %%{commandTemplateParameter.Identifier}
+            commandTemplate.CommandParameters = commandTemplate.CommandParameters.Replace($"%%{"{"}{previousIdentifier}{"}"}", $"%%{"{"}{commandTemplateParameter.Identifier}{"}"}");
+        }
+        
+        private void RemoveCommandTemplateParameterFromCommandTemplate(CommandTemplate commandTemplate, CommandTemplateParameter commandTemplateParameter)
+        {
+            commandTemplate.TemplateParameters.Remove(commandTemplateParameter);
+            commandTemplate.CommandParameters = string.Join(' ', commandTemplate.TemplateParameters.Select(x => $"%%{"{"}{x.Identifier}{"}"}"));
+        }
+        
         /// <summary>
         /// Returns the path to the private key file for the specified project
         /// </summary>

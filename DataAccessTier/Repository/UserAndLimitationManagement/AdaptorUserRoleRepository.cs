@@ -30,7 +30,8 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             {
                 var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Administrator) => role.First(f=> f.RoleType == AdaptorUserRoleType.Administrator),
                 var role when role.Any(a => a.RoleType == AdaptorUserRoleType.ManagementAdmin) => role.First(f => f.RoleType == AdaptorUserRoleType.ManagementAdmin),
-                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Maintainer) => role.First(f=>f.RoleType == AdaptorUserRoleType.Maintainer),
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Maintainer) => role.First(f => f.RoleType == AdaptorUserRoleType.Maintainer),
+                var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Manager) => role.First(f => f.RoleType == AdaptorUserRoleType.Manager),
                 var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Submitter) => role.First(f=>f.RoleType == AdaptorUserRoleType.Submitter),
                 var role when role.Any(a => a.RoleType == AdaptorUserRoleType.GroupReporter) => role.First(f => f.RoleType == AdaptorUserRoleType.GroupReporter),
                 var role when role.Any(a => a.RoleType == AdaptorUserRoleType.Reporter) => role.First(f => f.RoleType == AdaptorUserRoleType.Reporter),

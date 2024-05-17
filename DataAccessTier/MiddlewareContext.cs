@@ -61,7 +61,7 @@ namespace HEAppE.DataAccessTier
                                         Database.Migrate();
                                         lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                     }
-
+                                    
                                     if (lastAppliedMigration != lastDefinedMigration)
                                     {
                                         throw new DbContextException("MigrationMismatch");
