@@ -71,7 +71,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("UserResourceUsageReport")]
         [RequestSizeLimit(166)]
-        [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -107,7 +107,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("UserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
-        [ProducesResponseType(typeof(UserGroupReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -141,7 +141,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("AggregatedUserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
-        [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectAggregatedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -173,7 +173,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("ResourceUsageReportForJob")]
         [RequestSizeLimit(86)]
-        [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProjectExtendedReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -229,7 +229,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("JobsDetailedReport")]
         [RequestSizeLimit(90)]
-        [ProducesResponseType(typeof(IEnumerable<UserGroupDetailedReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectDetailedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
