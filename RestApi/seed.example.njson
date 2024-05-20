@@ -205,7 +205,7 @@
       "Accountings":[
          {
             "Id":1,
-            "Formula":"neco * neco + neco",
+            "Formula":"{Formula}",
             "CreatedAt":"{CreatedAt}",
             "ModifiedAt":null,
             "IsDeleted":false,
