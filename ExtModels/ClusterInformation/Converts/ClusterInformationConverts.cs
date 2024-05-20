@@ -8,6 +8,7 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using System;
 using System.Linq;
+using HEAppE.ExtModels.JobManagement.Models;
 
 namespace HEAppE.ExtModels.ClusterInformation.Converts
 {
@@ -162,6 +163,21 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 Type = ConvertProxyTypeIntToExt(proxyConnection.Type),
                 Username = proxyConnection.Username,
                 Password = proxyConnection.Password
+            };
+
+            return convert;
+        }
+        
+        public static SubProjectExt ConvertIntToExt(this SubProject subProject)
+        {
+            var convert = new SubProjectExt
+            {
+                Id = subProject.Id,
+                Identifier = subProject.Identifier,
+                Description = subProject.Description,
+                StartDate = subProject.StartDate,
+                EndDate = subProject.EndDate,
+                ProjectId = subProject.ProjectId
             };
 
             return convert;

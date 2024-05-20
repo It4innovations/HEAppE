@@ -1,4 +1,4 @@
-﻿using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -325,6 +325,81 @@ namespace HEAppE.ServiceTier.Management
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value);
                     return commandTemplate.ConvertIntToExtendedExt();
+                }
+            }
+        }
+
+        public SubProjectExt ListSubProject(long subProjectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                SubProject subProject = unitOfWork.SubProjectRepository.GetById(subProjectId)
+                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, subProject.ProjectId);
+                return subProject.ConvertIntToExt();
+            }
+        }
+        
+        public List<SubProjectExt> ListSubProjects(long projectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                Project project = unitOfWork.ProjectRepository.GetById(projectId)
+                                        ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId);
+                List<SubProject> subProjects = project.SubProjects.ToList();
+                return subProjects.Select(x => x.ConvertIntToExt()).ToList();
+            }
+        }
+
+        public SubProjectExt CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
+            DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, modelProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                SubProject subProject = managementLogic.CreateSubProject(modelProjectId, modelIdentifier, modelDescription, modelStartDate, modelEndDate);
+                return subProject.ConvertIntToExt();
+            }
+        }
+
+        public SubProjectExt ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate,
+            DateTime? modelEndDate, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                SubProject subProject = unitOfWork.SubProjectRepository.GetById(modelId)
+                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, subProject.ProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                
+                SubProject updatedSubProject = managementLogic.ModifySubProject(modelId, modelIdentifier, modelDescription, modelStartDate, modelEndDate);
+                return updatedSubProject.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveSubProject(long modelId, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                SubProject subProject = unitOfWork.SubProjectRepository.GetById(modelId)
+                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, subProject.ProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveSubProject(modelId);
+            }
+        }
+
+        public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (var user, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Administrator);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                foreach (var project in projects)
+                {
+                    managementLogic.ComputeAccounting(modelStartTime, modelEndTime, project.Id);
                 }
             }
         }

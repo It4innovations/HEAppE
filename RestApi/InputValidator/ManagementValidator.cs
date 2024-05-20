@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.RestApiModels.Management;
 using HEAppE.Utils.Validation;
 using System;
@@ -41,10 +41,112 @@ namespace HEAppE.RestApi.InputValidator
                 TestClusterAccessForAccountModel ext => ValidateTestClusterAccessForAccountModel(ext),
                 ListCommandTemplatesModel ext => ValidateListCommandTemplatesModel(ext),
                 ListCommandTemplateModel ext => ValidateListCommandTemplateModel(ext),
+                ListSubProjectModel ext => ValidateListSubProjectModel(ext),
+                ListSubProjectsModel ext => ValidateListSubProjectsModel(ext),
+                CreateSubProjectModel ext => ValidateCreateSubProjectModel(ext),
+                ModifySubProjectModel ext => ValidateModifySubProjectModel(ext),
+                RemoveSubProjectModel ext => ValidateRemoveSubProjectModel(ext),
+                ComputeAccountingModel ext => ValidateComputeAccountingModel(ext),
                 _ => string.Empty
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateComputeAccountingModel(ComputeAccountingModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (ext.StartTime > ext.EndTime)
+            {
+                _messageBuilder.AppendLine("StartTime can not be after EndTime.");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateListSubProjectsModel(ListSubProjectsModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.Id, "Id");
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveSubProjectModel(RemoveSubProjectModel ext)
+        {
+            ValidateId(ext.Id, "Id");
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifySubProjectModel(ModifySubProjectModel ext)
+        {
+            ValidateId(ext.Id, "Id");
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (string.IsNullOrEmpty(ext.Identifier))
+            {
+                _messageBuilder.AppendLine("Identifier can not be null or empty.");
+            }
+
+            if (ext.StartDate > ext.EndDate)
+            {
+                _messageBuilder.AppendLine("StartDate can not be after EndDate.");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateSubProjectModel(CreateSubProjectModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (string.IsNullOrEmpty(ext.Identifier))
+            {
+                _messageBuilder.AppendLine("Identifier can not be null or empty.");
+            }
+
+            if (ext.StartDate > ext.EndDate)
+            {
+                _messageBuilder.AppendLine("StartDate can not be after EndDate.");
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateListSubProjectModel(ListSubProjectModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.Id, "Id");
+            return _messageBuilder.ToString();
         }
 
         private string ValidateListCommandTemplateModel(ListCommandTemplateModel ext)

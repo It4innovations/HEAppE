@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;

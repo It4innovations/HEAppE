@@ -1,4 +1,4 @@
-﻿using HEAppE.CertificateGenerator;
+using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -839,13 +839,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="clusterProjectRootDirectory"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        /// <summary>
-        /// Initialize cluster script directory and create symbolic link for user
-        /// </summary>
-        /// <param name="projectId"></param>
-        /// <param name="clusterProjectRootDirectory"></param>
-        /// <returns></returns>
-        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
         {
             clusterProjectRootDirectory = clusterProjectRootDirectory.Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/' });
@@ -1091,6 +1084,149 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 })
                 .ToList();
         }
+        
+        #region SubProject
+        /// <summary>
+        /// Creates a new subproject if it does not exist
+        /// </summary>
+        /// <param name="identifier"></param>
+        /// <returns></returns>
+        public SubProject CreateSubProject(string identifier, long projectId)
+        {
+            SubProject subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
+            if (subProject is not null && (subProject.IsDeleted || subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
+            {
+                throw new InputValidationException("SubProjectDeletedOrEnded");
+            }
+            else if(subProject is not null)
+            {
+                //already exists, reuse it
+                return subProject;
+            }
+            else
+            {
+                //create new 
+                SubProject newSubProject = new()
+                {
+                    Identifier = identifier,
+                    CreatedAt = DateTime.UtcNow,
+                    StartDate = DateTime.UtcNow,
+                    IsDeleted = false,
+                    ProjectId = projectId
+                };
+                _unitOfWork.SubProjectRepository.Insert(newSubProject);
+                _unitOfWork.Save();
+                return newSubProject;
+            }
+        }
+
+        public SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
+            DateTime modelStartDate, DateTime? modelEndDate)
+        {
+            //test if not exist subproject with the same identifier
+            if (_unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, modelProjectId) != null)
+            {
+                throw new InputValidationException("SubProjectIdentifierAlreadyExists");
+            }
+            SubProject newSubProject = new()
+            {
+                Identifier = modelIdentifier,
+                Description = modelDescription,
+                CreatedAt = DateTime.UtcNow,
+                StartDate = modelStartDate,
+                EndDate = modelEndDate,
+                IsDeleted = false,
+                ProjectId = modelProjectId
+            };
+            _unitOfWork.SubProjectRepository.Insert(newSubProject);
+            _unitOfWork.Save();
+            return newSubProject;
+        }
+
+        public SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate,
+            DateTime? modelEndDate)
+        {
+            SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
+                                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+            if (!subProject.IsDeleted)
+            {
+                throw new InputValidationException("NotPermitted");
+            }
+            var subProjectWithSameIdentifier = _unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, subProject.ProjectId);
+            if (subProjectWithSameIdentifier != null && subProjectWithSameIdentifier.Id != modelId)
+            {
+                throw new InputValidationException("SubProjectIdentifierAlreadyExists");
+            }
+            subProject.Identifier = modelIdentifier;
+            subProject.Description = modelDescription;
+            subProject.StartDate = modelStartDate;
+            subProject.EndDate = modelEndDate;
+            subProject.ModifiedAt = DateTime.UtcNow;
+            _unitOfWork.SubProjectRepository.Update(subProject);
+            _unitOfWork.Save();
+            return subProject;
+        }
+
+        public void RemoveSubProject(long modelId)
+        {
+            SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
+                                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+            if (!subProject.IsDeleted)
+            {
+                throw new InputValidationException("NotPermitted");
+            }
+            subProject.IsDeleted = true;
+            subProject.ModifiedAt = DateTime.UtcNow;
+            _unitOfWork.SubProjectRepository.Update(subProject);
+            _unitOfWork.Save();
+        }
+
+        public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId)
+        {
+            //get all submittedtasks from project and compute with formula
+            var project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            if (project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            
+            var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
+                .GetAll()
+                .Where(t=>t.StartTime >= modelStartTime 
+                          && t.EndTime <= modelEndTime 
+                          && t.Project.Id == projectId)
+                .ToList();
+            
+            //compute accounting
+            foreach (var submittedTask in submittedTasks)
+            {
+                //compute accounting
+                string accountingFormula = submittedTask
+                    .Specification
+                    .ClusterNodeType
+                    .ClusterNodeTypeAggregation
+                    .ClusterNodeTypeAggregationAccountings
+                    .FirstOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
+                    ?.Accounting.Formula;
+                
+                //parse all parameters to dictionary
+                var parsedParameters = submittedTask.AllParameters
+                    .Split(' ')
+                    .Select(x => x.Split('='))
+                    .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
+
+                double result = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, parsedParameters, _logger); 
+                submittedTask.ResourceConsumed = result;
+                _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTask);
+                _unitOfWork.Save();
+            }
+        }
+
+        #endregion
 
         #region Private methods
         private void AddCommandTemplateParameterToCommandTemplate(CommandTemplate commandTemplate, CommandTemplateParameter commandTemplateParameter)

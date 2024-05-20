@@ -9,11 +9,9 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember]
         public long Id { get; set; }
         [DataMember]
-        public double? TotalUsage { get; set; }
-        [DataMember]
         public string Name { get; set; }
         [DataMember]
-        public string Description { get; set; }
+        public double? TotalUsage { get; set; }
         [DataMember]
         public List<JobReportExt> Jobs { get; set; }
     }

@@ -1,4 +1,4 @@
-﻿namespace HEAppE.ExtModels.Management.Models
+namespace HEAppE.ExtModels.Management.Models
 {
     public class ClusterInitReportExt
     {
