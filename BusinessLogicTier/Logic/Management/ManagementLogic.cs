@@ -499,7 +499,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            _ = _unitOfWork.ClusterRepository.GetById(clusterId) ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
+            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+
+            if (cluster == null || cluster.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
+            }
 
             var cp = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
             if (cp != null)
@@ -1084,7 +1089,142 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 })
                 .ToList();
         }
-        
+
+        /// <summary>
+        /// Get cluster by id
+        /// </summary>
+        /// <param name="clusterId"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public Cluster GetClusterById(long clusterId)
+        {
+            Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+
+            if (cluster == null || cluster.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
+            }
+
+            return cluster;
+        }
+
+        /// <summary>
+        /// Creates a new cluster in the database and returns it
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <param name="masterNodeName"></param>
+        /// <param name="schedulerType"></param>
+        /// <param name="clusterConnectionProtocol"></param>
+        /// <param name="timeZone"></param>
+        /// <param name="port"></param>
+        /// <param name="updateJobStateByServiceAccount"></param>
+        /// <param name="domainName"></param>
+        /// <param name="proxyConnectionId"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
+            string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        {
+            Cluster existingCluster = _unitOfWork.ClusterRepository.GetByName(name);
+            if (existingCluster != null && !existingCluster.IsDeleted)
+            {
+                throw new InputValidationException("ClusterAlreadyExist", name);
+            }
+
+            if (proxyConnectionId.HasValue)
+            {
+                _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId)
+                ?? throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+            }
+
+            var cluster = new Cluster
+            {
+                Name = name,
+                Description = description,
+                MasterNodeName = masterNodeName,
+                SchedulerType = schedulerType,
+                ConnectionProtocol = clusterConnectionProtocol,
+                TimeZone = timeZone,
+                Port = port,
+                UpdateJobStateByServiceAccount = updateJobStateByServiceAccount,
+                DomainName = domainName,
+                ProxyConnectionId = proxyConnectionId
+            };
+            _unitOfWork.ClusterRepository.Insert(cluster);
+            _unitOfWork.Save();
+
+            return cluster;
+        }
+
+        /// <summary>
+        /// Modify existing cluster
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <param name="masterNodeName"></param>
+        /// <param name="schedulerType"></param>
+        /// <param name="clusterConnectionProtocol"></param>
+        /// <param name="timeZone"></param>
+        /// <param name="port"></param>
+        /// <param name="updateJobStateByServiceAccount"></param>
+        /// <param name="domainName"></param>
+        /// <param name="proxyConnectionId"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
+            string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        {
+            Cluster existingCluster = _unitOfWork.ClusterRepository.GetById(id);
+            if (existingCluster == null || existingCluster.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
+            }
+
+            if (proxyConnectionId.HasValue)
+            {
+                _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId)
+                ?? throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+            }
+
+            existingCluster.Name = name;
+            existingCluster.Description = description;
+            existingCluster.MasterNodeName = masterNodeName;
+            existingCluster.SchedulerType = schedulerType;
+            existingCluster.ConnectionProtocol = clusterConnectionProtocol;
+            existingCluster.TimeZone = timeZone;
+            existingCluster.Port = port;
+            existingCluster.UpdateJobStateByServiceAccount = updateJobStateByServiceAccount;
+            existingCluster.DomainName = domainName;
+            existingCluster.ProxyConnectionId = proxyConnectionId;
+            _unitOfWork.ClusterRepository.Update(existingCluster);
+            _unitOfWork.Save();
+
+            return existingCluster;
+        }
+
+        /// <summary>
+        /// Remove existing cluster
+        /// </summary>
+        /// <param name="id"></param>
+        public void RemoveCluster(long id)
+        {
+            Cluster existingCluster = _unitOfWork.ClusterRepository.GetById(id);
+            if (existingCluster == null || existingCluster.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
+            }
+
+            // remove cluster project references
+            existingCluster.ClusterProjects.ForEach(x => RemoveProjectAssignmentToCluster(x.ProjectId, x.ClusterId));
+            // soft delete cluster
+            existingCluster.IsDeleted = true;
+            _unitOfWork.ClusterRepository.Update(existingCluster);
+            _unitOfWork.Save();
+        }
+
         #region SubProject
         /// <summary>
         /// Creates a new subproject if it does not exist

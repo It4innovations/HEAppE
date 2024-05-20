@@ -6,5 +6,6 @@ namespace HEAppE.DataAccessTier.IRepository.ClusterInformation
     public interface IClusterRepository : IRepository<Cluster>
     {
         IEnumerable<Cluster> GetAllWithActiveProjectFilter();
+        Cluster GetByName(string name);
     }
 }

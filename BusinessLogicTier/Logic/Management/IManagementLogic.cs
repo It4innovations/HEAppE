@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -37,5 +38,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
         void RemoveSubProject(long modelId);
         void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId);
+        Cluster GetClusterById(long clusterId);
+        Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
+            string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
+            string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        void RemoveCluster(long id);
     }
 }

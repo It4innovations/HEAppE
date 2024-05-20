@@ -2,6 +2,7 @@
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -401,6 +402,53 @@ namespace HEAppE.ServiceTier.Management
                 {
                     managementLogic.ComputeAccounting(modelStartTime, modelEndTime, project.Id);
                 }
+            }
+        }
+
+        public ClusterExt GetClusterById(long clusterId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                Cluster cluster = managementLogic.GetClusterById(clusterId);
+                return cluster.ConvertIntToExt();
+            }
+        }
+
+        public ClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
+            string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                Cluster cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType, clusterConnectionProtocol,
+                    timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
+                return cluster.ConvertIntToExt();
+            }
+        }
+
+        public ClusterExt ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
+            string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                Cluster cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType, clusterConnectionProtocol,
+                    timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
+                return cluster.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveCluster(long id, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveCluster(id);
             }
         }
 

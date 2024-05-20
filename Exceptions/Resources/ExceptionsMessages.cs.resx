@@ -486,4 +486,10 @@
   <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
     <value>Specifikovaný SubProject je smazaný nebo neplatný.</value>
   </data>
+  <data name="InputValidationException_ClusterAlreadyExist" xml:space="preserve">
+    <value>Specifikovaný cluster se jménem '{0}' již existuje.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ProxyConnectionNotFound" xml:space="preserve">
+    <value>Specifikovaná proxy connection id '{0}' není definována v HEAppE.</value>
+  </data>
 </root>

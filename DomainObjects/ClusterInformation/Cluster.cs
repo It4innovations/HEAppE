@@ -33,6 +33,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         public bool? UpdateJobStateByServiceAccount { get; set; } = true;
 
+        [Required]
+        public bool IsDeleted { get; set; } = false;
+
         public SchedulerType SchedulerType { get; set; }
 
         public virtual ClusterConnectionProtocol ConnectionProtocol { get; set; }

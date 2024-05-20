@@ -47,6 +47,9 @@ namespace HEAppE.RestApi.InputValidator
                 ModifySubProjectModel ext => ValidateModifySubProjectModel(ext),
                 RemoveSubProjectModel ext => ValidateRemoveSubProjectModel(ext),
                 ComputeAccountingModel ext => ValidateComputeAccountingModel(ext),
+                CreateClusterModel ext => ValidateCreateClusterModel(ext),
+                UpdateClusterModel ext => ValidateUpdateClusterModel(ext),
+                RemoveClusterModel ext => ValidateRemoveClusterModel(ext),
                 _ => string.Empty
             };
 
@@ -572,6 +575,52 @@ namespace HEAppE.RestApi.InputValidator
                     _messageBuilder.AppendLine("Identifier can not be null or empty.");
                 }
             }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateClusterModel(CreateClusterModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (model.ProxyConnectionId.HasValue)
+            {
+                ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateUpdateClusterModel(UpdateClusterModel model)
+        {
+            ValidateId(model.Id, nameof(model.Id));
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (model.ProxyConnectionId.HasValue)
+            {
+                ValidateId(model.ProxyConnectionId, nameof(model.ProxyConnectionId));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveClusterModel(RemoveClusterModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.Id, "Id");
 
             return _messageBuilder.ToString();
         }

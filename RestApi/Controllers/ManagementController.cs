@@ -22,7 +22,6 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using HEAppE.DomainObjects.UserAndLimitationManagement;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -581,6 +580,113 @@ namespace HEAppE.RestApi.Controllers
             ClearListAvailableClusterMethodCache();
             return Ok("Removed assignment of the Project to the Cluster.");
         }
+        #endregion
+
+        #region Cluster
+        /// <summary>
+        /// Get Cluster by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("Cluster")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetClusterById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetClusterById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var cluster = _managementService.GetClusterById(id, sessionCode);
+            return Ok(cluster);
+        }
+
+        /// <summary>
+        /// Create Cluster
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("Cluster")]
+        [RequestSizeLimit(600)]
+        [ProducesResponseType(typeof(ClusterExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateCluster(CreateClusterModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var cluster = _managementService.CreateCluster(model.Name, model.Description, model.MasterNodeName, model.SchedulerType, model.ConnectionProtocol,
+                model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(cluster);
+        }
+
+        /// <summary>
+        /// Update Cluster
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("Cluster")]
+        [RequestSizeLimit(600)]
+        [ProducesResponseType(typeof(ClusterExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult UpdateCluster(UpdateClusterModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"UpdateCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var cluster = _managementService.ModifyCluster(model.Id, model.Name, model.Description, model.MasterNodeName, model.SchedulerType, model.ConnectionProtocol,
+                model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(cluster);
+        }
+
+        /// <summary>
+        /// Remove Cluster
+        /// </summary>
+        /// <param name="model">RemoveCommandTemplateModel</param>
+        /// <returns></returns>
+        [HttpDelete("Cluster")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveCluster(RemoveClusterModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCluster\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveCluster(model.Id, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok("Cluster was deleted.");
+        }
+
         #endregion
 
         #region SubProject

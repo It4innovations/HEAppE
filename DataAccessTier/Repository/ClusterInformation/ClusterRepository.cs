@@ -17,24 +17,22 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
 
         #region Public Methods
         /// <summary>
-        /// Get Cluster with reference to project
-        /// </summary>
-        /// <param name="clusterId"></param>
-        /// <param name="projectId"></param>
-        /// <returns></returns>
-        public Cluster GetClusterForProject(long clusterId, long projectId)
-        {
-            var clusterProject = _context.ClusterProjects.FirstOrDefault(p => p.ClusterId == clusterId && p.ProjectId == projectId);
-            return clusterProject.Cluster;
-        }
-
-        /// <summary>
         /// Get all clusters with cluster nodes and defined command templates only with active project
         /// </summary>
         /// <returns></returns>
         public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
         {
-            return GetAll().Select(c => GetCluster(c)).ToList();
+            return _dbSet.Where(c => !c.IsDeleted).ToList().Select(c => GetCluster(c)).ToList();
+        }
+
+        /// <summary>
+        /// Get cluster by name
+        /// </summary>
+        /// <param name="name"></param>
+        /// <returns></returns>
+        public Cluster GetByName(string name)
+        {
+            return _dbSet.FirstOrDefault(p => p.Name.ToLower() == name.ToLower());
         }
         #endregion
 
