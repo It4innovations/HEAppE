@@ -34,6 +34,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IClusterAuthenticationCredentialsRepository _clusterAuthenticationCredentialsRepository;
         private IClusterNodeTypeRepository _clusterNodeTypeRepository;
         private IClusterNodeTypeRequestedGroupRepository _clusterNodeTypeRequestedRepository;
+        private IClusterNodeTypeAggregationRepository _clusterNodeTypeAggregationRepository;
         private IOpenStackAuthenticationCredentialsRepository _openStackAuthenticationCredentialsRepository;
         private IOpenStackDomainRepository _openStackDomainRepository;
         private IOpenStackInstanceRepository _openStackInstanceRepository;
@@ -136,6 +137,13 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _clusterNodeTypeRequestedRepository = _clusterNodeTypeRequestedRepository ?? new ClusterNodeTypeRequestedGroupRepository(_context);
+            }
+        }
+        public IClusterNodeTypeAggregationRepository ClusterNodeTypeAggregationRepository
+        {
+            get
+            {
+                return _clusterNodeTypeAggregationRepository = _clusterNodeTypeAggregationRepository ?? new ClusterNodeTypeAggregationRepository(_context);
             }
         }
         public IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository

@@ -44,5 +44,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
             string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
         void RemoveCluster(long id);
+        ClusterNodeType GetClusterNodeTypeById(long id);
+        ClusterNodeType CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService, int? maxWalltime,
+            string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId);
+        ClusterNodeType ModifyClusterNodeType(long id, string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService, int? maxWalltime,
+            string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId);
+        void RemoveClusterNodeType(long id);
     }
 }

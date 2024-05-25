@@ -9,6 +9,7 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using System;
 using System.Linq;
 using HEAppE.ExtModels.JobManagement.Models;
+using System.Collections.Generic;
 
 namespace HEAppE.ExtModels.ClusterInformation.Converts
 {
@@ -22,8 +23,9 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 Id = cluster.Id,
                 Name = cluster.Name,
                 Description = cluster.Description,
-                NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt())
-                                              .ToArray()
+                NodeTypes = cluster.NodeTypes.Where(nt => !nt.IsDeleted)
+                                                .Select(s => s.ConvertIntToExt())
+                                                    .ToArray()
             };
             return convert;
         }
@@ -31,20 +33,24 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
         public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
         {
             // get all projects
-            var projects = nodeType.Cluster.ClusterProjects.Where(cp => !cp.IsDeleted)
+            var projectExts = new List<ProjectExt>();
+            if (nodeType.Cluster != null && !nodeType.Cluster.IsDeleted)
+            {
+                var projects = nodeType.Cluster.ClusterProjects?.Where(cp => !cp.IsDeleted)
                                                             .Select(x => x.Project)
                                                                 .Where(p => !p.IsDeleted)
                                                             .ToList();
 
-            var projectExts = projects.Select(x => x.ConvertIntToExt()).ToList();
+                projectExts = projects?.Select(x => x.ConvertIntToExt()).ToList() ?? new List<ProjectExt>();
 
-            // select possible commands for specific project or command for all projects
-            foreach (var project in projectExts)
-            {
-                project.CommandTemplates = nodeType.PossibleCommands.Where(c => c.IsEnabled && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
-                                                                        .Select(command => command.ConvertIntToExt())
-                                                                            .ToArray();
+                // select possible commands for specific project or command for all projects
+                foreach (var project in projectExts)
+                {
+                    project.CommandTemplates = nodeType.PossibleCommands.Where(c => c.IsEnabled && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
+                                                                            .Select(command => command.ConvertIntToExt())
+                                                                                .ToArray();
 
+                }
             }
 
             var convert = new ClusterNodeTypeExt()

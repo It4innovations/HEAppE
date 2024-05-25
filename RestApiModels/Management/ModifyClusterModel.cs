@@ -5,8 +5,8 @@ using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.Management
 {
-    [DataContract(Name = "UpdateClusterModel")]
-    public class UpdateClusterModel : SessionCodeModel
+    [DataContract(Name = "ModifyClusterModel")]
+    public class ModifyClusterModel : SessionCodeModel
     {
         [DataMember(Name = "Id", IsRequired = true)]
         public long Id { get; set; }

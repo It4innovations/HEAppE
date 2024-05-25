@@ -55,7 +55,7 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
                 SchedulerType = cluster.SchedulerType,
                 TimeZone = cluster.TimeZone,
                 UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount,
-                NodeTypes = cluster.NodeTypes.Select(n => GetClusterNodeType(n)).ToList()
+                NodeTypes = cluster.NodeTypes.Where(nt => !nt.IsDeleted).Select(n => GetClusterNodeType(n)).ToList()
             };
         }
 

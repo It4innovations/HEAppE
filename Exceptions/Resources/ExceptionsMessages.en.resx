@@ -486,10 +486,13 @@
   <data name="InputValidationException_SubProjectNotActive" xml:space="preserve">
     <value>Specified SubProject is not active.</value>
   </data>
-  <data name="InputValidationException_ClusterAlreadyExist" xml:space="preserve">
-    <value>The specified cluster with name '{0}' is already exists.</value>
-  </data>
   <data name="RequestedObjectDoesNotExistException_ProxyConnectionNotFound" xml:space="preserve">
     <value>The specified proxy connection id '{0}' is not defined in the HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeAggregationNotFound" xml:space="preserve">
+    <value>The specified cluster node type aggregation id '{0}' is not defined in the HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_FileTransferMethodNotFound" xml:space="preserve">
+    <value>The specified file transfer method id '{0}' is not defined in the HEAppE.</value>
   </data>
 </root>

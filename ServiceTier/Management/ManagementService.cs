@@ -452,6 +452,53 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public ClusterNodeTypeExt GetClusterNodeTypeById(long clusterId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeType clusterNodeType = managementLogic.GetClusterNodeTypeById(clusterId);
+                return clusterNodeType.ConvertIntToExt();
+            }
+        }
+
+        public ClusterNodeTypeExt CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService, int? maxWalltime,
+            string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeType clusterNodeType = managementLogic.CreateClusterNodeType(name, description, numberOfNodes, coresPerNode, queue, qualityOfService, maxWalltime,
+                    clusterAllocationName, clusterId, fileTransferMethodId, clusterNodeTypeAggregationId);
+                return clusterNodeType.ConvertIntToExt();
+            }
+        }
+
+        public ClusterNodeTypeExt ModifyClusterNodeType(long id, string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService,
+            int? maxWalltime, string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeType clusterNodeType = managementLogic.ModifyClusterNodeType(id, name, description, numberOfNodes, coresPerNode, queue, qualityOfService, maxWalltime,
+                    clusterAllocationName, clusterId, fileTransferMethodId, clusterNodeTypeAggregationId);
+                return clusterNodeType.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveClusterNodeType(long id, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveClusterNodeType(id);
+            }
+        }
+
         #endregion
     }
 }

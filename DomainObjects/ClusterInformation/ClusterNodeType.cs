@@ -36,6 +36,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         public int? MaxNodesPerJob { get; set; }
 
+        [Required]
+        public bool IsDeleted { get; set; } = false;
+
         [ForeignKey("Cluster")]
         public long? ClusterId { get; set; }
         public virtual Cluster Cluster { get; set; }

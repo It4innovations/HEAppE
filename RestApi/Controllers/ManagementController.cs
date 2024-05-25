@@ -591,7 +591,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("Cluster")]
         [RequestSizeLimit(100)]
-        [ProducesResponseType(typeof(ProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ClusterExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -645,9 +645,9 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult UpdateCluster(UpdateClusterModel model)
+        public IActionResult ModifyCluster(ModifyClusterModel model)
         {
-            _logger.LogDebug($"Endpoint: \"Management\" Method: \"UpdateCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCluster\" Parameters: SessionCode: \"{model.SessionCode}\"");
             ValidationResult validationResult = new ManagementValidator(model).Validate();
             if (!validationResult.IsValid)
             {
@@ -663,7 +663,7 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Remove Cluster
         /// </summary>
-        /// <param name="model">RemoveCommandTemplateModel</param>
+        /// <param name="model"></param>
         /// <returns></returns>
         [HttpDelete("Cluster")]
         [RequestSizeLimit(90)]
@@ -687,6 +687,113 @@ namespace HEAppE.RestApi.Controllers
             return Ok("Cluster was deleted.");
         }
 
+        #endregion
+
+        #region ClusterNodeType
+        /// <summary>
+        /// Get ClusterNodeType by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ClusterNodeType")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ClusterNodeTypeExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetClusterNodeTypeById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetClusterNodeTypeById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var clusterNodeType = _managementService.GetClusterNodeTypeById(id, sessionCode);
+            return Ok(clusterNodeType);
+        }
+
+        /// <summary>
+        /// Create ClusterNodeType
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("ClusterNodeType")]
+        [RequestSizeLimit(600)]
+        [ProducesResponseType(typeof(ClusterNodeTypeExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateClusterNodeType(CreateClusterNodeTypeModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateClusterNodeType\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var clusterNodeType = _managementService.CreateClusterNodeType(model.Name, model.Description, model.NumberOfNodes, model.CoresPerNode, model.Queue, model.QualityOfService,
+                model.MaxWalltime, model.ClusterAllocationName, model.ClusterId, model.FileTransferMethodId, model.ClusterNodeTypeAggregationId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(clusterNodeType);
+        }
+
+        /// <summary>
+        /// Modify ClusterNodeType
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("ClusterNodeType")]
+        [RequestSizeLimit(600)]
+        [ProducesResponseType(typeof(ClusterNodeTypeExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyClusterNodeType(ModifyClusterNodeTypeModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyClusterNodeType\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var clusterNodeType = _managementService.ModifyClusterNodeType(model.Id, model.Name, model.Description, model.NumberOfNodes, model.CoresPerNode, model.Queue,
+                model.QualityOfService, model.MaxWalltime, model.ClusterAllocationName, model.ClusterId, model.FileTransferMethodId, model.ClusterNodeTypeAggregationId,
+                model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(clusterNodeType);
+        }
+
+        /// <summary>
+        /// Remove ClusterNodeType
+        /// </summary>
+        /// <param name="model">RemoveCommandTemplateModel</param>
+        /// <returns></returns>
+        [HttpDelete("ClusterNodeType")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveClusterNodeType(RemoveClusterNodeTypeModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveClusterNodeType\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveClusterNodeType(model.Id, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok("ClusterNodeType was deleted.");
+        }
         #endregion
 
         #region SubProject

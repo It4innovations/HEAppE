@@ -1093,16 +1093,16 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <summary>
         /// Get cluster by id
         /// </summary>
-        /// <param name="clusterId"></param>
+        /// <param name="id"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public Cluster GetClusterById(long clusterId)
+        public Cluster GetClusterById(long id)
         {
-            Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+            Cluster cluster = _unitOfWork.ClusterRepository.GetById(id);
 
             if (cluster == null || cluster.IsDeleted)
             {
-                throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
             }
 
             return cluster;
@@ -1127,12 +1127,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
             string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
         {
-            Cluster existingCluster = _unitOfWork.ClusterRepository.GetByName(name);
-            if (existingCluster != null && !existingCluster.IsDeleted)
-            {
-                throw new InputValidationException("ClusterAlreadyExist", name);
-            }
-
             if (proxyConnectionId.HasValue)
             {
                 _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId)
@@ -1222,6 +1216,150 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             // soft delete cluster
             existingCluster.IsDeleted = true;
             _unitOfWork.ClusterRepository.Update(existingCluster);
+            _unitOfWork.Save();
+        }
+
+        /// <summary>
+        /// Get ClusterNodeType by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public ClusterNodeType GetClusterNodeTypeById(long id)
+        {
+            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id);
+
+            if (clusterNodeType == null || clusterNodeType.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
+            }
+
+            return clusterNodeType;
+        }
+
+        /// <summary>
+        /// Create ClusterNodeType
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <param name="numberOfNodes"></param>
+        /// <param name="coresPerNode"></param>
+        /// <param name="queue"></param>
+        /// <param name="qualityOfService"></param>
+        /// <param name="maxWalltime"></param>
+        /// <param name="clusterAllocationName"></param>
+        /// <param name="clusterId"></param>
+        /// <param name="fileTransferMethodId"></param>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public ClusterNodeType CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService, int? maxWalltime,
+            string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId)
+        {
+            if (clusterId.HasValue)
+            {
+                var cluster = _unitOfWork.ClusterRepository.GetById((long)clusterId);
+
+                if(cluster == null || cluster.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+                }
+            }
+            if (fileTransferMethodId.HasValue)
+            {
+                _ = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId)
+                ?? throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
+            }
+            if (clusterNodeTypeAggregationId.HasValue)
+            {
+                var aggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById((long)clusterNodeTypeAggregationId);
+
+                if(aggregation == null || aggregation.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", clusterNodeTypeAggregationId);
+                }
+            }
+
+            var clusterNodeType = new ClusterNodeType
+            {
+                Name = name,
+                Description = description,
+                NumberOfNodes = numberOfNodes,
+                CoresPerNode = coresPerNode,
+                Queue = queue,
+                QualityOfService = qualityOfService,
+                MaxWalltime = maxWalltime,
+                ClusterAllocationName = clusterAllocationName,
+                ClusterId = clusterId,
+                FileTransferMethodId = fileTransferMethodId,
+                ClusterNodeTypeAggregationId = clusterNodeTypeAggregationId
+            };
+            _unitOfWork.ClusterNodeTypeRepository.Insert(clusterNodeType);
+            _unitOfWork.Save();
+
+            return clusterNodeType;
+        }
+
+        /// <summary>
+        /// Modify ClusterNodeType
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <param name="numberOfNodes"></param>
+        /// <param name="coresPerNode"></param>
+        /// <param name="queue"></param>
+        /// <param name="qualityOfService"></param>
+        /// <param name="maxWalltime"></param>
+        /// <param name="clusterAllocationName"></param>
+        /// <param name="clusterId"></param>
+        /// <param name="fileTransferMethodId"></param>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public ClusterNodeType ModifyClusterNodeType(long id, string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService,
+            int? maxWalltime, string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId)
+        {
+            ClusterNodeType existingClusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id);
+
+            if (existingClusterNodeType == null || existingClusterNodeType.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
+            }
+
+            existingClusterNodeType.Name = name;
+            existingClusterNodeType.Description = description;
+            existingClusterNodeType.NumberOfNodes = numberOfNodes;
+            existingClusterNodeType.CoresPerNode = coresPerNode;
+            existingClusterNodeType.Queue = queue;
+            existingClusterNodeType.QualityOfService = qualityOfService;
+            existingClusterNodeType.MaxWalltime = maxWalltime;
+            existingClusterNodeType.ClusterAllocationName = clusterAllocationName;
+            existingClusterNodeType.ClusterId = clusterId;
+            existingClusterNodeType.FileTransferMethodId = fileTransferMethodId;
+            existingClusterNodeType.ClusterNodeTypeAggregationId = clusterNodeTypeAggregationId;
+            _unitOfWork.ClusterNodeTypeRepository.Update(existingClusterNodeType);
+            _unitOfWork.Save();
+
+            return existingClusterNodeType;
+        }
+
+        /// <summary>
+        /// Remove ClusterNodeType
+        /// </summary>
+        /// <param name="id"></param>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public void RemoveClusterNodeType(long id)
+        {
+            ClusterNodeType existingClusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id);
+            if (existingClusterNodeType == null || existingClusterNodeType.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
+            }
+
+            // soft delete cluster node type
+            existingClusterNodeType.IsDeleted = true;
+            _unitOfWork.ClusterNodeTypeRepository.Update(existingClusterNodeType);
             _unitOfWork.Save();
         }
 

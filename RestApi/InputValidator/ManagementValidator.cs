@@ -48,8 +48,11 @@ namespace HEAppE.RestApi.InputValidator
                 RemoveSubProjectModel ext => ValidateRemoveSubProjectModel(ext),
                 ComputeAccountingModel ext => ValidateComputeAccountingModel(ext),
                 CreateClusterModel ext => ValidateCreateClusterModel(ext),
-                UpdateClusterModel ext => ValidateUpdateClusterModel(ext),
+                ModifyClusterModel ext => ValidateUpdateClusterModel(ext),
                 RemoveClusterModel ext => ValidateRemoveClusterModel(ext),
+                CreateClusterNodeTypeModel ext => ValidateCreateClusterNodeTypeModel(ext),
+                ModifyClusterNodeTypeModel ext => ValidateModifyClusterNodeTypeModel(ext),
+                RemoveClusterNodeTypeModel ext => ValidateRemoveClusterNodeTypeModel(ext),
                 _ => string.Empty
             };
 
@@ -595,7 +598,7 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateUpdateClusterModel(UpdateClusterModel model)
+        private string ValidateUpdateClusterModel(ModifyClusterModel model)
         {
             ValidateId(model.Id, nameof(model.Id));
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
@@ -612,15 +615,102 @@ namespace HEAppE.RestApi.InputValidator
             return _messageBuilder.ToString();
         }
 
-        private string ValidateRemoveClusterModel(RemoveClusterModel ext)
+        private string ValidateRemoveClusterModel(RemoveClusterModel model)
         {
-            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)
             {
                 _messageBuilder.AppendLine(sessionCodeValidation.Message);
             }
 
-            ValidateId(ext.Id, "Id");
+            ValidateId(model.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateClusterNodeTypeModel(CreateClusterNodeTypeModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (model.NumberOfNodes.HasValue && model.NumberOfNodes <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.NumberOfNodes)));
+            }
+            if (model.CoresPerNode <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.CoresPerNode)));
+            }
+            if (model.MaxWalltime.HasValue && model.MaxWalltime <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.MaxWalltime)));
+            }
+            if (model.ClusterId.HasValue)
+            {
+                ValidateId(model.ClusterId, nameof(model.ClusterId));
+            }
+            if (model.FileTransferMethodId.HasValue)
+            {
+                ValidateId(model.FileTransferMethodId, nameof(model.FileTransferMethodId));
+            }
+            if (model.ClusterNodeTypeAggregationId.HasValue)
+            {
+                ValidateId(model.ClusterNodeTypeAggregationId, nameof(model.ClusterNodeTypeAggregationId));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyClusterNodeTypeModel(ModifyClusterNodeTypeModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+
+            if (model.NumberOfNodes.HasValue && model.NumberOfNodes <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.NumberOfNodes)));
+            }
+            if (model.CoresPerNode <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.CoresPerNode)));
+            }
+            if (model.MaxWalltime.HasValue && model.MaxWalltime <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.MaxWalltime)));
+            }
+            if (model.ClusterId.HasValue)
+            {
+                ValidateId(model.ClusterId, nameof(model.ClusterId));
+            }
+            if (model.FileTransferMethodId.HasValue)
+            {
+                ValidateId(model.FileTransferMethodId, nameof(model.FileTransferMethodId));
+            }
+            if (model.ClusterNodeTypeAggregationId.HasValue)
+            {
+                ValidateId(model.ClusterNodeTypeAggregationId, nameof(model.ClusterNodeTypeAggregationId));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveClusterNodeTypeModel(RemoveClusterNodeTypeModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
 
             return _messageBuilder.ToString();
         }

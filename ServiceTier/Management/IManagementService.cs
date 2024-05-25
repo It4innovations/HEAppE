@@ -76,5 +76,11 @@ namespace HEAppE.ServiceTier.Management
         ClusterExt ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
             string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId, string sessionCode);
         void RemoveCluster(long id, string sessionCode);
+        ClusterNodeTypeExt GetClusterNodeTypeById(long clusterId, string sessionCode);
+        ClusterNodeTypeExt CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService, int? maxWalltime,
+            string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId, string sessionCode);
+        ClusterNodeTypeExt ModifyClusterNodeType(long id, string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService,
+            int? maxWalltime, string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId, string sessionCode);
+        void RemoveClusterNodeType(long id, string sessionCode);
     }
 }
