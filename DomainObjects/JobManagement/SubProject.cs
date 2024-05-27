@@ -9,7 +9,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 namespace HEAppE.DomainObjects.JobManagement
 {
     [Table("SubProject")]
-    public class SubProject : IdentifiableDbEntity
+    public class SubProject : IdentifiableDbEntity, ISoftDeletableEntity
     {
         [Required]
         [StringLength(50)]

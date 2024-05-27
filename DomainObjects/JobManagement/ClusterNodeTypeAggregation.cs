@@ -7,7 +7,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 namespace HEAppE.DomainObjects.JobManagement;
 
 [Table("ClusterNodeTypeAggregation")]
-public class ClusterNodeTypeAggregation : IdentifiableDbEntity
+public class ClusterNodeTypeAggregation : IdentifiableDbEntity, ISoftDeletableEntity
 {
     [Required]
     [StringLength(50)]

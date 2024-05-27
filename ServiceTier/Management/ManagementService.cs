@@ -499,6 +499,49 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public ClusterProxyConnectionExt GetClusterProxyConnectionById(long clusterProxyConnectionId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterProxyConnection clusterProxyConnection = managementLogic.GetClusterProxyConnectionById(clusterProxyConnectionId);
+                return clusterProxyConnection.ConvertIntToExt();
+            } 
+        }
+
+        public ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username, string password, ProxyType type, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterProxyConnection clusterProxyConnection = managementLogic.CreateClusterProxyConnection(host, port, username, password, type);
+                return clusterProxyConnection.ConvertIntToExt();
+            }
+        }
+
+        public ClusterProxyConnectionExt ModifyClusterProxyConnection(long id, string host, int port, string username, string password, ProxyType type, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterProxyConnection clusterProxyConnection = managementLogic.ModifyClusterProxyConnection(id, host, port, username, password, type);
+                return clusterProxyConnection.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveClusterProxyConnection(long id, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveClusterProxyConnection(id);
+            }
+        }
+
         #endregion
     }
 }

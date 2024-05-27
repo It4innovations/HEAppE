@@ -8,7 +8,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.JobManagement
 {
     [Table("Project")]
-    public class Project : IdentifiableDbEntity
+    public class Project : IdentifiableDbEntity, ISoftDeletableEntity
     {
         [Required]
         [StringLength(50)]

@@ -50,5 +50,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         ClusterNodeType ModifyClusterNodeType(long id, string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService, int? maxWalltime,
             string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId);
         void RemoveClusterNodeType(long id);
+        ClusterProxyConnection GetClusterProxyConnectionById(long id);
+        ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password, ProxyType type);
+        ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username, string password, ProxyType type);
+        void RemoveClusterProxyConnection(long id);
     }
 }

@@ -495,4 +495,7 @@
   <data name="RequestedObjectDoesNotExistException_FileTransferMethodNotFound" xml:space="preserve">
     <value>Specifikovaná file transfer metóda s id '{0}' není definována v HEAppE.</value>
   </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterProxyConnectionNotExists" xml:space="preserve">
+    <value>Požadovaná cluster proxy connection s id '{0}' není definována v HEAppE.</value>
+  </data>
 </root>

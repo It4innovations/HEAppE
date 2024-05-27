@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.ClusterInformation
 {
     [Table("ClusterProxyConnection")]
-    public class ClusterProxyConnection : IdentifiableDbEntity
+    public class ClusterProxyConnection : IdentifiableDbEntity, ISoftDeletableEntity
     {
         #region Properties
         [Required]
@@ -22,6 +22,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         [StringLength(50)]
         public string Password { get; set; }
+
+        [Required]
+        public bool IsDeleted { get; set; } = false;
         #endregion
         #region Override Methods
         public override string ToString()

@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.JobManagement
 {
     [Table("Contact")]
-    public class Contact : IdentifiableDbEntity
+    public class Contact : IdentifiableDbEntity, ISoftDeletableEntity
     {
         [Required]
         [StringLength(255)]

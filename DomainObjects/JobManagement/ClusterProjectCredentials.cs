@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.JobManagement
 {
     [Table("ClusterProjectCredentials")]
-    public class ClusterProjectCredential
+    public class ClusterProjectCredential : ISoftDeletableEntity
     {
         public long ClusterProjectId { get; set; }
         public virtual ClusterProject ClusterProject { get; set; }

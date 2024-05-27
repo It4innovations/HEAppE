@@ -53,6 +53,9 @@ namespace HEAppE.RestApi.InputValidator
                 CreateClusterNodeTypeModel ext => ValidateCreateClusterNodeTypeModel(ext),
                 ModifyClusterNodeTypeModel ext => ValidateModifyClusterNodeTypeModel(ext),
                 RemoveClusterNodeTypeModel ext => ValidateRemoveClusterNodeTypeModel(ext),
+                CreateClusterProxyConnectionModel ext => ValidateCreateClusterProxyConnectionModel(ext),
+                ModifyClusterProxyConnectionModel ext => ValidateModifyClusterProxyConnectionModel(ext),
+                RemoveClusterProxyConnectionModel ext => ValidateRemoveClusterProxyConnectionModel(ext),
                 _ => string.Empty
             };
 
@@ -703,6 +706,53 @@ namespace HEAppE.RestApi.InputValidator
         }
 
         private string ValidateRemoveClusterNodeTypeModel(RemoveClusterNodeTypeModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateClusterProxyConnectionModel(CreateClusterProxyConnectionModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (model.Port <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyClusterProxyConnectionModel(ModifyClusterProxyConnectionModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+
+            if (model.Port <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveClusterProxyConnectionModel(RemoveClusterProxyConnectionModel model)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)

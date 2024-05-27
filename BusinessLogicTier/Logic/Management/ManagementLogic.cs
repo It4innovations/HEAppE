@@ -1363,6 +1363,75 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
         }
 
+        /// <summary>
+        /// Get ClusterProxyConnection by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public ClusterProxyConnection GetClusterProxyConnectionById(long id)
+        {
+            ClusterProxyConnection clusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
+
+            if (clusterProxyConnection == null || clusterProxyConnection.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
+            }
+
+            return clusterProxyConnection;
+        }
+
+
+        public ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password, ProxyType type)
+        {
+            var clusterProxyConnection = new ClusterProxyConnection
+            {
+               Host = host,
+               Port = port,
+               Username = username,
+               Password = password,
+               Type = type
+            };
+            _unitOfWork.ClusterProxyConnectionRepository.Insert(clusterProxyConnection);
+            _unitOfWork.Save();
+
+            return clusterProxyConnection;
+        }
+
+        public ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username, string password, ProxyType type)
+        {
+            ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
+
+            if (existingClusterProxyConnection == null || existingClusterProxyConnection.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
+            }
+
+            existingClusterProxyConnection.Host = host;
+            existingClusterProxyConnection.Port = port;
+            existingClusterProxyConnection.Username = username;
+            existingClusterProxyConnection.Password = password;
+            existingClusterProxyConnection.Type = type;
+            _unitOfWork.ClusterProxyConnectionRepository.Update(existingClusterProxyConnection);
+            _unitOfWork.Save();
+
+            return existingClusterProxyConnection;
+        }
+
+        public void RemoveClusterProxyConnection(long id)
+        {
+            ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
+
+            if (existingClusterProxyConnection == null || existingClusterProxyConnection.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
+            }
+
+            existingClusterProxyConnection.IsDeleted = true;
+            _unitOfWork.ClusterProxyConnectionRepository.Update(existingClusterProxyConnection);
+            _unitOfWork.Save();
+        }
+
         #region SubProject
         /// <summary>
         /// Creates a new subproject if it does not exist

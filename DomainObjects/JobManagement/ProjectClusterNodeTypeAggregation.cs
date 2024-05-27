@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.JobManagement;
 
 [Table("ProjectClusterNodeTypeAggregation")]
-public class ProjectClusterNodeTypeAggregation
+public class ProjectClusterNodeTypeAggregation : ISoftDeletableEntity
 {
     public long ProjectId { get; set; }
     public virtual Project Project { get; set; }

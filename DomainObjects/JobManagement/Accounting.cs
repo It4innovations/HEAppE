@@ -2,13 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Runtime.InteropServices.JavaScript;
-using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.DomainObjects.JobManagement;
 
 [Table("Accounting")]
-public class Accounting : IdentifiableDbEntity
+public class Accounting : IdentifiableDbEntity, ISoftDeletableEntity
 {
     [Required]
     [StringLength(200)]

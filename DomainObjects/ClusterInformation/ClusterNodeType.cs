@@ -7,7 +7,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.ClusterInformation
 {
     [Table("ClusterNodeType")]
-    public class ClusterNodeType : IdentifiableDbEntity
+    public class ClusterNodeType : IdentifiableDbEntity, ISoftDeletableEntity
     {
         [Required]
         [StringLength(50)]

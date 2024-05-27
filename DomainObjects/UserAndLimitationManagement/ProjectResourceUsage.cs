@@ -5,7 +5,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace HEAppE.DomainObjects.JobManagement
 {
-    public class ProjectResourceUsage
+    public class ProjectResourceUsage : ISoftDeletableEntity
     {
         public long Id { get; set; }
         [Required]

@@ -7,7 +7,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.ClusterInformation
 {
     [Table("Cluster")]
-    public class Cluster : IdentifiableDbEntity
+    public class Cluster : IdentifiableDbEntity, ISoftDeletableEntity
     {
         #region Properties
         [Required]

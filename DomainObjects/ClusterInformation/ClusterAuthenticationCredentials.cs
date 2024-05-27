@@ -7,7 +7,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.ClusterInformation
 {
     [Table("ClusterAuthenticationCredentials")]
-    public class ClusterAuthenticationCredentials : IdentifiableDbEntity
+    public class ClusterAuthenticationCredentials : IdentifiableDbEntity, ISoftDeletableEntity
     {
         #region Properties
         [Required]

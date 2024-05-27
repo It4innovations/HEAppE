@@ -771,7 +771,7 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Remove ClusterNodeType
         /// </summary>
-        /// <param name="model">RemoveCommandTemplateModel</param>
+        /// <param name="model"></param>
         /// <returns></returns>
         [HttpDelete("ClusterNodeType")]
         [RequestSizeLimit(90)]
@@ -793,6 +793,108 @@ namespace HEAppE.RestApi.Controllers
             _managementService.RemoveClusterNodeType(model.Id, model.SessionCode);
             ClearListAvailableClusterMethodCache();
             return Ok("ClusterNodeType was deleted.");
+        }
+        #endregion
+
+        #region ClusterProxyConnection
+        /// <summary>
+        /// Get ClusterProxyConnection by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ClusterProxyConnection")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ClusterProxyConnectionExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetClusterProxyConnectionById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetClusterProxyConnectionById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var clusterProxyConnection = _managementService.GetClusterProxyConnectionById(id, sessionCode);
+            return Ok(clusterProxyConnection);
+        }
+
+        /// <summary>
+        /// Create ClusterProxyConnection
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("ClusterProxyConnection")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(ClusterProxyConnectionExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateClusterProxyConnection(CreateClusterProxyConnectionModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateClusterProxyConnection\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var clusterProxyConnection = _managementService.CreateClusterProxyConnection(model.Host, model.Port, model.Username, model.Password, model.Type, model.SessionCode);
+            return Ok(clusterProxyConnection);
+        }
+
+        /// <summary>
+        /// Modify ClusterProxyConnection
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("ClusterProxyConnection")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(ClusterProxyConnectionExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyClusterProxyConnection(ModifyClusterProxyConnectionModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyClusterProxyConnection\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var clusterProxyConnection = _managementService.ModifyClusterProxyConnection(model.Id, model.Host, model.Port, model.Username, model.Password, model.Type,
+                model.SessionCode);
+            return Ok(clusterProxyConnection);
+        }
+
+        /// <summary>
+        /// Remove ClusterProxyConnection
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("ClusterProxyConnection")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveClusterProxyConnection(RemoveClusterProxyConnectionModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveClusterProxyConnection\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveClusterProxyConnection(model.Id, model.SessionCode);
+            return Ok("ClusterProxyConnection was deleted.");
         }
         #endregion
 
