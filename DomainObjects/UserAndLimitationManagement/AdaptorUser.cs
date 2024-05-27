@@ -9,7 +9,7 @@ using System.Linq;
 namespace HEAppE.DomainObjects.UserAndLimitationManagement
 {
     [Table("AdaptorUser")]
-    public class AdaptorUser : IdentifiableDbEntity, ILogUserIdentification
+    public class AdaptorUser : IdentifiableDbEntity, ILogUserIdentification, ISoftDeletableEntity
     {
         [Required]
         [StringLength(100)]
@@ -25,7 +25,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         public string Email { get; set; }
         public bool Synchronize { get; set; }
 
-        public bool Deleted { get; set; }
+        public bool IsDeleted { get; set; } = false;
 
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

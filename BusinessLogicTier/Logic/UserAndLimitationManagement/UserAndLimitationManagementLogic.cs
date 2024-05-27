@@ -441,7 +441,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             AdaptorUser user = new()
             {
                 Username = username,
-                Deleted = false,
                 Synchronize = false,
                 Email = email,
                 CreatedAt = changedTime,
@@ -541,7 +540,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             return user == null
                 ? throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username)
-                : user.Deleted ? throw new AuthenticatedUserAlreadyDeletedException("UserDeleted", user.Username) : user;
+                : user.IsDeleted ? throw new AuthenticatedUserAlreadyDeletedException("UserDeleted", user.Username) : user;
         }
 
         private SessionCode CreateSessionCode(AdaptorUser user)
