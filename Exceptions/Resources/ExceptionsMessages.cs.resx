@@ -483,4 +483,7 @@
   <data name="InputValidationException_NotPermitted" xml:space="preserve">
     <value />
   </data>
+  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
+  </data>
 </root>
