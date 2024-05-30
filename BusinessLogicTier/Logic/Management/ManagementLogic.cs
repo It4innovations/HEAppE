@@ -1210,7 +1210,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     .ClusterNodeType
                     .ClusterNodeTypeAggregation
                     .ClusterNodeTypeAggregationAccountings
-                    .FirstOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
+                    .LastOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
                     ?.Accounting.Formula;
                 
                 //parse all parameters to dictionary

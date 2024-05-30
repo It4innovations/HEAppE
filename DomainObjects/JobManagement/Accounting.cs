@@ -26,7 +26,7 @@ public class Accounting : IdentifiableDbEntity
     public DateTime ValidityFrom { get; set; }
 
     public DateTime? ValidityTo { get; set; }
-    public bool IsValid(DateTime? startTime, DateTime? endTime) => (startTime.HasValue && ValidityFrom <= startTime) && (ValidityTo == null || (endTime.HasValue && ValidityTo >= endTime));
+    public bool IsValid(DateTime? startTime, DateTime? endTime) => (startTime.HasValue && ValidityFrom <= startTime && (ValidityTo.HasValue && ValidityTo >= startTime));
     
     public virtual List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccountings { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
 }
