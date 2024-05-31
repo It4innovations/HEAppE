@@ -55,9 +55,9 @@
             "Description":"User with this role can create new project and use management API."
          },
          {
-           "Id":7,
-           "Name":"Manager",
-           "Description":"User with this role can manage command templates, can submit and check his own jobs."
+            "Id":7,
+            "Name":"Manager",
+            "Description":"User with this role can manage command templates, can submit and check his own jobs."
          }
       ],
       "AdaptorUserUserGroupRoles":[
@@ -173,6 +173,19 @@
             "IsDeleted":false
          }
       ],
+      "SubProjects":[
+         {
+            "Id":1,
+            "Identifier":"{Identifier}",
+            "Description":"{Description}",
+            "StartDate":"{StartDate}",
+            "EndDate":"{EndDate}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ProjectId":1
+         }
+      ],
       "ClusterNodeTypes":[
          {
             "Id":1,
@@ -186,6 +199,46 @@
             "ClusterId":1,
             "FileTransferMethodId":1,
             "ClusterAllocationName":null
+         }
+      ],
+      "Accountings":[
+         {
+            "Id":1,
+            "Formula":"{Formula}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ValidityFrom":"{ValidityFrom}",
+            "ValidityTo":"{ValidityTo}"
+         }
+      ],
+      "ClusterNodeTypeAggregations":[
+         {
+            "Id":1,
+            "Name":"{Name}",
+            "Description":"{Description}",
+            "AllocationType":"{AllocationType}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ValidityFrom":"{ValidFrom}",
+            "ValidityTo":"{ValidTo}"
+         }
+      ],
+      "ClusterNodeTypeAggregationAccounting":[
+         {
+            "ClusterNodeTypeAggregationId":1,
+            "AccountingId":1
+         }
+      ],
+      "ProjectClusterNodeTypeAggregations":[
+         {
+            "ProjectId":1,
+            "ClusterNodeTypeAggregationId":1,
+            "AllocationAmount":"{AllocationAmount}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false
          }
       ],
       "CommandTemplates":[
@@ -247,7 +300,7 @@
             "Id":1,
             "ServerHostname":"{ServerHostNameDNS}",
             "Protocol":2,
-            "Port": null,
+            "Port":null,
             "ClusterId":1
          }
       ],

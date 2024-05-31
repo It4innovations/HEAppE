@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -485,5 +485,8 @@
   </data>
   <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
     <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
+  </data>
+  <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
+    <value>Specifikovaný SubProject je smazaný nebo neplatný.</value>
   </data>
 </root>

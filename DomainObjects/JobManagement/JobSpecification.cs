@@ -41,6 +41,9 @@ namespace HEAppE.DomainObjects.JobManagement
         public long? FileTransferMethodId { get; set; }
         public virtual FileTransferMethod FileTransferMethod { get; set; }
 
+        [ForeignKey("SubProject")]
+        public long? SubProjectId { get; set; }
+        public virtual SubProject SubProject { get; set; }
         public virtual List<TaskSpecification> Tasks { get; set; } = new List<TaskSpecification>();
 
         public virtual ClusterAuthenticationCredentials ClusterUser { get; set; }

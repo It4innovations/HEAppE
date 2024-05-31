@@ -20,6 +20,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Transactions;
+using HEAppE.Utils;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -373,7 +374,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             specification.Submitter = loggedUser;
             specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
             specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
-
+            if (specification.SubProjectId.HasValue)
+            {
+                specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
+            }
+            
             foreach (TaskSpecification task in specification.Tasks)
             {
                 CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
@@ -643,9 +648,16 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
+            var accountingFormula = dbTaskInfo.NodeType
+                .ClusterNodeTypeAggregation
+                .ClusterNodeTypeAggregationAccountings
+                .FirstOrDefault(x=>!x.Accounting.IsDeleted && x.Accounting.IsValid(clusterTaskInfo.StartTime, clusterTaskInfo.EndTime))
+                ?.Accounting.Formula;
+            
             if (clusterTaskInfo is null)
             {
                 dbTaskInfo.State = TaskState.Failed;
+                dbTaskInfo.ResourceConsumed = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, clusterTaskInfo.ParsedParameters, _logger);
                 return dbTaskInfo;
             }
 
@@ -661,6 +673,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             dbTaskInfo.State = clusterTaskInfo.State;
             dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
             dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
+            dbTaskInfo.ResourceConsumed = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, clusterTaskInfo.ParsedParameters, _logger);
             return dbTaskInfo;
         }
     }
