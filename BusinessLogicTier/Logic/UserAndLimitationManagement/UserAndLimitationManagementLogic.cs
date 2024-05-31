@@ -74,7 +74,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (IsSessionExpired(session))
             {
-                throw new SessionCodeNotValidException("Expired", sessionCode, session.LastAccessTime.AddSeconds(_sessionExpirationSeconds));
+                throw new SessionCodeNotValidException("Expired", sessionCode, session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
             }
 
             session.LastAccessTime = DateTime.UtcNow;
