@@ -126,7 +126,12 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
         public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId)
         {
-            Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId) ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
+            Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+
+            if (cluster == null || cluster.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
+            }
 
             //return all non service account for specific cluster and project
             var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId);
@@ -164,13 +169,19 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         public ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId)
         {
             ClusterNodeType nodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(clusterNodeTypeId);
-            return nodeType == null ? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeTypeId) : nodeType;
+
+            if (nodeType == null || nodeType.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeTypeId);
+            }
+
+            return nodeType;
         }
 
         public Cluster GetClusterById(long clusterId)
         {
             Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
-            return cluster == null ? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId) : cluster;
+            return cluster == null || cluster.IsDeleted ? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId) : cluster;
         }
 
         public IEnumerable<ClusterNodeType> ListClusterNodeTypes()

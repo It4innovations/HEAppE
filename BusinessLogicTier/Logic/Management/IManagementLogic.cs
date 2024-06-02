@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
@@ -54,5 +55,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password, ProxyType type);
         ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username, string password, ProxyType type);
         void RemoveClusterProxyConnection(long id);
+        FileTransferMethod GetFileTransferMethodById(long id);
+        FileTransferMethod CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId, int? port);
+        FileTransferMethod ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol, long clusterId, int? port);
+        void RemoveFileTransferMethod(long id);
     }
 }

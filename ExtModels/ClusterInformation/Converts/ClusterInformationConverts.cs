@@ -61,7 +61,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 NumberOfNodes = nodeType.NumberOfNodes,
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
-                FileTransferMethodId = nodeType.FileTransferMethodId,
+                FileTransferMethodId = nodeType.FileTransferMethod == null || nodeType.FileTransferMethod.IsDeleted ? null : nodeType.FileTransferMethodId,
                 Projects = projectExts.Where(p => p.CommandTemplates.Any()).ToArray()
             };
             return convert;
@@ -77,7 +77,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 NumberOfNodes = nodeType.NumberOfNodes,
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
-                FileTransferMethodId = nodeType.FileTransferMethod.Id,
+                FileTransferMethodId = nodeType.FileTransferMethod == null || nodeType.FileTransferMethod.IsDeleted ? null : nodeType.FileTransferMethod.Id,
                 NodeUsedCoresAndLimitation = nodeType.NodeUsedCoresAndLimitation.ConvertIntToExt(),
             };
             return convert;
@@ -164,6 +164,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
         {
             var convert = new ClusterProxyConnectionExt
             {
+                Id = proxyConnection.Id,
                 Host = proxyConnection.Host,
                 Port = proxyConnection.Port,
                 Type = ConvertProxyTypeIntToExt(proxyConnection.Type),

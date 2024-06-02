@@ -56,6 +56,9 @@ namespace HEAppE.RestApi.InputValidator
                 CreateClusterProxyConnectionModel ext => ValidateCreateClusterProxyConnectionModel(ext),
                 ModifyClusterProxyConnectionModel ext => ValidateModifyClusterProxyConnectionModel(ext),
                 RemoveClusterProxyConnectionModel ext => ValidateRemoveClusterProxyConnectionModel(ext),
+                CreateFileTransferMethodModel ext => ValidateCreateFileTransferMethodModel(ext),
+                ModifyFileTransferMethodModel ext => ValidateModifyFileTransferMethodModel(ext),
+                RemoveFileTransferMethodModel ext => ValidateRemoveFileTransferMethodModel(ext),
                 _ => string.Empty
             };
 
@@ -753,6 +756,56 @@ namespace HEAppE.RestApi.InputValidator
         }
 
         private string ValidateRemoveClusterProxyConnectionModel(RemoveClusterProxyConnectionModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateFileTransferMethodModel(CreateFileTransferMethodModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.ClusterId, nameof(model.ClusterId));
+
+            if (model.Port.HasValue && model.Port <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyFileTransferMethodModel(ModifyFileTransferMethodModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+            ValidateId(model.ClusterId, nameof(model.ClusterId));
+
+            if (model.Port.HasValue && model.Port <= 0)
+            {
+                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage(nameof(model.Port)));
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveFileTransferMethodModel(RemoveFileTransferMethodModel model)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)

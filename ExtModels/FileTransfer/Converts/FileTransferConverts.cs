@@ -14,11 +14,12 @@ namespace HEAppE.ExtModels.FileTransfer.Converts
         {
             var convert = new FileTransferMethodExt()
             {
+                Id = fileTransferMethod.Id,
                 ServerHostname = fileTransferMethod.ServerHostname,
                 SharedBasepath = fileTransferMethod.SharedBasePath,
                 Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
                 Port = fileTransferMethod.Port,
-                ProxyConnection = fileTransferMethod.Cluster.ProxyConnection?.ConvertIntToExt(),
+                ProxyConnection = fileTransferMethod.Cluster?.ProxyConnection?.ConvertIntToExt(),
                 Credentials = fileTransferMethod.Credentials.ConvertIntToExt()
             };
             return convert;

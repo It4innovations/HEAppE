@@ -6,7 +6,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace HEAppE.DomainObjects.FileTransfer
 {
     [Table("FileTransferMethod")]
-    public class FileTransferMethod : IdentifiableDbEntity
+    public class FileTransferMethod : IdentifiableDbEntity, ISoftDeletableEntity
     {
         [Required]
         [StringLength(50)]
@@ -15,6 +15,9 @@ namespace HEAppE.DomainObjects.FileTransfer
         public FileTransferProtocol Protocol { get; set; }
 
         public int? Port { get; set; }
+
+        [Required]
+        public bool IsDeleted { get; set; } = false;
 
         [ForeignKey("Cluster")]
         public long ClusterId { get; set; }

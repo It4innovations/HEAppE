@@ -4,6 +4,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
@@ -895,6 +896,107 @@ namespace HEAppE.RestApi.Controllers
 
             _managementService.RemoveClusterProxyConnection(model.Id, model.SessionCode);
             return Ok("ClusterProxyConnection was deleted.");
+        }
+        #endregion
+
+        #region FileTransferMethod
+        /// <summary>
+        /// Get FileTransferMethod by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("FileTransferMethod")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetFileTransferMethodById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetFileTransferMethodById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var fileTransferMethod = _managementService.GetFileTransferMethodById(id, sessionCode);
+            return Ok(fileTransferMethod);
+        }
+
+        /// <summary>
+        /// Create FileTransferMethod
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("FileTransferMethod")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateFileTransferMethod(CreateFileTransferMethodModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateFileTransferMethod\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var fileTransferMethod = _managementService.CreateFileTransferMethod(model.ServerHostname, model.Protocol, model.ClusterId, model.Port, model.SessionCode);
+            return Ok(fileTransferMethod);
+        }
+
+        /// <summary>
+        /// Modify FileTransferMethod
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("FileTransferMethod")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyFileTransferMethod(ModifyFileTransferMethodModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyFileTransferMethod\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var fileTransferMethod = _managementService.ModifyFileTransferMethod(model.Id, model.ServerHostname, model.Protocol, model.ClusterId, model.Port, model.SessionCode);
+            return Ok(fileTransferMethod);
+        }
+
+        /// <summary>
+        /// Remove FileTransferMethod
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("FileTransferMethod")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveFileTransferMethod(RemoveFileTransferMethodModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveFileTransferMethod\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveFileTransferMethod(model.Id, model.SessionCode);
+            return Ok("FileTransferMethod was deleted.");
         }
         #endregion
 

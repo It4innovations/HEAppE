@@ -7,6 +7,9 @@ namespace HEAppE.ExtModels.FileTransfer.Models
     [DataContract(Name = "FileTransferMethodExt")]
     public class FileTransferMethodExt
     {
+        [DataMember(Name = "Id")]
+        public long Id { get; set; }
+
         [DataMember(Name = "ServerHostname")]
         public string ServerHostname { get; set; }
 

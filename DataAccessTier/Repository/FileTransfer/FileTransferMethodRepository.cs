@@ -17,7 +17,7 @@ namespace HEAppE.DataAccessTier.Repository.FileTransfer
         #region Methods
         public IEnumerable<FileTransferMethod> GetByClusterId(long clusterId)
         {
-            return GetAll().Where(w => w.ClusterId == clusterId)
+            return GetAll().Where(w => w.ClusterId == clusterId && !w.IsDeleted)
                          .ToList();
         }
         #endregion

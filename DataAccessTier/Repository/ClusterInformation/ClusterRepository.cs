@@ -24,16 +24,6 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         {
             return _dbSet.Where(c => !c.IsDeleted).ToList().Select(c => GetCluster(c)).ToList();
         }
-
-        /// <summary>
-        /// Get cluster by name
-        /// </summary>
-        /// <param name="name"></param>
-        /// <returns></returns>
-        public Cluster GetByName(string name)
-        {
-            return _dbSet.FirstOrDefault(p => p.Name.ToLower() == name.ToLower());
-        }
         #endregion
 
         #region Private Methods
@@ -47,11 +37,11 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
                 ClusterProjects = cluster.ClusterProjects,
                 ConnectionProtocol = cluster.ConnectionProtocol,
                 DomainName = cluster.DomainName,
-                FileTransferMethods = cluster.FileTransferMethods,
+                FileTransferMethods = cluster.FileTransferMethods.Where(ftm => !ftm.IsDeleted).ToList(),
                 MasterNodeName = cluster.MasterNodeName,
                 Port = cluster.Port,
-                ProxyConnection = cluster.ProxyConnection,
-                ProxyConnectionId = cluster.ProxyConnectionId,
+                ProxyConnection = cluster.ProxyConnection == null || cluster.ProxyConnection.IsDeleted ? null : cluster.ProxyConnection,
+                ProxyConnectionId = cluster.ProxyConnection == null || cluster.ProxyConnection.IsDeleted ? null : cluster.ProxyConnectionId,
                 SchedulerType = cluster.SchedulerType,
                 TimeZone = cluster.TimeZone,
                 UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount,
@@ -70,8 +60,8 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
                 ClusterAllocationName = n.ClusterAllocationName,
                 CoresPerNode = n.CoresPerNode,
                 Description = n.Description,
-                FileTransferMethod = n.FileTransferMethod,
-                FileTransferMethodId = n.FileTransferMethodId,
+                FileTransferMethod = n.FileTransferMethod == null || n.FileTransferMethod.IsDeleted ? null : n.FileTransferMethod,
+                FileTransferMethodId = n.FileTransferMethod == null || n.FileTransferMethod.IsDeleted ? null : n.FileTransferMethodId,
                 MaxWalltime = n.MaxWalltime,
                 NumberOfNodes = n.NumberOfNodes,
                 Queue = n.Queue,

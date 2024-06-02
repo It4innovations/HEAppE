@@ -2,6 +2,7 @@
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
@@ -143,7 +144,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string modelExecutableFile, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId)
         {
             ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
-            if (clusterNodeType is null)
+            if (clusterNodeType is null || clusterNodeType.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
             }
@@ -220,7 +221,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
-            if (clusterNodeType is null)
+            if (clusterNodeType is null || clusterNodeType.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
             }
@@ -1129,8 +1130,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             if (proxyConnectionId.HasValue)
             {
-                _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId)
-                ?? throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+                var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
+                if (proxyConnection == null || proxyConnection.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+                }
             }
 
             var cluster = new Cluster
@@ -1176,11 +1180,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
             }
-
             if (proxyConnectionId.HasValue)
             {
-                _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId)
-                ?? throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+                var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
+                if(proxyConnection == null || proxyConnection.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
+                }
             }
 
             existingCluster.Name = name;
@@ -1213,6 +1219,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             // remove cluster project references
             existingCluster.ClusterProjects.ForEach(x => RemoveProjectAssignmentToCluster(x.ProjectId, x.ClusterId));
+            // remove cluster file transfer methods
+            existingCluster.FileTransferMethods.ForEach(ftm => ftm.IsDeleted = true);
             // soft delete cluster
             existingCluster.IsDeleted = true;
             _unitOfWork.ClusterRepository.Update(existingCluster);
@@ -1259,7 +1267,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (clusterId.HasValue)
             {
                 var cluster = _unitOfWork.ClusterRepository.GetById((long)clusterId);
-
                 if(cluster == null || cluster.IsDeleted)
                 {
                     throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
@@ -1267,13 +1274,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
             if (fileTransferMethodId.HasValue)
             {
-                _ = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId)
-                ?? throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
+                var fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId);
+                if(fileTransferMethod == null || fileTransferMethod.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
+                }
             }
             if (clusterNodeTypeAggregationId.HasValue)
             {
                 var aggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById((long)clusterNodeTypeAggregationId);
-
                 if(aggregation == null || aggregation.IsDeleted)
                 {
                     throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", clusterNodeTypeAggregationId);
@@ -1325,6 +1334,30 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (existingClusterNodeType == null || existingClusterNodeType.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
+            }
+            if (clusterId.HasValue)
+            {
+                var cluster = _unitOfWork.ClusterRepository.GetById((long)clusterId);
+                if (cluster == null || cluster.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+                }
+            }
+            if (fileTransferMethodId.HasValue)
+            {
+                var fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId);
+                if (fileTransferMethod == null || fileTransferMethod.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
+                }
+            }
+            if (clusterNodeTypeAggregationId.HasValue)
+            {
+                var aggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById((long)clusterNodeTypeAggregationId);
+                if (aggregation == null || aggregation.IsDeleted)
+                {
+                    throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", clusterNodeTypeAggregationId);
+                }
             }
 
             existingClusterNodeType.Name = name;
@@ -1381,7 +1414,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return clusterProxyConnection;
         }
 
-
+        /// <summary>
+        /// Create ClusterProxyConnection
+        /// </summary>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
         public ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password, ProxyType type)
         {
             var clusterProxyConnection = new ClusterProxyConnection
@@ -1398,6 +1439,17 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return clusterProxyConnection;
         }
 
+        /// <summary>
+        /// Modify ClusterProxyConnection
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="host"></param>
+        /// <param name="port"></param>
+        /// <param name="username"></param>
+        /// <param name="password"></param>
+        /// <param name="type"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username, string password, ProxyType type)
         {
             ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
@@ -1418,6 +1470,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return existingClusterProxyConnection;
         }
 
+        /// <summary>
+        /// Remove ClusterProxyConnection
+        /// </summary>
+        /// <param name="id"></param>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveClusterProxyConnection(long id)
         {
             ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
@@ -1429,6 +1486,109 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             existingClusterProxyConnection.IsDeleted = true;
             _unitOfWork.ClusterProxyConnectionRepository.Update(existingClusterProxyConnection);
+            _unitOfWork.Save();
+        }
+
+        /// <summary>
+        /// Get FileTransferMethod by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public FileTransferMethod GetFileTransferMethodById(long id)
+        {
+            FileTransferMethod fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id);
+
+            if (fileTransferMethod == null || fileTransferMethod.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
+            }
+
+            return fileTransferMethod;
+        }
+
+        /// <summary>
+        /// Create FileTransferMethod
+        /// </summary>
+        /// <param name="serverHostname"></param>
+        /// <param name="protocol"></param>
+        /// <param name="clusterId"></param>
+        /// <param name="port"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public FileTransferMethod CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId, int? port)
+        {
+            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+            if (cluster == null || cluster.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+            }
+
+            var fileTransferMethod = new FileTransferMethod()
+            {
+                ServerHostname = serverHostname,
+                Protocol = protocol,
+                ClusterId = clusterId,
+                Port = port
+            };
+            _unitOfWork.FileTransferMethodRepository.Insert(fileTransferMethod);
+            _unitOfWork.Save();
+
+            return fileTransferMethod;
+        }
+
+        /// <summary>
+        /// Modify FileTransferMethod
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="serverHostname"></param>
+        /// <param name="protocol"></param>
+        /// <param name="clusterId"></param>
+        /// <param name="port"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public FileTransferMethod ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol, long clusterId, int? port)
+        {
+            FileTransferMethod existingFileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id);
+
+            if (existingFileTransferMethod == null || existingFileTransferMethod.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
+            }
+
+            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+            if (cluster == null || cluster.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
+            }
+
+            existingFileTransferMethod.ServerHostname = serverHostname;
+            existingFileTransferMethod.Protocol = protocol;
+            existingFileTransferMethod.ClusterId = clusterId;
+            existingFileTransferMethod.Port = port;
+            _unitOfWork.FileTransferMethodRepository.Update(existingFileTransferMethod);
+            _unitOfWork.Save();
+
+            return existingFileTransferMethod;
+        }
+
+        /// <summary>
+        /// Remove FileTransferMethod
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public void RemoveFileTransferMethod(long id)
+        {
+            FileTransferMethod existingFileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id);
+
+            if (existingFileTransferMethod == null || existingFileTransferMethod.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
+            }
+
+            existingFileTransferMethod.IsDeleted = true;
+            _unitOfWork.FileTransferMethodRepository.Update(existingFileTransferMethod);
             _unitOfWork.Save();
         }
 

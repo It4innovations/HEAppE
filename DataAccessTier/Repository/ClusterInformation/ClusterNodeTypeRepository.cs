@@ -19,7 +19,8 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         #region Public methods
         public IEnumerable<ClusterNodeType> GetAllWithPossibleCommands()
         {
-            return _dbSet.Include(i => i.PossibleCommands)
+            return _dbSet.Where(nt => !nt.IsDeleted)
+                            .Include(i => i.PossibleCommands)
                             .ThenInclude(i => i.TemplateParameters)
                             .ToList();
         }

@@ -1,6 +1,8 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
 using System;
@@ -86,5 +88,9 @@ namespace HEAppE.ServiceTier.Management
         ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username, string password, ProxyType type, string sessionCode);
         ClusterProxyConnectionExt ModifyClusterProxyConnection(long id, string host, int port, string username, string password, ProxyType type, string sessionCode);
         void RemoveClusterProxyConnection(long id, string sessionCode);
+        FileTransferMethodExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode);
+        FileTransferMethodExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId, int? port, string sessionCode);
+        FileTransferMethodExt ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol, long clusterId, int? port, string sessionCode);
+        void RemoveFileTransferMethod(long id, string sessionCode);
     }
 }

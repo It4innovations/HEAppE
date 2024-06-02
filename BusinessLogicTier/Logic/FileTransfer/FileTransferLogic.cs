@@ -290,7 +290,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
         public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)
         {
             FileTransferMethod fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(fileTransferMethodById);
-            return fileTransferMethod == null
+            return fileTransferMethod == null || fileTransferMethod.IsDeleted
                 ? throw new RequestedObjectDoesNotExistException("NotExistingFileTransferMethod", fileTransferMethodById)
                 : fileTransferMethod;
         }

@@ -7,6 +7,9 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
     public class ClusterProxyConnectionExt
     {
         #region Properties
+        [DataMember(Name = "Id")]
+        public long Id { get; set; }
+
         [DataMember(Name = "Host")]
         public string Host { get; set; }
 
