@@ -24,6 +24,16 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         {
             return _dbSet.Where(c => !c.IsDeleted).ToList().Select(c => GetCluster(c)).ToList();
         }
+
+        /// <summary>
+        /// Get all clusters with Cluster Proxy Connection id
+        /// </summary>
+        /// <param name="clusterProxyConnectionId"></param>
+        /// <returns></returns>
+        public IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId)
+        {
+            return _dbSet.Where(c => !c.IsDeleted && c.ProxyConnectionId == clusterProxyConnectionId).ToList();
+        }
         #endregion
 
         #region Private Methods

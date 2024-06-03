@@ -1,5 +1,7 @@
 ﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement
 {
@@ -10,6 +12,14 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement
             : base(context)
         {
 
+        }
+        #endregion
+
+        #region Public methods
+        public IEnumerable<JobSpecification> GetAllByFileTransferMethod(long fileTransferMethodId)
+        {
+            return _dbSet.Where(js => js.FileTransferMethodId == fileTransferMethodId)
+                            .ToList();
         }
         #endregion
     }

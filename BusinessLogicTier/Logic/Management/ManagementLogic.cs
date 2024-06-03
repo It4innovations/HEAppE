@@ -1219,8 +1219,16 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             // remove cluster project references
             existingCluster.ClusterProjects.ForEach(x => RemoveProjectAssignmentToCluster(x.ProjectId, x.ClusterId));
-            // remove cluster file transfer methods
-            existingCluster.FileTransferMethods.ForEach(ftm => ftm.IsDeleted = true);
+            // soft delete cluster node types
+            existingCluster.NodeTypes.Where(nt => !nt.IsDeleted).ToList().ForEach(nt => RemoveClusterNodeType(nt.Id));
+            // TODO - delete job specification?
+            // soft delete file transfer methods
+            existingCluster.FileTransferMethods.Where(ftm => !ftm.IsDeleted).ToList().ForEach(ftm => RemoveFileTransferMethod(ftm.Id));
+            // soft delete proxy connection
+            if(existingCluster.ProxyConnection != null && !existingCluster.ProxyConnection.IsDeleted)
+            {
+                RemoveClusterProxyConnection((long)existingCluster.ProxyConnectionId);
+            }
             // soft delete cluster
             existingCluster.IsDeleted = true;
             _unitOfWork.ClusterRepository.Update(existingCluster);
@@ -1390,6 +1398,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
             }
 
+            // delete cluster node type requested groups
+            existingClusterNodeType.RequestedNodeGroups.ForEach(_unitOfWork.ClusterNodeTypeRequestedGroupRepository.Delete);
+            // remove command templates
+            existingClusterNodeType.PossibleCommands.ForEach(c => RemoveCommandTemplate(c.Id));
             // soft delete cluster node type
             existingClusterNodeType.IsDeleted = true;
             _unitOfWork.ClusterNodeTypeRepository.Update(existingClusterNodeType);
@@ -1484,6 +1496,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
             }
 
+            // remove reference from clusters
+            var clusters = _unitOfWork.ClusterRepository.GetAllByClusterProxyConnectionId(id);
+            foreach(var c in clusters)
+            {
+                c.ProxyConnection = null;
+                _unitOfWork.ClusterRepository.Update(c);
+            }
+            // soft delete cluster proxy connection
             existingClusterProxyConnection.IsDeleted = true;
             _unitOfWork.ClusterProxyConnectionRepository.Update(existingClusterProxyConnection);
             _unitOfWork.Save();
@@ -1587,6 +1607,21 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
             }
 
+            // remove reference from node types
+            var nodeTypes = _unitOfWork.ClusterNodeTypeRepository.GetAllByFileTransferMethod(id);
+            foreach(var nt in nodeTypes)
+            {
+                nt.FileTransferMethod = null;
+                _unitOfWork.ClusterNodeTypeRepository.Update(nt);
+            }
+            // remove reference from job specification
+            var jobSpecifications = _unitOfWork.JobSpecificationRepository.GetAllByFileTransferMethod(id);
+            foreach(var js in jobSpecifications)
+            {
+                js.FileTransferMethod = null;
+                _unitOfWork.JobSpecificationRepository.Update(js);
+            }
+            // soft delete cluster node type
             existingFileTransferMethod.IsDeleted = true;
             _unitOfWork.FileTransferMethodRepository.Update(existingFileTransferMethod);
             _unitOfWork.Save();

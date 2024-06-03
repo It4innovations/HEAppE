@@ -842,6 +842,7 @@ namespace HEAppE.RestApi.Controllers
             }
 
             var clusterProxyConnection = _managementService.CreateClusterProxyConnection(model.Host, model.Port, model.Username, model.Password, model.Type, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
             return Ok(clusterProxyConnection);
         }
 
@@ -869,6 +870,7 @@ namespace HEAppE.RestApi.Controllers
 
             var clusterProxyConnection = _managementService.ModifyClusterProxyConnection(model.Id, model.Host, model.Port, model.Username, model.Password, model.Type,
                 model.SessionCode);
+            ClearListAvailableClusterMethodCache();
             return Ok(clusterProxyConnection);
         }
 
@@ -895,6 +897,7 @@ namespace HEAppE.RestApi.Controllers
             }
 
             _managementService.RemoveClusterProxyConnection(model.Id, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
             return Ok("ClusterProxyConnection was deleted.");
         }
         #endregion
@@ -944,6 +947,7 @@ namespace HEAppE.RestApi.Controllers
             }
 
             var fileTransferMethod = _managementService.CreateFileTransferMethod(model.ServerHostname, model.Protocol, model.ClusterId, model.Port, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
             return Ok(fileTransferMethod);
         }
 
@@ -970,6 +974,7 @@ namespace HEAppE.RestApi.Controllers
             }
 
             var fileTransferMethod = _managementService.ModifyFileTransferMethod(model.Id, model.ServerHostname, model.Protocol, model.ClusterId, model.Port, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
             return Ok(fileTransferMethod);
         }
 
@@ -996,6 +1001,7 @@ namespace HEAppE.RestApi.Controllers
             }
 
             _managementService.RemoveFileTransferMethod(model.Id, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
             return Ok("FileTransferMethod was deleted.");
         }
         #endregion

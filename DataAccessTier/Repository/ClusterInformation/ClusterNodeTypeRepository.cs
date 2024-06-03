@@ -24,6 +24,12 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
                             .ThenInclude(i => i.TemplateParameters)
                             .ToList();
         }
+
+        public IEnumerable<ClusterNodeType> GetAllByFileTransferMethod(long fileTransferMethodId)
+        {
+            return _dbSet.Where(nt => !nt.IsDeleted && nt.FileTransferMethodId == fileTransferMethodId)
+                            .ToList();
+        }
         #endregion
     }
 }
