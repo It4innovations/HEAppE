@@ -483,4 +483,7 @@
   <data name="InvalidRequestException_CommandTemplateNotStatic" xml:space="preserve">
     <value>The specified Command Template is not static Command Template. Unable to use this endpoint.</value>
   </data>
+  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <value>Cannot cancel job '{0}', this job is in state '{1}'.</value>
+  </data>
 </root>
