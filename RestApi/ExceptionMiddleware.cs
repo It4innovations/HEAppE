@@ -93,6 +93,12 @@ namespace HEAppE.RestApi
                     problem.Status = StatusCodes.Status404NotFound;
                     logLevel = LogLevel.Warning;
                     break;
+                case SessionCodeNotValidException:
+                    problem.Title = "Session Code Authentication Problem";
+                    problem.Detail = GetExceptionMessage(exception);
+                    problem.Status = StatusCodes.Status401Unauthorized;
+                    logLevel = LogLevel.Warning;
+                    break;
                 case AuthenticationTypeException:
                     problem.Title = "Authentication Problem";
                     problem.Detail = GetExceptionMessage(exception);
