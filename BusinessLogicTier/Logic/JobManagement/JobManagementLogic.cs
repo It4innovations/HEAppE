@@ -150,7 +150,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info($"User {loggedUser.GetLogIdentification()} is canceling the job with info Id {submittedJobInfoId}");
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State is not JobState.Configuring and (< JobState.Finished or JobState.WaitingForServiceAccount))
+            if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
             {
                 var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
                                                   .ToList();
@@ -174,6 +174,15 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 UpdateJobStateByTasks(jobInfo);
                 _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
                 _unitOfWork.Save();
+            }
+            else if (jobInfo.State is JobState.WaitingForServiceAccount)
+            {
+                jobInfo.State = JobState.Canceled;
+                jobInfo.Tasks.ForEach(f => f.State = TaskState.Canceled);
+                _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+            }else
+            {
+                throw new InvalidRequestException("CannotCancelJob", submittedJobInfoId, jobInfo.State);
             }
 
             return jobInfo;

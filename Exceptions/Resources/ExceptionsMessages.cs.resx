@@ -481,6 +481,9 @@
     <value>Zadaný Command Template již existuje.</value>
   </data>
   <data name="InputValidationException_NotPermitted" xml:space="preserve">
-    <value />
+    <value> Operace není povolená.</value>
+  </data>
+  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
   </data>
 </root>
