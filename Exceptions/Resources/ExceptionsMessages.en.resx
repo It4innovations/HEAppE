@@ -150,8 +150,14 @@
   <data name="FileTransferTemporaryKeyException_SshKeyGenerationLimit" xml:space="preserve">
     <value>The maximum limit for the number of generated file transfer ssh keys was reached.</value>
   </data>
+  <data name="InputValidationException_CommandTemplateAlreadyParameterExists" xml:space="preserve">
+    <value>The specified command template parameter already exists.</value>
+  </data>
   <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
     <value>The specified command template is disabled.</value>
+  </data>
+  <data name="InputValidationException_NotPermitted" xml:space="preserve">
+    <value>Operation is not permitted.</value>
   </data>
   <data name="InputValidationException_CommandTemplateIsGeneric" xml:space="preserve">
     <value>The specified command template is generic.</value>
@@ -470,5 +476,17 @@
   </data>
   <data name="SshClientArgumentException_KeyGenerationException" xml:space="preserve">
     <value>'{0}' SSH key cannot be generated. The value should be {1}.</value>
+  </data>
+  <data name="InvalidRequestException_CommandTemplateNotFromGeneric" xml:space="preserve">
+    <value>The specified Command Template was not created from Generic Command Template. Unable to use this endpoint.</value>
+  </data>
+  <data name="InvalidRequestException_CommandTemplateNotStatic" xml:space="preserve">
+    <value>The specified Command Template is not static Command Template. Unable to use this endpoint.</value>
+  </data>
+  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <value>Cannot cancel job '{0}', this job is in state '{1}'.</value>
+ </data>
+  <data name="InputValidationException_SubProjectNotActive" xml:space="preserve">
+    <value>Specified SubProject is not active.</value>
   </data>
 </root>

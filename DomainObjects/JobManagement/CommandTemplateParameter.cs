@@ -24,10 +24,13 @@ namespace HEAppE.DomainObjects.JobManagement
         [ForeignKey("CommandTemplate")]
         public long? CommandTemplateId { get; set; }
         public virtual CommandTemplate CommandTemplate { get; set; }
+        public DateTime? CreatedAt { get; set; }
+        public DateTime? ModifiedAt { get; set; }
 
+        public bool IsEnabled { get; set; } = true;
         public override string ToString()
         {
-            return String.Format("CommandTemplateParameter: Id={0}, Identifier={1}, Query={2}", Id, Identifier, Query);
+            return $"CommandTemplateParameter(Id: {Id}, Identifier:{Identifier}, Description: {Description}, Query: {Query}, IsVisible: {IsVisible}, CommandTemplateId: {CommandTemplateId}, CreatedAt: {CreatedAt}, ModifiedAt: {ModifiedAt})";
         }
     }
 }

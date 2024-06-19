@@ -74,7 +74,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (IsSessionExpired(session))
             {
-                throw new SessionCodeNotValidException("Expired", sessionCode, session.LastAccessTime.AddSeconds(_sessionExpirationSeconds));
+                throw new SessionCodeNotValidException("Expired", sessionCode, session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
             }
 
             session.LastAccessTime = DateTime.UtcNow;
@@ -151,7 +151,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 _log.Info($"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
                 return openStackCredentials;
             }
-            catch (AuthenticationTypeException ex)
+            catch (AuthenticationTypeException)
             {
                 throw new AuthenticationTypeException("OpenStack-UnableToRetrieveCredentials");
             }
@@ -377,7 +377,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     }
 
                     hasUserGroup = true;
-                    _log.Info($"LEXIS AAI: User \"{user.Username}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
+                    _log.Info($"LEXIS AAI: User \"{user.Username}\" for Project Short Name \"{lexisProject.ProjectShortName}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
+                    _unitOfWork.Save();
                 }
                 _unitOfWork.Save();
 
@@ -467,8 +468,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
             else
             {
-                adaptorUserWithGroupRole.AdaptorUserRole = userRole;
-                adaptorUserWithGroupRole.IsDeleted = false;
+                if (adaptorUserWithGroupRole.AdaptorUserRole == userRole)
+                {
+                    adaptorUserWithGroupRole.IsDeleted = false;
+                }
+
+                user.CreateSpecificUserRoleForUser(group, userRole.RoleType);
+                user.AdaptorUserUserGroupRoles.Remove(adaptorUserWithGroupRole);
             }
         }
 

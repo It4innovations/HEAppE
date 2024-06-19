@@ -25,6 +25,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         private string _arrayJobId;
         #endregion
         #region Properties
+        public Dictionary<string, string> ParsedParameters { get; set; }
         /// <summary>
         /// Job scheduled id
         /// </summary>
@@ -197,9 +198,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// Constructor
         /// </summary>
         /// <param name="schedulerResponseParameters"></param>
-        public SlurmJobInfo(string schedulerResponseParameters)
+        public SlurmJobInfo(string schedulerResponseParameters, Dictionary<string, string> parsedParameters)
         {
             SchedulerResponseParameters = schedulerResponseParameters;
+            ParsedParameters = parsedParameters;
         }
         #endregion
         #region Local Methods

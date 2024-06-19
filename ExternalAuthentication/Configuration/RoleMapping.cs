@@ -7,10 +7,13 @@ namespace HEAppE.ExternalAuthentication.Configuration
     public class RoleMapping
     {
         private static readonly Dictionary<string, string> _mappingRoles = new();
+        public static string ManagementAdmin { get; set; }
         public static string Maintainer { get; set; }
+        public static string Manager { get; set; }
         public static string Submitter { get; set; }
         public static string GroupReporter { get; set; }
         public static string Reporter { get; set; }
+
 
         public static Dictionary<string, string> MappingRoles
         {

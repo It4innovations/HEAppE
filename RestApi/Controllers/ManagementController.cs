@@ -22,6 +22,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 
 namespace HEAppE.RestApi.Controllers
 {
@@ -126,13 +127,77 @@ namespace HEAppE.RestApi.Controllers
         #endregion
         #region CommandTemplate
         /// <summary>
-        /// Create Command Template from Generic Command Template
+        /// List Command Template
         /// </summary>
-        /// <param name="model">CreateCommandTemplate</param>
+        /// <param name="sessionCode"></param>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpGet("CommandTemplate")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ListCommandTemplate(string sessionCode, long id)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListCommandTemplate\"");
+            var model = new ListCommandTemplateModel()
+            {
+                SessionCode = sessionCode,
+                Id = id
+            };
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            
+            return Ok(_managementService.ListCommandTemplate(id, sessionCode));
+        }
+        
+        /// <summary>
+        /// List Command Templates
+        /// </summary>
+        /// <param name="sessionCode"></param>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpGet("CommandTemplates")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(List<ExtendedCommandTemplateExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ListCommandTemplates(string sessionCode, long projectId)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListCommandTemplates\"");
+            var listCommandTemplatesModel = new ListCommandTemplatesModel()
+            {
+                SessionCode = sessionCode,
+                ProjectId = projectId
+            };
+            ValidationResult validationResult = new ManagementValidator(listCommandTemplatesModel).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            
+            return Ok(_managementService.ListCommandTemplates(projectId, sessionCode));
+        }
+        
+        /// <summary>
+        /// Create Static Command Template
+        /// </summary>
+        /// <param name="model">CreateCommandTemplateModel</param>
         /// <returns></returns>
         [HttpPost("CommandTemplate")]
         [RequestSizeLimit(1520)]
-        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -146,19 +211,53 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
-
+            var commandTemplate = _managementService.CreateCommandTemplateModel(model.Name, model.Description, model.ExtendedAllocationCommand, model.ExecutableFile, model.PreparationScript, model.ProjectId, model.ClusterNodeTypeId, model.SessionCode);
+            List<ExtendedCommandTemplateParameterExt> templateParameters = new();
+            foreach (var templateParameter in model.TemplateParameters)
+            {
+                var createdTemplateParameter = _managementService.CreateCommandTemplateParameter(templateParameter.Identifier, templateParameter.Query,
+                    templateParameter.Description, commandTemplate.Id.Value, model.SessionCode);
+                templateParameters.Add(createdTemplateParameter);
+            }
+            commandTemplate.TemplateParameters = templateParameters.ToArray();
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.CreateCommandTemplate(model.GenericCommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code, model.ExecutableFile, model.PreparationScript, model.SessionCode));
+            return Ok(commandTemplate);
         }
-
+        
         /// <summary>
-        /// Modify command template
+        /// Create Command Template from Generic Command Template
+        /// </summary>
+        /// <param name="fromGenericModel">CreateCommandTemplateFromGenericModel</param>
+        /// <returns></returns>
+        [HttpPost("CommandTemplateFromGeneric")]
+        [RequestSizeLimit(1520)]
+        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateCommandTemplateFromGeneric(CreateCommandTemplateFromGenericModel fromGenericModel)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplateFromGeneric\"");
+            ValidationResult validationResult = new ManagementValidator(fromGenericModel).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            var commandTemplate = _managementService.CreateCommandTemplateFromGeneric(fromGenericModel.GenericCommandTemplateId, fromGenericModel.Name, fromGenericModel.ProjectId, fromGenericModel.Description, fromGenericModel.ExtendedAllocationCommand, fromGenericModel.ExecutableFile, fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(commandTemplate);
+        }
+        
+        /// <summary>
+        /// Modify Static Command Template
         /// </summary>
         /// <param name="model">ModifyCommandTemplateModel</param>
         /// <returns></returns>
         [HttpPut("CommandTemplate")]
         [RequestSizeLimit(1520)]
-        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -172,18 +271,44 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
-
+            var commandTemplate = _managementService.ModifyCommandTemplateModel(model.Id, model.Name, model.Description, model.ExtendedAllocationCommand, model.ExecutableFile, model.PreparationScript, model.ClusterNodeTypeId, model.SessionCode);
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.ModifyCommandTemplate(model.CommandTemplateId, model.Name, model.ProjectId, model.Description, model.Code,
-                                                               model.ExecutableFile, model.PreparationScript, model.SessionCode));
+            return Ok(commandTemplate);
         }
 
         /// <summary>
-        /// Remove command template
+        /// Modify Command Template based on Generic Command Template
+        /// </summary>
+        /// <param name="fromGenericModel">ModifyCommandTemplateFromGenericModel</param>
+        /// <returns></returns>
+        [HttpPut("CommandTemplateFromGeneric")]
+        [RequestSizeLimit(1520)]
+        [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyCommandTemplateFromGeneric(ModifyCommandTemplateFromGenericModel fromGenericModel)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplateFromGeneric\"");
+            ValidationResult validationResult = new ManagementValidator(fromGenericModel).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            var commandTemplate = _managementService.ModifyCommandTemplateFromGeneric(fromGenericModel.CommandTemplateId, fromGenericModel.Name, fromGenericModel.ProjectId, fromGenericModel.Description, fromGenericModel.ExtendedAllocationCommand,
+                fromGenericModel.ExecutableFile, fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(commandTemplate);
+        }
+
+        /// <summary>
+        /// Remove Command Template
         /// </summary>
         /// <param name="model">RemoveCommandTemplateModel</param>
         /// <returns></returns>
-        [HttpDelete("CommandTemplate")]
+        [HttpDelete("RemoveCommandTemplate")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -193,7 +318,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
         public IActionResult RemoveCommandTemplate(RemoveCommandTemplateModel model)
         {
-            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplate\"");
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplateModel\"");
             ValidationResult validationResult = new ManagementValidator(model).Validate();
             if (!validationResult.IsValid)
             {
@@ -204,6 +329,90 @@ namespace HEAppE.RestApi.Controllers
             _managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode);
             return Ok("CommandTemplate was deleted.");
         }
+        #endregion
+
+        #region CommandTemplateParameter
+
+        /// <summary>
+        /// Create Static Command Template
+        /// </summary>
+        /// <param name="model">CreateCommandTemplateModel</param>
+        /// <returns></returns>
+        [HttpPost("CommandTemplateParameter")]
+        [RequestSizeLimit(500)]
+        [ProducesResponseType(typeof(ExtendedCommandTemplateParameterExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateCommandTemplateParameter(CreateCommandTemplateParameterModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateCommandTemplateParameter\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            var commandTemplateParameter = _managementService.CreateCommandTemplateParameter(model.Identifier, model.Query, model.Description, model.CommandTemplateId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(commandTemplateParameter);
+        }
+        
+        /// <summary>
+        /// Modify Static Command Template
+        /// </summary>
+        /// <param name="model">ModifyCommandTemplateParameterModel</param>
+        /// <returns></returns>
+        [HttpPut("CommandTemplateParameter")]
+        [RequestSizeLimit(500)]
+        [ProducesResponseType(typeof(ExtendedCommandTemplateParameterExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyCommandTemplateParameter(ModifyCommandTemplateParameterModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyCommandTemplateParameter\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            var commandTemplateParameter = _managementService.ModifyCommandTemplateParameter(model.Id, model.Identifier, model.Query, model.Description, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(commandTemplateParameter);
+        }
+        
+
+        /// <summary>
+        /// Remove Static Command Template
+        /// </summary>
+        /// <param name="model">RemoveCommandTemplateParameterModel</param>
+        /// <returns></returns>
+        [HttpDelete("CommandTemplateParameter")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveCommandTemplateParameter(RemoveCommandTemplateParameterModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveCommandTemplateParameter\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            string message = _managementService.RemoveCommandTemplateParameter(model.Id, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(message);
+        }
+        
         #endregion
         #region Project
         /// <summary>
@@ -228,10 +437,12 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType, model.Name,
+            var project = _managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType,
+                model.Name,
                 model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
-                model.SessionCode));
+                model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(project);
         }
 
         /// <summary>
@@ -256,8 +467,9 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
+            var project = _managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.SessionCode);
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.SessionCode));
+            return Ok(project);
         }
 
         /// <summary>
@@ -310,8 +522,9 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
+            var clusterProject = _managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode);
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
+            return Ok(clusterProject);
         }
 
         /// <summary>
@@ -336,8 +549,10 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
+            var clusterProject = _managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
+                model.LocalBasepath, model.SessionCode);
             ClearListAvailableClusterMethodCache();
-            return Ok(_managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.LocalBasepath, model.SessionCode));
+            return Ok(clusterProject);
         }
 
         /// <summary>
@@ -366,6 +581,151 @@ namespace HEAppE.RestApi.Controllers
             ClearListAvailableClusterMethodCache();
             return Ok("Removed assignment of the Project to the Cluster.");
         }
+        #endregion
+
+        #region SubProject
+        /// <summary>
+        /// List SubProjects
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpGet("SubProjects")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ListSubProjects(long projectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListSubProjects\" Parameters: SessionCode: \"{sessionCode}\"");
+            var model = new ListSubProjectsModel()
+            {
+                Id = projectId,
+                SessionCode = sessionCode
+            };
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(_managementService.ListSubProjects(projectId, sessionCode));
+        }
+        /// <summary>
+        /// List SubProject
+        /// </summary>
+        /// <param name="subProjectId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpGet("SubProject")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ListSubProject(long subProjectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListSubProject\" Parameters: SessionCode: \"{sessionCode}\"");
+            var model = new ListSubProjectModel()
+            {
+                Id = subProjectId,
+                SessionCode = sessionCode
+            };
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(_managementService.ListSubProject(subProjectId, sessionCode));
+        }
+        
+        /// <summary>
+        /// Create SubProject
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpPost("SubProject")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateSubProject(CreateSubProjectModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateSubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var subProject = _managementService.CreateSubProject(model.ProjectId, model.Identifier, model.Description, model.StartDate, model.EndDate, model.SessionCode);
+            return Ok(subProject);
+        }
+        /// <summary>
+        /// Modify SubProject
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpPut("SubProject")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifySubProject(ModifySubProjectModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifySubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var subProject = _managementService.ModifySubProject(model.Id, model.Identifier, model.Description, model.StartDate, model.EndDate, model.SessionCode);
+            return Ok(subProject);
+        }
+        /// <summary>
+        /// Remove SubProject
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpDelete("SubProject")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveSubProject(RemoveSubProjectModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveSubProject\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveSubProject(model.Id, model.SessionCode);
+            return Ok("SubProject was deleted.");
+        }
+
         #endregion
         #region SecureShellKey
         /// <summary>
@@ -535,7 +895,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPost("InitializeClusterScriptDirectory")]
         [RequestSizeLimit(1000)]
-        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(List<ClusterInitReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -550,8 +910,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.InitializeClusterScriptDirectory(model.ProjectId, model.ClusterProjectRootDirectory, model.SessionCode);
-            return Ok("Cluster script directory was initialized.");
+            return Ok(_managementService.InitializeClusterScriptDirectory(model.ProjectId, model.ClusterProjectRootDirectory, model.SessionCode));
         }
 
         /// <summary>
@@ -577,12 +936,13 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            var message = _managementService.TestClusterAccessForAccount(model.ProjectId, model.SessionCode, null)
+            bool testClusterAccess = _managementService.TestClusterAccessForAccount(model.ProjectId, model.SessionCode, null);
+            var message = testClusterAccess
                 ? "All clusters assigned to project are accessible with selected account."
                 : "Some of the clusters are not accessible with selected account";
 
             _logger.LogInformation(message);
-            return Ok(message);
+            return testClusterAccess ? Ok(message) : BadRequest(message);
         }
 
         /// <summary>
@@ -615,12 +975,41 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            var message = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username)
+            bool testClusterAccess = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username);
+            var message = testClusterAccess
                 ? "All clusters assigned to project are accessible with selected account."
                 : "Some of the clusters are not accessible with selected account";
 
             _logger.LogInformation(message);
-            return Ok(message);
+            return testClusterAccess ? Ok(message) : BadRequest(message);
+        }
+        
+        /// <summary>
+        /// Compute accounting - calculate accounting via accounting formulas
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        /// <exception cref="InputValidationException"></exception>
+        [HttpPost("ComputeAccounting")]
+        [RequestSizeLimit(500)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ComputeAccounting(ComputeAccountingModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ComputeAccounting\"");
+
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.ComputeAccounting(model.StartTime, model.EndTime, model.SessionCode);
+            return Ok("Accounting was computed.");
         }
 
         #endregion
