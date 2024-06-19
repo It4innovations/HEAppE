@@ -1,4 +1,4 @@
-﻿using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -11,7 +11,6 @@ using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
-using HEAppE.ExtModels.JobReporting.Converts;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
@@ -39,27 +38,60 @@ namespace HEAppE.ServiceTier.Management
 
         #endregion
         #region IManagementService Methods
-        public CommandTemplateExt CreateCommandTemplate(long genericCommandTemplateId, string name, long projectId,
-            string description, string code, string executableFile, string preparationScript, string sessionCode)
+
+        public ExtendedCommandTemplateExt CreateCommandTemplateModel(string modelName, string modelDescription,
+            string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
+            long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, modelProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                CommandTemplate commandTemplate = managementLogic.CreateCommandTemplate(modelName, modelDescription, modelExtendedAllocationCommand, modelExecutableFile, modelPreparationScript, modelProjectId, modelClusterNodeTypeId);
+                return commandTemplate.ConvertIntToExtendedExt();
+            }
+        }
+
+        public CommandTemplateExt CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
+            string description, string extendedAllocationCommand, string executableFile, string preparationScript, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Maintainer, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                CommandTemplate commandTemplate = managementLogic.CreateCommandTemplate(genericCommandTemplateId, name, projectId, description, code, executableFile, preparationScript);
+                CommandTemplate commandTemplate = managementLogic.CreateCommandTemplateFromGeneric(genericCommandTemplateId, name, projectId, description, extendedAllocationCommand, executableFile, preparationScript);
                 return commandTemplate.ConvertIntToExt();
             }
 
         }
 
-        public CommandTemplateExt ModifyCommandTemplate(long commandTemplateId, string name, long projectId,
-            string description, string code, string executableFile, string preparationScript, string sessionCode)
+        public ExtendedCommandTemplateExt ModifyCommandTemplateModel(long modelId, string modelName, string modelDescription,
+            string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
+            long modelClusterNodeTypeId, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelId)
+                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                if (!commandTemplate.ProjectId.HasValue || !commandTemplate.IsEnabled)
+                {
+                    throw new InputValidationException("NotPermitted");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                CommandTemplate updatedCommandTemplate = managementLogic.ModifyCommandTemplate(modelId, modelName, modelDescription, modelExtendedAllocationCommand, modelExecutableFile, modelPreparationScript, modelClusterNodeTypeId);
+                return updatedCommandTemplate.ConvertIntToExtendedExt();
+            }
+        }
+
+        public CommandTemplateExt ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
+            string description, string extendedAllocationCommand, string executableFile, string preparationScript, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Maintainer, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                CommandTemplate commandTemplate = managementLogic.ModifyCommandTemplate(commandTemplateId, name, projectId, description, code, executableFile, preparationScript);
+                CommandTemplate commandTemplate = managementLogic.ModifyCommandTemplateFromGeneric(commandTemplateId, name, projectId, description, extendedAllocationCommand, executableFile, preparationScript);
                 return commandTemplate.ConvertIntToExt();
             }
         }
@@ -186,13 +218,13 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public void InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode)
+        public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory);
+                return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory).Select(x => x.ConvertIntToExt()).ToList();
             }
         }
 
@@ -205,6 +237,173 @@ namespace HEAppE.ServiceTier.Management
                 return managementLogic.TestClusterAccessForAccount(modelProjectId, username);
             }
         }
+
+        public ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier,
+            string modelQuery,
+            string modelDescription, long modelCommandTemplateId, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId)
+                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                CommandTemplateParameter commandTemplateParameter = managementLogic.CreateCommandTemplateParameter(modelIdentifier, modelQuery, modelDescription, modelCommandTemplateId);
+                return commandTemplateParameter.ConvertIntToExtendedExt();
+            }
+        }
+
+        public ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery,
+            string modelDescription, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(modelId)
+                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+                if (!commandTemplateParameter.IsEnabled)
+                {
+                    //unauthorized
+                    throw new InputValidationException("NotPermitted");
+                }
+
+                //command template not found or not enabled
+                if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
+                {
+                    throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                }
+
+                if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+                {
+                    throw new InputValidationException("NotPermitted");
+                }
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                CommandTemplateParameter updatedCommandTemplateParameter = managementLogic.ModifyCommandTemplateParameter(modelId, modelIdentifier, modelQuery, modelDescription);
+                return updatedCommandTemplateParameter.ConvertIntToExtendedExt();
+            }
+        }
+
+        public string RemoveCommandTemplateParameter(long modelId, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(modelId)
+                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveCommandTemplateParameter(modelId);
+                return $"CommandTemplateParameter id {modelId} was removed";
+            }
+        }
+
+        public List<ExtendedCommandTemplateExt> ListCommandTemplates(long projectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.ListCommandTemplates(projectId).Select(x => x.ConvertIntToExtendedExt()).ToList();
+            }
+        }
+
+        public ExtendedCommandTemplateExt ListCommandTemplate(long commandTemplateId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
+                                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                if (!commandTemplate.IsEnabled)
+                {
+                    throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                }
+                if (!commandTemplate.ProjectId.HasValue)
+                {
+                    (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager);
+                    return commandTemplate.ConvertIntToExtendedExt();
+                }
+                else
+                {
+                    AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value);
+                    return commandTemplate.ConvertIntToExtendedExt();
+                }
+            }
+        }
+
+        public SubProjectExt ListSubProject(long subProjectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                SubProject subProject = unitOfWork.SubProjectRepository.GetById(subProjectId)
+                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, subProject.ProjectId);
+                return subProject.ConvertIntToExt();
+            }
+        }
+        
+        public List<SubProjectExt> ListSubProjects(long projectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                Project project = unitOfWork.ProjectRepository.GetById(projectId)
+                                        ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId);
+                List<SubProject> subProjects = project.SubProjects.ToList();
+                return subProjects.Select(x => x.ConvertIntToExt()).ToList();
+            }
+        }
+
+        public SubProjectExt CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
+            DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, modelProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                SubProject subProject = managementLogic.CreateSubProject(modelProjectId, modelIdentifier, modelDescription, modelStartDate, modelEndDate);
+                return subProject.ConvertIntToExt();
+            }
+        }
+
+        public SubProjectExt ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate,
+            DateTime? modelEndDate, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                SubProject subProject = unitOfWork.SubProjectRepository.GetById(modelId)
+                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, subProject.ProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                
+                SubProject updatedSubProject = managementLogic.ModifySubProject(modelId, modelIdentifier, modelDescription, modelStartDate, modelEndDate);
+                return updatedSubProject.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveSubProject(long modelId, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                SubProject subProject = unitOfWork.SubProjectRepository.GetById(modelId)
+                    ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, subProject.ProjectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveSubProject(modelId);
+            }
+        }
+
+        public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (var user, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Administrator);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                foreach (var project in projects)
+                {
+                    managementLogic.ComputeAccounting(modelStartTime, modelEndTime, project.Id);
+                }
+            }
+        }
+
         #endregion
     }
 }

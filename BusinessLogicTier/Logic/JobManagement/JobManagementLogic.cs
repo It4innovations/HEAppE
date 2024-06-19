@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Transactions;
-
+﻿using HEAppE.Exceptions.External;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -16,12 +10,17 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
-using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils.Validation;
-
 using log4net;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Text;
+using System.Transactions;
+using HEAppE.Utils;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -100,7 +99,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 }
                 var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id)
                     ?? throw new InvalidRequestException("NotExistingProject");
-
+                
                 //Create job directory
                 SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(specification.Cluster, jobInfo.Project).CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode);
                 return jobInfo;
@@ -152,7 +151,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         {
             _logger.Info($"User {loggedUser.GetLogIdentification()} is canceling the job with info Id {submittedJobInfoId}");
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-            if (jobInfo.State is not JobState.Configuring and (< JobState.Finished or JobState.WaitingForServiceAccount))
+            if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
             {
                 var submittedTask = jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any())
                                                   .ToList();
@@ -176,6 +175,15 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                 UpdateJobStateByTasks(jobInfo);
                 _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
                 _unitOfWork.Save();
+            }
+            else if (jobInfo.State is JobState.WaitingForServiceAccount)
+            {
+                jobInfo.State = JobState.Canceled;
+                jobInfo.Tasks.ForEach(f => f.State = TaskState.Canceled);
+                _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+            }else
+            {
+                throw new InvalidRequestException("CannotCancelJob", submittedJobInfoId, jobInfo.State);
             }
 
             return jobInfo;
@@ -366,7 +374,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             specification.Submitter = loggedUser;
             specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
             specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
-
+            if (specification.SubProjectId.HasValue)
+            {
+                specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
+            }
+            
             foreach (TaskSpecification task in specification.Tasks)
             {
                 CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
@@ -384,7 +396,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                         .FirstOrDefault();
                     string userParametersParameterName = commandTemplate.TemplateParameters
                         .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
-                        .FirstOrDefault()?.Identifier;
+                        .FirstOrDefault().Identifier;
                     string parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
 
                     task.CommandParameterValues.Add(new CommandTemplateParameterValue()
@@ -614,11 +626,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
                                            .ToList();
 
             var jobSpecification = unfinishedTasks.FirstOrDefault().Specification.JobSpecification;
-
-            ClusterAuthenticationCredentials account = useServiceAccount ?
-                unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId)
+            
+            ClusterAuthenticationCredentials account = useServiceAccount ? 
+                unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(jobSpecification.ClusterId, jobSpecification.ProjectId) 
                 : jobSpecification.ClusterUser;
-
+            
             return scheduler.GetActualTasksInfo(unfinishedTasks, account);
         }
 
@@ -636,9 +648,16 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
+            var accountingFormula = dbTaskInfo.NodeType
+                .ClusterNodeTypeAggregation
+                .ClusterNodeTypeAggregationAccountings
+                .LastOrDefault(x=>!x.Accounting.IsDeleted && x.Accounting.IsValid(clusterTaskInfo.StartTime, clusterTaskInfo.EndTime))
+                ?.Accounting.Formula;
+            
             if (clusterTaskInfo is null)
             {
                 dbTaskInfo.State = TaskState.Failed;
+                dbTaskInfo.ResourceConsumed = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, clusterTaskInfo.ParsedParameters, _logger);
                 return dbTaskInfo;
             }
 
@@ -654,6 +673,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             dbTaskInfo.State = clusterTaskInfo.State;
             dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
             dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
+            dbTaskInfo.ResourceConsumed = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, clusterTaskInfo.ParsedParameters, _logger);
             return dbTaskInfo;
         }
     }
