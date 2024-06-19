@@ -69,14 +69,54 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
+  vault:
+    image: hashicorp/vault:latest
+    container_name: heappe-vault
+    ports:
+      - 8200:8200
+    environment:
+      - VAULT_ADDR=http://localhost:8200
+    volumes:
+      - vault-volume:/vault
+      - ../app/confs/vault/vault:/vault/config
+    healthcheck:
+      retries: 5
+    command: server 
+    cap_add:
+      - IPC_LOCK
+    networks:
+      - vaultNet
+
+  vaultagent:
+    image: hashicorp/vault:latest
+    container_name: heappe-vault-agent
+    volumes:
+      - vault-agent-volume:/vault/agent
+      - ../app/confs/vault/agent:/vault/config
+      - ../app/logs/Vault/:/vault/logs
+    command: proxy -config=/vault/config/vault-agent.hcl -log-level debug -log-file=/vault/logs/vault-agent.log
+    cap_add:
+      - IPC_LOCK
+    ports:
+      - 8100:8100
+    networks:
+      - vaultNet
+    depends_on:
+      - vault
+
 volumes:
   app_volume:
   app_sftp_temp_volume:
-  sql_volume:
+  vault-volume:  
+  vault-agent-volume: 
+  sql_data_volume:
+  sql_log_volume:
 
 networks:
   external_network:
   sshagent_internal_network:
     internal: true
   db_internal_network:
+    internal: true
+  vaultNet:
     internal: true
