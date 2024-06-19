@@ -159,11 +159,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 return;
             }
 
-            foreach (CommandTemplateParameter parameter in task.CommandTemplate.TemplateParameters)
+            foreach (CommandTemplateParameter parameter in task.CommandTemplate.TemplateParameters.Where(x=>x.IsEnabled))
             {
                 if (string.IsNullOrEmpty(parameter.Query) &&
                     (task.CommandParameterValues == null ||
-                     !task.CommandParameterValues.Any(w => w.TemplateParameter == parameter)))
+                     !task.CommandParameterValues.Any(w => w.TemplateParameter == parameter && w.TemplateParameter.IsEnabled)))
                 {
                     _ = _messageBuilder.AppendLine($"Command Template parameter \"{parameter.Identifier}\" does not have a value.");
                 }

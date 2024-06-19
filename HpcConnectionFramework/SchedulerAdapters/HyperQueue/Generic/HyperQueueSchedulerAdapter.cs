@@ -86,7 +86,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic
                                        Submission script result: ""{command.Result}"".\nSubmission script error message: ""{command.Error}"".\n
                                        Command line for job submission: ""{sshCommandBase64}"".\n", e);
             }
-            return null;
         }
 
         private SubmittedTaskInfo GetActualHqJobInfo(object connectorClient, Cluster cluster, string jobId)
@@ -203,10 +202,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic
             return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
         }
 
-        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
+        public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
             string localBasepath, bool isServiceAccount)
         {
-            _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
+            return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory, localBasepath, isServiceAccount);
         }
         #endregion
     }

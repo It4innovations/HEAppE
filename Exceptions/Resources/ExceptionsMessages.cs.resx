@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!-- 
     Microsoft ResX Schema 
@@ -470,5 +470,23 @@
   </data>
   <data name="SshClientArgumentException_KeyGenerationException" xml:space="preserve">
     <value>'{0}' SSH key cannot be generated. The value should be {1}.</value>
+  </data>
+  <data name="InvalidRequestException_CommandTemplateNotFromGeneric" xml:space="preserve">
+    <value>Zadaný Command Template nebyl vytvořen z generického Command Template.</value>
+  </data>
+  <data name="InvalidRequestException_CommandTemplateNotStatic" xml:space="preserve">
+    <value>Zadaný Command Template nebyl vytvořen jako statický Command Template.</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateAlreadyParameterExists" xml:space="preserve">
+    <value>Zadaný Command Template již existuje.</value>
+  </data>
+  <data name="InputValidationException_NotPermitted" xml:space="preserve">
+    <value />
+  </data>
+  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
+  </data>
+  <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
+    <value>Specifikovaný SubProject je smazaný nebo neplatný.</value>
   </data>
 </root>

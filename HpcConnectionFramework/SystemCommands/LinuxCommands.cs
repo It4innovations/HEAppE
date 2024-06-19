@@ -1,17 +1,17 @@
-﻿using System;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using log4net;
+using Org.BouncyCastle.Crypto.Generators;
+using Renci.SshNet;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
-
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
-
-using log4net;
-
-using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands
 {
@@ -206,7 +206,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
         /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
         /// <param name="localBasepath">Cluster execution path</param>
         /// <param name="isServiceAccount">Is servis account</param>
-        public void InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
         {
             var cmdBuilder = new StringBuilder();
             string targetDirectory = Path.Combine(clusterProjectRootDirectory, _scripts.SubScriptsPath, ".key_scripts").Replace('\\', '/');
@@ -228,13 +228,24 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
 
                 // Scripts modifications
                 cmdBuilder.Append($"chmod -R 755 {targetDirectory} && ");
-                cmdBuilder.Append($"sed -i 's|TODO|{localBasepath}/{_scripts.SubExecutionsPath}|g' {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
+                cmdBuilder.Append($"sed -i \"s|TODO|{localBasepath}/{_scripts.SubExecutionsPath}|g\" {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
             }
 
             cmdBuilder.Append($"ln -sf {targetDirectory} {_scripts.ScriptsBasePath}");
-            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
-            _log.Info($"Initialized Cluster scripts for project");
+
+            try
+            {
+                var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
+                _log.Info($"Cluster scripts initialization result: \"{sshCommand.Result}\"");
+            }
+            catch (SshCommandException ex)
+            {
+                _log.Error($"Cluster scripts initialization failed: \"{ex.Message}\"");
+                return false;
+            }
+            return true;
         }
+
         #endregion
     }
 }

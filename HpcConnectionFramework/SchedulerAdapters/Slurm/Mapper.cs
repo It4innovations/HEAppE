@@ -24,10 +24,11 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
                     or SlurmTaskState.Pending
                     or SlurmTaskState.RequeueHold
                     or SlurmTaskState.RequeueFed
+                    or SlurmTaskState.Configuring
                     or SlurmTaskState.ResvDelHold => TaskState.Queued,
 
-                SlurmTaskState.Configuring
-                    or SlurmTaskState.StageOut
+                
+                SlurmTaskState.StageOut
                     or SlurmTaskState.Signaling => TaskState.Configuring,
 
                 SlurmTaskState.Completed
