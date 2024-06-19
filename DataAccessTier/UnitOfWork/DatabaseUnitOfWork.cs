@@ -34,6 +34,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IClusterProxyConnectionRepository _clusterProxyConnectionRepository;
         private IClusterRepository _clusterRepository;
         private IProjectRepository _projectRepository;
+        private ISubProjectRepository _subProjectRepository;
         private IContactRepository _contactRepository;
         private IClusterProjectRepository _clusterProjectRepository;
         private IClusterAuthenticationCredentialsRepository _clusterAuthenticationCredentialsRepository;
@@ -96,6 +97,15 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _projectRepository = _projectRepository ?? new ProjectRepository(_context);
+
+            }
+        }
+        
+        public ISubProjectRepository SubProjectRepository
+        {
+            get
+            {
+                return _subProjectRepository = _subProjectRepository ?? new SubProjectRepository(_context);
 
             }
         }

@@ -13,6 +13,7 @@ using log4net;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.Exceptions.External;
 
 namespace HEAppE.ServiceTier.JobManagement
@@ -35,7 +36,15 @@ namespace HEAppE.ServiceTier.JobManagement
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, specification.ProjectId);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                JobSpecification js = specification.ConvertExtToInt(specification.ProjectId);
+                SubProject subProject = null;
+                
+                if (!string.IsNullOrEmpty(specification.SubProject))
+                {
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    subProject = managementLogic.CreateSubProject(specification.SubProject, specification.ProjectId);
+                }
+                
+                JobSpecification js = specification.ConvertExtToInt(specification.ProjectId, subProject?.Id);
                 SubmittedJobInfo jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
                 return jobInfo.ConvertIntToExt();
             }

@@ -12,14 +12,6 @@ namespace HEAppE.ExtModels.JobReporting.Models
         [DataMember]
         public string Name { get; set; }
         [DataMember]
-        public TaskStateExt State { get; set; }
-        [DataMember]
-        public DateTime? StartTime { get; set; }
-        [DataMember]
-        public DateTime? EndTime { get; set; }
-        [DataMember]
-        public long CommandTemplateId { get; set; }
-        [DataMember]
         public double? Usage { get; set; }
     }
 }

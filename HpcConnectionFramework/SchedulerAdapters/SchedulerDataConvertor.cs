@@ -8,6 +8,7 @@ using HEAppE.Utils;
 using log4net;
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Linq;
 using System.Reflection;
@@ -216,7 +217,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 ICollection<CommandTemplateParameter> templateParameters, ICollection<CommandTemplateParameterValue> taskParametersValues)
         {
             var finalParameters = new Dictionary<string, string>();
-            foreach (CommandTemplateParameter templateParameter in templateParameters)
+            foreach (CommandTemplateParameter templateParameter in templateParameters.Where(x=>x.IsEnabled))
             {
                 var taskParametersValue = taskParametersValues.Where(w => w.TemplateParameter.Identifier == templateParameter.Identifier)
                                                                .FirstOrDefault();
