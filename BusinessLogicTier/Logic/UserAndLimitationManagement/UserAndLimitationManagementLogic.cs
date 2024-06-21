@@ -129,7 +129,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
                 if (!hasRequiredRole)
                 {
-                    throw new InsufficientRoleException("MissingRoleForProjectCreation", AdaptorUserRoleType.Submitter.ToString(), openStackProject.HEAppEProjectId.Value);
+                    throw new InsufficientRoleException("MissingRoleForProject", AdaptorUserRoleType.Submitter.ToString(), openStackProject.HEAppEProjectId.Value);
                 }
 
                 OpenStack openStack = new(openStackProject.Domain.InstanceUrl);
