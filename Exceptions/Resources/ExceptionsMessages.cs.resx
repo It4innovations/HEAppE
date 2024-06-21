@@ -192,8 +192,8 @@
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Odesílání jobu je k dispozici pouze pro joby ve stavu 'konfigurace'.</value>
   </data>
-  <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
-    <value>Uživatel nemá '{0}' roli pro vytvoření '{1}' projektu.</value>
+  <data name="InsufficientRoleException_MissingRoleForProject" xml:space="preserve">
+    <value>Uživatel nemá '{0}' roli v projektu '{1}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Autentizace uživatele '{0}' nebyla úspěšná kvůli nesprávným přihlašovacím údajům.</value>
