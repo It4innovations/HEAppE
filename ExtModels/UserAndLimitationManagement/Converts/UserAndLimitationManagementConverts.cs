@@ -43,7 +43,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
         {
             var convert = new ResourceUsageExt()
             {
-                NodeType = usage.NodeType.IsDeleted ? null : usage.NodeType.ConvertIntToExt(),
+                NodeType = usage.NodeType.ConvertIntToExt(),
                 CoresUsed = usage.CoresUsed
             };
             return convert;

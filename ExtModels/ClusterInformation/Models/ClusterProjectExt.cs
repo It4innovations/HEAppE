@@ -1,7 +1,4 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
-using System.Collections.Generic;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System;
 using System.Runtime.Serialization;
 
@@ -25,12 +22,9 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
         [DataMember(Name = "ModifiedAt")]
         public DateTime? ModifiedAt { get; set; }
 
-        [DataMember(Name = "IsDeleted")]
-        public bool IsDeleted { get; set; } = false;
-
         public override string ToString()
         {
-            return $"""ClusterProjectExt: ClusterId={ClusterId}, ProjectId={ProjectId}, LocalBasepath={LocalBasepath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
+            return $"""ClusterProjectExt: ClusterId={ClusterId}, ProjectId={ProjectId}, LocalBasepath={LocalBasepath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}" """;
         }
     }
 }

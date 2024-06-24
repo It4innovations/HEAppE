@@ -124,7 +124,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 OpenStackProjectDTO openStackProject = GetOpenStackInstanceWithProjects(projectId);
                 bool hasRequiredRole = adaptorUser.AdaptorUserUserGroupRoles.Any(x => (AdaptorUserRoleType)x.AdaptorUserRoleId == AdaptorUserRoleType.Submitter
                                                                                                     && x.AdaptorUserGroup.ProjectId == openStackProject.HEAppEProjectId
-                                                                                                    && !x.AdaptorUserGroup.Project.IsDeleted
                                                                                                     && x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow);
 
                 if (!hasRequiredRole)
@@ -535,12 +534,9 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
         private AdaptorUser GetActiveUser(string username)
         {
-            AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(username);
             _log.Info($"User \"{username}\" wants to authenticate to the system.");
-
-            return user == null
-                ? throw new InvalidAuthenticationCredentialsException("WrongCredentials", user.Username)
-                : user.IsDeleted ? throw new AuthenticatedUserAlreadyDeletedException("UserDeleted", user.Username) : user;
+            return _unitOfWork.AdaptorUserRepository.GetByName(username) ??
+                throw new InvalidAuthenticationCredentialsException("WrongCredentials", username);
         }
 
         private SessionCode CreateSessionCode(AdaptorUser user)

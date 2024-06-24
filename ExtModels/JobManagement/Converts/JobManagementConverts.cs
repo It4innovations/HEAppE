@@ -219,7 +219,7 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 EndTime = task.EndTime,
                 CpuHyperThreading = task.CpuHyperThreading,
                 ErrorMessage = task.ErrorMessage,
-                NodeType = task.NodeType.IsDeleted || task.NodeType == null ? null
+                NodeType = task.NodeType == null ? null
                             : task.NodeType?.ConvertIntToExt(task.Project, task.Specification.CommandTemplate),
             };
             return convert;

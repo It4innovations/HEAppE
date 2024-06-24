@@ -22,7 +22,7 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         /// <returns></returns>
         public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
         {
-            return _dbSet.Where(c => !c.IsDeleted).ToList().Select(c => GetCluster(c)).ToList();
+            return _dbSet.ToList().Select(c => GetCluster(c)).ToList();
         }
 
         /// <summary>
@@ -32,7 +32,7 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         /// <returns></returns>
         public IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId)
         {
-            return _dbSet.Where(c => !c.IsDeleted && c.ProxyConnectionId == clusterProxyConnectionId).ToList();
+            return _dbSet.Where(c => c.ProxyConnectionId == clusterProxyConnectionId).ToList();
         }
         #endregion
 
@@ -47,15 +47,15 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
                 ClusterProjects = cluster.ClusterProjects,
                 ConnectionProtocol = cluster.ConnectionProtocol,
                 DomainName = cluster.DomainName,
-                FileTransferMethods = cluster.FileTransferMethods.Where(ftm => !ftm.IsDeleted).ToList(),
+                FileTransferMethods = cluster.FileTransferMethods.ToList(),
                 MasterNodeName = cluster.MasterNodeName,
                 Port = cluster.Port,
-                ProxyConnection = cluster.ProxyConnection == null || cluster.ProxyConnection.IsDeleted ? null : cluster.ProxyConnection,
-                ProxyConnectionId = cluster.ProxyConnection == null || cluster.ProxyConnection.IsDeleted ? null : cluster.ProxyConnectionId,
+                ProxyConnection = cluster.ProxyConnection == null ? null : cluster.ProxyConnection,
+                ProxyConnectionId = cluster.ProxyConnection == null ? null : cluster.ProxyConnectionId,
                 SchedulerType = cluster.SchedulerType,
                 TimeZone = cluster.TimeZone,
                 UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount,
-                NodeTypes = cluster.NodeTypes.Where(nt => !nt.IsDeleted).Select(n => GetClusterNodeType(n)).ToList()
+                NodeTypes = cluster.NodeTypes.Select(n => GetClusterNodeType(n)).ToList()
             };
         }
 
@@ -70,13 +70,13 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
                 ClusterAllocationName = n.ClusterAllocationName,
                 CoresPerNode = n.CoresPerNode,
                 Description = n.Description,
-                FileTransferMethod = n.FileTransferMethod == null || n.FileTransferMethod.IsDeleted ? null : n.FileTransferMethod,
-                FileTransferMethodId = n.FileTransferMethod == null || n.FileTransferMethod.IsDeleted ? null : n.FileTransferMethodId,
+                FileTransferMethod = n.FileTransferMethod == null ? null : n.FileTransferMethod,
+                FileTransferMethodId = n.FileTransferMethod == null ? null : n.FileTransferMethodId,
                 MaxWalltime = n.MaxWalltime,
                 NumberOfNodes = n.NumberOfNodes,
                 Queue = n.Queue,
                 RequestedNodeGroups = n.RequestedNodeGroups,
-                PossibleCommands = n.PossibleCommands.Where(p => p.ProjectId == null || (!p.Project.IsDeleted && p.Project.EndDate >= System.DateTime.UtcNow)).ToList()
+                PossibleCommands = n.PossibleCommands.Where(p => p.ProjectId == null || (p.Project.EndDate >= System.DateTime.UtcNow)).ToList()
             };
         }
         #endregion

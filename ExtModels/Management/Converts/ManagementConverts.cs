@@ -70,8 +70,7 @@ namespace HEAppE.ExtModels.Management.Converts
                 ProjectId = cp.ProjectId,
                 LocalBasepath = cp.LocalBasepath,
                 CreatedAt = cp.CreatedAt,
-                ModifiedAt = cp.ModifiedAt,
-                IsDeleted = cp.IsDeleted
+                ModifiedAt = cp.ModifiedAt
             };
             return convert;
         }

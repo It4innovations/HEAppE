@@ -121,7 +121,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             Cluster cluster = jobInfo.Specification.Cluster;
 
-            if (jobInfo.FileTransferTemporaryKeys.Count(c => !c.IsDeleted) > BusinessLogicConfiguration.GeneratedFileTransferKeyLimitPerJob)
+            if (jobInfo.FileTransferTemporaryKeys.Count() > BusinessLogicConfiguration.GeneratedFileTransferKeyLimitPerJob)
             {
                 throw new FileTransferTemporaryKeyException("SshKeyGenerationLimit");
             }
@@ -289,10 +289,8 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
 
         public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)
         {
-            FileTransferMethod fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(fileTransferMethodById);
-            return fileTransferMethod == null || fileTransferMethod.IsDeleted
-                ? throw new RequestedObjectDoesNotExistException("NotExistingFileTransferMethod", fileTransferMethodById)
-                : fileTransferMethod;
+            return _unitOfWork.FileTransferMethodRepository.GetById(fileTransferMethodById)
+                ?? throw new RequestedObjectDoesNotExistException("NotExistingFileTransferMethod", fileTransferMethodById);
         }
 
         public virtual IEnumerable<FileTransferMethod> GetFileTransferMethodsByClusterId(long clusterId)

@@ -17,13 +17,12 @@ namespace HEAppE.DataAccessTier.Repository.FileTransfer
         #region Methods
         public IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKey()
         {
-            return GetAll().Where(w => !w.IsDeleted)
-                            .ToList();
+            return GetAll().ToList();
         }
 
         public bool ContainsActiveTemporaryKey(string publicKey)
         {
-            return GetAll().Any(w => !w.IsDeleted && w.PublicKey == publicKey);
+            return GetAll().Any(w => w.PublicKey == publicKey);
         }
         #endregion
     }

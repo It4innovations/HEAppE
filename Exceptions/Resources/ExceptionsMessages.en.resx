@@ -123,9 +123,6 @@
   <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
     <value>Logged user '{0}' is not authorized to query task info '{1}'.</value>
   </data>
-  <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
-    <value>User '{0}', that requested authentication was already deleted from the HEAppE.</value>
-  </data>
   <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
     <value>None Group does not exist in the HEAppE.</value>
   </data>

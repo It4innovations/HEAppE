@@ -214,7 +214,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         private void ValidateRequestedProject(JobSpecification job)
         {
             ClusterProject clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(job.ClusterId, job.ProjectId);
-            if (clusterProject == null || clusterProject.IsDeleted)
+            if (clusterProject == null)
             {
                 _ = _messageBuilder.AppendLine($"Requested project with Id {job.ProjectId} has no reference to cluster with Id {job.ClusterId}.");
             }
@@ -279,11 +279,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
         {
             try
             {
-                Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-                if (project is null && project.IsDeleted)
-                {
-                    throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-                }
+                Project project = _unitOfWork.ProjectRepository.GetById(projectId)
+                    ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
                 ClusterAuthenticationCredentials serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
                 return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project).GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
             }

@@ -19,15 +19,14 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
         #region Public methods
         public IEnumerable<ClusterNodeType> GetAllWithPossibleCommands()
         {
-            return _dbSet.Where(nt => !nt.IsDeleted)
-                            .Include(i => i.PossibleCommands)
+            return _dbSet.Include(i => i.PossibleCommands)
                             .ThenInclude(i => i.TemplateParameters)
-                            .ToList();
+                                .ToList();
         }
 
         public IEnumerable<ClusterNodeType> GetAllByFileTransferMethod(long fileTransferMethodId)
         {
-            return _dbSet.Where(nt => !nt.IsDeleted && nt.FileTransferMethodId == fileTransferMethodId)
+            return _dbSet.Where(nt => nt.FileTransferMethodId == fileTransferMethodId)
                             .ToList();
         }
         #endregion

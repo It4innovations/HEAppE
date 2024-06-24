@@ -19,7 +19,7 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement
         #region Methods
         public IEnumerable<Project> GetAllActiveProjects()
         {
-            return _dbSet.Where(p => !p.IsDeleted && p.EndDate >= DateTime.UtcNow)
+            return _dbSet.Where(p => p.EndDate >= DateTime.UtcNow)
                             .Include(x => x.ProjectContacts)
                             .ThenInclude(x => x.Contact)
                             .ToList();

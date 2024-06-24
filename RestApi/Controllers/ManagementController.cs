@@ -1006,6 +1006,132 @@ namespace HEAppE.RestApi.Controllers
         }
         #endregion
 
+        #region ClusterNodeTypeAggregation
+        /// <summary>
+        /// Get ClusterNodeTypeAggregation by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ClusterNodeTypeAggregation")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetClusterNodeTypeAggregationById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetClusterNodeTypeAggregationById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var clusterNodeTypeAggregation = _managementService.GetClusterNodeTypeAggregationById(id, sessionCode);
+            return Ok(clusterNodeTypeAggregation);
+        }
+
+        /// <summary>
+        /// Get all ClusterNodeTypeAggregations
+        /// </summary>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ClusterNodeTypeAggregations")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetClusterNodeTypeAggregations(string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetClusterNodeTypeAggregations\" Parameters: SessionCode: \"{sessionCode}\"");
+
+            var clusterNodeTypeAggregations = _managementService.GetClusterNodeTypeAggregations(sessionCode);
+            return Ok(clusterNodeTypeAggregations);
+        }
+
+        /// <summary>
+        /// Create ClusterNodeTypeAggregations
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("ClusterNodeTypeAggregation")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(ClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateClusterNodeTypeAggregation(CreateClusterNodeTypeAggregationModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var clusterNodeTypeAggregation = _managementService.CreateClusterNodeTypeAggregation(model.Name, model.Description, model.AllocationType, model.ValidityFrom,
+                model.ValidityTo, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(clusterNodeTypeAggregation);
+        }
+
+        /// <summary>
+        /// Modify ClusterNodeTypeAggregations
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("ClusterNodeTypeAggregation")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(ClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyClusterNodeTypeAggregation(ModifyClusterNodeTypeAggregationModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var clusterNodeTypeAggregation = _managementService.ModifyClusterNodeTypeAggregation(model.Id, model.Name, model.Description, model.AllocationType, model.ValidityFrom,
+                model.ValidityTo, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(clusterNodeTypeAggregation);
+        }
+
+        /// <summary>
+        /// Remove ClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("ClusterNodeTypeAggregation")]
+        [RequestSizeLimit(90)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveClusterNodeTypeAggregation(RemoveClusterNodeTypeAggregationModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveClusterNodeTypeAggregation\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveClusterNodeTypeAggregation(model.Id, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok("ClusterNodeTypeAggregation was deleted.");
+        }
+        #endregion
+
         #region SubProject
         /// <summary>
         /// List SubProjects

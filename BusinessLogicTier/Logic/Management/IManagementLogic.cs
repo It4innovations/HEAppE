@@ -59,5 +59,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         FileTransferMethod CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId, int? port);
         FileTransferMethod ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol, long clusterId, int? port);
         void RemoveFileTransferMethod(long id);
+        ClusterNodeTypeAggregation GetClusterNodeTypeAggregationById(long id);
+        List<ClusterNodeTypeAggregation> GetClusterNodeTypeAggregations();
+        ClusterNodeTypeAggregation CreateClusterNodeTypeAggregation(string name, string description, string allocationType, DateTime validityFrom, DateTime? validityTo);
+        ClusterNodeTypeAggregation ModifyClusterNodeTypeAggregation(long id, string name, string description, string allocationType, DateTime validityFrom, DateTime? validityTo);
+        void RemoveClusterNodeTypeAggregation(long id);
     }
 }

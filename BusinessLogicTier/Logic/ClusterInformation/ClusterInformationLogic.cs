@@ -52,7 +52,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 throw new InvalidRequestException("ClusterNodeNoReferenceToCluster");
             }
 
-            if (project is null || project.IsDeleted)
+            if (project is null)
             {
                 throw new RequestedObjectDoesNotExistException($"ProjectNotFound");
             }
@@ -80,7 +80,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
-            if (project is null && project.IsDeleted)
+            if (project is null)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
@@ -128,7 +128,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         {
             Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
 
-            if (cluster == null || cluster.IsDeleted)
+            if (cluster == null)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
             }
@@ -170,7 +170,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         {
             ClusterNodeType nodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(clusterNodeTypeId);
 
-            if (nodeType == null || nodeType.IsDeleted)
+            if (nodeType == null)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", clusterNodeTypeId);
             }
@@ -181,7 +181,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         public Cluster GetClusterById(long clusterId)
         {
             Cluster cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
-            return cluster == null || cluster.IsDeleted ? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId) : cluster;
+            return cluster == null ? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId) : cluster;
         }
 
         public IEnumerable<ClusterNodeType> ListClusterNodeTypes()

@@ -59,17 +59,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             long projectId, string description, string extendedAllocationCommand, string executableFile,
             string preparationScript)
         {
-            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId);
-            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || project.IsDeleted)
-            {
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                 throw new RequestedObjectDoesNotExistException($"ProjectNotFound");
-            }
 
-            if (commandTemplate == null)
-            {
+            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId) ??
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            }
 
             if (!commandTemplate.IsGeneric)
             {
@@ -143,22 +137,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string modelExtendedAllocationCommand,
             string modelExecutableFile, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId)
         {
-            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
-            if (clusterNodeType is null || clusterNodeType.IsDeleted)
-            {
+            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
-            }
-            
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
-                modelProjectId);
 
-            if (clusterProject is null || clusterProject.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, modelProjectId);
-            }
+            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value, modelProjectId) ??
+                 throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, modelProjectId);
 
             Project project = clusterProject.Project;
-            if (project is null || project.IsDeleted)
+            if (project is null)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
@@ -193,11 +179,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
             long modelClusterNodeTypeId)
         {
-            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelId);
-            if (commandTemplate is null)
-            {
+            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelId) ??
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            }
 
             if (!commandTemplate.IsEnabled)
             {
@@ -209,30 +192,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InvalidRequestException("CommandTemplateNotStatic");
             }
 
-            Project project = commandTemplate.Project;
-            if (project is null)
-            {
+            Project project = commandTemplate.Project ??
                 throw new InvalidRequestException("NotPermitted");
-            }
-            
-            if (project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
 
-            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
-            if (clusterNodeType is null || clusterNodeType.IsDeleted)
-            {
+            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
-            }
-            
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
-                project.Id);
-            
-            if (clusterProject is null || clusterProject.IsDeleted)
-            {
+
+            _ = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value, project.Id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, project.Id);
-            }
             
             commandTemplate.Name = modelName;
             commandTemplate.Description = modelDescription;
@@ -264,28 +231,16 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="InputValidationException"></exception>
         public CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
-            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-            
-            if (commandTemplate is null)
-            {
-                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            }
+            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound"); ;
             
             if(commandTemplate.CreatedFrom is null)
             {
                 throw new InvalidRequestException("CommandTemplateNotFromGeneric");
             }
             
-            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null)
-            {
-                throw new InvalidRequestException("NotPermitted");
-            }
-            
-            if (project.IsDeleted)
-            {
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
 
             if (!commandTemplate.IsEnabled)
             {
@@ -361,15 +316,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="loggedUser"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
-        public DomainObjects.JobManagement.Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
+        public Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
         {
-            DomainObjects.JobManagement.Project existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
+            Project existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString) ??
+                throw new InputValidationException("ProjectDeleted");
+
             if (existingProject != null)
             {
-                var errorMessage = existingProject.IsDeleted
-                    ? "ProjectDeleted"
-                    : "ProjectAlreadyExist";
-                throw new InputValidationException(errorMessage);
+                throw new InputValidationException("ProjectAlreadyExist");
             }
 
             Contact contact = _unitOfWork.ContactRepository.GetByEmail(piEmail)
@@ -434,18 +388,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="endDate"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public DomainObjects.JobManagement.Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
+        public Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            if (project is null)
-            {
-                throw new InvalidRequestException("NotPermitted");
-            }
-            
-            if (project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
 
             project.UsageType = usageType;
             project.Name = modelName ?? project.Name;
@@ -470,19 +415,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public void RemoveProject(long id)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            if (project is null)
-            {
-                throw new InvalidRequestException("NotPermitted");
-            }
-            
-            if (project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
 
             project.IsDeleted = true;
             project.ModifiedAt = DateTime.UtcNow;
             project.ClusterProjects.ForEach(x => RemoveProjectAssignmentToCluster(x.ProjectId, x.ClusterId));
+
             _unitOfWork.ProjectRepository.Update(project);
             _logger.Info($"Project id '{project.Id}' has been deleted.");
             _unitOfWork.Save();
@@ -500,20 +437,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
-
-            if (cluster == null || cluster.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
-            }
-
+            _ = _unitOfWork.ClusterRepository.GetById(clusterId) ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
             var cp = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+
             if (cp != null)
             {
-                //Cluster to project is marked as deleted, update it
-                return !cp.IsDeleted
-                    ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
-                    : ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                throw new InputValidationException("ProjectAlreadyExistWithCluster");
             }
 
             //Create cluster to project mapping
@@ -601,7 +530,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null || project.IsDeleted || project.EndDate < DateTime.UtcNow)
+            if (project is null || project.EndDate < DateTime.UtcNow)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
@@ -689,7 +618,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId)
         {
-            IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+            IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
             if (!clusterAuthenticationCredentials.Any())
             {
@@ -730,7 +659,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveSecureShellKey(string username, long projectId)
         {
-            IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+            IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
             if (!clusterAuthenticationCredentials.Any())
             {
@@ -858,18 +787,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
             {
-                if (clusterAuthCredentials.IsDeleted)
-                {
-                    continue;
-                }
-
                 foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
                 {
-                    if (clusterProjectCredential.IsDeleted)
-                    {
-                        continue;
-                    }
-
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
                     string localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
@@ -925,7 +844,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             IEnumerable<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
                 ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
-                : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && !w.IsDeleted && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+                : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w => w.Username == username && w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent && w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
             if (!clusterAuthenticationCredentials.Any())
             {
@@ -933,19 +852,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             List<long> noAccessClusterIds = new();
-            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username).Where(x=>!x.IsDeleted))
+            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
             {
-                if (clusterAuthCredentials.IsDeleted)
+                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject))
                 {
-                    continue;
-                }
-                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject).Where(x=>!x.IsDeleted))
-                {
-                    if (clusterAuthCredentials.IsDeleted || clusterProjectCredential.IsDeleted || clusterProjectCredential.ClusterProject.IsDeleted)
-                    {
-                        continue;
-                    }
-
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
                     
@@ -1101,12 +1011,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             Cluster cluster = _unitOfWork.ClusterRepository.GetById(id);
 
-            if (cluster == null || cluster.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
-            }
-
-            return cluster;
+            return cluster ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
         }
 
         /// <summary>
@@ -1130,11 +1035,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             if (proxyConnectionId.HasValue)
             {
-                var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
-                if (proxyConnection == null || proxyConnection.IsDeleted)
-                {
+                _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
                     throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
-                }
             }
 
             var cluster = new Cluster
@@ -1175,18 +1077,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
             string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
         {
-            Cluster existingCluster = _unitOfWork.ClusterRepository.GetById(id);
-            if (existingCluster == null || existingCluster.IsDeleted)
-            {
+            Cluster existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
-            }
             if (proxyConnectionId.HasValue)
             {
-                var proxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId);
-                if(proxyConnection == null || proxyConnection.IsDeleted)
-                {
+                _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
                     throw new RequestedObjectDoesNotExistException("ProxyConnectionNotFound", proxyConnectionId);
-                }
             }
 
             existingCluster.Name = name;
@@ -1211,21 +1107,18 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="id"></param>
         public void RemoveCluster(long id)
         {
-            Cluster existingCluster = _unitOfWork.ClusterRepository.GetById(id);
-            if (existingCluster == null || existingCluster.IsDeleted)
-            {
+            Cluster existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
-            }
 
             // remove cluster project references
             existingCluster.ClusterProjects.ForEach(x => RemoveProjectAssignmentToCluster(x.ProjectId, x.ClusterId));
             // soft delete cluster node types
-            existingCluster.NodeTypes.Where(nt => !nt.IsDeleted).ToList().ForEach(nt => RemoveClusterNodeType(nt.Id));
+            existingCluster.NodeTypes.ToList().ForEach(nt => RemoveClusterNodeType(nt.Id));
             // TODO - delete job specification?
             // soft delete file transfer methods
-            existingCluster.FileTransferMethods.Where(ftm => !ftm.IsDeleted).ToList().ForEach(ftm => RemoveFileTransferMethod(ftm.Id));
+            existingCluster.FileTransferMethods.ToList().ForEach(ftm => RemoveFileTransferMethod(ftm.Id));
             // soft delete proxy connection
-            if(existingCluster.ProxyConnection != null && !existingCluster.ProxyConnection.IsDeleted)
+            if(existingCluster.ProxyConnection != null)
             {
                 RemoveClusterProxyConnection((long)existingCluster.ProxyConnectionId);
             }
@@ -1243,14 +1136,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public ClusterNodeType GetClusterNodeTypeById(long id)
         {
-            ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id);
-
-            if (clusterNodeType == null || clusterNodeType.IsDeleted)
-            {
+            return _unitOfWork.ClusterNodeTypeRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
-            }
-
-            return clusterNodeType;
         }
 
         /// <summary>
@@ -1274,27 +1161,18 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             if (clusterId.HasValue)
             {
-                var cluster = _unitOfWork.ClusterRepository.GetById((long)clusterId);
-                if(cluster == null || cluster.IsDeleted)
-                {
+                _ = _unitOfWork.ClusterRepository.GetById((long)clusterId) ??
                     throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
-                }
             }
             if (fileTransferMethodId.HasValue)
             {
-                var fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId);
-                if(fileTransferMethod == null || fileTransferMethod.IsDeleted)
-                {
+                _ = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId) ??
                     throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
-                }
             }
             if (clusterNodeTypeAggregationId.HasValue)
             {
-                var aggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById((long)clusterNodeTypeAggregationId);
-                if(aggregation == null || aggregation.IsDeleted)
-                {
+                _ = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById((long)clusterNodeTypeAggregationId) ??
                     throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", clusterNodeTypeAggregationId);
-                }
             }
 
             var clusterNodeType = new ClusterNodeType
@@ -1337,35 +1215,23 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public ClusterNodeType ModifyClusterNodeType(long id, string name, string description, int? numberOfNodes, int coresPerNode, string queue, string qualityOfService,
             int? maxWalltime, string clusterAllocationName, long? clusterId, long? fileTransferMethodId, long? clusterNodeTypeAggregationId)
         {
-            ClusterNodeType existingClusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id);
-
-            if (existingClusterNodeType == null || existingClusterNodeType.IsDeleted)
-            {
+            ClusterNodeType existingClusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
-            }
+
             if (clusterId.HasValue)
             {
-                var cluster = _unitOfWork.ClusterRepository.GetById((long)clusterId);
-                if (cluster == null || cluster.IsDeleted)
-                {
+                _ = _unitOfWork.ClusterRepository.GetById((long)clusterId) ??
                     throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
-                }
             }
             if (fileTransferMethodId.HasValue)
             {
-                var fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId);
-                if (fileTransferMethod == null || fileTransferMethod.IsDeleted)
-                {
+                _ = _unitOfWork.FileTransferMethodRepository.GetById((long)fileTransferMethodId) ??
                     throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", fileTransferMethodId);
-                }
             }
             if (clusterNodeTypeAggregationId.HasValue)
             {
-                var aggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById((long)clusterNodeTypeAggregationId);
-                if (aggregation == null || aggregation.IsDeleted)
-                {
+                _ = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById((long)clusterNodeTypeAggregationId) ??
                     throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", clusterNodeTypeAggregationId);
-                }
             }
 
             existingClusterNodeType.Name = name;
@@ -1392,11 +1258,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveClusterNodeType(long id)
         {
-            ClusterNodeType existingClusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id);
-            if (existingClusterNodeType == null || existingClusterNodeType.IsDeleted)
-            {
+            ClusterNodeType existingClusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists", id);
-            }
 
             // delete cluster node type requested groups
             existingClusterNodeType.RequestedNodeGroups.ForEach(_unitOfWork.ClusterNodeTypeRequestedGroupRepository.Delete);
@@ -1418,12 +1281,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             ClusterProxyConnection clusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
 
-            if (clusterProxyConnection == null || clusterProxyConnection.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
-            }
-
-            return clusterProxyConnection;
+            return clusterProxyConnection ?? throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
         }
 
         /// <summary>
@@ -1464,12 +1322,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public ClusterProxyConnection ModifyClusterProxyConnection(long id, string host, int port, string username, string password, ProxyType type)
         {
-            ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
-
-            if (existingClusterProxyConnection == null || existingClusterProxyConnection.IsDeleted)
-            {
+            ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
-            }
 
             existingClusterProxyConnection.Host = host;
             existingClusterProxyConnection.Port = port;
@@ -1489,12 +1343,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveClusterProxyConnection(long id)
         {
-            ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id);
-
-            if (existingClusterProxyConnection == null || existingClusterProxyConnection.IsDeleted)
-            {
+            ClusterProxyConnection existingClusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
-            }
 
             // remove reference from clusters
             var clusters = _unitOfWork.ClusterRepository.GetAllByClusterProxyConnectionId(id);
@@ -1519,12 +1369,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             FileTransferMethod fileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id);
 
-            if (fileTransferMethod == null || fileTransferMethod.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
-            }
-
-            return fileTransferMethod;
+            return fileTransferMethod ?? throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
         }
 
         /// <summary>
@@ -1538,11 +1383,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public FileTransferMethod CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId, int? port)
         {
-            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
-            if (cluster == null || cluster.IsDeleted)
-            {
+            _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
-            }
 
             var fileTransferMethod = new FileTransferMethod()
             {
@@ -1569,18 +1411,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public FileTransferMethod ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol, long clusterId, int? port)
         {
-            FileTransferMethod existingFileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id);
-
-            if (existingFileTransferMethod == null || existingFileTransferMethod.IsDeleted)
-            {
+            FileTransferMethod existingFileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id) ??
                 throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
-            }
 
-            var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
-            if (cluster == null || cluster.IsDeleted)
-            {
+            _ = _unitOfWork.ClusterRepository.GetById(clusterId) ??
                 throw new RequestedObjectDoesNotExistException("ClusterNotFound", clusterId);
-            }
 
             existingFileTransferMethod.ServerHostname = serverHostname;
             existingFileTransferMethod.Protocol = protocol;
@@ -1600,12 +1435,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveFileTransferMethod(long id)
         {
-            FileTransferMethod existingFileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id);
-
-            if (existingFileTransferMethod == null || existingFileTransferMethod.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
-            }
+            FileTransferMethod existingFileTransferMethod = _unitOfWork.FileTransferMethodRepository.GetById(id)
+                ?? throw new RequestedObjectDoesNotExistException("FileTransferMethodNotFound", id);
 
             // remove reference from node types
             var nodeTypes = _unitOfWork.ClusterNodeTypeRepository.GetAllByFileTransferMethod(id);
@@ -1621,9 +1452,114 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 js.FileTransferMethod = null;
                 _unitOfWork.JobSpecificationRepository.Update(js);
             }
-            // soft delete cluster node type
+            // soft delete file transfer method
             existingFileTransferMethod.IsDeleted = true;
             _unitOfWork.FileTransferMethodRepository.Update(existingFileTransferMethod);
+            _unitOfWork.Save();
+        }
+
+        /// <summary>
+        /// Get ClusterNodeTypeAggregation by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public ClusterNodeTypeAggregation GetClusterNodeTypeAggregationById(long id)
+        {
+            ClusterNodeTypeAggregation clusterNodeTypeAggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById(id);
+
+            return clusterNodeTypeAggregation ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", id);
+        }
+
+        /// <summary>
+        /// Get all ClusterNodeTypeAggregation
+        /// </summary>
+        /// <returns></returns>
+        public List<ClusterNodeTypeAggregation> GetClusterNodeTypeAggregations()
+        {
+            return _unitOfWork.ClusterNodeTypeAggregationRepository.GetAll().ToList();
+        }
+
+        /// <summary>
+        /// Create ClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <param name="allocationType"></param>
+        /// <param name="validityFrom"></param>
+        /// <param name="validityTo"></param>
+        /// <returns></returns>
+        public ClusterNodeTypeAggregation CreateClusterNodeTypeAggregation(string name, string description, string allocationType, DateTime validityFrom, DateTime? validityTo)
+        {
+            var clusterNodeTypeAggregation = new ClusterNodeTypeAggregation()
+            {
+                Name = name,
+                Description = description,
+                AllocationType = allocationType,
+                ValidityFrom = validityFrom,
+                ValidityTo = validityTo
+            };
+            _unitOfWork.ClusterNodeTypeAggregationRepository.Insert(clusterNodeTypeAggregation);
+            _unitOfWork.Save();
+
+            return clusterNodeTypeAggregation;
+        }
+
+        /// <summary>
+        /// Modify ClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="name"></param>
+        /// <param name="description"></param>
+        /// <param name="allocationType"></param>
+        /// <param name="validityFrom"></param>
+        /// <param name="validityTo"></param>
+        /// <returns></returns>
+        public ClusterNodeTypeAggregation ModifyClusterNodeTypeAggregation(long id, string name, string description, string allocationType, DateTime validityFrom, DateTime? validityTo)
+        {
+            ClusterNodeTypeAggregation clusterNodeTypeAggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById(id) ??
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", id);
+
+            clusterNodeTypeAggregation.Name = name;
+            clusterNodeTypeAggregation.Description = description;
+            clusterNodeTypeAggregation.AllocationType = allocationType;
+            clusterNodeTypeAggregation.ValidityFrom = validityFrom;
+            clusterNodeTypeAggregation.ValidityTo = validityTo;
+            _unitOfWork.ClusterNodeTypeAggregationRepository.Update(clusterNodeTypeAggregation);
+            _unitOfWork.Save();
+
+            return clusterNodeTypeAggregation;
+        }
+
+        /// <summary>
+        /// Remove ClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="id"></param>
+        public void RemoveClusterNodeTypeAggregation(long id)
+        {
+            ClusterNodeTypeAggregation clusterNodeTypeAggregation = _unitOfWork.ClusterNodeTypeAggregationRepository.GetById(id) ??
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", id);
+
+            // remove ClusterNodeTypeAggregationAccounting
+            clusterNodeTypeAggregation.ClusterNodeTypeAggregationAccountings.ForEach(agg =>
+            {
+                agg.IsDeleted = true;
+            });
+            // remove reference from node types
+            clusterNodeTypeAggregation.ClusterNodeTypes.ForEach(nt =>
+            {
+                nt.ClusterNodeTypeAggregation = null;
+            });
+            // remove ProjectClusterNodeTypeAggregation
+            clusterNodeTypeAggregation.ProjectClusterNodeTypeAggregations.ForEach(p =>
+            {
+                p.ModifiedAt = DateTime.Now;
+                p.IsDeleted = true;
+            });
+            // soft delete cluster node type aggregation
+            clusterNodeTypeAggregation.IsDeleted = true;
+            _unitOfWork.ClusterNodeTypeAggregationRepository.Update(clusterNodeTypeAggregation);
             _unitOfWork.Save();
         }
 
@@ -1636,7 +1572,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public SubProject CreateSubProject(string identifier, long projectId)
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
-            if (subProject is not null && (subProject.IsDeleted || subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
+            if (subProject is not null && (subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
             {
                 throw new InputValidationException("SubProjectDeletedOrEnded");
             }
@@ -1726,15 +1662,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId)
         {
             //get all submittedtasks from project and compute with formula
-            var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null)
-            {
+            var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
-            if (project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
             
             var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
                 .GetAll()
@@ -1752,7 +1681,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     .ClusterNodeType
                     .ClusterNodeTypeAggregation
                     .ClusterNodeTypeAggregationAccountings
-                    .FirstOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
+                    .FirstOrDefault(x => x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
                     ?.Accounting.Formula;
                 
                 //parse all parameters to dictionary
@@ -1767,7 +1696,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 _unitOfWork.Save();
             }
         }
-
         #endregion
 
         #region Private methods

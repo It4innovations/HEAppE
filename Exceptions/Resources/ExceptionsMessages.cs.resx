@@ -126,9 +126,6 @@
   <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
     <value>Žádná skupina neexistuje v HEAppE.</value>
   </data>
-  <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
-    <value>Uživatel '{0}', který požádal o ověření, byl již smazán z HEAppE.</value>
-  </data>
   <data name="AuthenticationTypeException_OpenStack-UnableToRetrieveCredentials" xml:space="preserve">
     <value>Nelze získat přihlašovací údaje z OpenStacku pro tohoto uživatele.</value>
   </data>

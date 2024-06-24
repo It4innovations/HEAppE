@@ -588,6 +588,64 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public ClusterNodeTypeAggregationExt GetClusterNodeTypeAggregationById(long id, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeTypeAggregation clusterNodeTypeAggregation = managementLogic.GetClusterNodeTypeAggregationById(id);
+                return clusterNodeTypeAggregation.ConvertIntToExt();
+            }
+        }
+
+        public List<ClusterNodeTypeAggregationExt> GetClusterNodeTypeAggregations(string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                List<ClusterNodeTypeAggregation> clusterNodeTypeAggregation = managementLogic.GetClusterNodeTypeAggregations();
+                return clusterNodeTypeAggregation.Select(cna => cna.ConvertIntToExt()).ToList();
+            }
+        }
+
+        public ClusterNodeTypeAggregationExt CreateClusterNodeTypeAggregation(string name, string description, string allocationType, DateTime validityFrom,
+            DateTime? validityTo, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeTypeAggregation clusterNodeTypeAggregation = managementLogic.CreateClusterNodeTypeAggregation(name, description, allocationType, validityFrom,
+                    validityTo);
+                return clusterNodeTypeAggregation.ConvertIntToExt();
+            }
+        }
+
+        public ClusterNodeTypeAggregationExt ModifyClusterNodeTypeAggregation(long id, string name, string description, string allocationType, DateTime validityFrom,
+            DateTime? validityTo, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeTypeAggregation clusterNodeTypeAggregation = managementLogic.ModifyClusterNodeTypeAggregation(id, name, description, allocationType, validityFrom,
+                    validityTo);
+                return clusterNodeTypeAggregation.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveClusterNodeTypeAggregation(long id, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveClusterNodeTypeAggregation(id);
+            }
+        }
+
         #endregion
     }
 }

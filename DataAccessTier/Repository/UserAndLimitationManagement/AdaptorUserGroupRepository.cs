@@ -35,7 +35,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
                             .ThenInclude(i => i.TemplateParameters)
                          .Include(i => i.AdaptorUserUserGroupRoles)
                             .ThenInclude(i => i.AdaptorUser)
-                         .Where(p => !p.Project.IsDeleted && p.Project.EndDate >= DateTime.UtcNow)
+                         .Where(p => p.Project.EndDate >= DateTime.UtcNow)
                          .ToList();
         }
 

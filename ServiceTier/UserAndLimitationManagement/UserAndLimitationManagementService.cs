@@ -188,9 +188,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
 
             var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x => x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == allowedRole) &&
                                                                                 x.AdaptorUserGroup.Project != null &&
-                                                                                !x.AdaptorUserGroup.Project.IsDeleted &&
-                                                                                x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow &&
-                                                                                !x.IsDeleted)
+                                                                                x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow)
                                                                                 .Select(y => y.AdaptorUserGroup.Project);
             return (loggedUser, projectIds);
         }
@@ -208,14 +206,12 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => x.AdaptorUserRole.ContainedRoleTypes
                                                                     .Any(a => a == requiredUserRole) 
                                                                         && x.AdaptorUserGroup.ProjectId == projectId
-                                                                        && !x.AdaptorUserGroup.Project.IsDeleted
-                                                                        && x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow
-                                                                        && !x.IsDeleted);
+                                                                        && x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow);
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var project = unitOfWork.ProjectRepository.GetById(projectId);
-                if (project is null || project.IsDeleted || project.EndDate < DateTime.UtcNow)
+                if (project is null || project.EndDate < DateTime.UtcNow)
                 {
                     throw new RequestedObjectDoesNotExistException("ProjectNotFound");
                 }

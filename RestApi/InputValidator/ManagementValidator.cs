@@ -59,6 +59,9 @@ namespace HEAppE.RestApi.InputValidator
                 CreateFileTransferMethodModel ext => ValidateCreateFileTransferMethodModel(ext),
                 ModifyFileTransferMethodModel ext => ValidateModifyFileTransferMethodModel(ext),
                 RemoveFileTransferMethodModel ext => ValidateRemoveFileTransferMethodModel(ext),
+                CreateClusterNodeTypeAggregationModel ext => ValidateCreateClusterNodeTypeAggregationModel(ext),
+                ModifyClusterNodeTypeAggregationModel ext => ValidateModifyClusterNodeTypeAggregationModel(ext),
+                RemoveClusterNodeTypeAggregationModel ext => ValidateRemoveClusterNodeTypeAggregationModel(ext),
                 _ => string.Empty
             };
 
@@ -806,6 +809,53 @@ namespace HEAppE.RestApi.InputValidator
         }
 
         private string ValidateRemoveFileTransferMethodModel(RemoveFileTransferMethodModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateClusterNodeTypeAggregationModel(CreateClusterNodeTypeAggregationModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if(model.ValidityTo.HasValue && model.ValidityTo <= model.ValidityFrom)
+            {
+                _messageBuilder.AppendLine($"{model.ValidityTo} must be greater than {model.ValidityFrom}");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyClusterNodeTypeAggregationModel(ModifyClusterNodeTypeAggregationModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+
+            if (model.ValidityTo.HasValue && model.ValidityTo <= model.ValidityFrom)
+            {
+                _messageBuilder.AppendLine($"{model.ValidityTo} must be greater than {model.ValidityFrom}");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveClusterNodeTypeAggregationModel(RemoveClusterNodeTypeAggregationModel model)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)

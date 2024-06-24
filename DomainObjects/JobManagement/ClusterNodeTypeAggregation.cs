@@ -30,7 +30,7 @@ public class ClusterNodeTypeAggregation : IdentifiableDbEntity, ISoftDeletableEn
     public DateTime ValidityFrom { get; set; }
 
     public DateTime? ValidityTo { get; set; }
-    
+
     public virtual List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccountings { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
     public virtual List<ProjectClusterNodeTypeAggregation> ProjectClusterNodeTypeAggregations { get; set; } = new List<ProjectClusterNodeTypeAggregation>();
     public virtual List<ClusterNodeType> ClusterNodeTypes { get; set; } = new List<ClusterNodeType>();

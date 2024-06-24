@@ -92,5 +92,12 @@ namespace HEAppE.ServiceTier.Management
         FileTransferMethodExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId, int? port, string sessionCode);
         FileTransferMethodExt ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol, long clusterId, int? port, string sessionCode);
         void RemoveFileTransferMethod(long id, string sessionCode);
+        ClusterNodeTypeAggregationExt GetClusterNodeTypeAggregationById(long id, string sessionCode);
+        List<ClusterNodeTypeAggregationExt> GetClusterNodeTypeAggregations(string sessionCode);
+        ClusterNodeTypeAggregationExt CreateClusterNodeTypeAggregation(string name, string description, string allocationType, DateTime validityFrom,
+            DateTime? validityTo, string sessionCode);
+        ClusterNodeTypeAggregationExt ModifyClusterNodeTypeAggregation(long id, string name, string description, string allocationType, DateTime validityFrom,
+            DateTime? validityTo, string sessionCode);
+        void RemoveClusterNodeTypeAggregation(long id, string sessionCode);
     }
 }

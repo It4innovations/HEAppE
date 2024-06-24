@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DomainObjects;
@@ -223,6 +224,21 @@ namespace HEAppE.DataAccessTier
 
             modelBuilder.Entity<AdaptorUser>()
                 .Property(p => p.UserType).HasDefaultValue(AdaptorUserType.Default);
+
+            // Automatic filtering out soft deleted entities (implements ISoftDeletableEntity interface)
+            var softDeletableEntityTypes = modelBuilder.Model.GetEntityTypes()
+                .Where(t => typeof(ISoftDeletableEntity).IsAssignableFrom(t.ClrType));
+
+            foreach (var entityType in softDeletableEntityTypes)
+            {
+                var parameter = Expression.Parameter(entityType.ClrType, "e");
+                var filter = Expression.Lambda(Expression.Equal(
+                        Expression.Property(parameter, nameof(ISoftDeletableEntity.IsDeleted)),
+                        Expression.Constant(false)),
+                    parameter);
+
+                modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+            }
         }
         #endregion
         #region Seeding methods

@@ -23,8 +23,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 Id = cluster.Id,
                 Name = cluster.Name,
                 Description = cluster.Description,
-                NodeTypes = cluster.NodeTypes.Where(nt => !nt.IsDeleted)
-                                                .Select(s => s.ConvertIntToExt())
+                NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt())
                                                     .ToArray()
             };
             return convert;
@@ -34,13 +33,9 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
         {
             // get all projects
             var projectExts = new List<ProjectExt>();
-            if (nodeType.Cluster != null && !nodeType.Cluster.IsDeleted)
+            if (nodeType.Cluster != null)
             {
-                var projects = nodeType.Cluster.ClusterProjects?.Where(cp => !cp.IsDeleted)
-                                                            .Select(x => x.Project)
-                                                                .Where(p => !p.IsDeleted)
-                                                            .ToList();
-
+                var projects = nodeType.Cluster.ClusterProjects?.Select(x => x.Project).ToList();
                 projectExts = projects?.Select(x => x.ConvertIntToExt()).ToList() ?? new List<ProjectExt>();
 
                 // select possible commands for specific project or command for all projects
@@ -61,7 +56,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 NumberOfNodes = nodeType.NumberOfNodes,
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
-                FileTransferMethodId = nodeType.FileTransferMethod == null || nodeType.FileTransferMethod.IsDeleted ? null : nodeType.FileTransferMethodId,
+                FileTransferMethodId = nodeType.FileTransferMethodId,
                 Projects = projectExts.Where(p => p.CommandTemplates.Any()).ToArray()
             };
             return convert;
@@ -77,8 +72,22 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 NumberOfNodes = nodeType.NumberOfNodes,
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
-                FileTransferMethodId = nodeType.FileTransferMethod == null || nodeType.FileTransferMethod.IsDeleted ? null : nodeType.FileTransferMethod.Id,
+                FileTransferMethodId =  nodeType.FileTransferMethod?.Id,
                 NodeUsedCoresAndLimitation = nodeType.NodeUsedCoresAndLimitation.ConvertIntToExt(),
+            };
+            return convert;
+        }
+
+        public static ClusterNodeTypeAggregationExt ConvertIntToExt(this ClusterNodeTypeAggregation aggregation)
+        {
+            var convert = new ClusterNodeTypeAggregationExt()
+            {
+                Id = aggregation.Id,
+                Name = aggregation.Name,
+                Description = aggregation.Description,
+                AllocationType = aggregation.AllocationType,
+                ValidityFrom = aggregation.ValidityFrom,
+                ValidityTo = aggregation.ValidityTo
             };
             return convert;
         }
