@@ -1,37 +1,37 @@
-# Postup Migrace z Verze 4.2.1 na Verzi 4.2.2
+# Migration Procedure from Version 4.2.1 to Version 4.2.2
 
-Tento dokument popisuje kroky potřebné k migraci z verze 4.2.1 na verzi 4.2.2.
+This document describes the steps required to migrate from version 4.2.1 to version 4.2.2.
 
-## Krok 1: Záloha Dat
+## Step 1: Data Backup
 
-Před provedením jakékoliv aktualizace je důležité zálohovat celou databázi. Zálohu celé databáze provedete pomocí příslušného nástroje pro správu vaší databáze.
+Before performing any update, it is important to back up the entire database. Perform a full database backup using the appropriate tool for your database management.
 
-Dále je potřeba exportovat data do formátu, který bude možné importovat do Hashicorp Vault. K tomu použijte skript `backupDataToCsv.sh`.
+Next, you need to export the data into a format that can be imported into Hashicorp Vault. Use the script `backupDataToCsv.sh` for this purpose.
 
 ```bash
 ./backupDataToCsv.sh
 ```
 
-Tento skript vytvoří export dat ve formátu CSV, který bude následně zpracován skriptem `importDataToVault.sh`.
+This script will create a CSV format data export, which will be subsequently processed by the `importDataToVault.sh` script.
 
-## Krok 2: Migrace na Novou Verzi 
+## Step 2: Migration to the New Version
 
-Po úspěšném zálohování dat můžete přistoupit k migraci HEAppE na verzi 4.2.2.
+After successfully backing up the data, you can proceed with the migration of HEAppE to version 4.2.2.
 
-## Krok 3: Inicializace Vaultu
+## Step 3: Vault Initialization
 
-Před importem dat do vaultu je nutné provést inicializaci vaultu. K tomu použijte skript `vaultInitToAnsibleFile.sh`.
+Before importing data into the vault, it is necessary to initialize the vault. Use the `vaultInitToAnsibleFile.sh` script for this.
 
 ```bash
 ./vaultInitToAnsibleFile.sh
 ```
 
-## Krok 4: Import Dat do Vaultu
+## Step 4: Import Data into the Vault
 
-Po úspěšné inicializaci vaultu můžete importovat data pomocí skriptu `importDataToVault.sh`.
+After successfully initializing the vault, you can import the data using the `importDataToVault.sh` script.
 
 ```bash
 ./importDataToVault.sh
 ```
 
-Tím je migrace dokončena. Doporučuje se zkontrolovat, zda byla všechna data správně importována a že aplikace funguje podle očekávání.
+The migration is now complete. It is recommended to verify that all data has been correctly imported and that the application is functioning as expected.
