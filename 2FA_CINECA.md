@@ -2,6 +2,7 @@
 ```
  step ssh certificate 'email@email.email' --provisioner cineca-hpc key_01
 ```
+## Remove passphrase
 
 ## Copy files to **general/ssh_agent/keys**
 ```

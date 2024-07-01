@@ -1,8 +1,24 @@
 #!/bin/bash
+
+# Usage: ./your_script.sh <vault_file_path> <vault_password>
+
+VAULT_FILE=$1
+VAULT_PASSWORD=$2
+
+if [ -z "$VAULT_FILE" ] || [ -z "$VAULT_PASSWORD" ]; then
+  echo "Usage: $0 <vault_file_path> <vault_password>"
+  exit 1
+fi
+
+# Check if ./appendToAnsibleVault.sh exists
+if [ ! -f "./appendToAnsibleVault.sh" ]; then
+  echo "Error: appendToAnsibleVault.sh does not exist."
+  exit 1
+fi
+
 # Start vault init
-
-
 clear
+docker compose down vault vaultagent
 docker compose up -d vault
 echo "Vault is initializing..."
 
@@ -14,14 +30,11 @@ init_response=$(docker compose exec vault vault operator init)
 unseal_keys=$(echo "$init_response" | grep "Unseal Key" | awk '{print $NF}')
 root_token=$(echo "$init_response" | grep "Initial Root Token" | awk '{print $NF}')
 
-# Save the Unseal Keys and Initial Root Token to a new text file
-echo "Unseal Keys:" > vault_keys_REMOVE_AFTER_SAVE.txt
-echo "$unseal_keys" >> vault_keys_REMOVE_AFTER_SAVE.txt
-echo "" >> vault_keys_REMOVE_AFTER_SAVE.txt
-echo "Initial Root Token:" >> vault_keys_REMOVE_AFTER_SAVE.txt
-echo "$root_token" >> vault_keys_REMOVE_AFTER_SAVE.txt
+# Create data variable
+data="Unseal Keys:\n$unseal_keys\n\nInitial Root Token:\n$root_token"
 
-echo "Unseal Keys and Initial Root Token saved to vault_keys_REMOVE_AFTER_SAVE.txt"
+# Append the data to the ansible vault file
+./appendToAnsibleVault.sh "$VAULT_FILE" "$VAULT_PASSWORD" "$data"
 
 echo Unsealing Vault..
 sleep 1s
@@ -79,16 +92,5 @@ docker compose up vaultagent -d
 echo "Vault agent started"
 echo "Write role_id to vaultagent"
 echo "Write secret_id to vaultagent"
-
-
-
-# curl -v -X 'GET' 'http://vaultagent:8100/v1/HEAppE/data/ClusterAuthenticationCredentials' -H 'accept: application/json' 
-# curl -v -X 'GET' 'http://vaultagent:8100/v1/HEAppE/data/ClusterAuthenticationCredentials' -H 'accept: application/json' 
-# curl -v -X 'GET' 'http://vaultagent:8100/v1/HEAppE/data/ClusterAuthenticationCredentials' -H 'accept: application/json' 
-
-
-# Delete Volumes fo development
-# docker compose down --volumes
-
 
 docker compose restart vaultagent
