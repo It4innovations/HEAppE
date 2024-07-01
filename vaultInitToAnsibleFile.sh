@@ -11,8 +11,8 @@ if [ -z "$VAULT_FILE" ] || [ -z "$VAULT_PASSWORD" ]; then
 fi
 
 # Check if ./appendToAnsibleVault.sh exists
-if [ ! -f "./appendToAnsibleVault.sh" ]; then
-  echo "Error: appendToAnsibleVault.sh does not exist."
+if [ ! -f "Scripts/appendToAnsibleVault.sh" ]; then
+  echo "Error: Scripts/appendToAnsibleVault.sh does not exist."
   exit 1
 fi
 
@@ -34,7 +34,7 @@ root_token=$(echo "$init_response" | grep "Initial Root Token" | awk '{print $NF
 data="Unseal Keys:\n$unseal_keys\n\nInitial Root Token:\n$root_token"
 
 # Append the data to the ansible vault file
-./appendToAnsibleVault.sh "$VAULT_FILE" "$VAULT_PASSWORD" "$data"
+sh Scripts/appendToAnsibleVault.sh "$VAULT_FILE" "$VAULT_PASSWORD" "$data"
 
 echo Unsealing Vault..
 sleep 1s
