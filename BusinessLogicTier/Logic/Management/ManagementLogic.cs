@@ -1093,7 +1093,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         public SubProject CreateSubProject(string identifier, long projectId)
         {
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            
             SubProject subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
+            
             if (subProject is not null && (subProject.IsDeleted || subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
             {
                 throw new InputValidationException("SubProjectDeletedOrEnded");
@@ -1111,6 +1118,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     Identifier = identifier,
                     CreatedAt = DateTime.UtcNow,
                     StartDate = DateTime.UtcNow,
+                    EndDate = project.EndDate,
                     IsDeleted = false,
                     ProjectId = projectId
                 };
@@ -1123,6 +1131,20 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
             DateTime modelStartDate, DateTime? modelEndDate)
         {
+            Project project = _unitOfWork.ProjectRepository.GetById(modelProjectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            if (modelEndDate.HasValue && modelEndDate.Value > project.EndDate)
+            {
+                throw new InputValidationException("SubProjectEndDateAfterProjectEndDate");
+            }
+            if (modelStartDate < project.StartDate)
+            {
+                throw new InputValidationException("SubProjectStartDateBeforeProjectStartDate");
+            }
+            
             //test if not exist subproject with the same identifier
             if (_unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, modelProjectId) != null)
             {
@@ -1148,10 +1170,26 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
                                     ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
-            if (!subProject.IsDeleted)
+            if (subProject.IsDeleted)
             {
                 throw new InputValidationException("NotPermitted");
             }
+            
+            Project project = _unitOfWork.ProjectRepository.GetById(subProject.ProjectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            if (modelEndDate.HasValue && modelEndDate.Value > project.EndDate)
+            {
+                throw new InputValidationException("SubProjectEndDateAfterProjectEndDate");
+            }
+            if (modelStartDate < project.StartDate)
+            {
+                throw new InputValidationException("SubProjectStartDateBeforeProjectStartDate");
+            }
+            
+            
             var subProjectWithSameIdentifier = _unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, subProject.ProjectId);
             if (subProjectWithSameIdentifier != null && subProjectWithSameIdentifier.Id != modelId)
             {
@@ -1171,7 +1209,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
                                     ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
-            if (!subProject.IsDeleted)
+            if (subProject.IsDeleted)
             {
                 throw new InputValidationException("NotPermitted");
             }
