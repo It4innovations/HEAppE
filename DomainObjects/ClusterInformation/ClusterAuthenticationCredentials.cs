@@ -60,6 +60,9 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
         [StringLength(200)]
         public string PublicKeyFingerprint { get; set; }
+
+        [StringLength(200)]
+        public string PublicKey { get; set; }
         [Required]
         public bool IsGenerated { get; set; } = false;
 

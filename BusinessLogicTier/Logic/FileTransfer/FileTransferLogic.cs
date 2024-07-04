@@ -150,7 +150,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     FileTransferCipherType = credentials.CipherType,
                     PrivateKey = credentials.PrivateKey,
                     PrivateKeyCertificate = credentials.PrivateKeyCertificate,
-                    PublicKey = credentials.PublicKeyFingerprint
+                    PublicKey = credentials.PublicKey
                 };
                 return transferMethod;
             }
