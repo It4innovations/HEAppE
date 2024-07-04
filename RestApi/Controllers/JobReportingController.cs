@@ -77,12 +77,12 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, [FromQuery] string[] subProjects, string sessionCode)
+        public IActionResult UserResourceUsageReport(long userId, DateTime? startTime, DateTime? endTime, [FromQuery] string[] subProjects, string sessionCode)
         {
             var model = new UserResourceUsageReportModel()
             {
-                StartTime = startTime,
-                EndTime = endTime,
+                StartTime = startTime ?? DateTime.MinValue,
+                EndTime = endTime ?? DateTime.UtcNow,
                 UserId = userId,
                 SessionCode = sessionCode
             };
@@ -113,12 +113,12 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, [FromQuery] string[] subProjects, string sessionCode)
+        public IActionResult UserGroupResourceUsageReport(long groupId, DateTime? startTime, DateTime? endTime, [FromQuery] string[] subProjects, string sessionCode)
         {
             var model = new UserGroupResourceUsageReportModel()
             {
-                StartTime = startTime,
-                EndTime = endTime,
+                StartTime = startTime ?? DateTime.MinValue,
+                EndTime = endTime ?? DateTime.UtcNow,
                 GroupId = groupId,
                 SessionCode = sessionCode
             };
@@ -147,12 +147,12 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult AggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode)
+        public IActionResult AggregatedUserGroupResourceUsageReport(DateTime? startTime, DateTime? endTime, string sessionCode)
         {
             var model = new GetAggredatedUserGroupResourceUsageReportModel()
             {
-                StartTime = startTime,
-                EndTime = endTime,
+                StartTime = startTime ?? DateTime.MinValue, // Default value is 0001-01-01 00:00:00
+                EndTime = endTime ?? DateTime.UtcNow,
                 SessionCode = sessionCode
             };
             _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"AggregatedUserGroupResourceUsageReport\" Parameters: \"{model}\"");
