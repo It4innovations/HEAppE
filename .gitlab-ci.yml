@@ -1,37 +1,164 @@
 include:
+  - local: '.gitlab-ci.develop.yml'
   - template: Security/SAST.gitlab-ci.yml
 
-image: docker:latest
+variables:
+  HEAPPE_IMAGE_NAME: heappe
+  SSHAGENT_IMAGE_NAME: sshagent
 
 services:
   - docker:dind
 
 stages:
-    - build 
-    - test    
+  - prepare_release
+  - build 
+  - test  
+  - release
+  - push
+
+release_msg_job:
+  stage: prepare_release
+  image: alpine:latest
+  script:
+    - TAG_NAME=$(awk '/^## /{sub(/^## /, ""); print; exit}' CHANGELOG.md)
+    - TAG_MESSAGE=$(awk '/^### /{flag=1} /^## /{if(flag) exit} flag' CHANGELOG.md)
+    - TAG_MESSAGE_BASE64=$(echo -n "${TAG_MESSAGE}" | base64 -w 0)
+    - echo "TAG_NAME=${TAG_NAME}" >> release_variables.env
+    - echo "TAG_MESSAGE=${TAG_MESSAGE_BASE64}" >> release_variables.env
+  before_script:
+    - apk update && apk upgrade
+  variables:
+    GIT_STRATEGY: clone
+  artifacts:
+    reports:
+      dotenv: release_variables.env  
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+  only:
+    - master
 
 heappe_build:
-    stage: build
-    before_script:
-        - docker --version
-    only:
-        - master
-        - develop
-    tags:
-        - Docker
-        - HEAppE
-    script:
-        - docker build -t "${HEAPPE_CONTAINER_NAME}" -f ./RestApi/Dockerfile .
+  stage: build
+  image: docker:latest
+  needs:
+    - job: release_msg_job
+      artifacts: true     
+  script:
+    - echo "Building Docker HEAppE image..."
+    - HEAPPE_IMAGE_NAME_WITH_VERSION="${HEAPPE_IMAGE_NAME}:${TAG_NAME}"
+    - docker build --no-cache -f ./RestApi/Dockerfile -t "${HEAPPE_IMAGE_NAME_WITH_VERSION}"  .
 
+    - echo "Tagging the Docker image..."
+    - docker tag "${HEAPPE_IMAGE_NAME_WITH_VERSION}" "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_NAME_WITH_VERSION}"
+
+    - echo "Pushing image to registry."
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker push "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_NAME_WITH_VERSION}"
+  before_script:
+    - docker --version
+    - docker image prune
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+  only:
+    - master
+   
 sshagent_build:
-    stage: build
-    before_script:
-        - docker --version
-    only:
-        - master
-        - develop
-    tags:
-        - Docker
-        - HEAppE
-    script:
-        - docker build -t ${SSHAGENT_CONTAINER_NAME} -f ./SshAgent/Dockerfile .
+  stage: build
+  image: docker:latest
+  needs:
+    - job: release_msg_job
+      artifacts: true     
+  script:
+    - echo "Building Docker SSH-Agent image..."
+    - SSHAGENT_IMAGE_NAME_WITH_VERSION="${SSHAGENT_IMAGE_NAME}:${TAG_NAME}"
+    - docker build --no-cache -f ./RestApi/Dockerfile -t "${SSHAGENT_IMAGE_NAME_WITH_VERSION}"  .
+
+    - echo "Tagging the Docker image..."
+    - docker tag "${SSHAGENT_IMAGE_NAME_WITH_VERSION}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_NAME_WITH_VERSION}"
+
+    - echo "Pushing image to registry."
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker push "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_NAME_WITH_VERSION}"
+  before_script:
+    - docker --version
+    - docker image prune
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+  only:
+    - master
+
+semgrep-sast:
+  stage: test
+  artifacts:
+    paths:
+      - gl-sast-report.json
+
+release_job:
+  stage: release
+  image: registry.gitlab.com/gitlab-org/release-cli:latest
+  needs:
+    - job: release_msg_job
+      artifacts: true                     
+  script:
+    - echo "Creating RELEASE \"$TAG_NAME"\"
+    - git config --global user.name "HEAppE Pipeline"
+    - git config --global user.email "support.heappe@it4i.cz" 
+    - git checkout master
+    - git status
+  before_script:
+    - apk update && apk upgrade
+    - apk add git
+  release:
+    name: '${TAG_NAME}'
+    description: '$(echo "${TAG_MESSAGE}" | base64 -d)'
+    tag_name: '${TAG_NAME}'
+  variables:
+    GIT_STRATEGY: clone
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+  only:
+    - master
+
+push_to_github_job:
+  stage: push
+  needs:
+    - job: release_msg_job
+      artifacts: true
+  image: alpine:latest
+  script:
+     - git config --global user.name "HEAppE Pipeline"
+     - git config --global user.email "support.heappe@it4i.cz" 
+     - git checkout origin/master
+     - git remote add github https://x-access-token:$GITHUB_TOKEN@github.com/janecekkrenek/HEAppETest.git
+     - git push github HEAD:$CI_COMMIT_REF_NAME
+     - git push github --tags
+     - echo "${TAG_MESSAGE}"
+     - MODIFICATION_TAG_MESSAGE=$(echo "${TAG_MESSAGE}" | base64 -d | sed '/^[[:space:]]*$/s/^.*$/\\n/' | sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g')
+     - echo "${MODIFICATION_TAG_MESSAGE}"
+     - |
+        curl -L -X POST -H "Authorization: token $GITHUB_TOKEN" -d '{
+          "tag_name": "'"${TAG_NAME}"'",
+          "name": "'"${TAG_NAME}"'",
+          "body": "'"${MODIFICATION_TAG_MESSAGE}"'",
+          "draft": false,
+          "prerelease": false
+        }' https://api.github.com/repos/It4innovations/HEAppE/releases
+  before_script:
+    - apk update && apk upgrade
+    - apk add --no-cache git curl jq
+  variables:
+    GIT_STRATEGY: clone
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+  only:
+    - master 

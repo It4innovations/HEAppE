@@ -35,6 +35,8 @@ namespace HEAppE.ExtModels.Management.Converts
                     return FileTransferCipherTypeExt.nistP256;
                 case FileTransferCipherType.nistP521:
                     return FileTransferCipherTypeExt.nistP521;
+                case FileTransferCipherType.Unknown:
+                    return FileTransferCipherTypeExt.None;
                 default:
                     throw new ArgumentException($"Unknown FileTransferCipherType: {type}");
             }
