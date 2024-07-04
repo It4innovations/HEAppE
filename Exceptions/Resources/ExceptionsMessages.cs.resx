@@ -192,8 +192,8 @@
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Odesílání jobu je k dispozici pouze pro joby ve stavu 'konfigurace'.</value>
   </data>
-  <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
-    <value>Uživatel nemá '{0}' roli pro vytvoření '{1}' projektu.</value>
+  <data name="InsufficientRoleException_MissingRoleForProject" xml:space="preserve">
+    <value>Uživatel nemá '{0}' roli v projektu '{1}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Autentizace uživatele '{0}' nebyla úspěšná kvůli nesprávným přihlašovacím údajům.</value>
@@ -481,7 +481,10 @@
     <value>Zadaný Command Template již existuje.</value>
   </data>
   <data name="InputValidationException_NotPermitted" xml:space="preserve">
-    <value />
+    <value> Operace není povolená.</value>
+  </data>
+  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
   </data>
   <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
     <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
