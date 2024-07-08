@@ -213,6 +213,17 @@
             "ValidityTo":"{ValidityTo}"
          }
       ],
+      "AccountingStates":[
+         {
+            "Id":1,
+            "ProjectId":1,
+            "AccountingStateType":1,
+            "ComputingStartDate":"{ComputingStartDate}",
+            "ComputingEndDate":"{ComputingEndDate}",
+            "TriggeredAt":"{TriggeredAt}",
+            "LastUpdatedAt":"{LastUpdatedAt}"
+         }
+      ],
       "ClusterNodeTypeAggregations":[
          {
             "Id":1,

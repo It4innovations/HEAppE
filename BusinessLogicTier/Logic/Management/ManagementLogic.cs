@@ -21,7 +21,9 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Transactions;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -1223,15 +1225,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             //get all submittedtasks from project and compute with formula
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null)
+            if (project is null || project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
-            if (project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
-            
+
             var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
                 .GetAll()
                 .Where(t=>t.StartTime >= modelStartTime 
@@ -1239,6 +1237,19 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                           && t.Project.Id == projectId)
                 .ToList();
             
+            AccountingState accountingState = new AccountingState()
+            {
+                ProjectId = project.Id,
+                Project = project,
+                AccountingStateType = AccountingStateType.Running,
+                ComputingStartDate = DateTime.UtcNow,
+                TriggeredAt = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow
+            };
+            
+            project.AccountingStates.Add(accountingState);
+            _unitOfWork.ProjectRepository.Update(project);
+            _logger.Info($"Accounting for project {project.Id} has been started. Total tasks to compute: {submittedTasks.Count}.");
             //compute accounting
             foreach (var submittedTask in submittedTasks)
             {
@@ -1260,8 +1271,25 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 double result = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, parsedParameters, _logger); 
                 submittedTask.ResourceConsumed = result;
                 _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTask);
-                _unitOfWork.Save();
             }
+            
+            accountingState.AccountingStateType = AccountingStateType.Finished;
+            accountingState.ComputingEndDate = DateTime.UtcNow;
+            accountingState.LastUpdatedAt = DateTime.UtcNow;
+            _unitOfWork.ProjectRepository.Update(project);
+            _unitOfWork.Save();
+            _logger.Info($"Accounting for project {project.Id} has been finished.");
+        }
+        
+        public List<AccountingState> ListAccountingStates(long projectId)
+        {
+            var project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            
+            return project.AccountingStates.ToList();
         }
 
         #endregion

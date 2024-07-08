@@ -274,6 +274,7 @@ namespace HEAppE.DataAccessTier
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.SubProjects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AccountingStates);
             
             InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectClusterNodeTypeAggregations, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);

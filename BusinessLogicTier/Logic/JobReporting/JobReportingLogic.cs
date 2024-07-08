@@ -392,7 +392,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var taskReports = tasks.Select(task => new TaskReport()
             {
                 SubmittedTaskInfo = task,
-                Usage = Math.Round(task.ResourceConsumed, 3)
+                Usage = Math.Round(task.ResourceConsumed ?? 0, 3)
             }).ToList();
             return taskReports;
         }
