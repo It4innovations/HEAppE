@@ -489,4 +489,7 @@
   <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
     <value>Specifikovaný SubProject je smazaný nebo neplatný.</value>
   </data>
+  <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
+    <value>Specifikovaný identifikátor subprojektu již existuje.</value>
+  </data>
 </root>

@@ -489,4 +489,7 @@
   <data name="InputValidationException_SubProjectNotActive" xml:space="preserve">
     <value>Specified SubProject is not active.</value>
   </data>
+  <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
+    <value>Specified SubProject identifier already exists.</value>
+  </data>
 </root>
