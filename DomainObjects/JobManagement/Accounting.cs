@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Runtime.InteropServices.JavaScript;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.DomainObjects.JobManagement;
 
@@ -26,6 +27,8 @@ public class Accounting : IdentifiableDbEntity
     public DateTime ValidityFrom { get; set; }
 
     public DateTime? ValidityTo { get; set; }
+    
+    public virtual List<ResourceConsumed> ConsumedResources { get; set; } = new List<ResourceConsumed>();
     public bool IsValid(DateTime? startTime, DateTime? endTime) => (startTime.HasValue && ValidityFrom <= startTime && (ValidityTo.HasValue && ValidityTo >= startTime));
     
     public virtual List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccountings { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();

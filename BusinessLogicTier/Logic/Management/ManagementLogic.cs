@@ -1253,23 +1253,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             //compute accounting
             foreach (var submittedTask in submittedTasks)
             {
-                //compute accounting
-                string accountingFormula = submittedTask
-                    .Specification
-                    .ClusterNodeType
-                    .ClusterNodeTypeAggregation
-                    .ClusterNodeTypeAggregationAccountings
-                    .LastOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
-                    ?.Accounting.Formula;
-                
                 //parse all parameters to dictionary
                 var parsedParameters = submittedTask.AllParameters
                     .Split(' ')
                     .Select(x => x.Split('='))
                     .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
 
-                double result = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, parsedParameters, _logger); 
-                submittedTask.ResourceConsumed = result;
+                ResourceAccountingUtils.ComputeAccounting(submittedTask, submittedTask, _logger);
                 _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTask);
             }
             

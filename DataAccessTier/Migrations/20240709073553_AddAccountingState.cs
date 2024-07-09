@@ -11,13 +11,9 @@ namespace HEAppE.DataAccessTier.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<double>(
+            migrationBuilder.DropColumn(
                 name: "ResourceConsumed",
-                table: "SubmittedTaskInfo",
-                type: "float",
-                nullable: true,
-                oldClrType: typeof(double),
-                oldType: "float");
+                table: "SubmittedTaskInfo");
 
             migrationBuilder.CreateTable(
                 name: "AccountingState",
@@ -43,10 +39,49 @@ namespace HEAppE.DataAccessTier.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ConsumedResources",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    SubmittedTaskInfoId = table.Column<long>(type: "bigint", nullable: false),
+                    AccountingId = table.Column<long>(type: "bigint", nullable: false),
+                    Value = table.Column<double>(type: "float", nullable: true),
+                    LastUpdatedAt = table.Column<DateTime>(type: "datetime2", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ConsumedResources", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ConsumedResources_Accounting_AccountingId",
+                        column: x => x.AccountingId,
+                        principalTable: "Accounting",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ConsumedResources_SubmittedTaskInfo_SubmittedTaskInfoId",
+                        column: x => x.SubmittedTaskInfoId,
+                        principalTable: "SubmittedTaskInfo",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
             migrationBuilder.CreateIndex(
                 name: "IX_AccountingState_ProjectId",
                 table: "AccountingState",
                 column: "ProjectId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ConsumedResources_AccountingId",
+                table: "ConsumedResources",
+                column: "AccountingId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ConsumedResources_SubmittedTaskInfoId",
+                table: "ConsumedResources",
+                column: "SubmittedTaskInfoId",
+                unique: true);
         }
 
         /// <inheritdoc />
@@ -55,15 +90,15 @@ namespace HEAppE.DataAccessTier.Migrations
             migrationBuilder.DropTable(
                 name: "AccountingState");
 
-            migrationBuilder.AlterColumn<double>(
+            migrationBuilder.DropTable(
+                name: "ConsumedResources");
+
+            migrationBuilder.AddColumn<double>(
                 name: "ResourceConsumed",
                 table: "SubmittedTaskInfo",
                 type: "float",
                 nullable: false,
-                defaultValue: 0.0,
-                oldClrType: typeof(double),
-                oldType: "float",
-                oldNullable: true);
+                defaultValue: 0.0);
         }
     }
 }

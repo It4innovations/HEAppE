@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.External;
 using log4net;
 using Microsoft.Extensions.Logging;
 
@@ -9,7 +11,36 @@ namespace HEAppE.Utils;
 
 public class ResourceAccountingUtils
 {
-    public static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILog logger)
+    public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
+    {
+        var accounting = dbTaskInfo.NodeType
+            .ClusterNodeTypeAggregation
+            .ClusterNodeTypeAggregationAccountings
+            .LastOrDefault(x=>!x.Accounting.IsDeleted && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
+            ?.Accounting;
+
+        if (accounting == null)
+        {
+            throw new InvalidRequestException("NotExistingAccounting", submittedTaskInfo.NodeType.Id, submittedTaskInfo.StartTime, submittedTaskInfo.EndTime);
+        }
+        double resourceAccountingValue = ResourceAccountingUtils.CalculateAllocatedResources(accounting.Formula, dbTaskInfo.ParsedParameters, logger);
+        if (dbTaskInfo.ResourceConsumed == null)
+        {
+            dbTaskInfo.ResourceConsumed = new ResourceConsumed
+            {
+                Value = resourceAccountingValue,
+                LastUpdatedAt = DateTime.UtcNow,
+                Accounting = accounting
+            };
+        }
+        else
+        {
+            dbTaskInfo.ResourceConsumed.Value = resourceAccountingValue;
+            dbTaskInfo.ResourceConsumed.LastUpdatedAt = DateTime.UtcNow;
+            dbTaskInfo.ResourceConsumed.Accounting = accounting;
+        }
+    }
+    private static double CalculateAllocatedResources(string accountingFormula, Dictionary<string, string> parsedParameters, ILog logger)
     {
         if(accountingFormula == null || string.IsNullOrEmpty(accountingFormula))
         {

@@ -47,12 +47,10 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation
 
         [NotMapped]
         public Dictionary<string, string> ParsedParameters { get; set; }
-        /// <summary>
-        /// Computed by accounting formula dynamically
-        /// </summary>
-        public double? ResourceConsumed { get; set; } = null;
         public virtual Project Project { get; set; }
 
         public virtual TaskSpecification Specification { get; set; }
+        
+        public virtual ResourceConsumed ResourceConsumed { get; set; }
     }
 }
