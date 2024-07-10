@@ -485,9 +485,6 @@
   </data>
   <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
     <value>Cannot cancel job '{0}', this job is in state '{1}'.</value>
- </data>
-  <data name="InputValidationException_SubProjectNotActive" xml:space="preserve">
-    <value>Specified SubProject is not active.</value>
   </data>
   <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
     <value>Specified SubProject identifier already exists.</value>
