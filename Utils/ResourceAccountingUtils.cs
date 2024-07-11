@@ -13,10 +13,13 @@ public class ResourceAccountingUtils
 {
     public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
     {
+        logger.Info($"Finding accounting for SubmittedTaskInfo: {submittedTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
+        
         var accounting = dbTaskInfo.NodeType
             .ClusterNodeTypeAggregation
             .ClusterNodeTypeAggregationAccountings
-            .LastOrDefault(x=>!x.Accounting.IsDeleted && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
+            .Where(x => x.Accounting is { IsDeleted: false } && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
+            .MaxBy(x=> x.Accounting.ValidityFrom)
             ?.Accounting;
 
         if (accounting == null)
@@ -24,6 +27,8 @@ public class ResourceAccountingUtils
             logger.Error($"Accounting not found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
             return;
         }
+        
+        logger.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
         
         double resourceAccountingValue = ResourceAccountingUtils.CalculateAllocatedResources(accounting.Formula, dbTaskInfo.ParsedParameters, logger);
         if (dbTaskInfo.ResourceConsumed == null)
@@ -49,14 +54,17 @@ public class ResourceAccountingUtils
             return 0;
         }
         accountingFormula = accountingFormula.Replace(" ", string.Empty);
+        logger.Info($"Using accounting formula: {accountingFormula}");
         var accountingFormulaProperties = accountingFormula.Split("+-*/%()".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
         var filteredParsedParameters = parsedParameters.Where(w => accountingFormulaProperties.Contains(w.Key));
     
+        
         foreach (var accountingFormulaProperty in filteredParsedParameters)
         {
             try
             {
                 double value = 0;
+                logger.Info($"Parsing accounting formula property: {accountingFormulaProperty.Key} with value: {accountingFormulaProperty.Value}");
                 if (!double.TryParse(accountingFormulaProperty.Value, out value))
                 {
                     if (TimeSpan.TryParse(accountingFormulaProperty.Value, out TimeSpan time))
@@ -64,6 +72,7 @@ public class ResourceAccountingUtils
                         value = time.TotalHours;
                     }
                 }
+                logger.Info($"Parsed value: {value}");
                     
                 accountingFormula = accountingFormula.Replace(accountingFormulaProperty.Key, value.ToString().Replace(',', '.'));
             }
@@ -73,6 +82,8 @@ public class ResourceAccountingUtils
             }
         }
     
+        logger.Info($"Parsed accounting formula: {accountingFormula}");
+        
         try
         {
             var result = new DataTable().Compute(accountingFormula, null);

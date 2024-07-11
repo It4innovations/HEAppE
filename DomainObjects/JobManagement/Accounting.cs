@@ -29,7 +29,7 @@ public class Accounting : IdentifiableDbEntity
     public DateTime? ValidityTo { get; set; }
     
     public virtual List<ResourceConsumed> ConsumedResources { get; set; } = new List<ResourceConsumed>();
-    public bool IsValid(DateTime? startTime, DateTime? endTime) => (startTime.HasValue && ValidityFrom <= startTime && (ValidityTo.HasValue && ValidityTo >= startTime));
+    public bool IsValid(DateTime? startTime, DateTime? endTime) => (startTime.HasValue && ValidityFrom <= startTime && (!ValidityTo.HasValue || ValidityTo >= startTime));
     
     public virtual List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccountings { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
 }
