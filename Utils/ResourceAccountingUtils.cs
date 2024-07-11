@@ -32,8 +32,10 @@ public class ResourceAccountingUtils
         
         if(submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
         {
-            submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Split("=".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
+            submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters
+                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries))
+                .Where(x => x.Length == 2)  // Ensure that the split results in exactly two elements
                 .ToDictionary(x => x[0], x => x[1]);
         }
         
