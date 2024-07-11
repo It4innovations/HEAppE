@@ -30,7 +30,14 @@ public class ResourceAccountingUtils
         
         logger.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
         
-        double resourceAccountingValue = ResourceAccountingUtils.CalculateAllocatedResources(accounting.Formula, dbTaskInfo.ParsedParameters, logger);
+        if(submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
+        {
+            submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters.Split(" ".ToCharArray(), StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Split("=".ToCharArray(), StringSplitOptions.RemoveEmptyEntries))
+                .ToDictionary(x => x[0], x => x[1]);
+        }
+        
+        double resourceAccountingValue = ResourceAccountingUtils.CalculateAllocatedResources(accounting.Formula, submittedTaskInfo.ParsedParameters, logger);
         if (dbTaskInfo.ResourceConsumed == null)
         {
             dbTaskInfo.ResourceConsumed = new ResourceConsumed
