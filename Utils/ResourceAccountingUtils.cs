@@ -65,8 +65,7 @@ public class ResourceAccountingUtils
         accountingFormula = accountingFormula.Replace(" ", string.Empty);
         logger.Info($"Using accounting formula: {accountingFormula}");
         var accountingFormulaProperties = accountingFormula.Split("+-*/%()".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
-        var filteredParsedParameters = parsedParameters.Where(w => string.IsNullOrEmpty(w.Key) && accountingFormulaProperties.Contains(w.Key));
-    
+        var filteredParsedParameters = parsedParameters.Where(w => accountingFormulaProperties.Contains(w.Key));
         
         foreach (var accountingFormulaProperty in filteredParsedParameters)
         {
