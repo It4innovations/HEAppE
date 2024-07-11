@@ -21,8 +21,10 @@ public class ResourceAccountingUtils
 
         if (accounting == null)
         {
-            throw new InvalidRequestException("NotExistingAccounting", submittedTaskInfo.NodeType.Id, submittedTaskInfo.StartTime, submittedTaskInfo.EndTime);
+            logger.Error($"Accounting not found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
+            return;
         }
+        
         double resourceAccountingValue = ResourceAccountingUtils.CalculateAllocatedResources(accounting.Formula, dbTaskInfo.ParsedParameters, logger);
         if (dbTaskInfo.ResourceConsumed == null)
         {
