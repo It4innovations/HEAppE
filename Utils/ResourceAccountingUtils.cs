@@ -19,8 +19,11 @@ public class ResourceAccountingUtils
             .ClusterNodeTypeAggregation
             .ClusterNodeTypeAggregationAccountings
             .Where(x => x.Accounting is { IsDeleted: false } && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
-            .MaxBy(x=> x.Accounting.ValidityFrom)
-            ?.Accounting;
+            .OrderByDescending(x => x.Accounting.ValidityFrom)
+            .ThenByDescending(x => x.Accounting.Id)
+            .Select(x => x.Accounting)
+            .FirstOrDefault();
+
 
         if (accounting == null)
         {
