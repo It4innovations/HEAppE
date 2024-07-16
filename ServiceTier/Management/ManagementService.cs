@@ -646,6 +646,37 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public ClusterNodeTypeAggregationAccountingExt GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeTypeAggregationAccounting clusterNodeTypeAggregationAccounting = managementLogic.GetClusterNodeTypeAggregationAccountingById(clusterNodeTypeAggregationId, accountingId);
+                return clusterNodeTypeAggregationAccounting.ConvertIntToExt();
+            }
+        }
+
+        public ClusterNodeTypeAggregationAccountingExt CreateClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterNodeTypeAggregationAccounting clusterNodeTypeAggregationAccounting = managementLogic.CreateClusterNodeTypeAggregationAccounting(clusterNodeTypeAggregationId, accountingId);
+                return clusterNodeTypeAggregationAccounting.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveClusterNodeTypeAggregationAccounting(clusterNodeTypeAggregationId, accountingId);
+            }
+        }
         #endregion
     }
 }

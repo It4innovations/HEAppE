@@ -92,6 +92,16 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
             return convert;
         }
 
+        public static ClusterNodeTypeAggregationAccountingExt ConvertIntToExt(this ClusterNodeTypeAggregationAccounting accounting)
+        {
+            var convert = new ClusterNodeTypeAggregationAccountingExt()
+            {
+                ClusterNodeTypeAggregationId = accounting.ClusterNodeTypeAggregationId,
+                AccountingId = accounting.AccountingId
+            };
+            return convert;
+        }
+
         public static CommandTemplateExt ConvertIntToExt(this CommandTemplate commandTemplate)
         {
             var convert = new CommandTemplateExt()

@@ -496,8 +496,10 @@ namespace HEAppE.DataAccessTier
                     }
                 case ClusterNodeTypeAggregationAccounting clusterNodeTypeAggregationAccounting:
                     {
-                        var entity = Set<T>().Find(clusterNodeTypeAggregationAccounting.ClusterNodeTypeAggregationId, clusterNodeTypeAggregationAccounting.AccountingId);
-                        UpdateEntityOrAddItem(entity, item);
+                        var entity = Set<T>().OfType<ClusterNodeTypeAggregationAccounting>()
+                            .IgnoreQueryFilters()
+                            .FirstOrDefault(c => c.ClusterNodeTypeAggregationId == clusterNodeTypeAggregationAccounting.ClusterNodeTypeAggregationId && c.AccountingId == clusterNodeTypeAggregationAccounting.AccountingId);
+                        UpdateEntityOrAddItem((T)(object)entity, item);
                         break;
                     }
                 case ProjectClusterNodeTypeAggregation projectClusterNodeTypeAggregation:

@@ -495,4 +495,13 @@
   <data name="RequestedObjectDoesNotExistException_ClusterProxyConnectionNotExists" xml:space="preserve">
     <value>Požadovaná cluster proxy connection s id '{0}' není definována v HEAppE.</value>
   </data>
+  <data name="InvalidRequestException_ClusterNodeTypeAggregationAccountingAlreadyExists" xml:space="preserve">
+    <value>Cluster node type aggregation accounting s clusterNodeTypeAggregationId '{0}' a accountingId '{1}' je již definován v HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_AccountingNotFound" xml:space="preserve">
+    <value>Požadovaný accounting s Id '{0}' není definován v HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeAggregationAccountingNotFound" xml:space="preserve">
+    <value>Požadovaný cluster node type aggregation accounting s clusterNodeTypeAggregationId '{0}' a accountingId '{1}' není definován v HEAppE.</value>
+  </data>
 </root>

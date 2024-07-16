@@ -495,4 +495,13 @@
   <data name="RequestedObjectDoesNotExistException_ClusterProxyConnectionNotExists" xml:space="preserve">
     <value>Requested cluster proxy connection with Id '{0}' does not exist in the HEAppE.</value>
   </data>
+  <data name="InvalidRequestException_ClusterNodeTypeAggregationAccountingAlreadyExists" xml:space="preserve">
+    <value>The specified cluster node type aggregation accounting with clusterNodeTypeAggregationId '{0}' and  accountingId '{1}' already exists in the HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_AccountingNotFound" xml:space="preserve">
+    <value>The specified accounting with Id '{0}' is not defined in the HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeAggregationAccountingNotFound" xml:space="preserve">
+    <value>The specified cluster node type aggregation accounting with clusterNodeTypeAggregationId '{0}' and  accountingId '{1}' is not defined in the HEAppE.</value>
+  </data>
 </root>

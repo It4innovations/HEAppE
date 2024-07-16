@@ -35,6 +35,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private IClusterNodeTypeRepository _clusterNodeTypeRepository;
         private IClusterNodeTypeRequestedGroupRepository _clusterNodeTypeRequestedRepository;
         private IClusterNodeTypeAggregationRepository _clusterNodeTypeAggregationRepository;
+        private IClusterNodeTypeAggregationAccountingRepository _clusterNodeTypeAggregationAccountingRepository;
         private IOpenStackAuthenticationCredentialsRepository _openStackAuthenticationCredentialsRepository;
         private IOpenStackDomainRepository _openStackDomainRepository;
         private IOpenStackInstanceRepository _openStackInstanceRepository;
@@ -48,6 +49,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         private ICommandTemplateParameterValueRepository _commandTemplateParameterValueRepository;
         private IJobSpecificationRepository _jobSpecificationRepository;
         private ISessionCodeRepository _sessionCodeRepository;
+        private IAccountingRepository _accountingRepository;
         private ISubmittedJobInfoRepository _submittedJobInfoRepository;
         private ISubmittedTaskInfoRepository _submittedTaskInfoRepository;
         private ISubmittedTaskAllocationNodeInfoRepository _submittedTaskAllocationNodeInfoRepository;
@@ -146,6 +148,13 @@ namespace HEAppE.DataAccessTier.UnitOfWork
                 return _clusterNodeTypeAggregationRepository = _clusterNodeTypeAggregationRepository ?? new ClusterNodeTypeAggregationRepository(_context);
             }
         }
+        public IClusterNodeTypeAggregationAccountingRepository ClusterNodeTypeAggregationAccountingRepository
+        {
+            get
+            {
+                return _clusterNodeTypeAggregationAccountingRepository = _clusterNodeTypeAggregationAccountingRepository ?? new ClusterNodeTypeAggregationAccountingRepository(_context);
+            }
+        }
         public IClusterAuthenticationCredentialsRepository ClusterAuthenticationCredentialsRepository
         {
             get
@@ -220,6 +229,14 @@ namespace HEAppE.DataAccessTier.UnitOfWork
             get
             {
                 return _fileSpecificationRepository = _fileSpecificationRepository ?? new FileSpecificationRepository(_context);
+            }
+        }
+
+        public IAccountingRepository AccountingRepository
+        {
+            get
+            {
+                return _accountingRepository = _accountingRepository ?? new AccountingRepository(_context);
             }
         }
 

@@ -99,5 +99,8 @@ namespace HEAppE.ServiceTier.Management
         ClusterNodeTypeAggregationExt ModifyClusterNodeTypeAggregation(long id, string name, string description, string allocationType, DateTime validityFrom,
             DateTime? validityTo, string sessionCode);
         void RemoveClusterNodeTypeAggregation(long id, string sessionCode);
+        ClusterNodeTypeAggregationAccountingExt GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId, long accountingId, string sessionCode);
+        ClusterNodeTypeAggregationAccountingExt CreateClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId, string sessionCode);
+        void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId, string sessionCode);
     }
 }

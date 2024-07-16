@@ -25,6 +25,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IClusterNodeTypeRepository ClusterNodeTypeRepository { get; }
         IClusterNodeTypeRequestedGroupRepository ClusterNodeTypeRequestedGroupRepository { get; }
         IClusterNodeTypeAggregationRepository ClusterNodeTypeAggregationRepository { get; }
+        IClusterNodeTypeAggregationAccountingRepository ClusterNodeTypeAggregationAccountingRepository { get; }
         IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository { get; }
         IOpenStackDomainRepository OpenStackDomainRepository { get; }
         IOpenStackInstanceRepository OpenStackInstanceRepository { get; }
@@ -33,6 +34,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IFileTransferMethodRepository FileTransferMethodRepository { get; }
         IFileTransferTemporaryKeyRepository FileTransferTemporaryKeyRepository { get; }
         IFileSpecificationRepository FileSpecificationRepository { get; }
+        IAccountingRepository AccountingRepository { get; }
         ISubmittedJobInfoRepository SubmittedJobInfoRepository { get; }
         ISubmittedTaskInfoRepository SubmittedTaskInfoRepository { get; }
         ISubmittedTaskAllocationNodeInfoRepository SubmittedTaskAllocationNodeInfoRepository { get; }

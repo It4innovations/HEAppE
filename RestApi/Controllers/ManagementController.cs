@@ -1132,6 +1132,84 @@ namespace HEAppE.RestApi.Controllers
         }
         #endregion
 
+        #region ClusterNodeTypeAggregationAccounting
+        /// <summary>
+        /// Get ClusterNodeTypeAggregationAccounting by id
+        /// </summary>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <param name="accountingId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ClusterNodeTypeAggregationAccounting")]
+        [RequestSizeLimit(120)]
+        [ProducesResponseType(typeof(ClusterNodeTypeAggregationAccountingExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetClusterNodeTypeAggregationAccountingById\" Parameters: ClusterNodeTypeAggregationId: \"{clusterNodeTypeAggregationId}\" , AccountingId: \"{accountingId}\", SessionCode: \"{sessionCode}\"");
+
+            var clusterNodeTypeAggregationAccounting = _managementService.GetClusterNodeTypeAggregationAccountingById(clusterNodeTypeAggregationId, accountingId, sessionCode);
+            return Ok(clusterNodeTypeAggregationAccounting);
+        }
+
+        /// <summary>
+        /// Create ClusterNodeTypeAggregationAccounting
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("ClusterNodeTypeAggregationAccounting")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(ClusterNodeTypeAggregationAccountingExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateClusterNodeTypeAggregationAccounting(CreateClusterNodeTypeAggregationAccountingModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateClusterNodeTypeAggregationAccounting\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var clusterNodeTypeAggregationAccounting = _managementService.CreateClusterNodeTypeAggregationAccounting(model.ClusterNodeTypeAggregationId, model.AccountingId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(clusterNodeTypeAggregationAccounting);
+        }
+
+        /// <summary>
+        /// Remove ClusterNodeTypeAggregationAccounting
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("ClusterNodeTypeAggregationAccounting")]
+        [RequestSizeLimit(120)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveClusterNodeTypeAggregationAccounting(RemoveClusterNodeTypeAggregationAccountingModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveClusterNodeTypeAggregationAccounting\" Parameters: ClusterNodeTypeAggregationId: \"{model.ClusterNodeTypeAggregationId}\" , AccountingId: \"{model.AccountingId}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveClusterNodeTypeAggregationAccounting(model.ClusterNodeTypeAggregationId, model.AccountingId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok("ClusterNodeTypeAggregationAccounting was deleted.");
+        }
+        #endregion
+
         #region SubProject
         /// <summary>
         /// List SubProjects

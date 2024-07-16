@@ -62,6 +62,8 @@ namespace HEAppE.RestApi.InputValidator
                 CreateClusterNodeTypeAggregationModel ext => ValidateCreateClusterNodeTypeAggregationModel(ext),
                 ModifyClusterNodeTypeAggregationModel ext => ValidateModifyClusterNodeTypeAggregationModel(ext),
                 RemoveClusterNodeTypeAggregationModel ext => ValidateRemoveClusterNodeTypeAggregationModel(ext),
+                CreateClusterNodeTypeAggregationAccountingModel ext => ValidateCreateClusterNodeTypeAggregationAccountingModel(ext),
+                RemoveClusterNodeTypeAggregationAccountingModel ext => ValidateRemoveClusterNodeTypeAggregationAccountingModel(ext),
                 _ => string.Empty
             };
 
@@ -864,6 +866,34 @@ namespace HEAppE.RestApi.InputValidator
             }
 
             ValidateId(model.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateClusterNodeTypeAggregationAccountingModel(CreateClusterNodeTypeAggregationAccountingModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
+            ValidateId(model.AccountingId, "AccountingId");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveClusterNodeTypeAggregationAccountingModel(RemoveClusterNodeTypeAggregationAccountingModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
+            ValidateId(model.AccountingId, "AccountingId");
 
             return _messageBuilder.ToString();
         }

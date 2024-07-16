@@ -1563,6 +1563,63 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
         }
 
+        public ClusterNodeTypeAggregationAccounting GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId, long accountingId)
+        {
+            return _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.GetById(clusterNodeTypeAggregationId, accountingId)
+                ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationAccountingNotFound", clusterNodeTypeAggregationId, accountingId);
+        }
+
+        public ClusterNodeTypeAggregationAccounting CreateClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId)
+        {
+            // we want to return soft deleted entity because M:N connection entities cause exceptions if we want to create with same ids
+            // so we restore soft deleted
+            var clusterNodeTypeAggregationAccounting = _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.GetByIdIncludeSoftDeleted(clusterNodeTypeAggregationId, accountingId);
+
+            if(clusterNodeTypeAggregationAccounting != null && !clusterNodeTypeAggregationAccounting.IsDeleted)
+            {
+                throw new InvalidRequestException("ClusterNodeTypeAggregationAccountingAlreadyExists", clusterNodeTypeAggregationId, accountingId);
+            }
+
+            if(_unitOfWork.ClusterNodeTypeAggregationRepository.GetById(clusterNodeTypeAggregationId) == null)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", clusterNodeTypeAggregationId);
+            }
+
+            if (_unitOfWork.AccountingRepository.GetById(accountingId) == null)
+            {
+                throw new RequestedObjectDoesNotExistException("AccountingNotFound", accountingId);
+            }
+
+            // restore soft deleted entity - otherwise create new
+            if (clusterNodeTypeAggregationAccounting != null && clusterNodeTypeAggregationAccounting.IsDeleted)
+            {
+                clusterNodeTypeAggregationAccounting.IsDeleted = false;
+            }
+            else
+            {
+                clusterNodeTypeAggregationAccounting = new ClusterNodeTypeAggregationAccounting()
+                {
+                    ClusterNodeTypeAggregationId = clusterNodeTypeAggregationId,
+                    AccountingId = accountingId
+                };
+                _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.Insert(clusterNodeTypeAggregationAccounting);
+            }
+            _unitOfWork.Save();
+
+            return clusterNodeTypeAggregationAccounting;
+        }
+
+        public void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId)
+        {
+            var clusterNodeTypeAggregationAccounting = _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.GetById(clusterNodeTypeAggregationId, accountingId)
+                ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationAccountingNotFound", clusterNodeTypeAggregationId, accountingId);
+
+            // soft delete cluster node type aggregation accounting
+            clusterNodeTypeAggregationAccounting.IsDeleted = true;
+            _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.Update(clusterNodeTypeAggregationAccounting);
+            _unitOfWork.Save();
+        }
+
         #region SubProject
         /// <summary>
         /// Creates a new subproject if it does not exist
