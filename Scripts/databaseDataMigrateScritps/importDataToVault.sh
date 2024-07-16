@@ -25,7 +25,6 @@ do
         echo "Skipping entry with empty or whitespace-only private_key for id $id"
         continue
     fi
-    # echo $private_key
     ppath=${private_key#/opt/heappe/}
     if [ -z "$ppath" ]; then
         break
@@ -46,13 +45,12 @@ do
     fi
     # Volání skriptu sendKeyToVault.sh s potřebnými parametry
     cd ../..
-    sh Scripts/sendKeyToVault.sh "$root_token" "$id" "$openPrivatekey" "$private_key_certificate"
-    result=$?
-    if [ $result -eq 1 ]; then
-        echo "Error: sendKeyToVault.sh failed for id $id"
-        exit 1
-    fi
+    status_code=$(./Scripts/sendKeyToVault.sh "$root_token" "$id" "$openPrivatekey" "$private_key_certificate" )
+    sleep 0.2s
     cd Scripts/databaseDataMigrateScritps
+
+    echo "Result: sendKeyToVault.sh for id $id returns status code: $status_code"
+
 done
 # uklid temp souboru
 rm -rf .temp
