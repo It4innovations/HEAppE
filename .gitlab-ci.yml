@@ -137,7 +137,7 @@ push_to_github_job:
      - git config --global user.name "HEAppE Pipeline"
      - git config --global user.email "support.heappe@it4i.cz" 
      - git checkout origin/master
-     - git remote add github https://x-access-token:$GITHUB_TOKEN@github.com/janecekkrenek/HEAppETest.git
+     - git remote add github https://x-access-token:$GITHUB_TOKEN@github.com/It4innovations/HEAppE.git
      - git push github HEAD:$CI_COMMIT_REF_NAME
      - git push github --tags
      - echo "${TAG_MESSAGE}"
