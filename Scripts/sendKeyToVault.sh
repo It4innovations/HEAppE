@@ -17,6 +17,6 @@ body="{
   \"options\": {}
 }"
 
-docker compose exec -T -e VAULT_TOKEN=$root_token heappeV4.2 sh -c "curl -v  -H 'Content-Type: application/json' -d '${body}' '${url}'"
+docker compose exec -T -e VAULT_TOKEN=$root_token heappeV sh -c "curl -v  -H 'Content-Type: application/json' -d '${body}' '${url}'"
 
 
