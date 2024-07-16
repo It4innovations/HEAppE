@@ -24,7 +24,7 @@
 
 3. Create a folder `app/confs/vault/agent`.
 4. In this folder, create empty files named `role_id` and `secret_id`.
-5. Create a file `vault-config.hcl` in `app/confs/vault/agent` with the following content:
+5. Create a file `vault-agent.hcl` in `app/confs/vault/agent` with the following content:
 
     ```hcl
     pid_file = "/tmp/pidfile"

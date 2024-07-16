@@ -15,8 +15,8 @@ if [ ! -f "../sendKeyToVault.sh" ]; then
   exit 1
 fi
 
+rm -rf .temp
 mkdir -p .temp
-rm -rf .temp/*
 # Načtěte CSV soubor a přeskočte první řádek
 tail -n +2 data.csv | while IFS=',' read -r id password private_key private_key_password private_key_certificate
 do
@@ -45,13 +45,14 @@ do
         private_key_certificate=" "
     fi
     # Volání skriptu sendKeyToVault.sh s potřebnými parametry
-    sh ../sendKeyToVault.sh "$root_token" "$id" "$openPrivatekey" "$private_key_certificate"
+    cd ../..
+    sh Scripts/sendKeyToVault.sh "$root_token" "$id" "$openPrivatekey" "$private_key_certificate"
     result=$?
     if [ $result -eq 1 ]; then
         echo "Error: sendKeyToVault.sh failed for id $id"
         exit 1
     fi
-
+    cd Scripts/databaseDataMigrateScritps
 done
 # uklid temp souboru
 rm -rf .temp
