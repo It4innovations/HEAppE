@@ -67,8 +67,8 @@ secret_id=$(docker compose exec -e VAULT_TOKEN=$root_token vault vault write -f 
 
 echo "role_id JE: $role_id"
 echo "secret JE: $secret_id"
-echo $role_id > /opt/heappe/projects/general/app/confs/vault/agent/role_id 
-echo $secret_id > /opt/heappe/projects/general/app/confs/vault/agent/secret_id
+echo $role_id > ../app/confs/vault/agent/role_id 
+echo $secret_id > ../app/confs/vault/agent/secret_id
 
 
 echo "Vault is ready for use"
@@ -76,8 +76,8 @@ echo "Vault is ready for use"
 # Agent start
 
 sleep 1s
-docker compose up vaultagent -d
-echo "Vault agent started"
+docker compose up -d
+echo "HEAppE started"
 echo "Write role_id to vaultagent"
 echo "Write secret_id to vaultagent"
 
