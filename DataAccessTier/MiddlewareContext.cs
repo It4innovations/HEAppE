@@ -32,64 +32,64 @@ namespace HEAppE.DataAccessTier
         public MiddlewareContext() : base()
         {
             if (!_isMigrated)
-    {
-        lock (_lockObject)
-        {
-            if (!_isMigrated)
             {
-                try
+                lock (_lockObject)
                 {
-                    string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
-                    if (localRunEnv != "LocalWindows")
+                    if (!_isMigrated)
                     {
-                        // Connection to Database works and Database not exist
-                        if (!Database.CanConnect())
+                        try
                         {
-                            _log.Info("Starting migration and seeding into the new database.");
-                            Database.Migrate();
-                            EnsureDatabaseSeeded();
-                            _isMigrated = true;
+                            string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
+                            if (localRunEnv != "LocalWindows")
+                            {
+                                // Connection to Database works and Database not exist
+                                if (!Database.CanConnect())
+                                {
+                                    _log.Info("Starting migration and seeding into the new database.");
+                                    Database.Migrate();
+                                    EnsureDatabaseSeeded();
+                                    _isMigrated = true;
+                                }
+                                else
+                                {
+                                    var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
+                                    var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
+
+                                    if (lastAppliedMigration is null)
+                                    {
+                                        _log.Info("Starting migration into the new database.");
+                                        Database.Migrate();
+                                        lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
+                                    }
+                                    else if (DatabaseMigrationSettings.AutoMigrateDatabase && lastAppliedMigration != lastDefinedMigration)
+                                    {
+                                        _log.Info("Applying newer migrations to the database.");
+                                        Database.Migrate();
+                                        _isMigrated = true;
+                                    }
+                                    else if (lastAppliedMigration != lastDefinedMigration)
+                                    {
+                                        throw new DbContextException("MigrationMismatch");
+                                    }
+
+                                    if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
+                                    {
+                                        throw new DbContextException("MigrationCountMismatch");
+                                    }
+
+                                    _log.Info("Application and database migrations are the same. Starting seeding data into the database.");
+                                    EnsureDatabaseSeeded();
+                                    _isMigrated = true;
+                                }
+                            }
                         }
-                        else
+                        catch (SqlException ex)
                         {
-                            var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                            var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-
-                            if (lastAppliedMigration is null)
-                            {
-                                _log.Info("Starting migration into the new database.");
-                                Database.Migrate();
-                                lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                            }
-                            else if (DatabaseMigrationSettings.AutoMigrateDatabase && lastAppliedMigration != lastDefinedMigration)
-                            {
-                                _log.Info("Applying newer migrations to the database.");
-                                Database.Migrate();
-                                _isMigrated = true;
-                            }
-                            else if (lastAppliedMigration != lastDefinedMigration)
-                            {
-                                throw new DbContextException("MigrationMismatch");
-                            }
-
-                            if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
-                            {
-                                throw new DbContextException("MigrationCountMismatch");
-                            }
-
-                            _log.Info("Application and database migrations are the same. Starting seeding data into the database.");
-                            EnsureDatabaseSeeded();
-                            _isMigrated = true;
+                            throw new DbContextException("MigrationError", ex);
                         }
                     }
                 }
-                catch (SqlException ex)
-                {
-                    throw new DbContextException("MigrationError", ex);
-                }
             }
-        }
-    }
         }
         #endregion
         #region Override Methods

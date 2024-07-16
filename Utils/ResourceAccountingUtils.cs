@@ -13,7 +13,7 @@ public class ResourceAccountingUtils
 {
     public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
     {
-        logger.Info($"Finding accounting for SubmittedTaskInfo: {submittedTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
+        logger.Info($"Choosing accounting for SubmittedTaskInfo: {submittedTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
         
         var accounting = dbTaskInfo.NodeType
             .ClusterNodeTypeAggregation
