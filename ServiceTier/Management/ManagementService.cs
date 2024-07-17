@@ -408,7 +408,7 @@ namespace HEAppE.ServiceTier.Management
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId);
+                AdaptorUser user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId, true);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
                 _logger.Info($"User {user.Username} is computing accounting for project {projectId} from {modelStartTime} to {modelEndTime}");
                 managementLogic.ComputeAccounting(modelStartTime, modelEndTime, projectId);
@@ -419,7 +419,7 @@ namespace HEAppE.ServiceTier.Management
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                AdaptorUser user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId);
+                AdaptorUser user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId, true);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
                 return managementLogic.ListAccountingStates(projectId).Select(x => x.ConvertIntToExt()).ToList();
             }
