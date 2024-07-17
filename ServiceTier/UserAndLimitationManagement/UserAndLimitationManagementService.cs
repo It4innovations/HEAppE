@@ -207,10 +207,10 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         {
             bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => x.AdaptorUserRole.ContainedRoleTypes
                                                                     .Any(a => a == requiredUserRole) 
-                                                                        && x.AdaptorUserGroup.ProjectId == projectId
+                                                                           && !overrideProjectValidityCheck || (x.AdaptorUserGroup.ProjectId == projectId
                                                                         && !x.AdaptorUserGroup.Project.IsDeleted
                                                                         && x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow
-                                                                        && !x.IsDeleted);
+                                                                        && !x.IsDeleted));
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
