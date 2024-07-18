@@ -18,6 +18,8 @@ namespace HEAppE.ExtModels.JobReporting.Models.DetailedReport
         [DataMember]
         public double? TotalUsage { get; set; }
         [DataMember]
+        public UsageTypeExt UsageType { get; set; }
+        [DataMember]
         public DateTime StartDate { get; set; }
         [DataMember]
         public DateTime EndDate { get; set; }

@@ -4,6 +4,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.DataAccessTier
 {
@@ -51,6 +52,7 @@ namespace HEAppE.DataAccessTier
         public static List<Project> Projects { get; set; } = new List<Project>();
         public static List<SubProject> SubProjects { get; set; } = new List<SubProject>();
         public static List<Accounting> Accountings { get; set; } = new List<Accounting>();
+        public static List<AccountingState> AccountingStates { get; set; } = new List<AccountingState>();
         public static List<ClusterNodeTypeAggregation> ClusterNodeTypeAggregations { get; set; } = new List<ClusterNodeTypeAggregation>();
         public static List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccounting { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
         public static List<ProjectClusterNodeTypeAggregation> ProjectClusterNodeTypeAggregations { get; set; } = new List<ProjectClusterNodeTypeAggregation>();

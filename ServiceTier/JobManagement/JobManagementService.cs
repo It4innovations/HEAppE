@@ -38,10 +38,10 @@ namespace HEAppE.ServiceTier.JobManagement
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                 SubProject subProject = null;
                 
-                if (!string.IsNullOrEmpty(specification.SubProject))
+                if (!string.IsNullOrEmpty(specification.SubProjectIdentifier))
                 {
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    subProject = managementLogic.CreateSubProject(specification.SubProject, specification.ProjectId);
+                    subProject = managementLogic.CreateSubProject(specification.SubProjectIdentifier, specification.ProjectId);
                 }
                 
                 JobSpecification js = specification.ConvertExtToInt(specification.ProjectId, subProject?.Id);
