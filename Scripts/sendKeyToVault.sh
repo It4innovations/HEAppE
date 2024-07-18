@@ -16,7 +16,7 @@ body="{
   \"data\": {\"Id\": ${credentialsId},\"Password\": \"\", \"PrivateKey\": \"${private_key}\",\"PrivateKeyPassword\": \"\",\"PrivateKeyCertificate\": \"${private_key_certificate}\"},
   \"options\": {}
 }"
-
-docker compose exec -T -e VAULT_TOKEN=$root_token heappeV4.2 sh -c "curl -v  -H 'Content-Type: application/json' -d '${body}' '${url}'"
-
-
+status_code=$(docker compose exec -T -e VAULT_TOKEN=$root_token heappe sh -c "curl -o /dev/null -s -w '%{http_code}' -H 'Content-Type: application/json' -d '${body}' '${url}'" &)
+# Výpis statusového kódu před jeho vrácením
+echo "Status code: $status_code"
+exit $status_code

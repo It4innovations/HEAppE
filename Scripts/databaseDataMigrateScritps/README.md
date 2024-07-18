@@ -18,7 +18,7 @@ This script will create a CSV format data export, which will be subsequently pro
 
 After successfully backing up the data, you can proceed with the migration of HEAppE to version 4.2.2.
 
-## Step 3: Vault Initialization
+## Step 3: Vault Initialization && run HEAppE
 
 Before importing data into the vault, it is necessary to initialize the vault. Use the `vaultInitToAnsibleFile.sh` script for this.
 
