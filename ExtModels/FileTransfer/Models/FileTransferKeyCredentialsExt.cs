@@ -1,4 +1,5 @@
-﻿using System.Runtime.Serialization;
+using System.Runtime.Serialization;
+using HEAppE.DomainObjects.ClusterInformation;
 
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
@@ -12,6 +13,9 @@ namespace HEAppE.ExtModels.FileTransfer.Models
 
         [DataMember(Name = "CipherType")]
         public FileTransferCipherTypeExt? CipherType { get; set; }
+        
+        [DataMember(Name="CredentialsAuthType")]
+        public ClusterAuthenticationCredentialsAuthTypeExt CredentialsAuthType { get; set; }
 
         [DataMember(Name = "PrivateKey")]
         public string PrivateKey { get; set; }
@@ -26,7 +30,7 @@ namespace HEAppE.ExtModels.FileTransfer.Models
         public string Passphrase { get; set; }
         public override string ToString()
         {
-            return $"""AsymmetricKeyCredentialsExt(Username="{Username}";CipherType="{CipherType}"; PublicKey="{PublicKey}; Passphrase={Passphrase}")""";
+            return $"""AsymmetricKeyCredentialsExt(Username="{Username}";CipherType="{CipherType}"; CredentialsAuthType="{CredentialsAuthType}"; PublicKey="{PublicKey}; Passphrase={Passphrase}")""";
         }
     }
 }
