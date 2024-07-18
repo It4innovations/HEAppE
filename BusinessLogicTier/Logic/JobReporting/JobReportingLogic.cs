@@ -249,7 +249,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
 
         private List<JobReport> GetJobSubProjectReports(long nodeTypeId, SubProject subProject, DateTime startTime, DateTime endTime)
         {
-            var jobsInSubProject = _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAdaptorUserAndProject()
+            var jobsInSubProject = _unitOfWork.SubmittedJobInfoRepository.GetAll()
                 .Where(x => x.Project.Id == subProject.ProjectId &&
                             x.Specification.SubProjectId.HasValue &&
                             x.Specification.SubProjectId.Value == subProject.Id &&
@@ -360,7 +360,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <returns></returns>
         private List<JobReport> GetJobReports(long nodeTypeId, long projectId, DateTime startTime, DateTime endTime, string[] subProjects)
         {
-            var jobsInProjectQuery = _unitOfWork.SubmittedJobInfoRepository.GetAllWithSubmittedTaskAdaptorUserAndProject()
+            var jobsInProjectQuery = _unitOfWork.SubmittedJobInfoRepository.GetAll()
                 .Where(x => x.Project.Id == projectId &&
                             x.StartTime >= startTime &&
                             x.EndTime <= endTime &&
@@ -392,7 +392,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             var taskReports = tasks.Select(task => new TaskReport()
             {
                 SubmittedTaskInfo = task,
-                Usage = Math.Round(task.ResourceConsumed, 3)
+                Usage = Math.Round(task.ResourceConsumed?.Value ?? 0, 3)
             }).ToList();
             return taskReports;
         }

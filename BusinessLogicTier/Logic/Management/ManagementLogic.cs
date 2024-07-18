@@ -6,7 +6,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Transactions;
-
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -21,9 +20,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
-
 using log4net;
-
 using Org.BouncyCastle.Security;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
@@ -1096,7 +1093,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <returns></returns>
         public SubProject CreateSubProject(string identifier, long projectId)
         {
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            
             SubProject subProject = _unitOfWork.SubProjectRepository.GetByIdentifier(identifier, projectId);
+            
             if (subProject is not null && (subProject.IsDeleted || subProject.EndDate <= DateTime.UtcNow || subProject.StartDate >= DateTime.UtcNow))
             {
                 throw new InputValidationException("SubProjectDeletedOrEnded");
@@ -1114,6 +1118,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     Identifier = identifier,
                     CreatedAt = DateTime.UtcNow,
                     StartDate = DateTime.UtcNow,
+                    EndDate = project.EndDate,
                     IsDeleted = false,
                     ProjectId = projectId
                 };
@@ -1126,6 +1131,20 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription,
             DateTime modelStartDate, DateTime? modelEndDate)
         {
+            Project project = _unitOfWork.ProjectRepository.GetById(modelProjectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            if (modelEndDate.HasValue && modelEndDate.Value > project.EndDate)
+            {
+                throw new InputValidationException("SubProjectEndDateAfterProjectEndDate");
+            }
+            if (modelStartDate < project.StartDate)
+            {
+                throw new InputValidationException("SubProjectStartDateBeforeProjectStartDate");
+            }
+            
             //test if not exist subproject with the same identifier
             if (_unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, modelProjectId) != null)
             {
@@ -1151,10 +1170,26 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
                                     ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
-            if (!subProject.IsDeleted)
+            if (subProject.IsDeleted)
             {
                 throw new InputValidationException("NotPermitted");
             }
+            
+            Project project = _unitOfWork.ProjectRepository.GetById(subProject.ProjectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            if (modelEndDate.HasValue && modelEndDate.Value > project.EndDate)
+            {
+                throw new InputValidationException("SubProjectEndDateAfterProjectEndDate");
+            }
+            if (modelStartDate < project.StartDate)
+            {
+                throw new InputValidationException("SubProjectStartDateBeforeProjectStartDate");
+            }
+            
+            
             var subProjectWithSameIdentifier = _unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, subProject.ProjectId);
             if (subProjectWithSameIdentifier != null && subProjectWithSameIdentifier.Id != modelId)
             {
@@ -1174,7 +1209,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
                                     ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
-            if (!subProject.IsDeleted)
+            if (subProject.IsDeleted)
             {
                 throw new InputValidationException("NotPermitted");
             }
@@ -1188,11 +1223,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             //get all submittedtasks from project and compute with formula
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (project is null)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
-            if (project.IsDeleted)
+            if (project is null || project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
@@ -1203,30 +1234,51 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                           && t.EndTime <= modelEndTime
                           && t.Project.Id == projectId)
                 .ToList();
-
+            
+            AccountingState accountingState = new AccountingState()
+            {
+                ProjectId = project.Id,
+                Project = project,
+                AccountingStateType = AccountingStateType.Running,
+                ComputingStartDate = DateTime.UtcNow,
+                TriggeredAt = DateTime.UtcNow,
+                LastUpdatedAt = DateTime.UtcNow
+            };
+            
+            project.AccountingStates.Add(accountingState);
+            _unitOfWork.ProjectRepository.Update(project);
+            _logger.Info($"Accounting for project {project.Id} has been started. Total tasks to compute: {submittedTasks.Count}.");
             //compute accounting
             foreach (var submittedTask in submittedTasks)
             {
-                //compute accounting
-                string accountingFormula = submittedTask
-                    .Specification
-                    .ClusterNodeType
-                    .ClusterNodeTypeAggregation
-                    .ClusterNodeTypeAggregationAccountings
-                    .LastOrDefault(x => !(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
-                    ?.Accounting.Formula;
-
                 //parse all parameters to dictionary
                 var parsedParameters = submittedTask.AllParameters
                     .Split(' ')
                     .Select(x => x.Split('='))
                     .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
 
-                double result = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, parsedParameters, _logger);
-                submittedTask.ResourceConsumed = result;
+                ResourceAccountingUtils.ComputeAccounting(submittedTask, submittedTask, _logger);
+                
                 _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTask);
-                _unitOfWork.Save();
             }
+            
+            accountingState.AccountingStateType = AccountingStateType.Finished;
+            accountingState.ComputingEndDate = DateTime.UtcNow;
+            accountingState.LastUpdatedAt = DateTime.UtcNow;
+            _unitOfWork.ProjectRepository.Update(project);
+            _unitOfWork.Save();
+            _logger.Info($"Accounting for project {project.Id} has been finished.");
+        }
+        
+        public List<AccountingState> ListAccountingStates(long projectId)
+        {
+            var project = _unitOfWork.ProjectRepository.GetById(projectId);
+            if (project is null || project.IsDeleted)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+            
+            return project.AccountingStates.ToList();
         }
 
         #endregion
