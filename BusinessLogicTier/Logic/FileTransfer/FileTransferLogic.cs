@@ -105,6 +105,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     Username = clusterUserAuthCredentials.Username,
                     Password = clusterUserAuthCredentials.Password,
                     FileTransferCipherType = clusterUserAuthCredentials.CipherType,
+                    CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
                     PrivateKey = sshKeyExists ? File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile) : null,
                     Passphrase = clusterUserAuthCredentials.PrivateKeyPassword
                 }
@@ -144,6 +145,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     Username = jobInfo.Specification.ClusterUser.Username,
                     FileTransferCipherType = certGenerator.CipherType,
                     PrivateKey = certGenerator.ToPrivateKey(),
+                    CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey,
                     PublicKey = publicKey
                 }
             };

@@ -212,6 +212,34 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 _ => AccountingStateTypeExt.Unknown
             };
         }
+
+        public static ClusterAuthenticationCredentialsAuthTypeExt ConvertIntToExt(
+            this ClusterAuthenticationCredentialsAuthType type)
+        {
+            return type switch
+            {
+                ClusterAuthenticationCredentialsAuthType.Password => ClusterAuthenticationCredentialsAuthTypeExt
+                    .Password,
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractive =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractive,
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKey,
+                ClusterAuthenticationCredentialsAuthType.PrivateKey => ClusterAuthenticationCredentialsAuthTypeExt
+                    .PrivateKey,
+                ClusterAuthenticationCredentialsAuthType.PasswordViaProxy => ClusterAuthenticationCredentialsAuthTypeExt
+                    .PasswordViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractiveViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKeyViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyInSshAgent,
+                _ => ClusterAuthenticationCredentialsAuthTypeExt.Unknown
+            };
+        }
+        
         #endregion
         #region Private Methods
         private static ProxyTypeExt ConvertProxyTypeIntToExt(ProxyType? proxyType)

@@ -58,6 +58,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                     Username = asymmetricKeyCredentials.Username,
                     Password = asymmetricKeyCredentials.Password,
                     CipherType = ConvertFileTransferMethodIntToExt(asymmetricKeyCredentials.FileTransferCipherType),
+                    CredentialsAuthType = asymmetricKeyCredentials.CredentialsAuthType.ConvertIntToExt(),
                     PrivateKey = asymmetricKeyCredentials.PrivateKey,
                     PublicKey = asymmetricKeyCredentials.PublicKey,
                     Passphrase = asymmetricKeyCredentials.Passphrase
