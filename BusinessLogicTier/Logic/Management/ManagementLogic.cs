@@ -1,3 +1,12 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Transactions;
+
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -12,16 +21,10 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
+
 using log4net;
+
 using Org.BouncyCastle.Security;
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -147,7 +150,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
             }
-            
+
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
                 modelProjectId);
 
@@ -161,7 +164,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
-            
+
             CommandTemplate commandTemplate = new()
             {
                 Name = modelName,
@@ -187,7 +190,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             return commandTemplate;
         }
-        
+
         public CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription,
             string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
             long modelClusterNodeTypeId)
@@ -202,8 +205,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
-            
-            if(commandTemplate.CreatedFrom is not null)
+
+            if (commandTemplate.CreatedFrom is not null)
             {
                 throw new InvalidRequestException("CommandTemplateNotStatic");
             }
@@ -213,7 +216,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InvalidRequestException("NotPermitted");
             }
-            
+
             if (project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -224,15 +227,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
             }
-            
+
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
                 project.Id);
-            
+
             if (clusterProject is null || clusterProject.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, project.Id);
             }
-            
+
             commandTemplate.Name = modelName;
             commandTemplate.Description = modelDescription;
             commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
@@ -241,7 +244,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             commandTemplate.ClusterNodeType = clusterNodeType;
             commandTemplate.ClusterNodeTypeId = clusterNodeType.Id;
             commandTemplate.ModifiedAt = DateTime.UtcNow;
-            
+
             _logger.Info($"Modifying command template: {commandTemplate}");
             _unitOfWork.Save();
 
@@ -264,23 +267,23 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId, string description, string extendedAllocationCommand, string executableFile, string preparationScript)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-            
+
             if (commandTemplate is null)
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
-            
-            if(commandTemplate.CreatedFrom is null)
+
+            if (commandTemplate.CreatedFrom is null)
             {
                 throw new InvalidRequestException("CommandTemplateNotFromGeneric");
             }
-            
+
             Project project = _unitOfWork.ProjectRepository.GetById(projectId);
             if (project is null)
             {
                 throw new InvalidRequestException("NotPermitted");
             }
-            
+
             if (project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -440,7 +443,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InvalidRequestException("NotPermitted");
             }
-            
+
             if (project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -473,7 +476,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InvalidRequestException("NotPermitted");
             }
-            
+
             if (project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -516,7 +519,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 ClusterId = clusterId,
                 ProjectId = projectId,
-                LocalBasepath = localBasepath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/'}),
+                LocalBasepath = localBasepath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd(new char[] { '\\', '/' }),
                 CreatedAt = modified,
                 IsDeleted = false,
             };
@@ -607,7 +610,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 {
                     //get existing secure key
                     var existingKey = existingCredentials.FirstOrDefault();
-                    if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKeyFile))
+                    if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKey))
                     {
                         continue;
                     }
@@ -699,8 +702,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.WriteAllText(credentials.PrivateKeyFile, secureShellKey.PrivateKeyPEM);
-                credentials.PrivateKeyPassword = passphrase;
+                File.WriteAllText(credentials.PrivateKey, secureShellKey.PrivateKeyPEM);
+                credentials.PrivateKeyPassphrase = passphrase;
                 credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
                 credentials.CipherType = secureShellKey.CipherType;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
@@ -736,7 +739,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.Delete(credentials.PrivateKeyFile);
+                File.Delete(credentials.PrivateKey);
                 credentials.IsDeleted = true;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
                 {
@@ -780,8 +783,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.WriteAllText(credentials.PrivateKeyFile, secureShellKey.PrivateKeyPEM);
-                credentials.PrivateKeyPassword = passphrase;
+                File.WriteAllText(credentials.PrivateKey, secureShellKey.PrivateKeyPEM);
+                credentials.PrivateKeyPassphrase = passphrase;
                 credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
                 credentials.CipherType = secureShellKey.CipherType;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
@@ -819,7 +822,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
             foreach (ClusterAuthenticationCredentials credentials in clusterAuthenticationCredentials)
             {
-                File.Delete(credentials.PrivateKeyFile);
+                File.Delete(credentials.PrivateKey);
                 credentials.IsDeleted = true;
                 credentials.ClusterProjectCredentials.ForEach(cpc =>
                 {
@@ -927,13 +930,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             List<long> noAccessClusterIds = new();
-            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username).Where(x=>!x.IsDeleted))
+            foreach (ClusterAuthenticationCredentials clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username).Where(x => !x.IsDeleted))
             {
                 if (clusterAuthCredentials.IsDeleted)
                 {
                     continue;
                 }
-                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject).Where(x=>!x.IsDeleted))
+                foreach (ClusterProjectCredential clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x => x.ClusterProject).Where(x => !x.IsDeleted))
                 {
                     if (clusterAuthCredentials.IsDeleted || clusterProjectCredential.IsDeleted || clusterProjectCredential.ClusterProject.IsDeleted)
                     {
@@ -942,7 +945,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
                     Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
                     var project = clusterProjectCredential.ClusterProject.Project;
-                    
+
                     HpcConnectionFramework.SchedulerAdapters.Interfaces.IRexScheduler scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
                     if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
                     {
@@ -962,18 +965,18 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
-            
+
             if (!commandTemplate.IsEnabled)
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
-            
+
             //if is not static
             if (commandTemplate.CreatedFrom is not null)
             {
                 throw new InvalidRequestException("CommandTemplateNotStatic");
             }
-            
+
             //if identifier already exists in command template
             if (commandTemplate.TemplateParameters.Exists(x => x.Identifier == modelIdentifier))
             {
@@ -1005,18 +1008,18 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
             }
-            
+
             if (!commandTemplateParameter.CommandTemplate.IsEnabled)
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
-            
+
             //if is not static
             if (commandTemplateParameter.CommandTemplate.CreatedFrom is not null)
             {
                 throw new InvalidRequestException("CommandTemplateNotStatic");
             }
-            
+
             //if identifier already exists in command template
             if (!commandTemplateParameter.CommandTemplate.TemplateParameters.Exists(x => x.Identifier == modelIdentifier))
             {
@@ -1024,7 +1027,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 commandTemplateParameter.Identifier = modelIdentifier;
                 ModifyCommandTemplateParameterFromCommandTemplate(commandTemplateParameter.CommandTemplate, commandTemplateParameter, previousIdentifier);
             }
-            
+
             commandTemplateParameter.Query = modelQuery;
             commandTemplateParameter.Description = modelDescription;
             commandTemplateParameter.ModifiedAt = DateTime.UtcNow;
@@ -1042,12 +1045,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
             }
-            
+
             if (!commandTemplateParameter.CommandTemplate.IsEnabled)
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
-            
+
             //if is not static
             if (commandTemplateParameter.CommandTemplate.CreatedFrom is not null)
             {
@@ -1084,7 +1087,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 })
                 .ToList();
         }
-        
+
         #region SubProject
         /// <summary>
         /// Creates a new subproject if it does not exist
@@ -1098,7 +1101,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InputValidationException("SubProjectDeletedOrEnded");
             }
-            else if(subProject is not null)
+            else if (subProject is not null)
             {
                 //already exists, reuse it
                 return subProject;
@@ -1193,14 +1196,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
-            
+
             var submittedTasks = _unitOfWork.SubmittedTaskInfoRepository
                 .GetAll()
-                .Where(t=>t.StartTime >= modelStartTime 
-                          && t.EndTime <= modelEndTime 
+                .Where(t => t.StartTime >= modelStartTime
+                          && t.EndTime <= modelEndTime
                           && t.Project.Id == projectId)
                 .ToList();
-            
+
             //compute accounting
             foreach (var submittedTask in submittedTasks)
             {
@@ -1210,16 +1213,16 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     .ClusterNodeType
                     .ClusterNodeTypeAggregation
                     .ClusterNodeTypeAggregationAccountings
-                    .LastOrDefault(x=>!(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
+                    .LastOrDefault(x => !(x.Accounting.IsDeleted) && x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
                     ?.Accounting.Formula;
-                
+
                 //parse all parameters to dictionary
                 var parsedParameters = submittedTask.AllParameters
                     .Split(' ')
                     .Select(x => x.Split('='))
                     .ToDictionary(x => x[0], x => x.Length >= 2 ? x[1] : string.Empty);
 
-                double result = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, parsedParameters, _logger); 
+                double result = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, parsedParameters, _logger);
                 submittedTask.ResourceConsumed = result;
                 _unitOfWork.SubmittedTaskInfoRepository.Update(submittedTask);
                 _unitOfWork.Save();
@@ -1244,13 +1247,13 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             // modify commandTemplate.CommandParameters, replace %%{previousIdentifier} with %%{commandTemplateParameter.Identifier}
             commandTemplate.CommandParameters = commandTemplate.CommandParameters.Replace($"%%{"{"}{previousIdentifier}{"}"}", $"%%{"{"}{commandTemplateParameter.Identifier}{"}"}");
         }
-        
+
         private void RemoveCommandTemplateParameterFromCommandTemplate(CommandTemplate commandTemplate, CommandTemplateParameter commandTemplateParameter)
         {
             commandTemplate.TemplateParameters.Remove(commandTemplateParameter);
             commandTemplate.CommandParameters = string.Join(' ', commandTemplate.TemplateParameters.Select(x => $"%%{"{"}{x.Identifier}{"}"}"));
         }
-        
+
         /// <summary>
         /// Returns the path to the private key file for the specified project
         /// </summary>
@@ -1264,7 +1267,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 Directory.CreateDirectory(directoryPath);
             }
             //get count of files in directory and increment by 1
-            int nextId =  Directory.GetFiles(directoryPath).Length + 1;
+            int nextId = Directory.GetFiles(directoryPath).Length + 1;
             string keyPath = Path.Combine(directoryPath, $"{CertificateGeneratorConfiguration.GeneratedKeyPrefix}_{nextId:D2}");
             return keyPath;
         }
@@ -1340,8 +1343,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 Username = username,
                 Password = password,
-                PrivateKeyFile = keyPath,
-                PrivateKeyPassword = passphrase,
+                PrivateKey = keyPath,
+                PrivateKeyPassphrase = passphrase,
                 CipherType = CipherGeneratorConfiguration.Type,
                 PublicKeyFingerprint = publicKeyFingerprint,
                 ClusterProjectCredentials = new List<ClusterProjectCredential>(),
