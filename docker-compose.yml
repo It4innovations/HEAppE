@@ -48,6 +48,7 @@ services:
       - sshagent_internal_network
       - db_internal_network
       - external_network
+      - vaultNet
     extra_hosts:
       - "host.docker.internal:host-gateway"
 
@@ -71,7 +72,7 @@ services:
 
   vaultagent:
     image: hashicorp/vault:latest
-    container_name: heappe-vault-agent
+    container_name: vaultagent
     volumes:
       - vault-agent-volume:/vault/agent
       - ../app/confs/vault/agent:/vault/config
