@@ -110,6 +110,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     Username = clusterUserAuthCredentials.Username,
                     Password = clusterUserAuthCredentials.Password,
                     FileTransferCipherType = clusterUserAuthCredentials.CipherType,
+                    CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
                     PrivateKey = clusterUserAuthCredentials.PrivateKey,
                     PrivateKeyCertificate = clusterUserAuthCredentials.PrivateKeyCertificate,
                     Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
@@ -170,7 +171,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                 Username = jobInfo.Specification.ClusterUser.Username,
                 FileTransferCipherType = certGenerator.CipherType,
                 PrivateKey = certGenerator.ToPrivateKey(),
-                PublicKey = publicKey
+                CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey,PublicKey = publicKey
             };
 
 
