@@ -11,6 +11,7 @@ using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
