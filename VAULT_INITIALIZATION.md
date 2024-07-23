@@ -1,4 +1,6 @@
 # Guide for Initializing HashiCorp Vault
+## Prerequisite
+- docker compose v2 -> accesible command "docker compose"
 
 ## Step 1: Preparing Configuration Files
 
@@ -69,6 +71,8 @@
       }
     }
     ```
+6. Add 'vault' and 'vaultagent' services to docker-compose.yml file
+
 
 ## Step 2: Initializing Vault
 
