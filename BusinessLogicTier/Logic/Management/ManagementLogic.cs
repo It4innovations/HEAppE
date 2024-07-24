@@ -1563,12 +1563,27 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
         }
 
+        /// <summary>
+        /// Get ClusterNodeTypeAggregationAccounting by clusterNodeTypeAggregationId and accountingId
+        /// </summary>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <param name="accountingId"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public ClusterNodeTypeAggregationAccounting GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId, long accountingId)
         {
             return _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.GetById(clusterNodeTypeAggregationId, accountingId)
                 ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationAccountingNotFound", clusterNodeTypeAggregationId, accountingId);
         }
 
+        /// <summary>
+        /// Create ClusterNodeTypeAggregationAccounting
+        /// </summary>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <param name="accountingId"></param>
+        /// <returns></returns>
+        /// <exception cref="InvalidRequestException"></exception>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public ClusterNodeTypeAggregationAccounting CreateClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId)
         {
             // we want to return soft deleted entity because M:N connection entities cause exceptions if we want to create with same ids
@@ -1609,6 +1624,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return clusterNodeTypeAggregationAccounting;
         }
 
+        /// <summary>
+        /// Remove ClusterNodeTypeAggregationAccounting
+        /// </summary>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <param name="accountingId"></param>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId)
         {
             var clusterNodeTypeAggregationAccounting = _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.GetById(clusterNodeTypeAggregationId, accountingId)
@@ -1617,6 +1638,82 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             // soft delete cluster node type aggregation accounting
             clusterNodeTypeAggregationAccounting.IsDeleted = true;
             _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.Update(clusterNodeTypeAggregationAccounting);
+            _unitOfWork.Save();
+        }
+
+        /// <summary>
+        /// Get Accounting by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public Accounting GetAccountingById(long id)
+        {
+            return _unitOfWork.AccountingRepository.GetById(id)
+                ?? throw new RequestedObjectDoesNotExistException("AccountingNotFound", id);
+        }
+
+        /// <summary>
+        /// Create Accounting
+        /// </summary>
+        /// <param name="formula"></param>
+        /// <param name="validityFrom"></param>
+        /// <returns></returns>
+        public Accounting CreateAccounting(string formula, DateTime validityFrom)
+        {
+            var accounting = new Accounting()
+            {
+                Formula = formula,
+                ValidityFrom = validityFrom,
+                CreatedAt = DateTime.UtcNow,
+            };
+            _unitOfWork.AccountingRepository.Insert(accounting);
+            _unitOfWork.Save();
+
+            return accounting;
+        }
+
+        /// <summary>
+        /// Modify Accounting
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="formula"></param>
+        /// <param name="validityFrom"></param>
+        /// <param name="validityTo"></param>
+        /// <returns></returns>
+        public Accounting ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo)
+        {
+            var accounting = _unitOfWork.AccountingRepository.GetById(id)
+                ?? throw new RequestedObjectDoesNotExistException("AccountingNotFound", id);
+
+            accounting.Formula = formula;
+            accounting.ValidityFrom = validityFrom;
+            accounting.ValidityTo = validityTo;
+            accounting.ModifiedAt = DateTime.UtcNow;
+            _unitOfWork.AccountingRepository.Update(accounting);
+            _unitOfWork.Save();
+
+            return accounting;
+        }
+
+        /// <summary>
+        /// Remove Accounting
+        /// </summary>
+        /// <param name="id"></param>
+        public void RemoveAccounting(long id)
+        {
+            var accounting = _unitOfWork.AccountingRepository.GetById(id)
+                ?? throw new RequestedObjectDoesNotExistException("AccountingNotFound", id);
+
+            // remove ClusterNodeTypeAggregationAccountings
+            accounting.ClusterNodeTypeAggregationAccountings.ForEach(agg =>
+            {
+                agg.IsDeleted = true;
+            });
+            // soft delete accounting
+            accounting.ModifiedAt = DateTime.UtcNow;
+            accounting.IsDeleted = true;
+            _unitOfWork.AccountingRepository.Update(accounting);
             _unitOfWork.Save();
         }
 

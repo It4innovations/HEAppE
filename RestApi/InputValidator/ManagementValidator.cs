@@ -64,6 +64,9 @@ namespace HEAppE.RestApi.InputValidator
                 RemoveClusterNodeTypeAggregationModel ext => ValidateRemoveClusterNodeTypeAggregationModel(ext),
                 CreateClusterNodeTypeAggregationAccountingModel ext => ValidateCreateClusterNodeTypeAggregationAccountingModel(ext),
                 RemoveClusterNodeTypeAggregationAccountingModel ext => ValidateRemoveClusterNodeTypeAggregationAccountingModel(ext),
+                CreateAccountingModel ext => ValidateCreateAccountingModel(ext),
+                ModifyAccountingModel ext => ValidateModifyAccountingModel(ext),
+                RemoveAccountingModel ext => ValidateRemoveAccountingModel(ext),
                 _ => string.Empty
             };
 
@@ -894,6 +897,58 @@ namespace HEAppE.RestApi.InputValidator
 
             ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
             ValidateId(model.AccountingId, "AccountingId");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateAccountingModel(CreateAccountingModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            if (!AccountingFormulaValidator.IsValidAccountingFormula(model.Formula))
+            {
+                _messageBuilder.AppendLine($"Not valid formula '{model.Formula}'");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyAccountingModel(ModifyAccountingModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
+
+            if (!AccountingFormulaValidator.IsValidAccountingFormula(model.Formula))
+            {
+                _messageBuilder.AppendLine($"Not valid formula '{model.Formula}'");
+            }
+
+            if (model.ValidityTo.HasValue && model.ValidityTo <= model.ValidityFrom)
+            {
+                _messageBuilder.AppendLine($"{model.ValidityTo} must be greater than {model.ValidityFrom}");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveAccountingModel(RemoveAccountingModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.Id, "Id");
 
             return _messageBuilder.ToString();
         }

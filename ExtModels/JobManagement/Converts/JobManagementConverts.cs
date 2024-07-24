@@ -271,6 +271,20 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             };
             return convert;
         }
+
+        public static AccountingExt ConvertIntToExt(this Accounting accounting)
+        {
+            AccountingExt convert = new()
+            {
+                Id = accounting.Id,
+                Formula = accounting.Formula,
+                CreatedAt = accounting.CreatedAt,
+                ModifiedAt = accounting.ModifiedAt,
+                ValidityFrom = accounting.ValidityFrom,
+                ValidityTo = accounting.ValidityTo
+            };
+            return convert;
+        }
         #endregion
         #region Methods for Enums Converts
         private static TaskPriority ConvertExtToInt(this TaskPriorityExt? priority)

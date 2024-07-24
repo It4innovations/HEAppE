@@ -67,5 +67,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         ClusterNodeTypeAggregationAccounting GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId, long accountingId);
         ClusterNodeTypeAggregationAccounting CreateClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId);
         void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId);
+        Accounting GetAccountingById(long id);
+        Accounting CreateAccounting(string formula, DateTime validityFrom);
+        Accounting ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo);
+        void RemoveAccounting(long id);
     }
 }

@@ -1210,6 +1210,110 @@ namespace HEAppE.RestApi.Controllers
         }
         #endregion
 
+        #region Accounting
+        /// <summary>
+        /// Get Accounting by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("Accounting")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(AccountingExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetAccountingById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetAccountingById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var accounting = _managementService.GetAccountingById(id, sessionCode);
+            return Ok(accounting);
+        }
+
+        /// <summary>
+        /// Create Accounting
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("Accounting")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(AccountingExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateAccounting(CreateAccountingModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateAccounting\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var accounting = _managementService.CreateAccounting(model.Formula, model.ValidityFrom, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(accounting);
+        }
+
+        /// <summary>
+        /// Modify Accounting
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("Accounting")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(AccountingExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyAccounting(ModifyAccountingModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyAccounting\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var accounting = _managementService.ModifyAccounting(model.Id, model.Formula, model.ValidityFrom, model.ValidityTo, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(accounting);
+        }
+
+        /// <summary>
+        /// Remove Accounting
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("Accounting")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveAccounting(RemoveAccountingModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveAccounting\" Parameters: Id: \"{model.Id}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveAccounting(model.Id, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok("Accounting was deleted.");
+        }
+        #endregion
+
         #region SubProject
         /// <summary>
         /// List SubProjects
