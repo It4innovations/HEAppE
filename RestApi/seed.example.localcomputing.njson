@@ -198,7 +198,8 @@
             "MaxWalltime":"{MaxWalltime}",
             "ClusterId":1,
             "FileTransferMethodId":1,
-            "ClusterAllocationName":null
+            "ClusterAllocationName":null,
+            "ClusterNodeTypeAggregationId":1
          }
       ],
       "Accountings":[
