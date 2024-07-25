@@ -28,10 +28,10 @@ Before importing data into the vault, it is necessary to initialize the vault. U
 
 ## Step 4: Import Data into the Vault
 
-After successfully initializing the vault, you can import the data using the `importDataToVault.sh` script.
+After successfully initializing the vault, you can import the data using the `importDataToVaultLockedVersion.sh` script.
 
 ```bash
-./importDataToVault.sh
+./importDataToVaultLockedVersion.sh
 ```
 
 The migration is now complete. It is recommended to verify that all data has been correctly imported and that the application is functioning as expected.
