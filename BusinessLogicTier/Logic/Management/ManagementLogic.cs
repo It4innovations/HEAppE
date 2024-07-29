@@ -208,30 +208,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InvalidRequestException("CommandTemplateNotStatic");
             }
-
-            Project project = commandTemplate.Project;
-            if (project is null)
-            {
-                throw new InvalidRequestException("NotPermitted");
-            }
-
-            if (project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
+            
 
             ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
             if (clusterNodeType is null)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
-            }
-
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
-                project.Id);
-
-            if (clusterProject is null || clusterProject.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, project.Id);
             }
 
             commandTemplate.Name = modelName;
