@@ -15,10 +15,10 @@ public class ResourceAccountingUtils
     {
         logger.Info($"Choosing accounting for SubmittedTaskInfo: {submittedTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
         
-        var accounting = dbTaskInfo.NodeType
-            .ClusterNodeTypeAggregation
-            .ClusterNodeTypeAggregationAccountings
-            .Where(x => x.Accounting is { IsDeleted: false } && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
+        var accounting = dbTaskInfo?.NodeType
+            ?.ClusterNodeTypeAggregation
+            ?.ClusterNodeTypeAggregationAccountings
+            ?.Where(x => x.Accounting is { IsDeleted: false } && x.Accounting.IsValid(submittedTaskInfo.StartTime, submittedTaskInfo.EndTime))
             .OrderByDescending(x => x.Accounting.ValidityFrom)
             .ThenByDescending(x => x.Accounting.Id)
             .Select(x => x.Accounting)
