@@ -318,7 +318,9 @@ namespace HEAppE.DataAccessTier
 
             //Update Authentication type
 
-            ClusterAuthenticationCredentials.ToList().ForEach(clusterAuthenticationCredential =>
+            var clusterAuthCredWithVaultData = WithVaultData(ClusterAuthenticationCredentials);
+
+            clusterAuthCredWithVaultData.ToList().ForEach(clusterAuthenticationCredential =>
             {
                 var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
                                                                 .Select(x => x.ClusterProject.Cluster)
@@ -328,7 +330,6 @@ namespace HEAppE.DataAccessTier
                     clusterAuthenticationCredential.AuthenticationType = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
                 }
             });
-
             SaveChanges();
             _log.Info("Seed data into the database completed.");
         }
@@ -340,6 +341,26 @@ namespace HEAppE.DataAccessTier
             ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings.ClusterAuthenticationCredentials);
             ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
             _log.Info("Seed validation completed.");
+        }
+
+        private IEnumerable<ClusterAuthenticationCredentials> WithVaultData(IEnumerable<ClusterAuthenticationCredentials> credentials)
+        {
+            if (credentials == null)
+            {
+                return Enumerable.Empty<ClusterAuthenticationCredentials>();
+            }
+            var _vaultConnector = new VaultConnector();
+            foreach (var item in credentials)
+            {
+                _log.Debug($"Import VaultInfo for id:{item.Id}");
+                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
+
+                _log.Debug($"Import Result : {vaultData}");
+
+                item.ImportVaultData(vaultData);
+                _log.Debug($"Decoded private key: {item.PrivateKey}");
+            }
+            return credentials;
         }
 
         /// <summary>
