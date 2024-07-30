@@ -13,6 +13,19 @@ services:
     networks:
       - sshagent_internal_network
 
+   mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    restart: unless-stopped
+    volumes:
+      - sql_volume:/var/opt/mssql
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_PID: "Express"
+      TZ: "Europe/Prague" 
+    networks:
+      - db_internal_network
+      - external_network
+
   datastagingapi:
     image: ${DOCKER_REGISTRY-}datastagingapi
     build:
@@ -22,6 +35,8 @@ services:
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
+    depends_on:
+      - mssql
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       TZ: "Europe/Prague" 
@@ -40,6 +55,9 @@ services:
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
+    depends_on:
+      - mssql
+      - sshagent
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
