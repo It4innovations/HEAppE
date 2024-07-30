@@ -113,15 +113,19 @@ fi
 if [ -f "$VAULT_FILE" ]; then
     echo -n "Checking if the Ansible Vault can be decrypted... "
     TEMP_DECRYPT_FILE=$(mktemp)
+    PASSWORD_FILE=$(mktemp)
+    # Store the password in the temporary password file
+    echo "$VAULT_PASSWORD" > "$PASSWORD_FILE"
 
-    if ! ansible-vault decrypt --vault-password-file=<(echo "$VAULT_PASSWORD") --output="$TEMP_DECRYPT_FILE" "$VAULT_FILE" &> /dev/null; then
+
+    if ! ansible-vault decrypt --vault-password-file="$PASSWORD_FILE" --output="$TEMP_DECRYPT_FILE" "$VAULT_FILE" &> /dev/null; then
         echo -e "${RED}Failed${NC}"
         echo -e "${RED}Error:${NC} The Ansible Vault file cannot be decrypted with the provided password. Exiting."
         rm -f "$TEMP_DECRYPT_FILE"
         exit 1
     fi
 
-    rm -f "$TEMP_DECRYPT_FILE"
+    rm -f "$TEMP_DECRYPT_FILE" "$PASSWORD_FILE"
     echo -e "${GREEN}Success${NC}"
 else
     echo "Ansible Vault file does not exist; skipping decryption check."
