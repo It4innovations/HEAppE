@@ -15,6 +15,10 @@ if [[ -z $root_token || -z $credentialsId || -z $private_key || -z $private_key_
 fi
 
 url="http://vaultagent:8100/v1/HEAppE/data/ClusterAuthenticationCredentials/$credentialsId"
+
+password="${password// /}"
+private_key_password="${private_key_password// /}"
+
 body="{
   \"data\": {
     \"Id\": ${credentialsId},
