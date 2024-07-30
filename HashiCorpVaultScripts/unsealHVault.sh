@@ -78,9 +78,14 @@ if [ ! -f "$VAULT_FILE" ]; then
     exit 1
 fi
 
+PASSWORD_FILE=$(mktemp)
+# Store the password in the temporary password file
+echo "$VAULT_PASSWORD" > "$PASSWORD_FILE"
+
+
 # Decrypt the Ansible Vault file and extract unseal keys
 echo -n "Decrypting Ansible Vault file... "
-DECRYPTED_CONTENT=$(ansible-vault decrypt --vault-password-file=<(echo "$VAULT_PASSWORD") "$VAULT_FILE" --output=-)
+DECRYPTED_CONTENT=$(ansible-vault decrypt --vault-password-file="$PASSWORD_FILE" "$VAULT_FILE" --output=-)
 if [ $? -ne 0 ]; then
     echo -e "${RED}Failed${NC}"
     echo -e "${RED}Error:${NC} Failed to decrypt the Ansible Vault file. Exiting."
@@ -135,5 +140,8 @@ else
     echo -e "${GREEN}Unsealed${NC}"
     echo "Vault is already unsealed."
 fi
+
+ansible-vault encrypt --vault-password-file="$PASSWORD_FILE" "$VAULT_FILE"
+rm -f "$PASSWORD_FILE"
 
 echo "Vault service is running and unsealed."
