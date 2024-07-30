@@ -82,7 +82,15 @@ namespace HEAppE.DomainObjects.ClusterInformation
 
             var fromBase64PK = Encoding.UTF8.GetString(Convert.FromBase64String(data.PrivateKey));
             var fromBase64PKCert = Encoding.UTF8.GetString(Convert.FromBase64String(data.PrivateKeyCertificate));
-            _vaultData = data with { PrivateKey = fromBase64PK, PrivateKeyCertificate = fromBase64PKCert };
+            var passphrase = Encoding.UTF8.GetString(Convert.FromBase64String(data.PrivateKeyPassword));
+            var password = Encoding.UTF8.GetString(Convert.FromBase64String(data.Password));
+            _vaultData = data with
+            {
+                PrivateKey = fromBase64PK, 
+                PrivateKeyCertificate = fromBase64PKCert,
+                PrivateKeyPassword = passphrase,
+                Password = password
+            };
         }
 
         public ClusterProjectCredentialVaultPart ExportVaultData(bool withPrivateKeyEncode = true)
@@ -93,7 +101,16 @@ namespace HEAppE.DomainObjects.ClusterInformation
             }
             var base64PK = Convert.ToBase64String(Encoding.UTF8.GetBytes(PrivateKey.Replace("\r\n", "\n"))); // Replace CRLF with LF
             var base64PKCert = Convert.ToBase64String(Encoding.UTF8.GetBytes(PrivateKeyCertificate.Replace("\r\n", "\n"))); // Replace CRLF with LF
-            return withPrivateKeyEncode ? _vaultData with { PrivateKey = base64PK, PrivateKeyCertificate = base64PKCert } : _vaultData;
+            var base64Passphrase = Convert.ToBase64String(Encoding.UTF8.GetBytes(PrivateKeyPassphrase));
+            var base64Password = Convert.ToBase64String(Encoding.UTF8.GetBytes(Password));
+            
+            return withPrivateKeyEncode ? _vaultData with
+            {
+                PrivateKey = base64PK, 
+                PrivateKeyCertificate = base64PKCert,
+                PrivateKeyPassword = base64Passphrase,
+                Password = base64Password
+            } : _vaultData;
         }
         #endregion
     }
