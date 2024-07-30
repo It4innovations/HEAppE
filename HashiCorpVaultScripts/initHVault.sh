@@ -126,7 +126,6 @@ if [ -f "$VAULT_FILE" ]; then
     fi
 
     rm -f "$TEMP_DECRYPT_FILE" "$PASSWORD_FILE"
-    ansible-vault encrypt --vault-password-file="$PASSWORD_FILE" --output="$TEMP_DECRYPT_FILE" "$VAULT_FILE" &> /dev/null
     echo -e "${GREEN}Success${NC}"
 else
     echo "Ansible Vault file does not exist; skipping decryption check."
