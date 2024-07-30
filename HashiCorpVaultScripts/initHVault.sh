@@ -145,7 +145,8 @@ echo -n "Checking if Vault is already initialized... "
 init_status=$(docker compose exec vault vault status -format=json | jq -r '.initialized')
 
 if [ "$init_status" == "true" ]; then
-    echo -e "${GREEN}Vault is already initialized.${NC}"
+    echo -e "${GREEN}Vault is already initialized. Running vault unseal procedure.${NC}"
+    ./unsealHVault.sh $VAULT_PASSWORD --path $VAULT_FILE
     exit 0
 else
     echo -e "${YELLOW}Vault is not initialized.${NC} Initializing Vault..."
