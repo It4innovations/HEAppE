@@ -62,7 +62,7 @@ ui            = true
 api_addr      = "http://localhost:8200"
 disable_mlock = true
 tls_skip_verify = true
-log_level = "Information"
+log_level = "Debug"
 
 storage "file" {
   path = "/vault/data"
