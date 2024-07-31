@@ -353,7 +353,7 @@ namespace HEAppE.DataAccessTier
             foreach (var item in credentials)
             {
                 _log.Debug($"Import VaultInfo for id:{item.Id}");
-                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
+                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();;
 
                 _log.Debug($"Import Result : {vaultData}");
 
@@ -509,7 +509,7 @@ namespace HEAppE.DataAccessTier
                     if (entity is { })
                     {
                         var vaultConnector = new VaultConnector();
-                        var vaultData = vaultConnector.GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id);
+                        var vaultData = vaultConnector.GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id).GetAwaiter().GetResult();;
 
                         UpdateEntityOrAddItem(entity, item);
                         if (vaultData.Id > 0)

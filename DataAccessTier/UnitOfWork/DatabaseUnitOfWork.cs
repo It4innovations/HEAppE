@@ -368,7 +368,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
                     // if private key is empty, try to get it from vault to be sure that it is relevant and not some relation access issue
                     if (string.IsNullOrEmpty(ve.PrivateKey))
                     {
-                        var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(ve.Id);
+                        var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(ve.Id).GetAwaiter().GetResult();
                         if (vaultData != null && vaultData.PrivateKey != ve.PrivateKey)
                         {
                             ve.ImportVaultData(vaultData);
