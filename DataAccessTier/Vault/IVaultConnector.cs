@@ -1,10 +1,11 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using System.Threading.Tasks;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.DataAccessTier.Vault;
 
 internal interface IVaultConnector
 {
-    ClusterProjectCredentialVaultPart GetClusterAuthenticationCredentials(long id);
+    Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id);
     void DeleteClusterAuthenticationCredentials(long id);
     void SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data);
 }
