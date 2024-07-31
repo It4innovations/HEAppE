@@ -13,7 +13,7 @@ services:
     networks:
       - sshagent_internal_network
 
-   mssql:
+  mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
     restart: unless-stopped
     volumes:
@@ -51,13 +51,11 @@ services:
       dockerfile: RestApi/Dockerfile
     depends_on:
       - sshagent
+      - mssql
     restart: unless-stopped
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
-    depends_on:
-      - mssql
-      - sshagent
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
