@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Net.Http;
 using System.Text;
-
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 
 using log4net;
@@ -14,22 +14,24 @@ internal class VaultConnector : IVaultConnector
     private const string _clusterAuthenticationCredentialsPath = "v1/HEAppE/data/ClusterAuthenticationCredentials";
 
     protected readonly ILog _log = LogManager.GetLogger(typeof(VaultConnector));
+
     public void DeleteClusterAuthenticationCredentials(long id)
     {
         throw new System.NotImplementedException();
     }
 
-    public ClusterProjectCredentialVaultPart GetClusterAuthenticationCredentials(long id)
+    public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
     {
-        using var httpClient = new HttpClient();
-        httpClient.BaseAddress = new Uri(_vaultBaseAddress);
+        using var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(_vaultBaseAddress)
+        };
+
         var path = $"{_clusterAuthenticationCredentialsPath}/{id}";
+
         try
         {
-            var resultTask = httpClient.GetStringAsync(path);
-            resultTask.Wait(10000);
-            var result = resultTask.Result;
-
+            var result = await httpClient.GetStringAsync(path);
             var vaultPart = ClusterProjectCredentialVaultPart.FromVaultJsonData(result);
             return vaultPart;
         }
@@ -39,6 +41,7 @@ internal class VaultConnector : IVaultConnector
             return ClusterProjectCredentialVaultPart.Empty;
         }
     }
+
 
     public void SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data)
     {

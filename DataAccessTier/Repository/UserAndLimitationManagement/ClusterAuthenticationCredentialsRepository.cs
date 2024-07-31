@@ -26,7 +26,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         public override ClusterAuthenticationCredentials GetById(long id)
         {
             var dbEntity = base.GetById(id);
-            var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(id);
+            var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(id).GetAwaiter().GetResult();
             dbEntity.ImportVaultData(vaultData);
             return dbEntity;
         }
@@ -122,7 +122,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
             foreach (var item in credentials)
             {
                 _log.Debug($"Import VaultInfo for id:{item.Id}");
-                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
+                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
 
                 _log.Debug($"Import Result : {vaultData}");
 
@@ -136,7 +136,7 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
         {
             if (credentials != null)
             {
-                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(credentials.Id);
+                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(credentials.Id).GetAwaiter().GetResult();
                 credentials.ImportVaultData(vaultData);
             }
 
