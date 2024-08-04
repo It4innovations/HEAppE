@@ -74,7 +74,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
             if (IsSessionExpired(session))
             {
-                throw new SessionCodeNotValidException("Expired", sessionCode, session.LastAccessTime.AddSeconds(_sessionExpirationSeconds));
+                throw new SessionCodeNotValidException("Expired", sessionCode, session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
             }
 
             session.LastAccessTime = DateTime.UtcNow;
@@ -128,7 +128,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
 
                 if (!hasRequiredRole)
                 {
-                    throw new InsufficientRoleException("MissingRoleForProjectCreation", AdaptorUserRoleType.Submitter.ToString(), openStackProject.HEAppEProjectId.Value);
+                    throw new InsufficientRoleException("MissingRoleForProject", AdaptorUserRoleType.Submitter.ToString(), openStackProject.HEAppEProjectId.Value);
                 }
 
                 OpenStack openStack = new(openStackProject.Domain.InstanceUrl);
@@ -150,7 +150,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                 _log.Info($"Created new OpenStack 'session' (application credentials) for user \"{adaptorUser.Username}\".");
                 return openStackCredentials;
             }
-            catch (AuthenticationTypeException ex)
+            catch (AuthenticationTypeException)
             {
                 throw new AuthenticationTypeException("OpenStack-UnableToRetrieveCredentials");
             }
@@ -466,8 +466,13 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             }
             else
             {
-                adaptorUserWithGroupRole.AdaptorUserRole = userRole;
-                adaptorUserWithGroupRole.IsDeleted = false;
+                if (adaptorUserWithGroupRole.AdaptorUserRole == userRole)
+                {
+                    adaptorUserWithGroupRole.IsDeleted = false;
+                }
+
+                user.CreateSpecificUserRoleForUser(group, userRole.RoleType);
+                user.AdaptorUserUserGroupRoles.Remove(adaptorUserWithGroupRole);
             }
         }
 

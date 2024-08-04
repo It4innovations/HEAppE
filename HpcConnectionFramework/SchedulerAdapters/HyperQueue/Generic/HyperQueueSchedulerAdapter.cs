@@ -86,7 +86,6 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic
                                        Submission script result: ""{command.Result}"".\nSubmission script error message: ""{command.Error}"".\n
                                        Command line for job submission: ""{sshCommandBase64}"".\n", e);
             }
-            return null;
         }
 
         private SubmittedTaskInfo GetActualHqJobInfo(object connectorClient, Cluster cluster, string jobId)

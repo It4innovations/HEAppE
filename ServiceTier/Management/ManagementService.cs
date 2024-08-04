@@ -1,4 +1,4 @@
-﻿using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -228,7 +228,7 @@ namespace HEAppE.ServiceTier.Management
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory).Select(x=>x.ConvertIntToExt()).ToList();
+                return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory).Select(x => x.ConvertIntToExt()).ToList();
             }
         }
 
@@ -264,12 +264,12 @@ namespace HEAppE.ServiceTier.Management
             {
                 CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(modelId)
                     ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
-                if(!commandTemplateParameter.IsEnabled)
+                if (!commandTemplateParameter.IsEnabled)
                 {
                     //unauthorized
                     throw new InputValidationException("NotPermitted");
                 }
-                
+
                 //command template not found or not enabled
                 if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
                 {
@@ -328,7 +328,7 @@ namespace HEAppE.ServiceTier.Management
                 else
                 {
                     AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value);
-                    return commandTemplate.ConvertIntToExtendedExt();   
+                    return commandTemplate.ConvertIntToExtendedExt();
                 }
             }
         }

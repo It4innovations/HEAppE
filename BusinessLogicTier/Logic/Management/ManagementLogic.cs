@@ -1,4 +1,4 @@
-﻿using HEAppE.CertificateGenerator;
+using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -802,7 +802,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     bool isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
                     if (isInitialized)
                     {
-                        if(!clusterInitReports.ContainsKey(cluster))
+                        if (!clusterInitReports.ContainsKey(cluster))
                         {
                             clusterInitReports.Add(cluster, new ClusterInitReport()
                             {
@@ -1929,7 +1929,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     .ClusterNodeType
                     .ClusterNodeTypeAggregation
                     .ClusterNodeTypeAggregationAccountings
-                    .FirstOrDefault(x => x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
+                    .LastOrDefault(x=>x.Accounting.IsValid(submittedTask.StartTime, submittedTask.EndTime))
                     ?.Accounting.Formula;
                 
                 //parse all parameters to dictionary

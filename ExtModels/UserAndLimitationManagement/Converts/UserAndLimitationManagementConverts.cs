@@ -130,6 +130,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 FileTransferCipherType.nistP256 => FileTransferCipherTypeExt.nistP256,
                 FileTransferCipherType.nistP521 => FileTransferCipherTypeExt.nistP521,
                 FileTransferCipherType.Ed25519 => FileTransferCipherTypeExt.Ed25519,
+                FileTransferCipherType.Unknown => FileTransferCipherTypeExt.None,
                 _ => FileTransferCipherTypeExt.RSA4096
             };
         }

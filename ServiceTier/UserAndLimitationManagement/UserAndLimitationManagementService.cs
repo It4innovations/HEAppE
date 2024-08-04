@@ -216,7 +216,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                     throw new RequestedObjectDoesNotExistException("ProjectNotFound");
                 }
 
-                throw new InsufficientRoleException("MissingRoleForProjectCreation", requiredUserRole.ToString(), projectId);
+                throw new InsufficientRoleException("MissingRoleForProject", requiredUserRole.ToString(), projectId);
             }
         }
     }

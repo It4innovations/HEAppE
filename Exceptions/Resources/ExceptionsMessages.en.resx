@@ -195,8 +195,8 @@
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Unable to submit the job (incorrect job state).</value>
   </data>
-  <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
-    <value>User does not have '{0}' role for '{1}' project creation.</value>
+  <data name="InsufficientRoleException_MissingRoleForProject" xml:space="preserve">
+    <value>User does not have '{0}' role for project '{1}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Authentication of user '{0}' was not successful.</value>
@@ -480,8 +480,8 @@
   <data name="InvalidRequestException_CommandTemplateNotStatic" xml:space="preserve">
     <value>The specified Command Template is not static Command Template. Unable to use this endpoint.</value>
   </data>
-  <data name="InputValidationException_SubProjectNotActive" xml:space="preserve">
-    <value>Specified SubProject is not active.</value>
+  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <value>Cannot cancel job '{0}', this job is in state '{1}'.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ProxyConnectionNotFound" xml:space="preserve">
     <value>The specified proxy connection id '{0}' is not defined in the HEAppE.</value>

@@ -91,11 +91,8 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
             var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
-            if (!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
-            {
-                throw new ClusterAuthenticationException("NotExistingPrivateKeyFile", clusterUserAuthCredentials.PrivateKeyFile);
-            }
 
+            bool sshKeyExists = File.Exists(clusterUserAuthCredentials.PrivateKeyFile);
             var transferMethod = new FileTransferMethod
             {
                 Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
@@ -108,7 +105,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     Username = clusterUserAuthCredentials.Username,
                     Password = clusterUserAuthCredentials.Password,
                     FileTransferCipherType = clusterUserAuthCredentials.CipherType,
-                    PrivateKey = File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile),
+                    PrivateKey = sshKeyExists ? File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile) : null,
                     Passphrase = clusterUserAuthCredentials.PrivateKeyPassword
                 }
             };

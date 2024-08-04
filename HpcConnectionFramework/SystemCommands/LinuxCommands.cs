@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
@@ -232,7 +232,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             }
 
             cmdBuilder.Append($"ln -sf {targetDirectory} {_scripts.ScriptsBasePath}");
-            
+
             try
             {
                 var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
@@ -245,6 +245,7 @@ namespace HEAppE.HpcConnectionFramework.SystemCommands
             }
             return true;
         }
+
         #endregion
     }
 }
