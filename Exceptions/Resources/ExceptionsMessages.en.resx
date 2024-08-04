@@ -504,4 +504,10 @@
   <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeAggregationAccountingNotFound" xml:space="preserve">
     <value>The specified cluster node type aggregation accounting with clusterNodeTypeAggregationId '{0}' and  accountingId '{1}' is not defined in the HEAppE.</value>
   </data>
+  <data name="InvalidRequestException_ProjectClusterNodeTypeAggregationAlreadyExists" xml:space="preserve">
+    <value>Project cluster node type aggregation with ProjectId '{0}' and ClusterNodeTypeAggregationId '{1}' already exists HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ProjectClusterNodeTypeAggregationNotFound" xml:space="preserve">
+    <value>Requested combination for ProjectId '{0}' with ClusterNodeTypeAggregationId '{1}' has no reference in the HEAppE.</value>
+  </data>
 </root>

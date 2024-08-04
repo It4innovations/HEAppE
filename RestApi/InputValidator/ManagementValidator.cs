@@ -67,6 +67,8 @@ namespace HEAppE.RestApi.InputValidator
                 CreateAccountingModel ext => ValidateCreateAccountingModel(ext),
                 ModifyAccountingModel ext => ValidateModifyAccountingModel(ext),
                 RemoveAccountingModel ext => ValidateRemoveAccountingModel(ext),
+                CreateProjectClusterNodeTypeAggregationModel ext => ValidateCreateProjectClusterNodeTypeAggregationModel(ext),
+                RemoveProjectClusterNodeTypeAggregationModel ext => ValidateRemoveProjectClusterNodeTypeAggregationModel(ext),
                 _ => string.Empty
             };
 
@@ -949,6 +951,39 @@ namespace HEAppE.RestApi.InputValidator
             }
 
             ValidateId(model.Id, "Id");
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateCreateProjectClusterNodeTypeAggregationModel(CreateProjectClusterNodeTypeAggregationModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.ProjectId, "ProjectId");
+            ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
+
+            if (model.AllocationAmount < 0)
+            {
+                _messageBuilder.AppendLine($"AllocationAmount must be greater than 0");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateRemoveProjectClusterNodeTypeAggregationModel(RemoveProjectClusterNodeTypeAggregationModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.ProjectId, "ProjectId");
+            ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
 
             return _messageBuilder.ToString();
         }

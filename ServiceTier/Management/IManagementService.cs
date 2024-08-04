@@ -106,5 +106,9 @@ namespace HEAppE.ServiceTier.Management
         AccountingExt CreateAccounting(string formula, DateTime validityFrom, string sessionCode);
         AccountingExt ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo, string sessionCode);
         void RemoveAccounting(long id, string sessionCode);
+        ProjectClusterNodeTypeAggregationExt GetProjectClusterNodeTypeAggregationById(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
+        List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId, string sessionCode);
+        ProjectClusterNodeTypeAggregationExt CreateProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode);
+        void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     }
 }

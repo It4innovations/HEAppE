@@ -285,6 +285,20 @@ namespace HEAppE.ExtModels.JobManagement.Converts
             };
             return convert;
         }
+
+        public static ProjectClusterNodeTypeAggregationExt ConvertIntToExt(this ProjectClusterNodeTypeAggregation aggregation)
+        {
+            var convert = new ProjectClusterNodeTypeAggregationExt
+            {
+                ProjectId = aggregation.ProjectId,
+                ClusterNodeTypeAggregationId = aggregation.ClusterNodeTypeAggregationId,
+                AllocationAmount = aggregation.AllocationAmount,
+                CreatedAt = aggregation.CreatedAt,
+                ModifiedAt = aggregation.ModifiedAt,
+            };
+
+            return convert;
+        }
         #endregion
         #region Methods for Enums Converts
         private static TaskPriority ConvertExtToInt(this TaskPriorityExt? priority)

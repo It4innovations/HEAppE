@@ -720,6 +720,49 @@ namespace HEAppE.ServiceTier.Management
                 managementLogic.RemoveAccounting(id);
             }
         }
+
+        public ProjectClusterNodeTypeAggregationExt GetProjectClusterNodeTypeAggregationById(long projectId, long clusterNodeTypeAggregationId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ProjectClusterNodeTypeAggregation aggregation = managementLogic.GetProjectClusterNodeTypeAggregationById(projectId, clusterNodeTypeAggregationId);
+                return aggregation.ConvertIntToExt();
+            }
+        }
+
+        public List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                List<ProjectClusterNodeTypeAggregation> aggregations = managementLogic.GetProjectClusterNodeTypeAggregationsByProjectId(projectId);
+                return aggregations.Select(pcna => pcna.ConvertIntToExt()).ToList();
+            }
+        }
+
+        public ProjectClusterNodeTypeAggregationExt CreateProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ProjectClusterNodeTypeAggregation aggregation = managementLogic.CreateProjectClusterNodeTypeAggregation(projectId, clusterNodeTypeAggregationId, allocationAmount);
+                return aggregation.ConvertIntToExt();
+            }
+        }
+
+        public void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                managementLogic.RemoveProjectClusterNodeTypeAggregation(projectId, clusterNodeTypeAggregationId);
+            }
+        }
         #endregion
     }
 }

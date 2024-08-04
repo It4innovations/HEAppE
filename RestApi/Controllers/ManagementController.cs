@@ -1035,7 +1035,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("ClusterNodeTypeAggregations")]
         [RequestSizeLimit(100)]
-        [ProducesResponseType(typeof(ClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(List<ClusterNodeTypeAggregationExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -1311,6 +1311,105 @@ namespace HEAppE.RestApi.Controllers
             _managementService.RemoveAccounting(model.Id, model.SessionCode);
             ClearListAvailableClusterMethodCache();
             return Ok("Accounting was deleted.");
+        }
+        #endregion
+
+        #region ProjectClusterNodeTypeAggregation
+        /// <summary>
+        /// Get ProjectClusterNodeTypeAggregation by id
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ProjectClusterNodeTypeAggregation")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ProjectClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetProjectClusterNodeTypeAggregationById(long projectId, long clusterNodeTypeAggregationId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectClusterNodeTypeAggregationById\" Parameters: ProjectId: \"{projectId}\", ClusterNodeTypeAggregationId: \"{clusterNodeTypeAggregationId}\", SessionCode: \"{sessionCode}\"");
+
+            var projectClusterNodeTypeAggregation = _managementService.GetProjectClusterNodeTypeAggregationById(projectId, clusterNodeTypeAggregationId, sessionCode);
+            return Ok(projectClusterNodeTypeAggregation);
+        }
+
+        /// <summary>
+        /// Get ProjectClusterNodeTypeAggregations by ProjectId
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ProjectClusterNodeTypeAggregations")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(List<ProjectClusterNodeTypeAggregationExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetProjectClusterNodeTypeAggregationsByProjectId(long projectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectClusterNodeTypeAggregationsByProjectId\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
+
+            var projectClusterNodeTypeAggregations = _managementService.GetProjectClusterNodeTypeAggregationsByProjectId(projectId, sessionCode);
+            return Ok(projectClusterNodeTypeAggregations);
+        }
+
+        /// <summary>
+        /// Create ProjectClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPost("ProjectClusterNodeTypeAggregation")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(ProjectClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult CreateProjectClusterNodeTypeAggregation(CreateProjectClusterNodeTypeAggregationModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"CreateProjectClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var projectClusterNodeTypeAggregation = _managementService.CreateProjectClusterNodeTypeAggregation(model.ProjectId, model.ClusterNodeTypeAggregationId, model.AllocationAmount, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(projectClusterNodeTypeAggregation);
+        }
+
+        /// <summary>
+        /// Remove ProjectClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpDelete("ProjectClusterNodeTypeAggregation")]
+        [RequestSizeLimit(120)]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult RemoveProjectClusterNodeTypeAggregation(RemoveProjectClusterNodeTypeAggregationModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"RemoveProjectClusterNodeTypeAggregation\" Parameters: ProjectId: \"{model.ProjectId}\", ClusterNodeTypeAggregationId: \"{model.ClusterNodeTypeAggregationId}\", SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            _managementService.RemoveProjectClusterNodeTypeAggregation(model.ProjectId, model.ClusterNodeTypeAggregationId, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok("ProjectClusterNodeTypeAggregation was deleted.");
         }
         #endregion
 

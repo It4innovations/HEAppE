@@ -26,6 +26,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
         IClusterNodeTypeRequestedGroupRepository ClusterNodeTypeRequestedGroupRepository { get; }
         IClusterNodeTypeAggregationRepository ClusterNodeTypeAggregationRepository { get; }
         IClusterNodeTypeAggregationAccountingRepository ClusterNodeTypeAggregationAccountingRepository { get; }
+        IProjectClusterNodeTypeAggregationRepository ProjectClusterNodeTypeAggregationRepository { get; }
         IOpenStackAuthenticationCredentialsRepository OpenStackAuthenticationCredentialsRepository { get; }
         IOpenStackDomainRepository OpenStackDomainRepository { get; }
         IOpenStackInstanceRepository OpenStackInstanceRepository { get; }

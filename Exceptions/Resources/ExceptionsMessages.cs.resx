@@ -504,4 +504,10 @@
   <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeAggregationAccountingNotFound" xml:space="preserve">
     <value>Požadovaný cluster node type aggregation accounting s clusterNodeTypeAggregationId '{0}' a accountingId '{1}' není definován v HEAppE.</value>
   </data>
+  <data name="InvalidRequestException_ProjectClusterNodeTypeAggregationAlreadyExists" xml:space="preserve">
+    <value>Project cluster node type aggregation s ProjectId '{0}' a ClusterNodeTypeAggregationId '{1}' je již definován v HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ProjectClusterNodeTypeAggregationNotFound" xml:space="preserve">
+    <value>Požadovaná kombinace pro ProjectId '{0}' a ClusterNodeTypeAggregationId '{1}' nemá referenci v HEAppE.</value>
+  </data>
 </root>

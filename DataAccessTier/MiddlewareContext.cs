@@ -504,8 +504,10 @@ namespace HEAppE.DataAccessTier
                     }
                 case ProjectClusterNodeTypeAggregation projectClusterNodeTypeAggregation:
                     {
-                        var entity = Set<T>().Find(projectClusterNodeTypeAggregation.ProjectId, projectClusterNodeTypeAggregation.ClusterNodeTypeAggregationId);
-                        UpdateEntityOrAddItem(entity, item);
+                        var entity = Set<T>().OfType<ProjectClusterNodeTypeAggregation>()
+                            .IgnoreQueryFilters()
+                            .FirstOrDefault(c => c.ClusterNodeTypeAggregationId == projectClusterNodeTypeAggregation.ClusterNodeTypeAggregationId && c.ProjectId == projectClusterNodeTypeAggregation.ProjectId);
+                        UpdateEntityOrAddItem((T)(object)entity, item);
                         break;
                     }
                 default:

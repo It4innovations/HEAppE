@@ -416,9 +416,15 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
+            var modified = DateTime.UtcNow;
             project.IsDeleted = true;
-            project.ModifiedAt = DateTime.UtcNow;
+            project.ModifiedAt = modified;
             project.ClusterProjects.ForEach(x => RemoveProjectAssignmentToCluster(x.ProjectId, x.ClusterId));
+            project.ProjectClusterNodeTypeAggregations.ForEach(x =>
+            {
+                x.ModifiedAt = modified;
+                x.IsDeleted = true;
+            });
 
             _unitOfWork.ProjectRepository.Update(project);
             _logger.Info($"Project id '{project.Id}' has been deleted.");
@@ -1586,8 +1592,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public ClusterNodeTypeAggregationAccounting CreateClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId)
         {
-            // we want to return soft deleted entity because M:N connection entities cause exceptions if we want to create with same ids
-            // so we restore soft deleted
+            // we want to check if there is soft deleted entity with same ids because M:N connection entities cause exceptions if we want to create with same ids
+            // so we restore soft deleted instead of creating new one
             var clusterNodeTypeAggregationAccounting = _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.GetByIdIncludeSoftDeleted(clusterNodeTypeAggregationId, accountingId);
 
             if(clusterNodeTypeAggregationAccounting != null && !clusterNodeTypeAggregationAccounting.IsDeleted)
@@ -1714,6 +1720,94 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             accounting.ModifiedAt = DateTime.UtcNow;
             accounting.IsDeleted = true;
             _unitOfWork.AccountingRepository.Update(accounting);
+            _unitOfWork.Save();
+        }
+
+        /// <summary>
+        /// Get ProjectClusterNodeTypeAggregation by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public ProjectClusterNodeTypeAggregation GetProjectClusterNodeTypeAggregationById(long projectId, long clusterNodeTypeAggregationId)
+        {
+            return _unitOfWork.ProjectClusterNodeTypeAggregationRepository.GetById(projectId, clusterNodeTypeAggregationId)
+                ?? throw new RequestedObjectDoesNotExistException("ProjectClusterNodeTypeAggregationNotFound", projectId, clusterNodeTypeAggregationId);
+        }
+
+        /// <summary>
+        /// Get ProjectClusterNodeTypeAggregation by ProjectId
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        public List<ProjectClusterNodeTypeAggregation> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId)
+        {
+            return _unitOfWork.ProjectClusterNodeTypeAggregationRepository.GetAllByProjectId(projectId);
+        }
+
+        /// <summary>
+        /// Create ProjectClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <param name="allocationAmount"></param>
+        /// <returns></returns>
+        public ProjectClusterNodeTypeAggregation CreateProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount)
+        {
+            // we want to check if there is soft deleted entity with same ids because M:N connection entities cause exceptions if we want to create with same ids
+            // so we restore soft deleted instead of creating new one
+            var projectClusterNodeTypeAggregation = _unitOfWork.ProjectClusterNodeTypeAggregationRepository.GetByIdIncludeSoftDeleted(projectId, clusterNodeTypeAggregationId);
+
+            if (projectClusterNodeTypeAggregation != null && !projectClusterNodeTypeAggregation.IsDeleted)
+            {
+                throw new InvalidRequestException("ProjectClusterNodeTypeAggregationAlreadyExists", projectId, clusterNodeTypeAggregationId);
+            }
+
+            if (_unitOfWork.ClusterNodeTypeAggregationRepository.GetById(clusterNodeTypeAggregationId) == null)
+            {
+                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeAggregationNotFound", clusterNodeTypeAggregationId);
+            }
+
+            if (_unitOfWork.ProjectRepository.GetById(projectId) == null)
+            {
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+            }
+
+            // restore soft deleted entity - otherwise create new
+            if (projectClusterNodeTypeAggregation != null && projectClusterNodeTypeAggregation.IsDeleted)
+            {
+                projectClusterNodeTypeAggregation.IsDeleted = false;
+                projectClusterNodeTypeAggregation.AllocationAmount = allocationAmount;
+            }
+            else
+            {
+                projectClusterNodeTypeAggregation = new ProjectClusterNodeTypeAggregation()
+                {
+                    ProjectId = projectId,
+                    ClusterNodeTypeAggregationId = clusterNodeTypeAggregationId,
+                    AllocationAmount = allocationAmount
+                };
+                _unitOfWork.ProjectClusterNodeTypeAggregationRepository.Insert(projectClusterNodeTypeAggregation);
+            }
+            _unitOfWork.Save();
+
+            return projectClusterNodeTypeAggregation;
+        }
+
+        /// <summary>
+        /// Remove ProjectClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId)
+        {
+            var projectClusterNodeTypeAggregation = _unitOfWork.ProjectClusterNodeTypeAggregationRepository.GetById(projectId, clusterNodeTypeAggregationId)
+                ?? throw new RequestedObjectDoesNotExistException("ProjectClusterNodeTypeAggregationNotFound", projectId, clusterNodeTypeAggregationId);
+
+            // soft delete project cluster node type aggregation
+            projectClusterNodeTypeAggregation.ModifiedAt = DateTime.UtcNow;
+            projectClusterNodeTypeAggregation.IsDeleted = true;
+            _unitOfWork.ProjectClusterNodeTypeAggregationRepository.Update(projectClusterNodeTypeAggregation);
             _unitOfWork.Save();
         }
 

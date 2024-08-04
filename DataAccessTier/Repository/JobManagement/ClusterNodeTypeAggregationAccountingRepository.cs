@@ -1,9 +1,9 @@
-﻿using HEAppE.DataAccessTier.IRepository.ClusterInformation;
+﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
 
-namespace HEAppE.DataAccessTier.Repository.ClusterInformation
+namespace HEAppE.DataAccessTier.Repository.JobManagement
 {
     internal class ClusterNodeTypeAggregationAccountingRepository : IClusterNodeTypeAggregationAccountingRepository
     {
@@ -17,6 +17,7 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
             _context = context;
             _dbSet = context.Set<ClusterNodeTypeAggregationAccounting>();
         }
+        #endregion
 
         public ClusterNodeTypeAggregationAccounting GetById(long clusterNodeTypeAggregationId, long accountingId)
         {
@@ -38,6 +39,5 @@ namespace HEAppE.DataAccessTier.Repository.ClusterInformation
             _dbSet.Attach(entity);
             _context.Entry(entity).State = EntityState.Modified;
         }
-        #endregion
     }
 }
