@@ -203,13 +203,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
-
-            if (commandTemplate.CreatedFrom is not null)
-            {
-                throw new InvalidRequestException("CommandTemplateNotStatic");
-            }
             
-
             ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
             if (clusterNodeType is null)
             {
