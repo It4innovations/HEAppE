@@ -117,11 +117,14 @@ namespace HEAppE.FileTransferFramework
                 var changedFiles = ListChangedFilesForTask(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath, jobSubmitTime, jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
                 foreach (var changedFile in changedFiles)
                 {
-                    var relativeFilePath = "/" + taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture) +
-                            Path.Combine(taskInfo.Specification.ClusterTaskSubdirectory ?? string.Empty, changedFile.FileName);
+                    var relativeFilePath = Path.Combine(
+                        taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture)?.TrimStart('/'), 
+                        taskInfo.Specification.ClusterTaskSubdirectory?.TrimStart('/') ?? string.Empty, 
+                        changedFile.FileName.TrimStart('/'));
+
                     result.Add(new FileInformation
                     {
-                        FileName = relativeFilePath,
+                        FileName = $"/{relativeFilePath}",
                         LastModifiedDate = changedFile.LastModifiedDate
                     });
                 }

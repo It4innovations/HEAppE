@@ -203,34 +203,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InputValidationException("CommandTemplateDeleted");
             }
             
-            if(commandTemplate.CreatedFrom is not null)
-            {
-                throw new InvalidRequestException("CommandTemplateNotStatic");
-            }
-
-            Project project = commandTemplate.Project;
-            if (project is null)
-            {
-                throw new InvalidRequestException("NotPermitted");
-            }
-            
-            if (project.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
-
             ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
             if (clusterNodeType is null)
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
-            }
-            
-            var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value,
-                project.Id);
-            
-            if (clusterProject is null || clusterProject.IsDeleted)
-            {
-                throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, project.Id);
             }
             
             commandTemplate.Name = modelName;
@@ -1065,23 +1041,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             return _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(projectId)
                 .Where(x => x.IsEnabled)
-                .Select(template => new CommandTemplate
-                {
-                    Id = template.Id,
-                    Name = template.Name,
-                    Description = template.Description,
-                    ExtendedAllocationCommand = template.ExtendedAllocationCommand,
-                    PreparationScript = template.PreparationScript,
-                    ExecutableFile = template.ExecutableFile,
-                    CommandParameters = template.CommandParameters,
-                    IsEnabled = template.IsEnabled,
-                    IsGeneric = template.IsGeneric,
-                    CreatedAt = template.CreatedAt,
-                    ModifiedAt = template.ModifiedAt,
-                    CreatedFrom = template.CreatedFrom,
-                    ClusterNodeType = template.ClusterNodeType,
-                    TemplateParameters = template.TemplateParameters.Where(x => x.IsEnabled).ToList()
-                })
                 .ToList();
         }
         

@@ -265,17 +265,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
             try
             {
-                //if the path does not start with job id and then task id
-                if (!Regex.Match(relativeFilePath, @"^\/?[0-9]+\/[0-9]+\/").Success)
-                {
-                    if (relativeFilePath.StartsWith("/"))
-                    {
-                        relativeFilePath = relativeFilePath[1..];
-                    }
-                    relativeFilePath = Path.Combine($"{jobInfo.Id}/", relativeFilePath);
-                }
-
-                relativeFilePath = Path.Combine("/", relativeFilePath);
+                relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
                 return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
             }
             catch (SftpPathNotFoundException exception)
