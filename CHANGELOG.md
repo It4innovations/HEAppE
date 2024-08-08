@@ -9,9 +9,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Hashicorp Vault implementation
-- Scripts to initialize and migrate data from database to vault
+- Scripts to initialize vault and migrate data from database to vault
+- SubProjects for logical organisation of the Jobs under the Projects 
+- SubProject management via API
+- Aggregation of the Cluster Node Types
+- Accounting & Reporting by specific accounting formula
+- Asynchronous accounting computation endpoint and accounting state monitoring endpoint
+
+
+### Fixed
+- Wrong relative path propagation as result of ```FileTransfer/ListChangedFilesForJob``` endpoint when using ```ClusterTaskSubdirectory```
 
 ### Changed
+- Enhanced JobReporting endpoints outputs and ability of filtering
+- ```JobManagement/CreateJob``` endpoint body extended by optional parameter ```SubProjectIdentifier``` in the ```JobSpecification``` section
+
 
 ### Security
 
