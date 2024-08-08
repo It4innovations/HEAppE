@@ -298,7 +298,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public void RemoveCommandTemplate(long commandTemplateId)
         {
-            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
+                ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
 
             _logger.Info($"Removing command template: {commandTemplate}");
             commandTemplate.IsEnabled = false;
@@ -318,9 +319,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <exception cref="InputValidationException"></exception>
         public Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
         {
-            Project existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString) ??
-                throw new InputValidationException("ProjectDeleted");
-
+            Project existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
             if (existingProject != null)
             {
                 throw new InputValidationException("ProjectAlreadyExist");
@@ -532,7 +531,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="projectId"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        /// <exception cref="InputValidationException"></exception>
         public List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId)
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId);
@@ -1034,7 +1032,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="domainName"></param>
         /// <param name="proxyConnectionId"></param>
         /// <returns></returns>
-        /// <exception cref="InputValidationException"></exception>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
         public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
             string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
@@ -1874,10 +1871,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
                                     ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
-            if (!subProject.IsDeleted)
-            {
-                throw new InputValidationException("NotPermitted");
-            }
+
             var subProjectWithSameIdentifier = _unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, subProject.ProjectId);
             if (subProjectWithSameIdentifier != null && subProjectWithSameIdentifier.Id != modelId)
             {
@@ -1897,10 +1891,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             SubProject subProject = _unitOfWork.SubProjectRepository.GetById(modelId)
                                     ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
-            if (!subProject.IsDeleted)
-            {
-                throw new InputValidationException("NotPermitted");
-            }
+
             subProject.IsDeleted = true;
             subProject.ModifiedAt = DateTime.UtcNow;
             _unitOfWork.SubProjectRepository.Update(subProject);

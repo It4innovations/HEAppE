@@ -222,9 +222,6 @@
   <data name="InvalidRequestException_ProjectAlreadyExistWithCluster" xml:space="preserve">
     <value>ProjectId '{0}' is already assigned to ClusterId '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_ProjectDeleted" xml:space="preserve">
-    <value>Project with accounting string '{0}' was already deleted.</value>
-  </data>
   <data name="InvalidRequestException_ProjectNoAssignToCluster" xml:space="preserve">
     <value>The ProjectId'{0}' has not been assigned to any cluster.</value>
   </data>

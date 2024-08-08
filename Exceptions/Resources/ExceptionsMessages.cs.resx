@@ -219,9 +219,6 @@
   <data name="InvalidRequestException_ProjectAlreadyExistWithCluster" xml:space="preserve">
     <value>ProjectId '{0}' je už přiřazen ke ClusterId '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_ProjectDeleted" xml:space="preserve">
-    <value>Projekt s account řetězcem '{0}' byl již použit a je odstraněn.</value>
-  </data>
   <data name="InvalidRequestException_ProjectNoAssignToCluster" xml:space="preserve">
     <value>ProjektId '{0}' není přiřazen k žádnemu clusteru.</value>
   </data>
@@ -479,9 +476,6 @@
   </data>
   <data name="InputValidationException_NotPermitted" xml:space="preserve">
     <value> Operace není povolená.</value>
-  </data>
-  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
-    <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
   </data>
   <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
     <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
