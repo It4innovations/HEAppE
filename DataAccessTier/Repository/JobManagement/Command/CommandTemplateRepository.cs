@@ -19,8 +19,10 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.Command
         public IList<CommandTemplate> GetCommandTemplatesByProjectId(long projectId)
         {
             return _dbSet.Where(w => w.ProjectId == projectId || w.ProjectId == null)
-                            .Include(i => i.TemplateParameters)
-                            .ToList();
+                .Include(i=>i.Project)
+                .Include(i=>i.ClusterNodeType)
+                .Include(i => i.TemplateParameters)
+                .ToList();
         }
     }
 }
