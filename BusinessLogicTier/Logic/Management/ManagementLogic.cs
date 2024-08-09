@@ -336,9 +336,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="loggedUser"></param>
         /// <returns></returns>
         /// <exception cref="InputValidationException"></exception>
-        public DomainObjects.JobManagement.Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
+        public Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser)
         {
-            DomainObjects.JobManagement.Project existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
+            Project existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
             if (existingProject != null)
             {
                 var errorMessage = existingProject.IsDeleted
@@ -409,7 +409,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// <param name="endDate"></param>
         /// <returns></returns>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public DomainObjects.JobManagement.Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
+        public Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler)
         {
             var project = _unitOfWork.ProjectRepository.GetById(id) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             if (project is null)
@@ -1147,7 +1147,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InputValidationException("SubProjectStartDateBeforeProjectStartDate");
             }
-            
             
             var subProjectWithSameIdentifier = _unitOfWork.SubProjectRepository.GetByIdentifier(modelIdentifier, subProject.ProjectId);
             if (subProjectWithSameIdentifier != null && subProjectWithSameIdentifier.Id != modelId)
