@@ -209,7 +209,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
             }
-
             commandTemplate.Name = modelName;
             commandTemplate.Description = modelDescription;
             commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
@@ -1042,23 +1041,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             return _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(projectId)
                 .Where(x => x.IsEnabled)
-                .Select(template => new CommandTemplate
-                {
-                    Id = template.Id,
-                    Name = template.Name,
-                    Description = template.Description,
-                    ExtendedAllocationCommand = template.ExtendedAllocationCommand,
-                    PreparationScript = template.PreparationScript,
-                    ExecutableFile = template.ExecutableFile,
-                    CommandParameters = template.CommandParameters,
-                    IsEnabled = template.IsEnabled,
-                    IsGeneric = template.IsGeneric,
-                    CreatedAt = template.CreatedAt,
-                    ModifiedAt = template.ModifiedAt,
-                    CreatedFrom = template.CreatedFrom,
-                    ClusterNodeType = template.ClusterNodeType,
-                    TemplateParameters = template.TemplateParameters.Where(x => x.IsEnabled).ToList()
-                })
                 .ToList();
         }
 
