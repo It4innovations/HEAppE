@@ -58,7 +58,7 @@ if [ -f "$CONFIG_FILE" ]; then
 else
     echo "Creating vault-config.hcl..."
     cat <<EOF > "$CONFIG_FILE"
-ui            = true
+ui            = false
 api_addr      = "http://localhost:8200"
 disable_mlock = true
 tls_skip_verify = true

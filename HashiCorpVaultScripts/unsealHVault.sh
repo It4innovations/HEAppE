@@ -9,34 +9,26 @@ NC='\033[0m' # No Color
 # Default values
 VAULT_FILE="/opt/heappe/projects/credentials"
 VAULT_PASSWORD=""
+INSTANCE_NAME="Develop"
 
 # Function to display help message
 function display_help {
-    echo -e "${CYAN}Usage:${NC} $0 <vault_password> [--path <path_to_ansible_vault_file>]"
+    echo -e "${CYAN}Usage:${NC} $0 <vault_password> [--path <path_to_ansible_vault_file>] [-i|--instance-name <instance_name>]"
     echo
     echo "This script checks if the Vault service is running and if the Vault is sealed."
     echo "If it is sealed, it unseals the Vault using three random keys from the decrypted Ansible Vault file."
     echo
-    echo -e "${CYAN}Arguments:${NC}"
-    echo "  vault_password             Password to decrypt the Ansible Vault file."
-    echo "  --path <path_to_file>      Path to the Ansible Vault file containing unseal keys (default: /opt/heappe/projects/credentials)."
+    echo -e "  ${CYAN}Arguments:${NC}"
+    echo -e "  ${GREEN}vault_password${NC}             ${RED}(required)${NC} Password to decrypt the Ansible Vault file."
+    echo -e "  ${CYAN}--path <path_to_file>${NC}      Path to the Ansible Vault file containing unseal keys (default: /opt/heappe/projects/credentials)."
+    echo -e "  ${CYAN}-i${NC}, ${CYAN}--instance-name${NC}   Name of the section in the Ansible Vault file (default: Develop)."
     echo
     echo -e "${CYAN}Example:${NC}"
-    echo "  $0 myVaultPassword --path /path/to/vault.json"
+    echo "  $0 myVaultPassword --path /path/to/vault.json -i MyInstance"
     exit 0
 }
 
-# Check if jq is installed
-if ! command -v jq &> /dev/null; then
-    echo "jq is not installed. Please install it and try again."
-    exit 1
-fi
 
-# Check if ansible-vault is installed
-if ! command -v ansible-vault &> /dev/null; then
-    echo "Ansible Vault is not installed. Please install it and try again."
-    exit 1
-fi
 
 # Check for minimum arguments and help
 if [ "$#" -lt 1 ]; then
@@ -49,6 +41,10 @@ while [[ $# -gt 0 ]]; do
     case $1 in
         --path)
             VAULT_FILE="$2"
+            shift 2
+            ;;
+        -i|--instance-name)
+            INSTANCE_NAME="$2"
             shift 2
             ;;
         --help)
@@ -66,6 +62,18 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Check if jq is installed
+if ! command -v jq &> /dev/null; then
+    echo "jq is not installed. Please install it and try again."
+    exit 1
+fi
+
+# Check if ansible-vault is installed
+if ! command -v ansible-vault &> /dev/null; then
+    echo "Ansible Vault is not installed. Please install it and try again."
+    exit 1
+fi
+
 # Check if the required arguments are provided
 if [ -z "$VAULT_PASSWORD" ]; then
     echo -e "${RED}Error:${NC} vault_password is a required argument."
@@ -77,7 +85,6 @@ if [ ! -f "$VAULT_FILE" ]; then
     echo -e "${RED}Error:${NC} Ansible Vault file does not exist at the specified path: $VAULT_FILE"
     exit 1
 fi
-
 PASSWORD_FILE=$(mktemp)
 # Store the password in the temporary password file
 echo "$VAULT_PASSWORD" > "$PASSWORD_FILE"
@@ -93,15 +100,19 @@ if [ $? -ne 0 ]; then
 fi
 echo -e "${GREEN}Success${NC}"
 
-UNSEAL_KEYS=($(echo "$DECRYPTED_CONTENT" | jq -r '.HashiCorpVault.Unseal_Keys[]'))
+UNSEAL_KEYS=($(echo "$DECRYPTED_CONTENT" | jq -r ".HashiCorpVault_$INSTANCE_NAME.Unseal_Keys[]"))
+for key in "${UNSEAL_KEYS[@]}"; do
+    echo "$key"
+done
+
 # After using the unseal keys
-DECRYPTED_CONTENT=""
 KEY_COUNT=${#UNSEAL_KEYS[@]}
 if [ "$KEY_COUNT" -lt 3 ]; then
     echo -e "${RED}Error:${NC} Not enough unseal keys available. At least 3 are required."
     exit 1
 fi
 
+DECRYPTED_CONTENT=""
 # Select 3 random keys
 SELECTED_KEYS=($(shuf -e "${UNSEAL_KEYS[@]}" -n 3))
 
