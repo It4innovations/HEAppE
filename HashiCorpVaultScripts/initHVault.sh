@@ -11,20 +11,22 @@ NC='\033[0m' # No Color
 VAULT_FILE="/opt/heappe/projects/credentials"
 VAULT_PASSWORD=""
 BASE_PATH="../../app/confs" # Default base path
+INSTANCE_NAME="Develop"
 
 # Function to display help message
 function display_help {
-    echo -e "${CYAN}Usage:${NC} $0 <${GREEN}vault_password${NC}> [${CYAN}--path${NC} <path to vault file>] [${CYAN}--base-path${NC} <base path>]"
+    echo -e "${CYAN}Usage:${NC} $0 <${GREEN}vault_password${NC}> [${CYAN}-p${NC} <path to vault file>] [${CYAN}-b${NC} <base path>] [${CYAN}-i${NC} <instance name>]"
     echo
     echo -e "This script initializes and configures HashiCorp Vault and appends generated credentials to an Ansible Vault file."
     echo
     echo -e "${CYAN}Options:${NC}"
-    echo -e "  ${CYAN}--path${NC}          Path to the existing or new Ansible Vault file (default: /opt/heappe/projects/credentials)."
-    echo -e "  ${CYAN}--base-path${NC}     Base path for output files (default: ../../app/confs)."
-    echo -e "  ${GREEN}vault_password${NC}  Password to encrypt/decrypt the vault file (${RED}required${NC})."
+    echo -e "  ${CYAN}-p${NC}, ${CYAN}--path${NC}            Path to the existing or new Ansible Vault file (default: /opt/heappe/projects/credentials)."
+    echo -e "  ${CYAN}-b${NC}, ${CYAN}--base-path${NC}       Base path for output files (default: ../../app/confs)."
+    echo -e "  ${CYAN}-i${NC}, ${CYAN}--instance-name${NC}   Name of the section in the Ansible Vault file (default: Develop)."
+    echo -e "  ${GREEN}vault_password${NC}    Password to encrypt/decrypt the vault file (${RED}required${NC})."
     echo
     echo -e "${CYAN}Example:${NC}"
-    echo -e "  $0 ${GREEN}myVaultPassword${NC} ${CYAN}--path${NC} /path/to/vault.json ${CYAN}--base-path${NC} /path/to/base"
+    echo -e "  $0 ${GREEN}myVaultPassword${NC} ${CYAN}-p${NC} /path/to/vault.json ${CYAN}-b${NC} /path/to/base ${CYAN}-i${NC} MyInstance"
     echo
     echo -e "${CYAN}Note:${NC}"
     echo -e "  If configuration files do not exist in the specified base path, default configuration files will be created."
@@ -32,6 +34,33 @@ function display_help {
     echo -e "Note: The script requires '${YELLOW}ansible-vault${NC}' and '${YELLOW}jq${NC}' to be installed."
     exit 0
 }
+
+
+# Parse command-line arguments
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        -p|--path)
+            VAULT_FILE="$2"
+            shift 2
+            ;;
+        -b|--base-path)
+            BASE_PATH="$2"
+            shift 2
+            ;;
+        -i|--instance-name)
+            INSTANCE_NAME="$2"
+            shift 2
+            ;;
+        --help)
+            display_help
+            ;;
+        *)
+            VAULT_PASSWORD="$1"
+            shift
+            ;;
+    esac
+done
+
 
 # Check if ansible-vault is installed
 if ! command -v ansible-vault &> /dev/null; then
@@ -44,27 +73,6 @@ if ! command -v jq &> /dev/null; then
     echo "jq is not installed. Please install it and try again."
     exit 1
 fi
-
-# Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --path)
-            VAULT_FILE="$2"
-            shift 2
-            ;;
-        --base-path)
-            BASE_PATH="$2"
-            shift 2
-            ;;
-        --help)
-            display_help
-            ;;
-        *)
-            VAULT_PASSWORD="$1"
-            shift
-            ;;
-    esac
-done
 
 # Check if the required vault_password is provided
 if [ -z "$VAULT_PASSWORD" ]; then
@@ -170,7 +178,7 @@ unseal_keys_json=$(jq -n --argjson keys "$(echo "$unseal_keys" | jq -R . | jq -s
 # Create JSON formatted data
 json_data=$(cat <<EOF
 {
-  "HashiCorpVault": {
+  "HashiCorpVault_$INSTANCE_NAME": {
     "Unseal_Keys": $unseal_keys_json,
     "Initial_Root_Token": "$root_token"
   }
