@@ -71,6 +71,8 @@ services:
   vault:
     image: hashicorp/vault:latest
     container_name: heappe-vault
+    expose:
+      - 8200:8200
     environment:
       - VAULT_ADDR=http://localhost:8200
     volumes:
@@ -87,6 +89,8 @@ services:
   vaultagent:
     image: hashicorp/vault:latest
     container_name: vaultagent
+    expose:
+      - 8100:8100
     volumes:
       - vault-agent-volume:/vault/agent
       - ../app/confs/vault/agent:/vault/config
