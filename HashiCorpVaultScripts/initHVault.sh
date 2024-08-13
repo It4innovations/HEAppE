@@ -173,7 +173,7 @@ unseal_keys=$(echo "$init_response" | jq -r '.unseal_keys_b64[]')
 root_token=$(echo "$init_response" | jq -r '.root_token')
 
 # Convert unseal_keys into a JSON array
-unseal_keys_json=$(jq -n --argjson keys "$(echo "$unseal_keys" | jq -R . | jq -s .)" '{"Unseal_Keys": $keys}')
+unseal_keys_json=$(echo "$unseal_keys" | jq -R . | jq -s .)
 
 # Create JSON formatted data
 json_data=$(cat <<EOF
