@@ -71,8 +71,6 @@ services:
   vault:
     image: hashicorp/vault:latest
     container_name: heappe-vault
-    ports:
-      - 8200:8200
     environment:
       - VAULT_ADDR=http://localhost:8200
     volumes:
@@ -96,8 +94,6 @@ services:
     command: proxy -config=/vault/config/vault-agent.hcl -log-level debug -log-file=/vault/logs/vault-agent.log
     cap_add:
       - IPC_LOCK
-    ports:
-      - 8100:8100
     networks:
       - vaultNet
     depends_on:
