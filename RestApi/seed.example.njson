@@ -100,16 +100,18 @@
             "Id":1,
             "Username":"{UserName}",
             "Password":null,
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
+            "PrivateKeyCertificate":"{PrivateKeyCertificate}",
             "CipherType":1
          },
          {
             "Id":2,
             "Username":"{UserName}",
             "Password":null,
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
+            "PrivateKeyCertificate":"{PrivateKeyCertificate}",
             "CipherType":1
          }
       ],

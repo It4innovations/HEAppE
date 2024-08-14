@@ -100,16 +100,16 @@
             "Id":1,
             "Username":"heappeclient",
             "Password":"pass",
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
             "CipherType":1
          },
          {
             "Id":2,
             "Username":"heappeclient",
             "Password":"pass",
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
             "CipherType":1
          }
       ],
