@@ -21,6 +21,8 @@ namespace HEAppE.DomainObjects.ClusterInformation
         //VAULT
 
         private ClusterProjectCredentialVaultPart _vaultData = ClusterProjectCredentialVaultPart.Empty;
+        
+        public bool IsVaultDataLoaded => _vaultData != ClusterProjectCredentialVaultPart.Empty;
 
         [StringLength(50)]
         public string Password
