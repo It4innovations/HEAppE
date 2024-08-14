@@ -121,7 +121,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
             AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetById(userId) ?? throw new ResourceUsageException("UserNotSpecified", userId);
             var userGroups = user.Groups.Select(x => x.Id).Distinct().ToList();
             var reporterAndUserGroupsIntersect = reporterGroupIds.Intersect(userGroups);
-            return reporterGroupIds.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects)).ToList();
+            return reporterAndUserGroupsIntersect.Select(groupId => UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects)).ToList();
         }
 
         /// <summary>

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.IO;
 using System.Text;
 
 using HEAppE.DomainObjects.FileTransfer;
@@ -101,6 +102,13 @@ namespace HEAppE.DomainObjects.ClusterInformation
             {
                 _vaultData = _vaultData with { Id = Id };
             }
+            
+            //if PrivateKey is path then cat file and encode
+            if(Path.Exists(this.PrivateKey))
+            {
+                this.PrivateKey = File.ReadAllText(this.PrivateKey);
+            }
+            
             var base64PK = Convert.ToBase64String(Encoding.UTF8.GetBytes(PrivateKey.Replace("\r\n", "\n"))); // Replace CRLF with LF
             var base64PKCert = Convert.ToBase64String(Encoding.UTF8.GetBytes(PrivateKeyCertificate.Replace("\r\n", "\n"))); // Replace CRLF with LF
             var passphrase = PrivateKeyPassphrase;
