@@ -12,6 +12,8 @@ services:
       SSH_AUTH_SOCK: "/app/shared/agentsocket" 
     networks:
       - sshagent_internal_network
+    profiles:
+      - sshagent
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
@@ -25,6 +27,8 @@ services:
     networks:
       - db_internal_network
       - external_network
+    profiles:
+      - db
 
   datastagingapi:
     image: ${DOCKER_REGISTRY-}datastagingapi
@@ -35,23 +39,20 @@ services:
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
-    depends_on:
-      - mssql
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       TZ: "Europe/Prague" 
     networks:
       - db_internal_network
       - external_network
+    profiles:
+      - staging
 
   heappe:
     image: ${DOCKER_REGISTRY-}heappe
     build:
       context: .
       dockerfile: RestApi/Dockerfile
-    depends_on:
-      - sshagent
-      - mssql
     restart: unless-stopped
     volumes:
       - app_sftp_temp_volume:/sftp
@@ -104,12 +105,13 @@ services:
       - vault
 
 volumes:
+# Shared volumes
   app_volume:
   app_sftp_temp_volume:
-  vault-volume:  
-  vault-agent-volume: 
-  sql_data_volume:
-  sql_log_volume:
+# Invidual volumes
+  sql_volume:
+  vault-volume:
+  vault-agent-volume:
 
 networks:
   external_network:
