@@ -33,6 +33,7 @@ internal class VaultConnector : IVaultConnector
         {
             var result = await httpClient.GetStringAsync(path);
             var vaultPart = ClusterProjectCredentialVaultPart.FromVaultJsonData(result);
+            _log.Debug($"Retrieved vault ClusterProjectCredential with ID: {id}");
             return vaultPart;
         }
         catch (HttpRequestException e)
@@ -43,16 +44,26 @@ internal class VaultConnector : IVaultConnector
     }
 
 
-    public void SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data)
+    public bool SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data)
     {
         using var httpClient = new HttpClient();
         httpClient.BaseAddress = new Uri(_vaultBaseAddress);
         var path = $"{_clusterAuthenticationCredentialsPath}/{data.Id}";
         var content = data.AsVaultDataJsonObject();
         var payload = new StringContent(content, Encoding.UTF8, "application/json");
+        _log.Debug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
         var messageTask = httpClient.PostAsync(path, payload);
         messageTask.Wait(10000);
         var result = messageTask.Result;
-        _log.Debug($"Update vault ClusterProjectCredential with ID: {data.Id}");
+        if(result.IsSuccessStatusCode)
+        {
+            _log.Debug($"Set vault ClusterProjectCredential with ID: {data.Id}");
+            return true;
+        }
+        else
+        {
+            _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
+            return false;
+        }
     }
 }

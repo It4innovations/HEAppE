@@ -17,7 +17,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     restart: unless-stopped
     volumes:
-      - sql_volume:/var/opt/mssql
+      - sql_data_volume:/var/opt/mssql
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Express"
