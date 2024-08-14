@@ -360,11 +360,9 @@ namespace HEAppE.BusinessLogicTier.Logic.JobReporting
         /// <returns></returns>
         private List<JobReport> GetJobReports(long nodeTypeId, long projectId, DateTime startTime, DateTime endTime, string[] subProjects)
         {
-            var jobsInProjectQuery = _unitOfWork.SubmittedJobInfoRepository.GetAll()
-                .Where(x => x.Project.Id == projectId &&
-                            x.StartTime >= startTime &&
-                            x.EndTime <= endTime &&
-                            x.Tasks.Any(y => y.NodeType.Id == nodeTypeId));
+            var jobsInProjectQuery =
+                _unitOfWork.SubmittedJobInfoRepository.GetJobsForReport(startTime, endTime, projectId, nodeTypeId);
+                
             if (subProjects != null && subProjects.Any())
             {
                 jobsInProjectQuery = jobsInProjectQuery.Where(job => subProjects.Contains(job.Specification.SubProject?.Identifier));
