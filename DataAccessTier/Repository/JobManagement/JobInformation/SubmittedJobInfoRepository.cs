@@ -45,16 +45,13 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
         public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
         {
             return _dbSet
-                .Include(x => x.Specification)
-                .ThenInclude(x=>x.SubProject)
-                .Include(x=>x.Tasks)
-                .ThenInclude(x=>x.Specification)
-                .ThenInclude(x=>x.CommandTemplate)
+                .Include(x => x.Specification.SubProject) // Combined Include and ThenInclude
+                .Include(x => x.Tasks)
+                .ThenInclude(x => x.Specification.CommandTemplate) // Combined another Include and ThenInclude
                 .Where(x => x.Project.Id == projectId &&
-                                                                   x.StartTime >= startTime &&
-                                                                   x.EndTime <= endTime &&
-                                                                   x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
-                
+                            x.StartTime >= startTime &&
+                            x.EndTime <= endTime &&
+                            x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
                 .ToList();
         }
         #endregion
