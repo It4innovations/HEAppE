@@ -8,7 +8,7 @@ using log4net;
 
 namespace HEAppE.DataAccessTier.Vault;
 
-internal class VaultConnector : IVaultConnector
+public class VaultConnector : IVaultConnector
 {
     private const string _vaultBaseAddress = "http://vaultagent:8100";
     private const string _clusterAuthenticationCredentialsPath = "v1/HEAppE/data/ClusterAuthenticationCredentials";

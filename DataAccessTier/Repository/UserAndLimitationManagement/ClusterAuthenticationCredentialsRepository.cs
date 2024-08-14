@@ -121,13 +121,9 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement
 
             foreach (var item in credentials)
             {
-                _log.Debug($"Import VaultInfo for id:{item.Id}");
+                _log.Debug($"Importing VaultInfo for id:{item.Id}");
                 var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
-
-                _log.Debug($"Import Result : {vaultData}");
-
                 item.ImportVaultData(vaultData);
-                _log.Debug($"Decoded private key: {item.PrivateKey}");
             }
             return credentials;
         }
