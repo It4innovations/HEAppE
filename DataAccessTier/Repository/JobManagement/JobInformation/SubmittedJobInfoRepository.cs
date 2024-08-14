@@ -40,6 +40,12 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
                             .OrderBy(w => w.Id)
                             .ToList();
         }
+
+        public IEnumerable<SubmittedJobInfo> GetWithSpecification()
+        {
+            return _dbSet.Include(x => x.Specification);
+        }
+
         #endregion
     }
 }

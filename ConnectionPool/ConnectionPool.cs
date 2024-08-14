@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
+using HEAppE.DataAccessTier.Vault;
 using Timer = System.Timers.Timer;
 
 namespace HEAppE.ConnectionPool
@@ -107,6 +108,12 @@ namespace HEAppE.ConnectionPool
         #region Local Methods
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster)
         {
+            if (!cred.IsVaultDataLoaded)
+            {
+                VaultConnector _vaultConnector = new VaultConnector();
+                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(cred.Id).GetAwaiter().GetResult();
+                cred.ImportVaultData(vaultData);
+            }
             object connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, cluster.Port);
             var connection = new ConnectionInfo
             {

@@ -322,28 +322,6 @@ namespace HEAppE.DataAccessTier
 
             clusterAuthCredWithVaultData.ToList().ForEach(clusterAuthenticationCredential =>
             {
-                if (!clusterAuthenticationCredential.IsVaultDataLoaded)
-                {
-                    var _vaultConnector = new VaultConnector();
-                    var seedCredentials = MiddlewareContextSettings.ClusterAuthenticationCredentials.FirstOrDefault(x => x.Id == clusterAuthenticationCredential.Id);
-                    if (seedCredentials == null)
-                    {
-                        _log.Warn($"Seed data for id:{clusterAuthenticationCredential.Id} not found.");
-                        return;
-                    }
-                    bool isSuccess = _vaultConnector.SetClusterAuthenticationCredentials(seedCredentials.ExportVaultData());
-                    if (isSuccess)
-                    {
-                        _log.Debug($"Seed Vault data for id:{clusterAuthenticationCredential.Id} has been created.");
-                        var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(clusterAuthenticationCredential.Id).GetAwaiter().GetResult();
-                        clusterAuthenticationCredential.ImportVaultData(vaultData);
-                    }
-                    else
-                    {
-                        _log.Warn($"Seed Vault data for id:{clusterAuthenticationCredential.Id} has not been created.");
-                    }
-                    
-                }
                 var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
                                                                 .Select(x => x.ClusterProject.Cluster)
                                                                 .ToList();
@@ -496,6 +474,18 @@ namespace HEAppE.DataAccessTier
                 case IdentifiableDbEntity identifiableItem:
                 {
                     var entity = Set<T>().Find(identifiableItem.Id);
+
+                    if (entity is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
+                    {
+                        var vaultConnector = new VaultConnector();
+                        var vaultData = vaultConnector.GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id).GetAwaiter().GetResult();
+
+                        if (vaultData.Id > 0)
+                        {
+                            vaultConnector.SetClusterAuthenticationCredentials(vaultData);
+                        }
+                    }
+
                     UpdateEntityOrAddItem(entity, item);
                     break;
                 }
@@ -521,21 +511,6 @@ namespace HEAppE.DataAccessTier
                 case ClusterProjectCredential clusterProjectCredentials:
                 {
                     var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
-                    var clusterProjectCredentialEntity = item as ClusterProjectCredential;
-
-                    if (entity is { })
-                    {
-                        var vaultConnector = new VaultConnector();
-                        var vaultData = vaultConnector.GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.ClusterAuthenticationCredentials.Id).GetAwaiter().GetResult();;
-
-                        UpdateEntityOrAddItem(entity, item);
-                        if (vaultData.Id > 0)
-                        {
-                            vaultConnector.SetClusterAuthenticationCredentials(vaultData);
-                        }
-                        break;
-                    }
-
                     UpdateEntityOrAddItem(entity, item);
                     break;
                 }
