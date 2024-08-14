@@ -322,6 +322,28 @@ namespace HEAppE.DataAccessTier
 
             clusterAuthCredWithVaultData.ToList().ForEach(clusterAuthenticationCredential =>
             {
+                if (!clusterAuthenticationCredential.IsVaultDataLoaded)
+                {
+                    var _vaultConnector = new VaultConnector();
+                    var seedCredentials = MiddlewareContextSettings.ClusterAuthenticationCredentials.FirstOrDefault(x => x.Id == clusterAuthenticationCredential.Id);
+                    if (seedCredentials == null)
+                    {
+                        _log.Warn($"Seed data for id:{clusterAuthenticationCredential.Id} not found.");
+                        return;
+                    }
+                    bool isSuccess = _vaultConnector.SetClusterAuthenticationCredentials(seedCredentials.ExportVaultData());
+                    if (isSuccess)
+                    {
+                        _log.Debug($"Seed Vault data for id:{clusterAuthenticationCredential.Id} has been created.");
+                        var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(clusterAuthenticationCredential.Id).GetAwaiter().GetResult();
+                        clusterAuthenticationCredential.ImportVaultData(vaultData);
+                    }
+                    else
+                    {
+                        _log.Warn($"Seed Vault data for id:{clusterAuthenticationCredential.Id} has not been created.");
+                    }
+                    
+                }
                 var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
                                                                 .Select(x => x.ClusterProject.Cluster)
                                                                 .ToList();
@@ -352,13 +374,8 @@ namespace HEAppE.DataAccessTier
             var _vaultConnector = new VaultConnector();
             foreach (var item in credentials)
             {
-                _log.Debug($"Import VaultInfo for id:{item.Id}");
-                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();;
-
-                _log.Debug($"Import Result : {vaultData}");
-
+                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
                 item.ImportVaultData(vaultData);
-                _log.Debug($"Decoded private key: {item.PrivateKey}");
             }
             return credentials;
         }
