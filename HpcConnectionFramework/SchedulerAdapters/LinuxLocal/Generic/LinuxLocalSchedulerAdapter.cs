@@ -329,8 +329,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             foreach (var jobId in scheduledJobIdsList)
             {
                 string jobDirPath = Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobId);
-                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}");
-                _log.Info($"Get actual task info id=\"{jobId}\", command \"{command}\"");
+                string cliCommand= $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
+                var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cliCommand);
+                
+                _log.Info($"Get actual task info id=\"{jobId}\", command \"{cliCommand}\", result \"{command.Result}\"");
                 submittedTaskInfos.AddRange(_convertor.ReadParametersFromResponse(cluster, command.Result));
             }
             return submittedTaskInfos;

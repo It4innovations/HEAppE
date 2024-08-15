@@ -88,6 +88,7 @@ namespace HEAppE.RestApi
             switch (exception)
             {
                 case InputValidationException:
+                case RequestedObjectDoesNotExistException:
                     problem.Title = "Validation Problem";
                     problem.Detail = GetExceptionMessage(exception);
                     problem.Status = StatusCodes.Status404NotFound;

@@ -4,6 +4,8 @@ using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -37,5 +39,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
         void RemoveSubProject(long modelId);
         void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId);
+        List<AccountingState> ListAccountingStates (long projectId);
     }
 }
