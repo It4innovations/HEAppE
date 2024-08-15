@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Security.Cryptography;
 using System.Text;
-using System.Text.RegularExpressions;
 
 namespace HEAppE.Utils
 {
-    public class StringUtils
+    public static class StringUtils
     {
         public static string ConvertDictionaryToString(Dictionary<string, string> dictionary)
         {
@@ -48,6 +48,12 @@ namespace HEAppE.Utils
             var rng = new RNGCryptoServiceProvider();
             rng.GetNonZeroBytes(random);
             return Convert.ToBase64String(random);
+        }
+
+        public static Stream ToStream(this string str, Encoding enc = null)
+        {
+            enc = enc ?? Encoding.UTF8;
+            return new MemoryStream(enc.GetBytes(str ?? ""));
         }
     }
 }

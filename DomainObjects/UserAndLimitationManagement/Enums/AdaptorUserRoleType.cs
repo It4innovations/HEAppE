@@ -21,7 +21,7 @@
         Submitter = 3,
 
         /// <summary>
-        /// Users with this role car report in assigned groups.
+        /// Users with this role can report in assigned groups.
         /// </summary>
         GroupReporter = 4,
 

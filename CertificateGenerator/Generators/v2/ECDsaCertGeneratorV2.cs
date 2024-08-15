@@ -1,12 +1,13 @@
-﻿using Org.BouncyCastle.Crypto;
+﻿using System;
+using System.IO;
+using System.Text;
+
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Utilities;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities.IO.Pem;
-using System;
-using System.IO;
-using System.Text;
 
 namespace HEAppE.CertificateGenerator.Generators.v2
 {
@@ -151,20 +152,20 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             var keyGenParameters = new KeyGenerationParameters(secureRandom, size);
             return keyGenParameters;
         }
-        
-        public new static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKeyPath,
+
+        public static new string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
             string passphrase, string comment = null)
         {
-            var fileStream = System.IO.File.OpenText(privateKeyPath);
+            using var fileStream = new StringReader(privateKey);
             var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
             var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
             var publicKey = keyPair.Public;
             byte[] publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
             string base64PublicKey = Convert.ToBase64String(publicKeyBytes);
-            
+
             //get key size from private key
-            var privateKey = keyPair.Private;
-            ECPrivateKeyParameters privateKeyParams = privateKey as ECPrivateKeyParameters;
+            var privateKeyFromPair = keyPair.Private;
+            ECPrivateKeyParameters privateKeyParams = privateKeyFromPair as ECPrivateKeyParameters;
             int keySize = privateKeyParams.Parameters.Curve.FieldSize;
 
             StringBuilder formattedPublicKey = new StringBuilder();
