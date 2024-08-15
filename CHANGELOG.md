@@ -23,9 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced JobReporting endpoints outputs and ability of filtering
 - `JobManagement/CreateJob` endpoint body extended by optional parameter `SubProjectIdentifier` in the `JobSpecification` section
 
-
-### Security
-
 ## V4.2.1
 
 ### Added
