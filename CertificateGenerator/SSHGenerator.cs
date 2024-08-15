@@ -1,12 +1,14 @@
-﻿using HEAppE.CertificateGenerator.Configuration;
+﻿using System;
+using System.Reflection;
+
+using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.CertificateGenerator.Generators;
 using HEAppE.CertificateGenerator.Generators.v2;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.Management;
+
 using log4net;
-using System;
-using System.Reflection;
-using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.CertificateGenerator
 {
@@ -86,27 +88,27 @@ namespace HEAppE.CertificateGenerator
         }
         public static SecureShellKey GetPublicKeyFromPrivateKey(ClusterAuthenticationCredentials existingKey)
         {
-            switch(CipherGeneratorConfiguration.Type)
+            switch (CipherGeneratorConfiguration.Type)
             {
                 case FileTransferCipherType.nistP256:
                 case FileTransferCipherType.nistP521:
-                    return new SecureShellKey()
-                    {
-                        Username = existingKey.Username,
-                        CipherType = CipherGeneratorConfiguration.Type,
-                        PublicKeyPEM = ECDsaCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
-                        PublicKeyInAuthorizedKeysFormat = ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword, existingKey.Username)
-                    };
+                return new SecureShellKey()
+                {
+                    Username = existingKey.Username,
+                    CipherType = CipherGeneratorConfiguration.Type,
+                    PublicKeyPEM = ECDsaCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey, existingKey.PrivateKeyPassphrase),
+                    PublicKeyInAuthorizedKeysFormat = ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey, existingKey.PrivateKeyPassphrase, existingKey.Username)
+                };
                 case FileTransferCipherType.RSA3072:
                 case FileTransferCipherType.RSA4096:
                 default:
-                    return new SecureShellKey()
-                    {
-                        Username = existingKey.Username,
-                        CipherType = CipherGeneratorConfiguration.Type,
-                        PublicKeyPEM = RSACertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword),
-                        PublicKeyInAuthorizedKeysFormat = RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKeyFile, existingKey.PrivateKeyPassword, existingKey.Username)
-                    };
+                return new SecureShellKey()
+                {
+                    Username = existingKey.Username,
+                    CipherType = CipherGeneratorConfiguration.Type,
+                    PublicKeyPEM = RSACertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey, existingKey.PrivateKeyPassphrase),
+                    PublicKeyInAuthorizedKeysFormat = RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey, existingKey.PrivateKeyPassphrase, existingKey.Username)
+                };
             };
         }
 

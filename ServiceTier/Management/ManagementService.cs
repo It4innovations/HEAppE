@@ -19,6 +19,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management
 {
@@ -391,16 +392,36 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, string modelSessionCode)
+        public void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode)
+        {
+            Task.Run(() => ComputeAccountingTask(modelStartTime, modelEndTime, projectId, modelSessionCode))
+                .ContinueWith(t => 
+                {
+                    if (t.IsFaulted)
+                    {
+                        _logger.Error($"Error while computing accounting for project {projectId} with session code {modelSessionCode}: {t.Exception}");
+                    }
+                });
+        }
+        
+        private void ComputeAccountingTask(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                (var user, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Administrator);
+                AdaptorUser user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId, true);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                foreach (var project in projects)
-                {
-                    managementLogic.ComputeAccounting(modelStartTime, modelEndTime, project.Id);
-                }
+                _logger.Info($"User {user.Username} is computing accounting for project {projectId} from {modelStartTime} to {modelEndTime}");
+                managementLogic.ComputeAccounting(modelStartTime, modelEndTime, projectId);
+            }
+        }
+        
+        public List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                AdaptorUser user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager, projectId, true);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.ListAccountingStates(projectId).Select(x => x.ConvertIntToExt()).ToList();
             }
         }
 

@@ -1,6 +1,7 @@
-﻿using Org.BouncyCastle.Crypto;
-using System;
+﻿using System;
 using System.IO;
+
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Utilities;
 using Org.BouncyCastle.Utilities.IO.Pem;
 
@@ -53,9 +54,9 @@ namespace HEAppE.CertificateGenerator.Generators.v2
         /// <returns></returns>
         public abstract string ToPublicKeyInPEM();
 
-        public static string ToPublicKeyInPEMFromPrivateKey(string privateKeyPath, string passphrase)
+        public static string ToPublicKeyInPEMFromPrivateKey(string privateKey, string passphrase)
         {
-            var fileStream = System.IO.File.OpenText(privateKeyPath);
+            using var fileStream = new StringReader(privateKey);
             var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
             var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
             var publicKey = keyPair.Public;

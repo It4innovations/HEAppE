@@ -289,6 +289,7 @@ namespace HEAppE.ExtModels.JobReporting.Converts
                 AccountingString = report.Project.AccountingString,
                 Clusters = report.Clusters.Select(x => x.ConvertIntToDetailedExt()).ToList(),
                 TotalUsage = report.TotalUsage,
+                UsageType = report.Project.UsageType.ConvertIntToExt(),
                 StartDate = report.Project.StartDate,
                 EndDate = report.Project.EndDate
             };
