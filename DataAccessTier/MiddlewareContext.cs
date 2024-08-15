@@ -482,7 +482,14 @@ namespace HEAppE.DataAccessTier
 
                         if (vaultData.Id > 0)
                         {
+                            _log.Info($"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials.");
                             vaultConnector.SetClusterAuthenticationCredentials(vaultData);
+                        }
+                        else
+                        {
+                            _log.Info($"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} not found. Creating new credentials.");
+                            var newVaultData = clusterProjectCredentialEntity.ExportVaultData();
+                            vaultConnector.SetClusterAuthenticationCredentials(newVaultData);
                         }
                     }
 
