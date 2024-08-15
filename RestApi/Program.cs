@@ -1,14 +1,17 @@
-﻿using HEAppE.BackgroundThread;
-using Microsoft.AspNetCore;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.Extensions.Configuration;
-using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+
+using HEAppE.BackgroundThread;
+
+using Microsoft.AspNetCore;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.Extensions.Configuration;
+
+using Newtonsoft.Json.Linq;
 
 namespace HEAppE.RestApi
 {
@@ -50,8 +53,8 @@ namespace HEAppE.RestApi
                     .UseUrls("http://*:5000")
                     .ConfigureAppConfiguration((hostingContext, config) =>
                     {
-                        config.AddJsonFile("C:/Heappe/projects/develop/app/confs/appsettings.json", false, true);
-                        config.AddNotJson("C:/Heappe/projects/develop/app/confs/seed.njson");
+                        config.AddJsonFile("P:\\source\\localHEAppE\\confs/appsettings.json", false, true);
+                        config.AddNotJson("P:\\source\\localHEAppE\\confs/seed.njson");
                     })
                     .UseStartup<Startup>();
             }
@@ -112,12 +115,12 @@ namespace HEAppE.RestApi
             switch (token.Type)
             {
                 case JTokenType.Object:
-                    VisitJObject(token.Value<JObject>());
-                    break;
+                VisitJObject(token.Value<JObject>());
+                break;
 
                 case JTokenType.Array:
-                    VisitArray(token.Value<JArray>());
-                    break;
+                VisitArray(token.Value<JArray>());
+                break;
 
                 case JTokenType.Integer:
                 case JTokenType.Float:
@@ -126,11 +129,11 @@ namespace HEAppE.RestApi
                 case JTokenType.Bytes:
                 case JTokenType.Raw:
                 case JTokenType.Null:
-                    VisitPrimitive(token.Value<JValue>());
-                    break;
+                VisitPrimitive(token.Value<JValue>());
+                break;
 
                 default:
-                    throw new FormatException("Unsupported JSON token");
+                throw new FormatException("Unsupported JSON token");
             }
         }
 

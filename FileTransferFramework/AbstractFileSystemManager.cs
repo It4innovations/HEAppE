@@ -121,7 +121,7 @@ namespace HEAppE.FileTransferFramework
                         taskInfo.Specification.Id.ToString(CultureInfo.InvariantCulture)?.TrimStart('/'), 
                         taskInfo.Specification.ClusterTaskSubdirectory?.TrimStart('/') ?? string.Empty, 
                         changedFile.FileName.TrimStart('/'));
-
+                    
                     result.Add(new FileInformation
                     {
                         FileName = $"/{relativeFilePath}",
