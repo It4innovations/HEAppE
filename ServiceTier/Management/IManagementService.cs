@@ -39,6 +39,8 @@ namespace HEAppE.ServiceTier.Management
 
         void RemoveProject(long id, string sessionCode);
 
+        ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode);
+
         ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
             string sessionCode);
 

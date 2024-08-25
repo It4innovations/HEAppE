@@ -501,13 +501,35 @@ namespace HEAppE.RestApi.Controllers
         #endregion
         #region ProjectAssignmentToCluster
         /// <summary>
+        /// Get ProjectAssignmentToCluster by id
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterId"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ProjectAssignmentToCluster")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ClusterProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectAssignmentToClusterById\" Parameters: ProjectId: \"{projectId}\", ClusterId: \"{clusterId}\", SessionCode: \"{sessionCode}\"");
+
+            var accounting = _managementService.GetProjectAssignmentToClusterById(projectId, clusterId, sessionCode);
+            return Ok(accounting);
+        }
+
+        /// <summary>
         /// Assign project to the cluster
         /// </summary>
         /// <param name="model"></param>
         /// <returns></returns>
         [HttpPost("ProjectAssignmentToCluster")]
         [RequestSizeLimit(600)]
-        [ProducesResponseType(typeof(ClusterProject), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ClusterProjectExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -534,7 +556,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpPut("ProjectAssignmentToCluster")]
         [RequestSizeLimit(600)]
-        [ProducesResponseType(typeof(ClusterProject), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ClusterProjectExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]

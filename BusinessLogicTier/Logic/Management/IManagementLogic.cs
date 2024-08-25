@@ -24,6 +24,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         void RemoveSecureShellKey(string publicKey, long projectId);
         SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId);
         void RemoveSecureShellKeyByPublicKey(string publicKey, long projectId);
+        ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
         ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
         ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
         void RemoveProjectAssignmentToCluster(long projectId, long clusterId);

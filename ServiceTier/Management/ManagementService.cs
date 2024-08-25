@@ -150,6 +150,17 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ClusterProject clusterProject = managementLogic.GetProjectAssignmentToClusterById(projectId, clusterId);
+                return clusterProject.ConvertIntToExt();
+            }
+        }
+
         public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())

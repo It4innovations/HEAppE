@@ -431,6 +431,18 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         }
 
         /// <summary>
+        /// Get project to cluster assignment by id
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterId"></param>
+        /// <returns></returns>
+        public ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId)
+        {
+            return _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
+                ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+        }
+
+        /// <summary>
         /// Assigns a project to a clusters
         /// </summary>
         /// <param name="projectId"></param>
