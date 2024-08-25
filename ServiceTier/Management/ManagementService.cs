@@ -253,6 +253,17 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                CommandTemplateParameter commandTemplateParameter = managementLogic.GetCommandTemplateParameterById(id);
+                return commandTemplateParameter.ConvertIntToExtendedExt();
+            }
+        }
+
         public ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier,
             string modelQuery,
             string modelDescription, long modelCommandTemplateId, string modelSessionCode)
@@ -268,13 +279,13 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery,
+        public ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long id, string modelIdentifier, string modelQuery,
             string modelDescription, string modelSessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(modelId)
-                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+                CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
+                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
                 if (!commandTemplateParameter.IsEnabled)
                 {
                     //unauthorized
@@ -293,21 +304,21 @@ namespace HEAppE.ServiceTier.Management
                 }
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                CommandTemplateParameter updatedCommandTemplateParameter = managementLogic.ModifyCommandTemplateParameter(modelId, modelIdentifier, modelQuery, modelDescription);
+                CommandTemplateParameter updatedCommandTemplateParameter = managementLogic.ModifyCommandTemplateParameter(id, modelIdentifier, modelQuery, modelDescription);
                 return updatedCommandTemplateParameter.ConvertIntToExtendedExt();
             }
         }
 
-        public string RemoveCommandTemplateParameter(long modelId, string modelSessionCode)
+        public string RemoveCommandTemplateParameter(long id, string modelSessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(modelId)
-                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+                CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
+                    ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                managementLogic.RemoveCommandTemplateParameter(modelId);
-                return $"CommandTemplateParameter id {modelId} was removed";
+                managementLogic.RemoveCommandTemplateParameter(id);
+                return $"CommandTemplateParameter id {id} was removed";
             }
         }
 

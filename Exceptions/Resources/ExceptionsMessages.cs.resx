@@ -510,4 +510,7 @@
   <data name="RequestedObjectDoesNotExistException_ProjectClusterNodeTypeAggregationNotFound" xml:space="preserve">
     <value>Požadovaná kombinace pro ProjectId '{0}' a ClusterNodeTypeAggregationId '{1}' nemá referenci v HEAppE.</value>
   </data>
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateParameterNotFound" xml:space="preserve">
+    <value>Specifikovaný CommandTemplate parameter s id '{0}' není definován v HEAppE.</value>
+  </data>
 </root>

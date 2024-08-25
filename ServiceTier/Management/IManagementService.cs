@@ -59,13 +59,15 @@ namespace HEAppE.ServiceTier.Management
         List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, string sessionCode);
         bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username);
 
+        ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
+
         ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
             string modelDescription, long modelCommandTemplateId, string modelSessionCode);
 
-        ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long modelId, string modelIdentifier,
+        ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long id, string modelIdentifier,
             string modelQuery, string modelDescription, string modelSessionCode);
 
-        string RemoveCommandTemplateParameter(long modelId, string modelSessionCode);
+        string RemoveCommandTemplateParameter(long id, string modelSessionCode);
         List<ExtendedCommandTemplateExt> ListCommandTemplates(long projectId, string sessionCode);
         ExtendedCommandTemplateExt ListCommandTemplate(long commandTemplateId, string sessionCode);
         SubProjectExt ListSubProject(long subProjectId, string sessionCode);

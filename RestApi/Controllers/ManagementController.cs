@@ -332,6 +332,26 @@ namespace HEAppE.RestApi.Controllers
         #endregion
 
         #region CommandTemplateParameter
+        /// <summary>
+        /// Get CommandTemplateParameter by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("CommandTemplateParameter")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ExtendedCommandTemplateParameterExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetCommandTemplateParameterById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetCommandTemplateParameterById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var commandTemplateParameter = _managementService.GetCommandTemplateParameterById(id, sessionCode);
+            return Ok(commandTemplateParameter);
+        }
 
         /// <summary>
         /// Create Static Command Template
@@ -518,8 +538,8 @@ namespace HEAppE.RestApi.Controllers
         {
             _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectAssignmentToClusterById\" Parameters: ProjectId: \"{projectId}\", ClusterId: \"{clusterId}\", SessionCode: \"{sessionCode}\"");
 
-            var accounting = _managementService.GetProjectAssignmentToClusterById(projectId, clusterId, sessionCode);
-            return Ok(accounting);
+            var clusterProject = _managementService.GetProjectAssignmentToClusterById(projectId, clusterId, sessionCode);
+            return Ok(clusterProject);
         }
 
         /// <summary>

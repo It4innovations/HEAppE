@@ -30,10 +30,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
         List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
         bool TestClusterAccessForAccount(long projectId, string username);
+        CommandTemplateParameter GetCommandTemplateParameterById(long id);
         CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
             string modelDescription, long modelCommandTemplateId);
-        CommandTemplateParameter ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery, string modelDescription);
-        void RemoveCommandTemplateParameter(long modelId);
+        CommandTemplateParameter ModifyCommandTemplateParameter(long id, string modelIdentifier, string modelQuery, string modelDescription);
+        void RemoveCommandTemplateParameter(long id);
         List<CommandTemplate> ListCommandTemplates(long projectId);
         SubProject CreateSubProject(string identifier, long projectId);
         SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);

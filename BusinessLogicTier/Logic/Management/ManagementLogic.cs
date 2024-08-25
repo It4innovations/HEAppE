@@ -886,6 +886,29 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return !noAccessClusterIds.Any();
         }
 
+        /// <summary>
+        /// Get GetCommandTemplateParameter by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        public CommandTemplateParameter GetCommandTemplateParameterById(long id)
+        {
+            return _unitOfWork.CommandTemplateParameterRepository.GetById(id)
+                ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
+        }
+
+        /// <summary>
+        /// Create command template parameter
+        /// </summary>
+        /// <param name="modelIdentifier"></param>
+        /// <param name="modelQuery"></param>
+        /// <param name="modelDescription"></param>
+        /// <param name="modelCommandTemplateId"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        /// <exception cref="InputValidationException"></exception>
+        /// <exception cref="InvalidRequestException"></exception>
         public CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
             string modelDescription, long modelCommandTemplateId)
         {
@@ -929,13 +952,24 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return commandTemplateParameter;
         }
 
-        public CommandTemplateParameter ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery,
+        /// <summary>
+        /// Modify command template parameter
+        /// </summary>
+        /// <param name="modelId"></param>
+        /// <param name="modelIdentifier"></param>
+        /// <param name="modelQuery"></param>
+        /// <param name="modelDescription"></param>
+        /// <returns></returns>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        /// <exception cref="InputValidationException"></exception>
+        /// <exception cref="InvalidRequestException"></exception>
+        public CommandTemplateParameter ModifyCommandTemplateParameter(long id, string modelIdentifier, string modelQuery,
             string modelDescription)
         {
-            CommandTemplateParameter commandTemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetById(modelId);
+            CommandTemplateParameter commandTemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetById(id);
             if (commandTemplateParameter is null)
             {
-                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
             }
             
             if (!commandTemplateParameter.CommandTemplate.IsEnabled)
@@ -967,12 +1001,19 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             return commandTemplateParameter;
         }
 
-        public void RemoveCommandTemplateParameter(long modelId)
+        /// <summary>
+        /// Remove command template parameter
+        /// </summary>
+        /// <param name="modelId"></param>
+        /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+        /// <exception cref="InputValidationException"></exception>
+        /// <exception cref="InvalidRequestException"></exception>
+        public void RemoveCommandTemplateParameter(long id)
         {
-            CommandTemplateParameter commandTemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetById(modelId);
+            CommandTemplateParameter commandTemplateParameter = _unitOfWork.CommandTemplateParameterRepository.GetById(id);
             if (commandTemplateParameter is null)
             {
-                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
             }
             
             if (!commandTemplateParameter.CommandTemplate.IsEnabled)
@@ -993,6 +1034,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             _unitOfWork.Save();
         }
 
+        /// <summary>
+        /// List command templates
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
         public List<CommandTemplate> ListCommandTemplates(long projectId)
         {
             return _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(projectId)
