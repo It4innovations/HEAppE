@@ -1,6 +1,7 @@
 services:
   sshagent:
     image: ${DOCKER_REGISTRY-}sshagent
+    container_name: "${INSTANCE_NAME}_sshagent"
     build:
       context: .
       dockerfile: SshAgent/Dockerfile
@@ -17,6 +18,7 @@ services:
 
   mssql:
     image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: "${INSTANCE_NAME}_mssql"
     restart: unless-stopped
     volumes:
       - sql_volume:/var/opt/mssql
@@ -32,6 +34,7 @@ services:
 
   datastagingapi:
     image: ${DOCKER_REGISTRY-}datastagingapi
+    container_name: "${INSTANCE_NAME}_datastagingapi"
     build:
       context: .
       dockerfile: DataStagingAPI/Dockerfile
@@ -50,6 +53,7 @@ services:
 
   heappe:
     image: ${DOCKER_REGISTRY-}heappe
+    container_name: "${INSTANCE_NAME}_heappe"
     build:
       context: .
       dockerfile: RestApi/Dockerfile
@@ -70,15 +74,15 @@ services:
       - "host.docker.internal:host-gateway"
 
   vault:
-    image: hashicorp/vault:latest
-    container_name: heappe-vault
+    image: hashicorp/vault:1.13.3
+    container_name: "${INSTANCE_NAME}_vault"
     expose:
       - 8200:8200
     environment:
       - VAULT_ADDR=http://localhost:8200
     volumes:
       - vault-volume:/vault
-      - ../app/confs/vault/vault:/vault/config
+      - "${BASE_PATH}/vault/vault:/vault/config"
     healthcheck:
       retries: 5
     command: server 
@@ -88,21 +92,35 @@ services:
       - vaultNet
 
   vaultagent:
-    image: hashicorp/vault:latest
-    container_name: vaultagent
+    image: hashicorp/vault:1.13.3
+    container_name: "${INSTANCE_NAME}_vaultagent"
     expose:
       - 8100:8100
     volumes:
       - vault-agent-volume:/vault/agent
-      - ../app/confs/vault/agent:/vault/config
+      - "${BASE_PATH}/vault/agent:/vault/config"
       - ../app/logs/Vault/:/vault/logs
-    command: proxy -config=/vault/config/vault-agent.hcl -log-level debug -log-file=/vault/logs/vault-agent.log
+    command: proxy -config=/vault/config/vault-agent.hcl -log-level warning -log-file=/vault/logs/vault-agent.log
     cap_add:
       - IPC_LOCK
     networks:
       - vaultNet
     depends_on:
       - vault
+
+  vault_init:
+    build:
+      context: .
+      dockerfile: ./HashiCorpVaultScripts/DockerVersion/Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${VAULT_FILE}:/app/credentials"
+      - "${BASE_PATH}:/app/confs/"
+    networks:
+      - vaultNet
+    profiles:
+      - initVault
+
 
 volumes:
 # Shared volumes
