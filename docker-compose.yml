@@ -73,10 +73,10 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - vault_decrypt
+      - vault_unseal
 
   vault:
-    image: hashicorp/vault:1.13.3
+    image: hashicorp/vault:1.17.3
     container_name: "${INSTANCE_NAME}_vault"
     expose:
       - 8200:8200
@@ -94,7 +94,7 @@ services:
       - vaultNet
 
   vaultagent:
-    image: hashicorp/vault:1.13.3
+    image: hashicorp/vault:1.17.3
     container_name: "${INSTANCE_NAME}_vaultagent"
     expose:
       - 8100:8100
@@ -102,7 +102,7 @@ services:
       - vault-agent-volume:/vault/agent
       - "${BASE_PATH}/vault/agent:/vault/config"
       - ../app/logs/Vault/:/vault/logs
-    command: proxy -config=/vault/config/vault-agent.hcl -log-level warning -log-file=/vault/logs/vault-agent.log
+    command: proxy -config=/vault/config/vault-agent.hcl -log-level debug -log-file=/vault/logs/vault-agent.log
     cap_add:
       - IPC_LOCK
     networks:
@@ -114,26 +114,42 @@ services:
     build:
       context: .
       dockerfile: ./HashiCorpVaultScripts/DockerVersion/Dockerfile
+    environment:
+      INSTANCE_NAME: ${INSTANCE_NAME}
+      VAULT_PASSWORD: ${VAULT_PASSWORD}
+      SHARED_VAULT_FILE: ${SHARED_VAULT_FILE}
+      SHARED_VAULT_FILE_NAME: ${SHARED_VAULT_FILE_NAME}
+      BASE_PATH: ${BASE_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - "${VAULT_FILE}:/app/credentials"
+      - "${VAULT_FILE_DIR_PATH}:/app/ansibleVault/"
       - "${BASE_PATH}:/app/confs/"
     networks:
       - vaultNet
     profiles:
       - initVault
+    depends_on:
+      - vault
     
-  vault_decrypt:
+  vault_unseal:
     build:
       context: .
       dockerfile: ./HashiCorpVaultScripts/DockerVersion/Dockerfile
+    environment:
+      INSTANCE_NAME: ${INSTANCE_NAME}
+      VAULT_PASSWORD: ${VAULT_PASSWORD}
+      SHARED_VAULT_FILE: ${SHARED_VAULT_FILE}
+      SHARED_VAULT_FILE_NAME: ${SHARED_VAULT_FILE_NAME}
+      BASE_PATH: ${BASE_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - "${VAULT_FILE}:/app/credentials"
       - "${BASE_PATH}:/app/confs/"
+      - "${VAULT_FILE_DIR_PATH}:/app/ansibleVault/"
     networks:
       - vaultNet
-    command: /app/unsealHVault.sh
+    depends_on:
+      - vault
+    command: /app/unsealOrInitHVault.sh
 
 
 volumes:

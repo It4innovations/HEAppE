@@ -8,19 +8,14 @@ RUN apk add --no-cache bash docker-cli ansible jq
 WORKDIR /app
 
 # Zkopírování vašeho skriptu do image
-COPY initHVault.sh /app/initHVault.sh
-COPY initHVaultConfig.sh /app/initHVaultConfig.sh
-COPY appendToAnsibleVault.sh /app/appendToAnsibleVault.sh
-COPY unsealHVault.sh /app/unsealHVault.sh
+COPY HashiCorpVaultScripts/DockerVersion/initHVault.sh /app/initHVault.sh
+COPY HashiCorpVaultScripts/DockerVersion/initHVaultConfig.sh /app/initHVaultConfig.sh
+COPY HashiCorpVaultScripts/DockerVersion/appendToAnsibleVault.sh /app/appendToAnsibleVault.sh
+COPY HashiCorpVaultScripts/DockerVersion/unsealHVault.sh /app/unsealHVault.sh
+COPY HashiCorpVaultScripts/DockerVersion/unsealOrInitHVault.sh /app/unsealOrInitHVault.sh
 
 # Nastavení práv pro spustitelnost skriptu
 RUN chmod +x /app/*
-
-# Nastavení defaultních environmentálních proměnných
-ENV VAULT_FILE=/opt/heappe/projects/credentials
-ENV VAULT_PASSWORD=""
-ENV BASE_PATH=../../app/confs
-ENV INSTANCE_NAME=Develop
 
 # Entry point nastaví, že kontejner bude přijímat parametry
 ENTRYPOINT ["/bin/bash", "-c"]

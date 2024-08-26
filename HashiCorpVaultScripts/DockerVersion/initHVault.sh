@@ -26,7 +26,7 @@ if [ -z "$VAULT_PASSWORD" ]; then
 fi
 
 # Check if configuration files exist
-CONFIG_FILES=("/app/vault/vault/vault-config.hcl" "/app/vault/agent/role_id" "/app/vault/agent/secret_id" "/app/vault/agent/vault-agent.hcl")
+CONFIG_FILES=("/vault/vault/vault-config.hcl" "/vault/agent/role_id" "/vault/agent/secret_id" "/vault/agent/vault-agent.hcl")
 
 CONFIG_MISSING=false
 
@@ -62,8 +62,13 @@ if [ ! -f "/app/appendToAnsibleVault.sh" ]; then
   exit 1
 fi
 
+ANSIBLE_VAULT_FILE=/app/ansibleVault/${INSTANCE_NAME}_credentials
+if [ "$SHARED_VAULT_FILE" = true ]; then
+    ANSIBLE_VAULT_FILE="${VAULT_FILE_DIR_PATH}/${SHARED_VAULT_FILE_NAME}"
+fi
+
 # Check if the Ansible Vault file exists and is decryptable
-if [ -f "/app/credentials" ]; then
+if [ -f "$ANSIBLE_VAULT_FILE" ]; then
     echo -n "Checking if the Ansible Vault can be decrypted... "
     TEMP_DECRYPT_FILE=$(mktemp)
     PASSWORD_FILE=$(mktemp)
@@ -71,7 +76,7 @@ if [ -f "/app/credentials" ]; then
     echo "$VAULT_PASSWORD" > "$PASSWORD_FILE"
 
 
-    if ! ansible-vault decrypt --vault-password-file="$PASSWORD_FILE" --output="$TEMP_DECRYPT_FILE" /app/credentials &> /dev/null; then
+    if ! ansible-vault decrypt --vault-password-file="$PASSWORD_FILE" --output="$TEMP_DECRYPT_FILE" "$ANSIBLE_VAULT_FILE" &> /dev/null; then
         echo -e "${RED}Failed${NC}"
         echo -e "${RED}Error:${NC} The Ansible Vault file cannot be decrypted with the provided password. Exiting."
         rm -f "$TEMP_DECRYPT_FILE"
@@ -99,7 +104,7 @@ init_status=$(docker exec "${INSTANCE_NAME}_vault" vault status -format=json | j
 
 if [ "$init_status" == "true" ]; then
     echo -e "${GREEN}Vault is already initialized. Running vault unseal procedure.${NC}"
-    /app/unsealHVault.sh $VAULT_PASSWORD --path /app/credentials
+    /app/unsealHVault.sh $VAULT_PASSWORD --path "$ANSIBLE_VAULT_FILE"
     exit 0
 else
     echo -e "${YELLOW}Vault is not initialized.${NC} Initializing Vault..."
@@ -132,7 +137,7 @@ EOF
 )
 
 # Append the data to the Ansible Vault file
-sh /app/appendToAnsibleVault.sh "$VAULT_PASSWORD" --path /app/credentials --data "$json_data"
+sh /app/appendToAnsibleVault.sh "$VAULT_PASSWORD" --path "$ANSIBLE_VAULT_FILE" --data "$json_data"
 
 # Check if the script failed
 if [ $? -ne 0 ]; then
@@ -190,5 +195,5 @@ echo $secret_id > /app/confs/vault/agent/secret_id
 
 echo "Vault is ready for use"
 echo "Restarting VaultAgent"
-docker restart vaultagent
+docker restart "${INSTANCE_NAME}_vaultagent"
 echo "Vault setup done"
