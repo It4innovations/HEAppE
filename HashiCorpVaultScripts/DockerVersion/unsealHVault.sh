@@ -6,61 +6,6 @@ GREEN='\033[0;32m'
 CYAN='\033[0;36m'
 NC='\033[0m' # No Color
 
-# Default values
-VAULT_FILE="/opt/heappe/projects/credentials"
-VAULT_PASSWORD=""
-INSTANCE_NAME="Develop"
-
-# Function to display help message
-function display_help {
-    echo -e "${CYAN}Usage:${NC} $0 <vault_password> [--path <path_to_ansible_vault_file>] [-i|--instance-name <instance_name>]"
-    echo
-    echo "This script checks if the Vault service is running and if the Vault is sealed."
-    echo "If it is sealed, it unseals the Vault using three random keys from the decrypted Ansible Vault file."
-    echo
-    echo -e "  ${CYAN}Arguments:${NC}"
-    echo -e "  ${GREEN}vault_password${NC}             ${RED}(required)${NC} Password to decrypt the Ansible Vault file."
-    echo -e "  ${CYAN}--path <path_to_file>${NC}      Path to the Ansible Vault file containing unseal keys (default: /opt/heappe/projects/credentials)."
-    echo -e "  ${CYAN}-i${NC}, ${CYAN}--instance-name${NC}   Name of the section in the Ansible Vault file (default: Develop)."
-    echo
-    echo -e "${CYAN}Example:${NC}"
-    echo "  $0 myVaultPassword --path /path/to/vault.json -i MyInstance"
-    exit 0
-}
-
-
-
-# Check for minimum arguments and help
-if [ "$#" -lt 1 ]; then
-    echo -e "${RED}Error:${NC} Insufficient arguments provided."
-    display_help
-fi
-
-# Parse command-line arguments
-while [[ $# -gt 0 ]]; do
-    case $1 in
-        --path)
-            VAULT_FILE="$2"
-            shift 2
-            ;;
-        -i|--instance-name)
-            INSTANCE_NAME="$2"
-            shift 2
-            ;;
-        --help)
-            display_help
-            ;;
-        *)
-            if [ -z "$VAULT_PASSWORD" ]; then
-                VAULT_PASSWORD="$1"
-            else
-                echo -e "${RED}Error:${NC} Unexpected argument: $1"
-                display_help
-            fi
-            shift
-            ;;
-    esac
-done
 
 # Check if jq is installed
 if ! command -v jq &> /dev/null; then
@@ -81,8 +26,8 @@ if [ -z "$VAULT_PASSWORD" ]; then
 fi
 
 # Check if the Ansible Vault file exists
-if [ ! -f "$VAULT_FILE" ]; then
-    echo -e "${RED}Error:${NC} Ansible Vault file does not exist at the specified path: $VAULT_FILE"
+if [ ! -f "/app/credentials" ]; then
+    echo -e "${RED}Error:${NC} Ansible Vault file does not exist at the specified path: /app/credentials"
     exit 1
 fi
 PASSWORD_FILE=$(mktemp)
@@ -92,7 +37,7 @@ echo "$VAULT_PASSWORD" > "$PASSWORD_FILE"
 
 # Decrypt the Ansible Vault file and extract unseal keys
 echo -n "Decrypting Ansible Vault file... "
-DECRYPTED_CONTENT=$(ansible-vault decrypt --vault-password-file="$PASSWORD_FILE" "$VAULT_FILE" --output=-)
+DECRYPTED_CONTENT=$(ansible-vault decrypt --vault-password-file="$PASSWORD_FILE" /app/credentials --output=-)
 if [ $? -ne 0 ]; then
     echo -e "${RED}Failed${NC}"
     echo -e "${RED}Error:${NC} Failed to decrypt the Ansible Vault file. Exiting."
@@ -152,7 +97,7 @@ else
     echo "Vault is already unsealed."
 fi
 
-ansible-vault encrypt --vault-password-file="$PASSWORD_FILE" "$VAULT_FILE"
+ansible-vault encrypt --vault-password-file="$PASSWORD_FILE" /app/credentials
 rm -f "$PASSWORD_FILE"
 
 echo "Vault service is running and unsealed."

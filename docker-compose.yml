@@ -72,6 +72,8 @@ services:
       - vaultNet
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    depends_on:
+      - vault_decrypt
 
   vault:
     image: hashicorp/vault:1.13.3
@@ -120,6 +122,18 @@ services:
       - vaultNet
     profiles:
       - initVault
+    
+  vault_decrypt:
+    build:
+      context: .
+      dockerfile: ./HashiCorpVaultScripts/DockerVersion/Dockerfile
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - "${VAULT_FILE}:/app/credentials"
+      - "${BASE_PATH}:/app/confs/"
+    networks:
+      - vaultNet
+    command: /app/unsealHVault.sh
 
 
 volumes:
