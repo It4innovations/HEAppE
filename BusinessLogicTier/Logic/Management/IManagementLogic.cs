@@ -16,8 +16,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript, long modelClusterNodeTypeId);
         CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript);
         void RemoveCommandTemplate(long commandTemplateId);
-        DomainObjects.JobManagement.Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser);
-        DomainObjects.JobManagement.Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler);
+        Project GetProjectById(long id);
+        Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser);
+        Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler);
         void RemoveProject(long id);
         List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId);
         SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);

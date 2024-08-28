@@ -60,7 +60,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string preparationScript)
         {
             Project project = _unitOfWork.ProjectRepository.GetById(projectId) ??
-                throw new RequestedObjectDoesNotExistException($"ProjectNotFound");
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(genericCommandTemplateId) ??
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
@@ -305,6 +305,18 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             commandTemplate.IsEnabled = false;
             _unitOfWork.Save();
         }
+
+        /// <summary>
+        /// Get Project by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
+        public Project GetProjectById(long id)
+        {
+            return _unitOfWork.ProjectRepository.GetById(id) ??
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        }
+
         /// <summary>
         /// Creates a new project in the database and returns it
         /// </summary>

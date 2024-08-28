@@ -432,9 +432,30 @@ namespace HEAppE.RestApi.Controllers
             ClearListAvailableClusterMethodCache();
             return Ok(message);
         }
-        
+
         #endregion
         #region Project
+        /// <summary>
+        /// Get Project by id
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("Project")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetProjectById(long id, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectById\" Parameters: Id: \"{id}\", SessionCode: \"{sessionCode}\"");
+
+            var project = _managementService.GetProjectById(id, sessionCode);
+            return Ok(project);
+        }
+
         /// <summary>
         /// Create project
         /// </summary>
