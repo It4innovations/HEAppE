@@ -101,8 +101,10 @@ fi
 echo -e "${GREEN}Success${NC}"
 
 UNSEAL_KEYS=($(echo "$DECRYPTED_CONTENT" | jq -r ".HashiCorpVault_$INSTANCE_NAME.Unseal_Keys[]"))
+KEY_ID=1
 for key in "${UNSEAL_KEYS[@]}"; do
-    echo "$key"
+    echo "Unsealsed key ${KEY_ID}"
+    KEY_ID=$((KEY_ID+1))
 done
 
 # After using the unseal keys
