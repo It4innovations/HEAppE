@@ -480,18 +480,11 @@ namespace HEAppE.DataAccessTier
                         var vaultConnector = new VaultConnector();
                         var vaultData = vaultConnector.GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id).GetAwaiter().GetResult();
 
-                        if (vaultData.Id > 0)
-                        {
-                            _log.Info($"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials.");
-                            vaultConnector.SetClusterAuthenticationCredentials(vaultData);
-                        }
-                        else
-                        {
-                            
-                            _log.Info($"Vault data for ClusterAuthenticationCredentials with id {(item as ClusterAuthenticationCredentials)!.Id} not found. Creating new credentials.");
-                            var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();
-                            vaultConnector.SetClusterAuthenticationCredentials(newVaultData);
-                        }
+                        _log.Info(vaultData.Id > 0
+                            ? $"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials."
+                            : $"Vault data for ClusterAuthenticationCredentials with id {(item as ClusterAuthenticationCredentials)!.Id} not found. Creating new credentials.");
+                        var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();
+                        vaultConnector.SetClusterAuthenticationCredentials(newVaultData);
                     }
 
                     UpdateEntityOrAddItem(entity, item);
