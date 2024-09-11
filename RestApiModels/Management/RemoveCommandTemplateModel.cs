@@ -6,7 +6,7 @@ namespace HEAppE.RestApiModels.Management
     [DataContract(Name = "RemoveCommandTemplateModel")]
     public class RemoveCommandTemplateModel : SessionCodeModel
     {
-        [DataMember(Name = "CommandTemplateId", IsRequired = true)]
+        [DataMember(Name = "Id", IsRequired = true)]
         public long CommandTemplateId { get; set; }
         public override string ToString()
         {
