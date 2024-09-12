@@ -354,9 +354,9 @@ namespace HEAppE.DataAccessTier.UnitOfWork
 
             var changes = _context.SaveChanges();
 
-            SavePreparedEntitiesToVault(changes);
+            //SavePreparedEntitiesToVault(changes); //JK - commented out to avoid vault access
 
-
+            /*
             void SavePreparedEntitiesToVault(int dbChanges)
             {
                 if ((dbChanges < vaultEntries.Count))
@@ -377,6 +377,7 @@ namespace HEAppE.DataAccessTier.UnitOfWork
                     _vaultConnector.SetClusterAuthenticationCredentials(ve.ExportVaultData());
                 }
             }
+            */
         }
         #endregion
         #region IDisposable Methods
