@@ -474,6 +474,8 @@ namespace HEAppE.DataAccessTier
                 case IdentifiableDbEntity identifiableItem:
                 {
                     var entity = Set<T>().Find(identifiableItem.Id);
+                    UpdateEntityOrAddItem(entity, item);
+                    entity = Set<T>().Find(identifiableItem.Id);
 
                     if (entity is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                     {
@@ -486,8 +488,6 @@ namespace HEAppE.DataAccessTier
                         var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();
                         vaultConnector.SetClusterAuthenticationCredentials(newVaultData);
                     }
-
-                    UpdateEntityOrAddItem(entity, item);
                     break;
                 }
 
