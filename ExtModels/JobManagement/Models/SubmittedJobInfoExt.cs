@@ -29,13 +29,16 @@ namespace HEAppE.ExtModels.JobManagement.Models
 
         [DataMember(Name = "TotalAllocatedTime")]
         public double? TotalAllocatedTime { get; set; }
+        
+        [DataMember(Name = "SubProject")]
+        public string SubProject { get; set; }
 
         [DataMember(Name = "Tasks")]
         public SubmittedTaskInfoExt[] Tasks { get; set; }
 
         public override string ToString()
         {
-            return $"SubmittedJobInfoExt(id={Id}; name={Name}; state={State}; creationTime={CreationTime}; submitTime={SubmitTime}; startTime={StartTime}; endTime={EndTime}; totalAllocatedTime={TotalAllocatedTime}; tasks={Tasks})";
+            return $"SubmittedJobInfoExt(id={Id}; name={Name}; state={State}; creationTime={CreationTime}; submitTime={SubmitTime}; startTime={StartTime}; endTime={EndTime}; totalAllocatedTime={TotalAllocatedTime}; subProject={SubProject}; tasks={Tasks})";
         }
     }
 }

@@ -198,8 +198,8 @@
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Unable to submit the job (incorrect job state).</value>
   </data>
-  <data name="InsufficientRoleException_MissingRoleForProjectCreation" xml:space="preserve">
-    <value>User does not have '{0}' role for '{1}' project creation.</value>
+  <data name="InsufficientRoleException_MissingRoleForProject" xml:space="preserve">
+    <value>User does not have '{0}' role for project '{1}'.</value>
   </data>
   <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Authentication of user '{0}' was not successful.</value>
@@ -485,5 +485,8 @@
   </data>
   <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
     <value>Cannot cancel job '{0}', this job is in state '{1}'.</value>
+  </data>
+  <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
+    <value>Specified SubProject identifier already exists.</value>
   </data>
 </root>

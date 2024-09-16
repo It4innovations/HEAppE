@@ -88,6 +88,7 @@ namespace HEAppE.RestApi
             switch (exception)
             {
                 case InputValidationException:
+                case RequestedObjectDoesNotExistException:
                     problem.Title = "Validation Problem";
                     problem.Detail = GetExceptionMessage(exception);
                     problem.Status = StatusCodes.Status404NotFound;
@@ -102,7 +103,10 @@ namespace HEAppE.RestApi
                 case AuthenticationTypeException:
                     problem.Title = "Authentication Problem";
                     problem.Detail = GetExceptionMessage(exception);
-                    problem.Status = exception.Message == "InvalidToken" ? StatusCodes.Status401Unauthorized : StatusCodes.Status500InternalServerError;
+                    problem.Status = (exception.Message == "InvalidToken" || 
+                                      exception.Message == "Expired" || 
+                                      exception.Message == "NotPresent") ? 
+                        StatusCodes.Status401Unauthorized : StatusCodes.Status500InternalServerError;
                     logLevel = LogLevel.Warning;
                     break;
                 case InternalException:

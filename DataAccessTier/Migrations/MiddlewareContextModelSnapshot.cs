@@ -17,7 +17,7 @@ namespace HEAppE.DataAccessTier.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.15")
+                .HasAnnotation("ProductVersion", "7.0.19")
                 .HasAnnotation("Proxies:ChangeTracking", false)
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
@@ -99,17 +99,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool>("IsGenerated")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Password")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.Property<string>("PrivateKeyFile")
+                    b.Property<string>("PublicKey")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("PrivateKeyPassword")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
 
                     b.Property<string>("PublicKeyFingerprint")
                         .HasMaxLength(200)
@@ -138,6 +130,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(40)");
 
                     b.Property<long?>("ClusterId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long?>("ClusterNodeTypeAggregationId")
                         .HasColumnType("bigint");
 
                     b.Property<int>("CoresPerNode")
@@ -179,6 +174,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClusterId");
+
+                    b.HasIndex("ClusterNodeTypeAggregationId");
 
                     b.HasIndex("FileTransferMethodId");
 
@@ -319,6 +316,94 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("SubmittedJobId");
 
                     b.ToTable("FileTransferTemporaryKey");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Accounting", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Formula")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ValidityFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ValidityTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Accounting");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("AllocationType")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<DateTime>("ValidityFrom")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ValidityTo")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("ClusterNodeTypeAggregation");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregationAccounting", b =>
+                {
+                    b.Property<long>("ClusterNodeTypeAggregationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("AccountingId")
+                        .HasColumnType("bigint");
+
+                    b.HasKey("ClusterNodeTypeAggregationId", "AccountingId");
+
+                    b.HasIndex("AccountingId");
+
+                    b.ToTable("ClusterNodeTypeAggregationAccounting");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
@@ -588,6 +673,69 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("EnvironmentVariable");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.AccountingState", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<int>("AccountingStateType")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("ComputingEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("ComputingStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("LastUpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("TriggeredAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.ToTable("AccountingState");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.ResourceConsumed", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<long>("AccountingId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime?>("LastUpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("SubmittedTaskInfoId")
+                        .HasColumnType("bigint");
+
+                    b.Property<double?>("Value")
+                        .HasColumnType("float");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountingId");
+
+                    b.HasIndex("SubmittedTaskInfoId")
+                        .IsUnique();
+
+                    b.ToTable("ConsumedResources");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedJobInfo", b =>
                 {
                     b.Property<long>("Id")
@@ -773,6 +921,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("SubProjectId")
+                        .HasColumnType("bigint");
+
                     b.Property<long?>("SubmitterGroupId")
                         .HasColumnType("bigint");
 
@@ -794,6 +945,8 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("FileTransferMethodId");
 
                     b.HasIndex("ProjectId");
+
+                    b.HasIndex("SubProjectId");
 
                     b.HasIndex("SubmitterGroupId");
 
@@ -853,6 +1006,33 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.ToTable("Project");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ProjectClusterNodeTypeAggregation", b =>
+                {
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("ClusterNodeTypeAggregationId")
+                        .HasColumnType("bigint");
+
+                    b.Property<long>("AllocationAmount")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("ProjectId", "ClusterNodeTypeAggregationId");
+
+                    b.HasIndex("ClusterNodeTypeAggregationId");
+
+                    b.ToTable("ProjectClusterNodeTypeAggregation");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ProjectContact", b =>
                 {
                     b.Property<long>("ProjectId")
@@ -869,6 +1049,51 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("ContactId");
 
                     b.ToTable("ProjectContact");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.SubProject", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("EndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Identifier")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
+
+                    b.Property<DateTime>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProjectId");
+
+                    b.HasIndex("Identifier", "ProjectId")
+                        .IsUnique();
+
+                    b.ToTable("SubProject");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskDependency", b =>
@@ -1404,11 +1629,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .WithMany("NodeTypes")
                         .HasForeignKey("ClusterId");
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", "ClusterNodeTypeAggregation")
+                        .WithMany("ClusterNodeTypes")
+                        .HasForeignKey("ClusterNodeTypeAggregationId");
+
                     b.HasOne("HEAppE.DomainObjects.FileTransfer.FileTransferMethod", "FileTransferMethod")
                         .WithMany()
                         .HasForeignKey("FileTransferMethodId");
 
                     b.Navigation("Cluster");
+
+                    b.Navigation("ClusterNodeTypeAggregation");
 
                     b.Navigation("FileTransferMethod");
                 });
@@ -1440,6 +1671,25 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.Navigation("SubmittedJob");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregationAccounting", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Accounting", "Accounting")
+                        .WithMany("ClusterNodeTypeAggregationAccountings")
+                        .HasForeignKey("AccountingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", "ClusterNodeTypeAggregation")
+                        .WithMany("ClusterNodeTypeAggregationAccountings")
+                        .HasForeignKey("ClusterNodeTypeAggregationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Accounting");
+
+                    b.Navigation("ClusterNodeTypeAggregation");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
@@ -1534,6 +1784,36 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasForeignKey("TaskSpecificationId");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.AccountingState", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("AccountingStates")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.ResourceConsumed", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Accounting", "Accounting")
+                        .WithMany("ConsumedResources")
+                        .HasForeignKey("AccountingId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedTaskInfo", "SubmittedTaskInfo")
+                        .WithOne("ResourceConsumed")
+                        .HasForeignKey("HEAppE.DomainObjects.JobManagement.JobInformation.ResourceConsumed", "SubmittedTaskInfoId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Accounting");
+
+                    b.Navigation("SubmittedTaskInfo");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedJobInfo", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
@@ -1613,6 +1893,10 @@ namespace HEAppE.DataAccessTier.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.SubProject", "SubProject")
+                        .WithMany("JobSpecifications")
+                        .HasForeignKey("SubProjectId");
+
                     b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUserGroup", "SubmitterGroup")
                         .WithMany()
                         .HasForeignKey("SubmitterGroupId");
@@ -1629,9 +1913,30 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Navigation("Project");
 
+                    b.Navigation("SubProject");
+
                     b.Navigation("Submitter");
 
                     b.Navigation("SubmitterGroup");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ProjectClusterNodeTypeAggregation", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", "ClusterNodeTypeAggregation")
+                        .WithMany("ProjectClusterNodeTypeAggregations")
+                        .HasForeignKey("ClusterNodeTypeAggregationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("ProjectClusterNodeTypeAggregations")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("ClusterNodeTypeAggregation");
+
+                    b.Navigation("Project");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ProjectContact", b =>
@@ -1649,6 +1954,17 @@ namespace HEAppE.DataAccessTier.Migrations
                         .IsRequired();
 
                     b.Navigation("Contact");
+
+                    b.Navigation("Project");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.SubProject", b =>
+                {
+                    b.HasOne("HEAppE.DomainObjects.JobManagement.Project", "Project")
+                        .WithMany("SubProjects")
+                        .HasForeignKey("ProjectId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Project");
                 });
@@ -1882,6 +2198,22 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("RequestedNodeGroups");
                 });
 
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Accounting", b =>
+                {
+                    b.Navigation("ClusterNodeTypeAggregationAccountings");
+
+                    b.Navigation("ConsumedResources");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterNodeTypeAggregation", b =>
+                {
+                    b.Navigation("ClusterNodeTypeAggregationAccountings");
+
+                    b.Navigation("ClusterNodeTypes");
+
+                    b.Navigation("ProjectClusterNodeTypeAggregations");
+                });
+
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
                 {
                     b.Navigation("ClusterProjectCredentials");
@@ -1906,6 +2238,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.JobInformation.SubmittedTaskInfo", b =>
                 {
+                    b.Navigation("ResourceConsumed");
+
                     b.Navigation("TaskAllocationNodes");
                 });
 
@@ -1918,13 +2252,24 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.Project", b =>
                 {
+                    b.Navigation("AccountingStates");
+
                     b.Navigation("AdaptorUserGroups");
 
                     b.Navigation("ClusterProjects");
 
                     b.Navigation("CommandTemplates");
 
+                    b.Navigation("ProjectClusterNodeTypeAggregations");
+
                     b.Navigation("ProjectContacts");
+
+                    b.Navigation("SubProjects");
+                });
+
+            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.SubProject", b =>
+                {
+                    b.Navigation("JobSpecifications");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.TaskSpecification", b =>

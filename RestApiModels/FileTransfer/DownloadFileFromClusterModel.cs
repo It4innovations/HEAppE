@@ -8,7 +8,7 @@ namespace HEAppE.RestApiModels.FileTransfer
     [DataContract(Name = "DownloadFileFromClusterModel")]
     public class DownloadFileFromClusterModel : SubmittedJobInfoModel
     {
-        [DataMember(Name = "RelativeFilePath"), StringLength(50)]
+        [DataMember(Name = "RelativeFilePath"), StringLength(255)]
         public string RelativeFilePath { get; set; }
         public override string ToString()
         {

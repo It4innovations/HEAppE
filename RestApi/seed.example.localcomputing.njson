@@ -55,9 +55,9 @@
             "Description":"User with this role can create new project and use management API."
          },
          {
-           "Id":7,
-           "Name":"Manager",
-           "Description":"User with this role can manage command templates, can submit and check his own jobs."
+            "Id":7,
+            "Name":"Manager",
+            "Description":"User with this role can manage command templates, can submit and check his own jobs."
          }
       ],
       "AdaptorUserUserGroupRoles":[
@@ -85,11 +85,11 @@
             "Id":1,
             "Name":"{LocalComputingClusterName}",
             "Description":"{ClusterDescription}",
-            "MasterNodeName":"host.docker.internal",
+            "MasterNodeName":"localhpc",
             "SchedulerType":1,
             "ConnectionProtocol":2,
             "TimeZone":"CET",
-            "Port":49500,
+            "Port":22,
             "UpdateJobStateByServiceAccount":true,
             "DomainName":"localhost",
             "ProxyConnectionId":null
@@ -100,16 +100,16 @@
             "Id":1,
             "Username":"heappeclient",
             "Password":"pass",
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
             "CipherType":1
          },
          {
             "Id":2,
             "Username":"heappeclient",
             "Password":"pass",
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
             "CipherType":1
          }
       ],
@@ -173,6 +173,19 @@
             "IsDeleted":false
          }
       ],
+      "SubProjects":[
+         {
+            "Id":1,
+            "Identifier":"{Identifier}",
+            "Description":"{Description}",
+            "StartDate":"{StartDate}",
+            "EndDate":"{EndDate}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ProjectId":1
+         }
+      ],
       "ClusterNodeTypes":[
          {
             "Id":1,
@@ -185,7 +198,59 @@
             "MaxWalltime":"{MaxWalltime}",
             "ClusterId":1,
             "FileTransferMethodId":1,
-            "ClusterAllocationName":null
+            "ClusterAllocationName":null,
+            "ClusterNodeTypeAggregationId":1
+         }
+      ],
+      "Accountings":[
+         {
+            "Id":1,
+            "Formula":"{Formula}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ValidityFrom":"{ValidityFrom}",
+            "ValidityTo":"{ValidityTo}"
+         }
+      ],
+     "AccountingStates":[
+        {
+           "Id":1,
+           "ProjectId":1,
+           "AccountingStateType":1,
+           "ComputingStartDate":"{ComputingStartDate}",
+           "ComputingEndDate":"{ComputingEndDate}",
+           "TriggeredAt":"{TriggeredAt}",
+           "LastUpdatedAt":"{LastUpdatedAt}"
+        }
+     ],
+      "ClusterNodeTypeAggregations":[
+         {
+            "Id":1,
+            "Name":"{Name}",
+            "Description":"{Description}",
+            "AllocationType":"{AllocationType}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false,
+            "ValidityFrom":"{ValidFrom}",
+            "ValidityTo":"{ValidTo}"
+         }
+      ],
+      "ClusterNodeTypeAggregationAccounting":[
+         {
+            "ClusterNodeTypeAggregationId":1,
+            "AccountingId":1
+         }
+      ],
+      "ProjectClusterNodeTypeAggregations":[
+         {
+            "ProjectId":1,
+            "ClusterNodeTypeAggregationId":1,
+            "AllocationAmount":"{AllocationAmount}",
+            "CreatedAt":"{CreatedAt}",
+            "ModifiedAt":null,
+            "IsDeleted":false
          }
       ],
       "CommandTemplates":[
@@ -245,9 +310,9 @@
       "FileTransferMethods":[
          {
             "Id":1,
-            "ServerHostname":"{ServerHostNameDNS}",
+            "ServerHostname":"localhpc",
             "Protocol":2,
-            "Port": null,
+            "Port":null,
             "ClusterId":1
          }
       ],
