@@ -8,6 +8,9 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using System;
 using System.Linq;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.ExtModels.JobManagement.Models;
+using HEAppE.ExtModels.Management.Models;
 
 namespace HEAppE.ExtModels.ClusterInformation.Converts
 {
@@ -166,6 +169,77 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
 
             return convert;
         }
+        
+        public static SubProjectExt ConvertIntToExt(this SubProject subProject)
+        {
+            var convert = new SubProjectExt
+            {
+                Id = subProject.Id,
+                Identifier = subProject.Identifier,
+                Description = subProject.Description,
+                StartDate = subProject.StartDate,
+                EndDate = subProject.EndDate,
+                ProjectId = subProject.ProjectId
+            };
+
+            return convert;
+        }
+        
+        public static AccountingStateExt ConvertIntToExt(this AccountingState accountingState)
+        {
+            var convert = new AccountingStateExt
+            {
+                ProjectId = accountingState.ProjectId,
+                State = accountingState.AccountingStateType.ConvertIntToExt(),
+                ComputingStartDate = accountingState.ComputingStartDate,
+                ComputingEndDate = accountingState.ComputingEndDate,
+                TriggeredAt = accountingState.TriggeredAt,
+                LastUpdatedAt = accountingState.LastUpdatedAt
+            };
+
+            return convert;
+        }
+        
+        public static AccountingStateTypeExt ConvertIntToExt(this AccountingStateType accountingStateType)
+        {
+            return accountingStateType switch
+            {
+                AccountingStateType.Unknown => AccountingStateTypeExt.Unknown,
+                AccountingStateType.Queued => AccountingStateTypeExt.Queued,
+                AccountingStateType.Running => AccountingStateTypeExt.Running,
+                AccountingStateType.Finished => AccountingStateTypeExt.Finished,
+                AccountingStateType.Failed => AccountingStateTypeExt.Failed,
+                _ => AccountingStateTypeExt.Unknown
+            };
+        }
+
+        public static ClusterAuthenticationCredentialsAuthTypeExt ConvertIntToExt(
+            this ClusterAuthenticationCredentialsAuthType type)
+        {
+            return type switch
+            {
+                ClusterAuthenticationCredentialsAuthType.Password => ClusterAuthenticationCredentialsAuthTypeExt
+                    .Password,
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractive =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractive,
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKey,
+                ClusterAuthenticationCredentialsAuthType.PrivateKey => ClusterAuthenticationCredentialsAuthTypeExt
+                    .PrivateKey,
+                ClusterAuthenticationCredentialsAuthType.PasswordViaProxy => ClusterAuthenticationCredentialsAuthTypeExt
+                    .PasswordViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PasswordInteractiveViaProxy =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordInteractiveViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PasswordAndPrivateKeyViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyViaProxy,
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent =>
+                    ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyInSshAgent,
+                _ => ClusterAuthenticationCredentialsAuthTypeExt.Unknown
+            };
+        }
+        
         #endregion
         #region Private Methods
         private static ProxyTypeExt ConvertProxyTypeIntToExt(ProxyType? proxyType)

@@ -4,13 +4,13 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.OpenStack;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.DataAccessTier
 {
     public class MiddlewareContextSettings
     {
         public static string ConnectionString { get; set; }
-
         public static List<AdaptorUser> AdaptorUsers { get; set; } = new List<AdaptorUser>();
 
         public static List<AdaptorUserRole> AdaptorUserRoles { get; set; } = new List<AdaptorUserRole>();
@@ -50,7 +50,12 @@ namespace HEAppE.DataAccessTier
         public static List<Contact> Contacts { get; set; } = new List<Contact>();
 
         public static List<Project> Projects { get; set; } = new List<Project>();
-
+        public static List<SubProject> SubProjects { get; set; } = new List<SubProject>();
+        public static List<Accounting> Accountings { get; set; } = new List<Accounting>();
+        public static List<AccountingState> AccountingStates { get; set; } = new List<AccountingState>();
+        public static List<ClusterNodeTypeAggregation> ClusterNodeTypeAggregations { get; set; } = new List<ClusterNodeTypeAggregation>();
+        public static List<ClusterNodeTypeAggregationAccounting> ClusterNodeTypeAggregationAccounting { get; set; } = new List<ClusterNodeTypeAggregationAccounting>();
+        public static List<ProjectClusterNodeTypeAggregation> ProjectClusterNodeTypeAggregations { get; set; } = new List<ProjectClusterNodeTypeAggregation>();
         public static List<ProjectContact> ProjectContacts { get; set; } = new List<ProjectContact>();
 
         public static List<ClusterProject> ClusterProjects { get; set; } = new List<ClusterProject>();

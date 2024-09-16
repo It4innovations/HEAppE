@@ -1,4 +1,4 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.DomainObjects.Management
 {

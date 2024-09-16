@@ -1,17 +1,22 @@
-﻿using HEAppE.Exceptions.Internal;
+﻿using System;
+using System.IO;
+using System.Text;
+
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Exceptions.Internal;
 using HEAppE.Utils;
+
 using Microsoft.Extensions.Logging;
+
 using Renci.SshNet;
 using Renci.SshNet.Common;
-using System;
 
 namespace HEAppE.FileTransferFramework.Sftp
 {
     public class SftpFileSystemConnector : ConnectionPool.IPoolableAdapter
     {
         #region Instances
-        readonly ILogger _logger;
+        private readonly ILogger _logger;
         #endregion
         #region Constructors
         public SftpFileSystemConnector(ILogger logger)
@@ -39,10 +44,10 @@ namespace HEAppE.FileTransferFramework.Sftp
                         => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractive(masterNodeName, credentials.Username, credentials.Password),
 
                 ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey
-                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKey
-                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAuthentication(masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PasswordViaProxy
                         => CreateConnectionObjectUsingPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
@@ -51,12 +56,15 @@ namespace HEAppE.FileTransferFramework.Sftp
                         => CreateConnectionObjectUsingPasswordAuthenticationWithKeyboardInteractiveViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, port),
 
                 ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy
-                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.Password, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy
-                        => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKeyFile, credentials.PrivateKeyPassword, port),
+                        => CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(proxy.Host, proxy.Type, proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials.Username, credentials.PrivateKey, credentials.PrivateKeyPassphrase, port),
 
                 ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
+                        => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
+
+                ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
                         => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
 
                 _ => throw new NotImplementedException("SFTP authentication credentials authentication type is not allowed!")
@@ -210,21 +218,22 @@ namespace HEAppE.FileTransferFramework.Sftp
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAuthentication(string masterNodeName, string username, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 PrivateKeyConnectionInfo connectionInfo = port switch
                 {
                     null => new PrivateKeyConnectionInfo(
                                 masterNodeName,
                                 username,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                                new PrivateKeyFile(stream, privateKeyPassword)),
                     _ => new PrivateKeyConnectionInfo(
                                 masterNodeName,
                                 port.Value,
                                 username,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                                new PrivateKeyFile(stream, privateKeyPassword))
                 };
 
                 var client = new SftpClient(connectionInfo);
@@ -250,10 +259,11 @@ namespace HEAppE.FileTransferFramework.Sftp
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 PrivateKeyConnectionInfo connectionInfo = port switch
                 {
                     null => new PrivateKeyConnectionInfo(
@@ -264,7 +274,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                                 proxyPort,
                                 proxyUsername ?? string.Empty,
                                 proxyPassword ?? string.Empty,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword)),
+                                new PrivateKeyFile(stream, privateKeyPassword)),
                     _ => new PrivateKeyConnectionInfo(
                                 masterNodeName,
                                 port.Value,
@@ -274,7 +284,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                                 proxyPort,
                                 proxyUsername ?? string.Empty,
                                 proxyPassword ?? string.Empty,
-                                new PrivateKeyFile(privateKeyFile, privateKeyPassword))
+                                new PrivateKeyFile(stream, privateKeyPassword))
                 };
 
                 var client = new SftpClient(connectionInfo);
@@ -296,23 +306,24 @@ namespace HEAppE.FileTransferFramework.Sftp
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(string masterNodeName, string username, string password, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthentication(string masterNodeName, string username, string password, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 var connectionInfo = port switch
                 {
                     null => new ConnectionInfo(
                                 masterNodeName,
                                 username,
                                 new PasswordAuthenticationMethod(username, password),
-                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword))),
+                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword))),
                     _ => new ConnectionInfo(
                                 masterNodeName,
                                 port.Value,
                                 username,
                                 new PasswordAuthenticationMethod(username, password),
-                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword)))
+                                new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword)))
                 };
 
                 var client = new SftpClient(connectionInfo);
@@ -339,10 +350,11 @@ namespace HEAppE.FileTransferFramework.Sftp
         /// <param name="privateKeyPassword">Private key password</param>
         /// <param name="port">Port</param>
         /// <returns></returns>
-        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string password, string privateKeyFile, string privateKeyPassword, int? port)
+        private static object CreateConnectionObjectUsingPrivateKeyAndPasswordAuthenticationViaProxy(string proxyHost, ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName, string username, string password, string privateKey, string privateKeyPassword, int? port)
         {
             try
             {
+                using var stream = new MemoryStream(Encoding.UTF8.GetBytes(privateKey));
                 var connectionInfo = new ConnectionInfo(
                                                      masterNodeName,
                                                      port ?? 22,
@@ -353,7 +365,7 @@ namespace HEAppE.FileTransferFramework.Sftp
                                                      proxyUsername ?? string.Empty,
                                                      proxyPassword ?? string.Empty,
                                                      new PasswordAuthenticationMethod(username, password),
-                                                     new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(privateKeyFile, privateKeyPassword)));
+                                                     new PrivateKeyAuthenticationMethod(username, new PrivateKeyFile(stream, privateKeyPassword)));
 
                 var client = new SftpClient(connectionInfo);
                 return client;
