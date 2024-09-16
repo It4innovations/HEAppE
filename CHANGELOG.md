@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V4.3.0
+
+### Added
+- Hashicorp Credentials Vault implementation as secure storage for HPC credentials
+- Scripts to initialize vault and migrate data from database to vault
+- SubProjects for logical organization of the Jobs under the Projects 
+- SubProject management via API
+- Aggregation of the Cluster Node Types
+- Accounting & Reporting by specific accounting formula
+- Asynchronous accounting computation endpoint and accounting state monitoring endpoint
+
+### Fixed
+- Wrong relative path propagation as result of `FileTransfer/ListChangedFilesForJob` endpoint when using `ClusterTaskSubdirectory`
+- Internal error when cancelling jobs
+- Internal error when using an expired session code
+
+### Changed
+- Enhanced JobReporting endpoints outputs and ability of filtering
+- `JobManagement/CreateJob` endpoint body extended by optional parameter `SubProjectIdentifier` in the `JobSpecification` section
+
+
 ## V4.2.2
 
 ### Added
