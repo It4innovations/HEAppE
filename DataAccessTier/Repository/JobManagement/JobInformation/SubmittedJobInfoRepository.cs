@@ -1,4 +1,5 @@
-﻿using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
+﻿using System;
+using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
@@ -41,22 +42,18 @@ namespace HEAppE.DataAccessTier.Repository.JobManagement.JobInformation
                             .ToList();
         }
 
-        public IEnumerable<SubmittedJobInfo> GetAllWithSubmittedTaskAdaptorUserAndProject()
+        public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId, long nodeTypeId)
         {
-            return _dbSet.Include(i => i.Submitter)
-                         .Include(i => i.Specification)
-                            .ThenInclude(i => i.Cluster)
-                         .Include(i => i.Project)
-                            .ThenInclude(i => i.CommandTemplates)
-                                .ThenInclude(i => i.TemplateParameters)
-                         .Include(i => i.Tasks)
-                            .ThenInclude(i => i.Specification)
-                                .ThenInclude(i => i.CommandTemplate)
-                         .Include(i => i.Tasks)
-                            .ThenInclude(i => i.Specification)
-                                .ThenInclude(i => i.ClusterNodeType)
-                                    .ThenInclude(i => i.Cluster)
-                         .ToList();
+            return _dbSet
+                .Include(x => x.Specification.SubProject) // Combined Include and ThenInclude
+                .Include(x => x.Specification.Submitter) // Combined Include and ThenInclude
+                .Include(x => x.Tasks)
+                .ThenInclude(x => x.Specification.CommandTemplate) // Combined another Include and ThenInclude
+                .Where(x => x.Project.Id == projectId &&
+                            x.StartTime >= startTime &&
+                            x.EndTime <= endTime &&
+                            x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
+                .ToList();
         }
         #endregion
     }

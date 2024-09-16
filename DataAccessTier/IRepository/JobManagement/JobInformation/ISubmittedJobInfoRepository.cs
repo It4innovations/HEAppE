@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
+﻿using System;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using System.Collections.Generic;
 
 namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
@@ -9,6 +10,7 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
         IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId);
         IEnumerable<SubmittedJobInfo> GetAllUnfinished();
         IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount();
-        IEnumerable<SubmittedJobInfo> GetAllWithSubmittedTaskAdaptorUserAndProject();
+        public IEnumerable<SubmittedJobInfo> GetJobsForReport(DateTime startTime, DateTime endTime, long projectId,
+            long nodeTypeId);
     }
 }

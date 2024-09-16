@@ -66,22 +66,23 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="userId">User ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
+        /// <param name="subProjects">SubProjects</param>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
         [HttpGet("UserResourceUsageReport")]
         [RequestSizeLimit(166)]
-        [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult UserResourceUsageReport(long userId, DateTime startTime, DateTime endTime, string sessionCode)
+        public IActionResult UserResourceUsageReport(long userId, DateTime? startTime, DateTime? endTime, [FromQuery] string[] subProjects, string sessionCode)
         {
             var model = new UserResourceUsageReportModel()
             {
-                StartTime = startTime,
-                EndTime = endTime,
+                StartTime = startTime ?? DateTime.MinValue,
+                EndTime = endTime ?? DateTime.UtcNow,
                 UserId = userId,
                 SessionCode = sessionCode
             };
@@ -92,7 +93,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_service.UserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, model.SessionCode));
+            return Ok(_service.UserResourceUsageReport(model.UserId, model.StartTime, model.EndTime, subProjects, model.SessionCode));
         }
 
         /// <summary>
@@ -101,22 +102,23 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="groupId">Group ID</param>
         /// <param name="startTime">StartTime</param>
         /// <param name="endTime">EndTime</param>
+        /// <param name="subProjects">SubProjects</param>
         /// <param name="sessionCode">SessionCode</param>
         /// <returns></returns>
         [HttpGet("UserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
-        [ProducesResponseType(typeof(UserGroupReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult UserGroupResourceUsageReport(long groupId, DateTime startTime, DateTime endTime, string sessionCode)
+        public IActionResult UserGroupResourceUsageReport(long groupId, DateTime? startTime, DateTime? endTime, [FromQuery] string[] subProjects, string sessionCode)
         {
             var model = new UserGroupResourceUsageReportModel()
             {
-                StartTime = startTime,
-                EndTime = endTime,
+                StartTime = startTime ?? DateTime.MinValue,
+                EndTime = endTime ?? DateTime.UtcNow,
                 GroupId = groupId,
                 SessionCode = sessionCode
             };
@@ -127,7 +129,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_service.UserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, model.SessionCode));
+            return Ok(_service.UserGroupResourceUsageReport(model.GroupId, model.StartTime, model.EndTime, subProjects, model.SessionCode));
         }
 
         /// <summary>
@@ -139,18 +141,18 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("AggregatedUserGroupResourceUsageReport")]
         [RequestSizeLimit(168)]
-        [ProducesResponseType(typeof(IEnumerable<UserGroupReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectAggregatedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult AggregatedUserGroupResourceUsageReport(DateTime startTime, DateTime endTime, string sessionCode)
+        public IActionResult AggregatedUserGroupResourceUsageReport(DateTime? startTime, DateTime? endTime, string sessionCode)
         {
             var model = new GetAggredatedUserGroupResourceUsageReportModel()
             {
-                StartTime = startTime,
-                EndTime = endTime,
+                StartTime = startTime ?? DateTime.MinValue, // Default value is 0001-01-01 00:00:00
+                EndTime = endTime ?? DateTime.UtcNow,
                 SessionCode = sessionCode
             };
             _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"AggregatedUserGroupResourceUsageReport\" Parameters: \"{model}\"");
@@ -171,7 +173,7 @@ namespace HEAppE.RestApi.Controllers
         /// <returns></returns>
         [HttpGet("ResourceUsageReportForJob")]
         [RequestSizeLimit(86)]
-        [ProducesResponseType(typeof(ProjectReportExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(ProjectExtendedReportExt), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -222,17 +224,18 @@ namespace HEAppE.RestApi.Controllers
         /// <summary>
         /// Get job detailed report
         /// </summary>
+        /// <param name="subProjects">SubProjects</param>
         /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("JobsDetailedReport")]
         [RequestSizeLimit(90)]
-        [ProducesResponseType(typeof(IEnumerable<UserGroupDetailedReportExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(IEnumerable<ProjectDetailedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult JobsDetailedReport(string sessionCode)
+        public IActionResult JobsDetailedReport([FromQuery] string[] subProjects, string sessionCode)
         {
             _logger.LogDebug($"Endpoint: \"JobReporting\" Method: \"JobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");
             ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
@@ -241,7 +244,7 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            return Ok(_service.JobsDetailedReport(sessionCode));
+            return Ok(_service.JobsDetailedReport(subProjects, sessionCode));
         }
         #endregion
     }

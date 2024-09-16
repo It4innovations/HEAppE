@@ -4,6 +4,8 @@ using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -32,5 +34,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         CommandTemplateParameter ModifyCommandTemplateParameter(long modelId, string modelIdentifier, string modelQuery, string modelDescription);
         void RemoveCommandTemplateParameter(long modelId);
         List<CommandTemplate> ListCommandTemplates(long projectId);
+        SubProject CreateSubProject(string identifier, long projectId);
+        SubProject CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
+        SubProject ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate);
+        void RemoveSubProject(long modelId);
+        void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId);
+        List<AccountingState> ListAccountingStates (long projectId);
     }
 }

@@ -357,10 +357,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
                 _connectionPool.ReturnConnection(schedulerConnection);
                 return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
                 _log.Info(
-                    $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}");
+                    $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
                 return false;
             }
         }

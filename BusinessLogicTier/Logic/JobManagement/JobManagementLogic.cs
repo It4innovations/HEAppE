@@ -20,6 +20,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Transactions;
+using HEAppE.Utils;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 {
@@ -373,7 +374,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             specification.Submitter = loggedUser;
             specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
             specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
-
+            if (specification.SubProjectId.HasValue)
+            {
+                specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
+            }
+            
             foreach (TaskSpecification task in specification.Tasks)
             {
                 CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
@@ -643,6 +648,8 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
+            ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, _logger);
+            
             if (clusterTaskInfo is null)
             {
                 dbTaskInfo.State = TaskState.Failed;

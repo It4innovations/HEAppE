@@ -1,4 +1,11 @@
-﻿using HEAppE.BusinessLogicTier.Configuration;
+﻿using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+
+using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.CertificateGenerator;
@@ -8,21 +15,16 @@ using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework;
-using log4net;
-using Renci.SshNet.Common;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
-using HEAppE.Exceptions.External;
-using System.Reflection;
-using System.Linq;
-using System;
-using System.IO;
-using System.Collections.Generic;
-using System.Text.RegularExpressions;
-using HEAppE.Exceptions.Internal;
-using HEAppE.Exceptions.AbstractTypes;
-using HEAppE.HpcConnectionFramework.Configuration;
+
+using log4net;
+
+using Renci.SshNet.Common;
 
 namespace HEAppE.BusinessLogicTier.logic.FileTransfer
 {
@@ -67,7 +69,7 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             foreach (var activeTemporaryKeyGroup in activeTemporaryKeysGroup)
             {
                 Cluster cluster = activeTemporaryKeyGroup.Key;
-                
+
                 var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
                         new { g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster, g.SubmittedJob.Specification.Project })
                     .ToList();
@@ -91,9 +93,9 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
             var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
-            if (!File.Exists(clusterUserAuthCredentials.PrivateKeyFile))
+            if (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKey))
             {
-                throw new ClusterAuthenticationException("NotExistingPrivateKeyFile", clusterUserAuthCredentials.PrivateKeyFile);
+                throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
             }
 
             var transferMethod = new FileTransferMethod
@@ -108,8 +110,10 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     Username = clusterUserAuthCredentials.Username,
                     Password = clusterUserAuthCredentials.Password,
                     FileTransferCipherType = clusterUserAuthCredentials.CipherType,
-                    PrivateKey = File.ReadAllText(clusterUserAuthCredentials.PrivateKeyFile),
-                    Passphrase = clusterUserAuthCredentials.PrivateKeyPassword
+                    CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
+                    PrivateKey = clusterUserAuthCredentials.PrivateKey,
+                    PrivateKeyCertificate = clusterUserAuthCredentials.PrivateKeyCertificate,
+                    Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
                 }
             };
             return transferMethod;
@@ -126,8 +130,35 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                 throw new FileTransferTemporaryKeyException("SshKeyGenerationLimit");
             }
 
+            string publicKey = string.Empty;
+            FileTransferMethod transferMethod = new FileTransferMethod
+            {
+                Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
+                Port = jobInfo.Specification.FileTransferMethod.Port,
+                Cluster = jobInfo.Specification.Cluster,
+                ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
+                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath)
+            };
+
+            _log.Info($"Auth type: {jobInfo.Specification.ClusterUser.AuthenticationType}");
+            if (jobInfo.Specification.ClusterUser.AuthenticationType == ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
+            {
+                var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetById(jobInfo.Specification.ClusterUser.Id);
+                _log.Debug($"ClusterUser: {credentials}");
+                transferMethod.Credentials = new FileTransferKeyCredentials
+                {
+                    Username = jobInfo.Specification.ClusterUser.Username,
+                    FileTransferCipherType = credentials.CipherType,
+                    PrivateKey = credentials.PrivateKey,
+                    PrivateKeyCertificate = credentials.PrivateKeyCertificate,
+                    PublicKey = credentials.PublicKey
+                };
+                return transferMethod;
+            }
+
+
             var certGenerator = new SSHGenerator();
-            string publicKey = certGenerator.ToPuTTYPublicKey();
+            publicKey = certGenerator.ToPuTTYPublicKey();
 
             while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
             {
@@ -135,21 +166,14 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                 publicKey = certGenerator.ToPuTTYPublicKey();
             }
 
-            var transferMethod = new FileTransferMethod
+            transferMethod.Credentials = new FileTransferKeyCredentials
             {
-                Protocol = jobInfo.Specification.FileTransferMethod.Protocol,
-                Port = jobInfo.Specification.FileTransferMethod.Port,
-                Cluster = jobInfo.Specification.Cluster,
-                ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
-                SharedBasePath = FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
-                Credentials = new FileTransferKeyCredentials
-                {
-                    Username = jobInfo.Specification.ClusterUser.Username,
-                    FileTransferCipherType = certGenerator.CipherType,
-                    PrivateKey = certGenerator.ToPrivateKey(),
-                    PublicKey = publicKey
-                }
+                Username = jobInfo.Specification.ClusterUser.Username,
+                FileTransferCipherType = certGenerator.CipherType,
+                PrivateKey = certGenerator.ToPrivateKey(),
+                CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey,PublicKey = publicKey
             };
+
 
             jobInfo.FileTransferTemporaryKeys.Add(
                 new FileTransferTemporaryKey()
@@ -170,7 +194,13 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
             SubmittedJobInfo jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork).GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             Cluster cluster = jobInfo.Specification.Cluster;
 
+            if (jobInfo.Specification.ClusterUser.AuthenticationType is ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
+            {
+                return;
+            }
+
             var temporaryKey = jobInfo.FileTransferTemporaryKeys.Find(f => f.PublicKey == publicKey);
+
             if (temporaryKey is null)
             {
                 throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
@@ -268,17 +298,23 @@ namespace HEAppE.BusinessLogicTier.logic.FileTransfer
                     FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol).CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
             try
             {
-                //if the path does not start with job id and then task id
-                if (!Regex.Match(relativeFilePath, @"^\/?[0-9]+\/[0-9]+\/").Success)
+                List<string> allowedPathStarts = new List<string>();
+                relativeFilePath = relativeFilePath.TrimStart('/');
+                foreach (var task in jobInfo.Tasks)
                 {
-                    if (relativeFilePath.StartsWith("/"))
+                    var start1 = Path.Combine($"{jobInfo.Id}", $"{task.Id}", $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
+                    var start2 = Path.Combine($"{task.Id}", $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
+                    if (relativeFilePath.StartsWith(start1))
                     {
-                        relativeFilePath = relativeFilePath[1..];
+                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
                     }
-                    relativeFilePath = Path.Combine($"{jobInfo.Id}/", relativeFilePath);
+                    
+                    if (relativeFilePath.StartsWith(start2))
+                    {
+                        relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
+                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                    }
                 }
-
-                relativeFilePath = Path.Combine("/", relativeFilePath);
                 return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
             }
             catch (SftpPathNotFoundException exception)

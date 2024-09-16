@@ -36,14 +36,14 @@ namespace HEAppE.FileTransferFramework.Sftp
         public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
         {
             string basePath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
-            string localBasePath = $"{basePath}/{_scripts.SubExecutionsPath}";
+            string localBasePath = Path.Combine(basePath, _scripts.SubExecutionsPath.TrimStart('/'));
             var connection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
                 var client = new SftpClientAdapter((SftpClient)connection.Connection);
                 using (var stream = new MemoryStream())
                 {
-                    string file = $"{localBasePath}{relativeFilePath}";
+                    string file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
                     client.DownloadFile(file, stream);
                     return stream.ToArray();
                 }
