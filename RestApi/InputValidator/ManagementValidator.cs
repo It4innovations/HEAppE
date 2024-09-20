@@ -68,6 +68,7 @@ namespace HEAppE.RestApi.InputValidator
                 ModifyAccountingModel ext => ValidateModifyAccountingModel(ext),
                 RemoveAccountingModel ext => ValidateRemoveAccountingModel(ext),
                 CreateProjectClusterNodeTypeAggregationModel ext => ValidateCreateProjectClusterNodeTypeAggregationModel(ext),
+                ModifyProjectClusterNodeTypeAggregationModel ext => ValidateModifyProjectClusterNodeTypeAggregationModel(ext),
                 RemoveProjectClusterNodeTypeAggregationModel ext => ValidateRemoveProjectClusterNodeTypeAggregationModel(ext),
                 _ => string.Empty
             };
@@ -956,6 +957,25 @@ namespace HEAppE.RestApi.InputValidator
         }
 
         private string ValidateCreateProjectClusterNodeTypeAggregationModel(CreateProjectClusterNodeTypeAggregationModel model)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(model.ProjectId, "ProjectId");
+            ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
+
+            if (model.AllocationAmount < 0)
+            {
+                _messageBuilder.AppendLine($"AllocationAmount must be greater than 0");
+            }
+
+            return _messageBuilder.ToString();
+        }
+
+        private string ValidateModifyProjectClusterNodeTypeAggregationModel(ModifyProjectClusterNodeTypeAggregationModel model)
         {
             ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
             if (!sessionCodeValidation.IsValid)

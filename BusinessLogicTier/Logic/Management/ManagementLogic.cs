@@ -1861,6 +1861,27 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         }
 
         /// <summary>
+        /// Create ProjectClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <param name="clusterNodeTypeAggregationId"></param>
+        /// <param name="allocationAmount"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        public ProjectClusterNodeTypeAggregation ModifyProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount)
+        {
+            var projectClusterNodeTypeAggregation = _unitOfWork.ProjectClusterNodeTypeAggregationRepository.GetById(projectId, clusterNodeTypeAggregationId)
+                ?? throw new RequestedObjectDoesNotExistException("ProjectClusterNodeTypeAggregationNotFound", projectId, clusterNodeTypeAggregationId);
+
+            projectClusterNodeTypeAggregation.AllocationAmount = allocationAmount;
+            projectClusterNodeTypeAggregation.ModifiedAt = DateTime.UtcNow;
+            _unitOfWork.ProjectClusterNodeTypeAggregationRepository.Update(projectClusterNodeTypeAggregation);
+            _unitOfWork.Save();
+
+            return projectClusterNodeTypeAggregation;
+        }
+
+        /// <summary>
         /// Remove ProjectClusterNodeTypeAggregation
         /// </summary>
         /// <param name="projectId"></param>

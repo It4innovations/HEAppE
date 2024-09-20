@@ -787,6 +787,17 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
+        public ProjectClusterNodeTypeAggregationExt ModifyProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                ProjectClusterNodeTypeAggregation aggregation = managementLogic.ModifyProjectClusterNodeTypeAggregation(projectId, clusterNodeTypeAggregationId, allocationAmount);
+                return aggregation.ConvertIntToExt();
+            }
+        }
+
         public void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())

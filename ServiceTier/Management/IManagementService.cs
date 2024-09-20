@@ -115,6 +115,7 @@ namespace HEAppE.ServiceTier.Management
         ProjectClusterNodeTypeAggregationExt GetProjectClusterNodeTypeAggregationById(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
         List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId, string sessionCode);
         ProjectClusterNodeTypeAggregationExt CreateProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode);
+        ProjectClusterNodeTypeAggregationExt ModifyProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode);
         void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     }
 }

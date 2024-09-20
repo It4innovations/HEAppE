@@ -1,6 +1,5 @@
 ﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
-using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
@@ -1444,6 +1443,33 @@ namespace HEAppE.RestApi.Controllers
             }
 
             var projectClusterNodeTypeAggregation = _managementService.CreateProjectClusterNodeTypeAggregation(model.ProjectId, model.ClusterNodeTypeAggregationId, model.AllocationAmount, model.SessionCode);
+            ClearListAvailableClusterMethodCache();
+            return Ok(projectClusterNodeTypeAggregation);
+        }
+
+        /// <summary>
+        /// Modify ProjectClusterNodeTypeAggregation
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpPut("ProjectClusterNodeTypeAggregation")]
+        [RequestSizeLimit(300)]
+        [ProducesResponseType(typeof(ProjectClusterNodeTypeAggregationExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ModifyProjectClusterNodeTypeAggregation(ModifyProjectClusterNodeTypeAggregationModel model)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"ModifyProjectClusterNodeTypeAggregation\" Parameters: SessionCode: \"{model.SessionCode}\"");
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            var projectClusterNodeTypeAggregation = _managementService.ModifyProjectClusterNodeTypeAggregation(model.ProjectId, model.ClusterNodeTypeAggregationId, model.AllocationAmount, model.SessionCode);
             ClearListAvailableClusterMethodCache();
             return Ok(projectClusterNodeTypeAggregation);
         }
