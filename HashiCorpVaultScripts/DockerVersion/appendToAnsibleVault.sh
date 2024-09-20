@@ -19,8 +19,32 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
-# Initialize variables with default values
-JSON_DATA="{}"
+# Check if vaultKey is provided as the first positional argument
+if [ -z "$1" ]; then
+    echo -e "${RED}Error:${NC} vaultKey is a required positional argument."
+    display_help
+else
+    VAULT_PASSWORD="$1"
+    shift # Remove vaultKey from arguments
+fi
+
+# Parse remaining command-line options
+while [[ $# -gt 0 ]]
+do
+    key="$1"
+    case $key in
+        --path)
+        VAULT_FILE="$2"
+        shift # past argument
+        shift # past value
+        ;;
+        --data)
+        JSON_DATA="$2"
+        shift # past argument
+        shift # past value
+        ;;
+    esac
+done
 
 
 if [ -z "$VAULT_PASSWORD" ]; then
@@ -44,12 +68,14 @@ PASSWORD_FILE=$(mktemp)
 echo "$VAULT_PASSWORD" > "$PASSWORD_FILE"
 
 # Check if the file exists, if not, create a new Ansible Vault file with an empty JSON object
-if [ ! -f "$VAULT_FILE" ]; then
-    echo "File $VAULT_FILE does not exist. Creating a new Ansible Vault file."
-    echo "{}" | ansible-vault encrypt --vault-password-file="$PASSWORD_FILE" --output="$VAULT_FILE" -
+if [ ! -f "$VAULT_FILE" ] || [ "$(cat "$VAULT_FILE")" == "{}" ]; then
+    echo "File $VAULT_FILE does not exist or is empty. Creating a new Ansible Vault file."
+    echo "{}" > "$DECRYPTED_FILE"
+    echo  "CREDENTIALS FILE PATH: $VAULT_FILE"
+    ansible-vault encrypt --vault-password-file="$PASSWORD_FILE" --output="$VAULT_FILE" "$DECRYPTED_FILE"
     if [ $? -ne 0 ]; then
         echo "Failed to create the new Ansible Vault file $VAULT_FILE"
-        rm -f "$DECRYPTED_FILE" "$ENCRYPTED_FILE" "$PASSWORD_FILE"
+        rm -f "$DECRYPTED_FILE" "$PASSWORD_FILE"
         exit 1
     fi
 fi

@@ -8,18 +8,18 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Check if the required vault_password is provided
-if [ -z "/app/confs" ]; then
+if [ -z "/opt/confs" ]; then
     echo -e "${RED}Error:${NC} BASE_PATH is a required."
     exit 1
 fi
 
 # Create necessary directories
 echo "Creating directories..."
-mkdir -p "/app/confs/vault/vault"
-mkdir -p "/app/confs/vault/agent"
+mkdir -p "/opt/confs/vault/vault"
+mkdir -p "/opt/confs/vault/agent"
 
 # Create vault-config.hcl file with specified content if it doesn't exist
-CONFIG_FILE="/app/confs/vault/vault/vault-config.hcl"
+CONFIG_FILE="/opt/confs/vault/vault/vault-config.hcl"
 if [ -f "$CONFIG_FILE" ]; then
     echo -e "${YELLOW}Skipping${NC}: $CONFIG_FILE already exists."
 else
@@ -29,7 +29,7 @@ ui            = true
 api_addr      = "http://localhost:8200"
 disable_mlock = true
 tls_skip_verify = true
-log_level = "Information"
+log_level = "info"
 
 storage "file" {
   path = "/vault/data"
@@ -45,7 +45,7 @@ fi
 
 # Create empty role_id and secret_id files if they don't exist
 for file in "role_id" "secret_id"; do
-    AGENT_FILE="/app/confs/vault/agent/$file"
+    AGENT_FILE="/opt/confs/vault/agent/$file"
     if [ -f "$AGENT_FILE" ]; then
         echo -e "${YELLOW}Skipping${NC}: $AGENT_FILE already exists."
     else
@@ -56,7 +56,7 @@ for file in "role_id" "secret_id"; do
 done
 
 # Create vault-agent.hcl file with specified content if it doesn't exist
-AGENT_CONFIG_FILE="/app/confs/vault/agent/vault-agent.hcl"
+AGENT_CONFIG_FILE="/opt/confs/vault/agent/vault-agent.hcl"
 if [ -f "$AGENT_CONFIG_FILE" ]; then
     echo -e "${YELLOW}Skipping${NC}: $AGENT_CONFIG_FILE already exists."
 else

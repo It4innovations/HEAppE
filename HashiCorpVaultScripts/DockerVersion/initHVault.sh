@@ -31,8 +31,8 @@ CONFIG_FILES=("/vault/vault/vault-config.hcl" "/vault/agent/role_id" "/vault/age
 CONFIG_MISSING=false
 
 for file in "${CONFIG_FILES[@]}"; do
-    if [ ! -f "/app/confs/$file" ]; then
-        echo -e "${YELLOW}Missing configuration file:${NC} /app/confs/$file"
+    if [ ! -f "/opt/confs/$file" ]; then
+        echo -e "${YELLOW}Missing configuration file:${NC} /opt/confs/$file"
         CONFIG_MISSING=true
     fi
 done
@@ -40,11 +40,11 @@ done
 # Run the first script if any configuration file is missing
 if [ "$CONFIG_MISSING" = true ]; then
     echo "Running the first script to generate missing configuration files..."
-    /app/initHVaultConfig.sh
+    /opt/initHVaultConfig.sh
     # Check again if the configuration files are created after running the script
     CONFIG_MISSING=false
     for file in "${CONFIG_FILES[@]}"; do
-        if [ ! -f "/app/confs/$file" ]; then
+        if [ ! -f "/opt/confs/$file" ]; then
             CONFIG_MISSING=true
             break
         fi
@@ -57,12 +57,12 @@ if [ "$CONFIG_MISSING" = true ]; then
 fi
 
 # Check if ./appendToAnsibleVault.sh exists
-if [ ! -f "/app/appendToAnsibleVault.sh" ]; then
+if [ ! -f "/opt/appendToAnsibleVault.sh" ]; then
   echo "Error: appendToAnsibleVault.sh does not exist."
   exit 1
 fi
 
-ANSIBLE_VAULT_FILE=/app/ansibleVault/${INSTANCE_NAME}_credentials
+ANSIBLE_VAULT_FILE=/opt/ansibleVault/${INSTANCE_NAME}_credentials
 if [ "$SHARED_VAULT_FILE" = true ]; then
     ANSIBLE_VAULT_FILE="${VAULT_FILE_DIR_PATH}/${SHARED_VAULT_FILE_NAME}"
 fi
@@ -104,7 +104,7 @@ init_status=$(docker exec "${INSTANCE_NAME}_vault" vault status -format=json | j
 
 if [ "$init_status" == "true" ]; then
     echo -e "${GREEN}Vault is already initialized. Running vault unseal procedure.${NC}"
-    /app/unsealHVault.sh $VAULT_PASSWORD --path "$ANSIBLE_VAULT_FILE"
+    /opt/unsealHVault.sh $VAULT_PASSWORD --path "$ANSIBLE_VAULT_FILE"
     exit 0
 else
     echo -e "${YELLOW}Vault is not initialized.${NC} Initializing Vault..."
@@ -137,7 +137,7 @@ EOF
 )
 
 # Append the data to the Ansible Vault file
-sh /app/appendToAnsibleVault.sh "$VAULT_PASSWORD" --path "$ANSIBLE_VAULT_FILE" --data "$json_data"
+sh /opt/appendToAnsibleVault.sh "$VAULT_PASSWORD" --path "$ANSIBLE_VAULT_FILE" --data "$json_data"
 
 # Check if the script failed
 if [ $? -ne 0 ]; then
@@ -188,10 +188,10 @@ sleep 1s
 secret_id=$(docker exec -e VAULT_TOKEN=$root_token "${INSTANCE_NAME}_vault" vault write -f auth/approle/role/heappe-role/secret-id | awk '/secret_id/{print $2; exit}')
 
 echo "Writing role_id to vaultagent"
-echo $role_id > /app/confs/vault/agent/role_id 
+echo $role_id > /opt/confs/vault/agent/role_id 
 
 echo "Writing secret_id to vaultagent"
-echo $secret_id > /app/confs/vault/agent/secret_id
+echo $secret_id > /opt/confs/vault/agent/secret_id
 
 echo "Vault is ready for use"
 echo "Restarting VaultAgent"

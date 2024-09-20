@@ -25,7 +25,7 @@ if [ -z "$VAULT_PASSWORD" ]; then
     exit 1
 fi
 
-ANSIBLE_VAULT_FILE=/app/ansibleVault/${INSTANCE_NAME}_credentials
+ANSIBLE_VAULT_FILE=/opt/ansibleVault/${INSTANCE_NAME}_credentials
 if [ "$SHARED_VAULT_FILE" = true ]; then
     ANSIBLE_VAULT_FILE="${VAULT_FILE_DIR_PATH}/${SHARED_VAULT_FILE_NAME}"
 fi
