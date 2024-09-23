@@ -149,7 +149,7 @@ services:
       - vaultNet
     depends_on:
       - vault
-    command: /app/unsealOrInitHVault.sh
+    command: /opt/unsealOrInitHVault.sh
 
 
 volumes:
