@@ -2,7 +2,7 @@
 FROM alpine:3.20.2
 
 # Instalace nezbytných nástrojů: bash, docker-cli, ansible, jq
-RUN apk update && apk upgrade && apk add --no-cache bash docker-cli ansible jq
+RUN apk update && apk add --no-cache bash docker-cli docker-cli-compose ansible jq && apk upgrade
 
 # Nastavení pracovního adresáře
 WORKDIR /opt
@@ -17,6 +17,7 @@ COPY HashiCorpVaultScripts/DockerVersion/unsealOrInitHVault.sh /opt/unsealOrInit
 # Nastavení práv pro spustitelnost skriptu
 RUN chmod +x /opt/*
 
+WORKDIR /app
 # Entry point nastaví, že kontejner bude přijímat parametry
 ENTRYPOINT ["/bin/bash", "-c"]
 

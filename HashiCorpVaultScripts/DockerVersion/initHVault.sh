@@ -19,11 +19,18 @@ if ! command -v jq &> /dev/null; then
     exit 1
 fi
 
+# Check if Docker Compose is installed (as a plugin or standalone)
+if ! docker compose version &> /dev/null && ! command -v docker-compose &> /dev/null; then
+    echo "Neither Docker Compose plugin nor standalone Docker Compose is installed. Please install it and try again."
+    exit 1
+fi
+
 # Check if the required vault_password is provided
 if [ -z "$VAULT_PASSWORD" ]; then
     echo -e "${RED}Error:${NC} vault_password is a required argument."
     exit 1
 fi
+
 
 # Check if configuration files exist
 CONFIG_FILES=("/vault/vault/vault-config.hcl" "/vault/agent/role_id" "/vault/agent/secret_id" "/vault/agent/vault-agent.hcl")
@@ -91,9 +98,9 @@ fi
 
 # Check if Vault service is already running and initialized
 echo -n "Checking if Vault service is running... "
-if ! docker ps | grep -q "vault.*Up"; then
+if ! docker compose ps | grep -q "Up.*_vault\b"; then
     echo -e "${YELLOW}Vault service is not running.${NC} Starting Vault service..."
-    docker up -d vault
+    docker compose up -d vault
     sleep 3s
 else
     echo -e "${GREEN}Vault service is running.${NC}"

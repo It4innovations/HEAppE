@@ -122,8 +122,10 @@ services:
       BASE_PATH: ${BASE_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - "${VAULT_FILE_DIR_PATH}:/app/ansibleVault/"
-      - "${BASE_PATH}:/app/confs/"
+      - "${VAULT_FILE_DIR_PATH}:/opt/ansibleVault/"
+      - "${BASE_PATH}:/opt/confs/"
+      # Namapování aktuální cesty na /app uvnitř kontejneru
+      - ${PWD}:/app
     networks:
       - vaultNet
     profiles:
@@ -143,8 +145,10 @@ services:
       BASE_PATH: ${BASE_PATH}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-      - "${BASE_PATH}:/app/confs/"
-      - "${VAULT_FILE_DIR_PATH}:/app/ansibleVault/"
+      - "${BASE_PATH}:/opt/confs/"
+      - "${VAULT_FILE_DIR_PATH}:/opt/ansibleVault/"
+      # Namapování aktuální cesty na /app uvnitř kontejneru
+      - ${PWD}:/app
     networks:
       - vaultNet
     depends_on:
