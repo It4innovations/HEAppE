@@ -98,7 +98,7 @@ fi
 
 # Check if Vault service is already running and initialized
 echo -n "Checking if Vault service is running... "
-if ! docker compose ps | grep -q "Up.*_vault\b"; then
+if ! docker ps | grep -q "Up.*_vault\b"; then
     echo -e "${YELLOW}Vault service is not running.${NC} Starting Vault service..."
     docker compose up -d vault
     sleep 3s
