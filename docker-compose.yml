@@ -22,10 +22,13 @@ services:
     restart: unless-stopped
     volumes:
       - sql_volume:/var/opt/mssql
+    ports:
+      - "${HOST_MSSQL_PORT}:1433"
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Express"
       TZ: "Europe/Prague" 
+      SA_PASSWORD: "${HOST_MSSQL_PASSWORD}"
     networks:
       - db_internal_network
       - external_network
@@ -42,6 +45,9 @@ services:
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
+      - "${HOST_DATA_STAGING_HOST_MAP_FOLD_NAME}:${HOST_DATA_STAGING_CONTAINER_MAP_FOLD_PATH}"
+    ports:
+      - "${HOST_DATA_STAGING_PORT}:80"
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       TZ: "Europe/Prague" 
@@ -61,6 +67,9 @@ services:
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
+      - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
+    ports:
+      - "${HOST_APP_PORT}:80"
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
