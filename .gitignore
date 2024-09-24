@@ -273,3 +273,4 @@ RestApi/appsettings.json
 /RestApi/seed.njson
 /DataStagingAPI/appsettings.json
 
+.env
