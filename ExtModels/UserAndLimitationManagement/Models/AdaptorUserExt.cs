@@ -25,7 +25,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
 
         public override string ToString()
         {
-            return $"AdaptorUserExt(id={Id}; username={Username}; publicKey={PublicKey}; email={Email}; userType={UserType}";
+            return $"AdaptorUserExt(id={Id}; username={Username}; publicKey={PublicKey}; email={Email}; userType={UserType}; adaptorUserGroups={AdaptorUserGroups})";
         }
     }
 }

@@ -10,6 +10,7 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.DTO;
 using System.Linq;
+using HEAppE.ExtModels.JobManagement.Models;
 
 namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
 {
@@ -24,7 +25,7 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 PublicKey = user.PublicKey,
                 Email = user.Email,
                 UserType = (AdaptorUserTypeExt)user.UserType,
-                AdaptorUserGroups = user.Groups?.DistinctBy(g => g.Id).Select(g => g.ConvertIntToExtWithRoles())
+                AdaptorUserGroups = user.Groups?.DistinctBy(g => g.Id).Select(g => g.ConvertIntToExt())
                                                     .ToArray(),
             };
             return convert;
@@ -37,22 +38,8 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 Id = userGroup.Id,
                 Name = userGroup.Name,
                 Description = userGroup.Description,
-                Project = userGroup.Project?.ConvertIntToExt(),
-                Users = userGroup.Users.Select(s => s.ConvertIntToExt())
-                                        .ToArray()
-            };
-            return convert;
-        }
-
-        public static AdaptorUserGroupExt ConvertIntToExtWithRoles(this AdaptorUserGroup userGroup)
-        {
-            var convert = new AdaptorUserGroupExt()
-            {
-                Id = userGroup.Id,
-                Name = userGroup.Name,
-                Description = userGroup.Description,
-                Project = userGroup.Project?.ConvertIntToExt(),
-                Roles = userGroup.AdaptorUserUserGroupRoles?.Select(r => r.AdaptorUserRole.ConvertIntToExt())
+                Project = new ProjectExt() { Name = userGroup.Project?.Name, Description = userGroup.Project?.Description },
+                Roles = userGroup.AdaptorUserUserGroupRoles?.Select(r => r.AdaptorUserRole.Name)
                                                                 .ToArray(),
             };
             return convert;

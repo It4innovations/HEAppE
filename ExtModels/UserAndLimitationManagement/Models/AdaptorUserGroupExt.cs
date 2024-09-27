@@ -19,14 +19,11 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
         public ProjectExt Project { get; set; }
 
         [DataMember(Name = "Roles")]
-        public AdaptorUserRoleExt[] Roles { get; set; }
-
-        [DataMember(Name = "Users")]
-        public AdaptorUserExt[] Users { get; set; }
+        public string[] Roles { get; set; }
 
         public override string ToString()
         {
-            return $"AdaptorUserGroupExt(id={Id}; name={Name}; description={Description}; Project={Project}; users={Users})";
+            return $"AdaptorUserGroupExt(id={Id}; name={Name}; description={Description}; Project={Project})";
         }
     }
 }
