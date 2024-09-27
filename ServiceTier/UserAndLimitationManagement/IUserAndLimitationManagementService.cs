@@ -12,5 +12,6 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         IEnumerable<ProjectResourceUsageExt> CurrentUsageAndLimitationsForCurrentUserByProject(string sessionCode);
         IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode);
         bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole);
+        AdaptorUserExt GetCurrentUserInfo(string sessionCode);
     }
 }

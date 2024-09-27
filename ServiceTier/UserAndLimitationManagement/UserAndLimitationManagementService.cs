@@ -162,6 +162,16 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
             }
         }
 
+        public AdaptorUserExt GetCurrentUserInfo(string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                IUserAndLimitationManagementLogic userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                AdaptorUser loggedUser = userLogic.GetUserForSessionCode(sessionCode);
+                return loggedUser.ConvertIntToExt();
+            }
+        }
+
         /// <summary>
         /// Get user for given <paramref name="sessionCode"/> and check if the user has <paramref name="requiredUserRole"/>.
         /// </summary>

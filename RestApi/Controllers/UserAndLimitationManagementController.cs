@@ -212,6 +212,31 @@ namespace HEAppE.RestApi.Controllers
 
             return Ok(_service.ProjectsForCurrentUser(sessionCode));
         }
+
+        /// <summary>
+        /// Get current user info
+        /// </summary>
+        /// <param name="sessionCode">Session code</param>
+        /// <returns></returns>
+        [HttpGet("CurrentUserInfo")]
+        [RequestSizeLimit(60)]
+        [ProducesResponseType(typeof(AdaptorUserExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetCurrentUserInfo(string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"UserAndLimitationManagement\" Method: \"CurrentUserInfo\" Parameters: \"{sessionCode}\"");
+            ValidationResult validationResult = new SessionCodeValidator(sessionCode).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+
+            return Ok(_service.GetCurrentUserInfo(sessionCode));
+        }
         #endregion
     }
 }

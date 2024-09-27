@@ -11,9 +11,21 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
         [DataMember(Name = "Username")]
         public string Username { get; set; }
 
+        [DataMember(Name = "PublicKey")]
+        public string PublicKey { get; set; }
+
+        [DataMember(Name = "Email")]
+        public string Email { get; set; }
+
+        [DataMember(Name = "UserType")]
+        public AdaptorUserTypeExt UserType { get; set; }
+
+        [DataMember(Name = "AdaptorUserGroups")]
+        public AdaptorUserGroupExt[] AdaptorUserGroups { get; set; }
+
         public override string ToString()
         {
-            return $"AdaptorUserExt(id={Id}; username={Username})";
+            return $"AdaptorUserExt(id={Id}; username={Username}; publicKey={PublicKey}; email={Email}; userType={UserType}";
         }
     }
 }

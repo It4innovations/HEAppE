@@ -18,6 +18,9 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
         [DataMember(Name = "Project")]
         public ProjectExt Project { get; set; }
 
+        [DataMember(Name = "Roles")]
+        public AdaptorUserRoleExt[] Roles { get; set; }
+
         [DataMember(Name = "Users")]
         public AdaptorUserExt[] Users { get; set; }
 

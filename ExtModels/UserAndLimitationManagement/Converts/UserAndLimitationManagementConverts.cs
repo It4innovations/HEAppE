@@ -20,7 +20,12 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
             var convert = new AdaptorUserExt()
             {
                 Id = user.Id,
-                Username = user.Username
+                Username = user.Username,
+                PublicKey = user.PublicKey,
+                Email = user.Email,
+                UserType = (AdaptorUserTypeExt)user.UserType,
+                AdaptorUserGroups = user.Groups?.DistinctBy(g => g.Id).Select(g => g.ConvertIntToExtWithRoles())
+                                                    .ToArray(),
             };
             return convert;
         }
@@ -35,6 +40,20 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                 Project = userGroup.Project?.ConvertIntToExt(),
                 Users = userGroup.Users.Select(s => s.ConvertIntToExt())
                                         .ToArray()
+            };
+            return convert;
+        }
+
+        public static AdaptorUserGroupExt ConvertIntToExtWithRoles(this AdaptorUserGroup userGroup)
+        {
+            var convert = new AdaptorUserGroupExt()
+            {
+                Id = userGroup.Id,
+                Name = userGroup.Name,
+                Description = userGroup.Description,
+                Project = userGroup.Project?.ConvertIntToExt(),
+                Roles = userGroup.AdaptorUserUserGroupRoles?.Select(r => r.AdaptorUserRole.ConvertIntToExt())
+                                                                .ToArray(),
             };
             return convert;
         }
