@@ -101,11 +101,13 @@ semgrep-sast:
   before_script:
     # Instalace jq
     - apk add jq
-  after_script:
+  script:
+    - semgrep --config auto --json > gl-sast-report.json  # Spusťte SAST analýzu a uložte výstup
+    # Kontrola, zda jsou v reportu nějaké zranitelnosti
     - |
       if [ $(jq '.vulnerabilities | length' gl-sast-report.json) -gt 0 ]; then
         echo "Vulnerabilities found, failing the job."
-        exit 1  # Tento exit neovlivní výsledek jobu pokud je v after_script, ale vypíše varování
+        exit 1
       else
         echo "No vulnerabilities found."
       fi
