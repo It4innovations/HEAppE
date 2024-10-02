@@ -98,6 +98,9 @@ semgrep-sast:
   stage: test
   variables:
     SAST_EXIT_CODES: "1"  # Nastavení, které způsobí selhání jobu při zjištění zranitelností
+  before_script:
+    # Instalace jq
+    - apk add jq
   after_script:
     - |
       if [ $(jq '.vulnerabilities | length' gl-sast-report.json) -gt 0 ]; then
