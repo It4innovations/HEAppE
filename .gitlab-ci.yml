@@ -5,6 +5,7 @@ include:
 variables:
   HEAPPE_IMAGE_NAME: heappe
   SSHAGENT_IMAGE_NAME: sshagent
+  SAST_EXIT_CODES: "1"  # Nastavení, které způsobí selhání jobu při zjištění zranitelností
 
 services:
   - docker:dind
