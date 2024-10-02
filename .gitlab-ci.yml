@@ -102,7 +102,7 @@ semgrep-sast:
     # Instalace jq
     - apk add jq
   script:
-    - semgrep --config auto --json > gl-sast-report.json  # Spusťte SAST analýzu a uložte výstup
+    - /analyzer run
     # Kontrola, zda jsou v reportu nějaké zranitelnosti
     - |
       if [ $(jq '.vulnerabilities | length' gl-sast-report.json) -gt 0 ]; then
