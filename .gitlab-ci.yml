@@ -35,7 +35,7 @@ release_msg_job:
       dotenv: release_variables.env  
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
@@ -62,7 +62,7 @@ heappe_build:
     - docker image prune
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
@@ -89,7 +89,7 @@ sshagent_build:
     - docker image prune
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
@@ -123,7 +123,7 @@ release_job:
     GIT_STRATEGY: clone
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
@@ -159,7 +159,7 @@ push_to_github_job:
     GIT_STRATEGY: clone
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master 
