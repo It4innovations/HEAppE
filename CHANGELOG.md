@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Automatic docker compose Vault initialization and unsealing procedure
+- Added propagation of JobState `Deleted` into `JobSpecification`
 
 
 
