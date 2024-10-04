@@ -29,7 +29,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces
 
         void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode);
 
-        void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
+        bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath);
 
         void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash, string path);
 

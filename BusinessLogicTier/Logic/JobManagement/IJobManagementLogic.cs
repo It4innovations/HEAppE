@@ -10,7 +10,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
         SubmittedJobInfo CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong);
         SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
         SubmittedJobInfo CancelJob(long submittedJobInfoId, AdaptorUser loggedUser);
-        void DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
+        bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
         SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser);
         SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser);
         IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser);
