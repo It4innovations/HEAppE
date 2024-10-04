@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Automatic docker compose Vault initialization and unsealing procedure
 
+### Fixed
+- An issue where creating and submitting a job with `MaxCores` missing
 
 
 ## V4.3.0
