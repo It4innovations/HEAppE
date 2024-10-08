@@ -433,9 +433,35 @@ namespace HEAppE.DataAccessTier
 
                 if (useSetIdentity)
                 {
-                    Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} ON;");
+                    using (var connection = Database.GetDbConnection())
+                    {
+                        connection.Open(); 
+                        using (var command = connection.CreateCommand())
+                        {
+                            command.CommandText = $"SET IDENTITY_INSERT @tableName ON";
+                            var param1 = command.CreateParameter();
+                            param1.ParameterName = "@tableName";
+                            param1.Value = tableName;
+                            command.Parameters.Add(param1);
+                            command.ExecuteNonQuery(); // Execute the command
+                        }
+                    }
+
                     SaveChanges();
-                    Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} OFF;");
+                    using (var connection = Database.GetDbConnection())
+                    {
+                        connection.Open(); 
+                        using (var command = connection.CreateCommand())
+                        {
+                            command.CommandText = $"SET IDENTITY_INSERT @tableName OFF";
+                            var param1 = command.CreateParameter();
+                            param1.ParameterName = "@tableName";
+                            param1.Value = tableName;
+                            command.Parameters.Add(param1);
+                            command.ExecuteNonQuery(); // Execute the command
+                        }
+                    }
+                    
                 }
                 else
                 {
