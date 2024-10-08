@@ -15,7 +15,8 @@ namespace HEAppE.ExtModels.JobManagement.Models
         public int? MinCores { get; set; }
 
         [DataMember(Name = "MaxCores")]
-        public int? MaxCores { get; set; }
+        [Required]
+        public int MaxCores { get; set; }
 
         [DataMember(Name = "WalltimeLimit")]
         public int? WalltimeLimit { get; set; }

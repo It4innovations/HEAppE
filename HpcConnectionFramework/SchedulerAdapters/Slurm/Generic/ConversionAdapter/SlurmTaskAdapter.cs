@@ -252,6 +252,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <param name="coresPerNode">Cores per node</param>
         public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
         {
+            if (maxCores <= 0)
+            {
+                throw new ArgumentException($"Invalid number of cores: {maxCores}");
+            }
             var allocationCmdBuilder = new StringBuilder();
             string reqNodeGroupsCmd = PrepareNameOfNodesGroup(requestedNodeGroups);
 
@@ -348,7 +352,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.Conversi
         /// <returns></returns>
         private static string PrepareNameOfNodes(ICollection<string> requestedNodeGroups, int nodeCount)
         {
-            if (requestedNodeGroups?.Count == nodeCount)
+            if (nodeCount > 0 && requestedNodeGroups?.Count == nodeCount)
             {
                 var builder = new StringBuilder($" --nodelist={requestedNodeGroups.First()}");
                 foreach (string nodeGroup in requestedNodeGroups.Skip(1))
