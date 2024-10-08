@@ -14,6 +14,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - An issue where creating and submitting a job with `MaxCores` missing
 
+### Security
+- Identified and fixed a potential SQL injection vulnerability
+
 
 ## V4.3.0
 
