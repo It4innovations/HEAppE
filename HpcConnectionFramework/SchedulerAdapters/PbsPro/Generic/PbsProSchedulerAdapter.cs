@@ -279,9 +279,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
         /// </summary>
         /// <param name="connectorClient">Connector</param>
         /// <param name="jobInfo">Job info</param>
-        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
+            return _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
         }
 
         /// <summary>

@@ -189,15 +189,23 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return jobInfo;
         }
 
-        public virtual void DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
+        public virtual bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             _logger.Info($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
 
-            if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
+            if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount and not JobState.Deleted)
             {
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
+                bool isDeleted = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
+                if (isDeleted)
+                {
+                    jobInfo.State = JobState.Deleted;
+                    jobInfo.Tasks.ForEach(f => f.State = TaskState.Deleted);
+                    _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+                    _unitOfWork.Save();
+                }
+                return isDeleted;
             }
             else
             {
