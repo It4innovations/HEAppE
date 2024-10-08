@@ -74,14 +74,14 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public void DeleteJob(long submittedJobInfoId, string sessionCode)
+        public bool DeleteJob(long submittedJobInfoId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException("NotExistingJob", submittedJobInfoId);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, job.Project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
+                return jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
             }
         }
 

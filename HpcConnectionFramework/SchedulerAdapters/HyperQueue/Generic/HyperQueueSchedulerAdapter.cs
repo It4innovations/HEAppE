@@ -171,9 +171,9 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic
             _commands.CreateJobDirectory(connectorClient, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
 
-        public void DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
+        public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
         {
-            _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
+            return _commands.DeleteJobDirectory(connectorClient, jobInfo, localBasePath);
         }
 
         public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,

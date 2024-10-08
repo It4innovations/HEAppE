@@ -129,8 +129,12 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _service.DeleteJob(model.SubmittedJobInfoId, model.SessionCode);
-            return Ok("Job deleted.");
+            bool isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.SessionCode);
+            if (isDeleted)
+            {
+                return Ok("Job was deleted"); 
+            }
+            return BadRequest("Job was not deleted");
         }
 
         /// <summary>
