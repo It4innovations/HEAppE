@@ -5,6 +5,7 @@ using Renci.SshNet;
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.FileTransferFramework.Sftp
 {
@@ -55,7 +56,7 @@ namespace HEAppE.FileTransferFramework.Sftp
             {
                 proc.StartInfo.FileName = "sftp";
                 proc.StartInfo.WorkingDirectory = "/usr/bin/";
-                proc.StartInfo.Arguments = $"-P {_port} -q -o StrictHostKeyChecking=no {_userName}@{_masterNodeName}";
+                proc.StartInfo.Arguments = $"-P {SanitizePort(_port)} -q -o StrictHostKeyChecking=no {SanitizeUserName(_userName)}@{SanitizeNodeName(_masterNodeName)}";
                 proc.StartInfo.UseShellExecute = false;
                 proc.StartInfo.RedirectStandardInput = true;
                 proc.StartInfo.RedirectStandardOutput = true;
@@ -95,6 +96,26 @@ namespace HEAppE.FileTransferFramework.Sftp
                 throw new SftpClientArgumentException("NullArgument", "userName");
             }
         }
+        #endregion
+        #region SanitizeMethods
+        private string SanitizePort(int port)
+        {
+            // Allow only numbers
+            return Regex.Replace(port.ToString(), @"[^0-9]", "");
+        }
+
+        private string SanitizeUserName(string username)
+        {
+            // Allow only alphanumeric characters
+            return Regex.Replace(username, @"[^a-zA-Z0-9]", "");
+        }
+
+        private string SanitizeNodeName(string nodeName)
+        {
+            // Allow only alphanumeric and specific safe characters
+            return Regex.Replace(nodeName, @"[^a-zA-Z0-9.-]", "");
+        }
+
         #endregion
     }
 }
