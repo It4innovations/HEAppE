@@ -1,13 +1,12 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
 using System.Collections.Generic;
-using System.Threading.Tasks;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {
@@ -81,5 +80,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         ProjectClusterNodeTypeAggregation CreateProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount);
         ProjectClusterNodeTypeAggregation ModifyProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount);
         void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
+        List<AccountingState> ListAccountingStates(long projectId);
     }
 }

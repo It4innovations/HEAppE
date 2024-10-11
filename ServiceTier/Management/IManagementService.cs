@@ -77,7 +77,6 @@ namespace HEAppE.ServiceTier.Management
         SubProjectExt CreateSubProject(long modelProjectId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode);
         SubProjectExt ModifySubProject(long modelId, string modelIdentifier, string modelDescription, DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode);
         void RemoveSubProject(long modelId, string modelSessionCode);
-        void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, string modelSessionCode);
         ClusterExt GetClusterById(long clusterId, string sessionCode);
         ClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
             string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId, string sessionCode);
