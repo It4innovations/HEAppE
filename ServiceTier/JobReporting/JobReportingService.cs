@@ -53,9 +53,14 @@ namespace HEAppE.ServiceTier.JobReporting
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                (AdaptorUser loggedUser, var _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.GroupReporter);
+                (AdaptorUser loggedUser, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.GroupReporter);
                 IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                var reporterGroups = loggedUser.Groups.Select(x => x.Id).Distinct().ToList();
+                var projectIds = projects.Select(p => p.Id).ToList();
+                var reporterGroups = loggedUser.Groups
+                    .Where(g => projectIds.Contains(g.ProjectId ?? 0))
+                    .Select(g => g.Id)
+                    .Distinct()
+                    .ToList();
                 return jobReportingLogic.UserResourceUsageReport(userId, reporterGroups, startTime, endTime, subProjects)
                     .Where(s => s != null) 
                     .Select(g => g.ConvertIntToExt());
@@ -105,9 +110,13 @@ namespace HEAppE.ServiceTier.JobReporting
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                (AdaptorUser loggedUser, var _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
+                (AdaptorUser loggedUser, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
                 IJobReportingLogic jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-                List<long> userGroupIds = loggedUser.Groups.Select(val => val.Id).Distinct().ToList();
+                var projectIds = projects.Select(p => p.Id).ToList();
+                List<long> userGroupIds = loggedUser.Groups
+                    .Where(x=> projectIds.Contains(x.ProjectId ?? 0))
+                    .ToList()
+                    .Select(val => val.Id).Distinct().ToList();
                 return jobReportingLogic.ResourceUsageReportForJob(jobId, userGroupIds).ConvertIntToExtendedExt();
             }
         }

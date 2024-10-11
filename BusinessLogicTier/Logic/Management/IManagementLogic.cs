@@ -6,6 +6,8 @@ using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management
 {

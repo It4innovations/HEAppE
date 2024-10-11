@@ -12,8 +12,8 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "ProjectId", IsRequired = true)]
         public long ProjectId { get; set; }
         
-        [DataMember(Name = "SubProject", IsRequired = false), StringLength(50)]
-        public string SubProject { get; set; }
+        [DataMember(Name = "SubProjectIdentifier", IsRequired = false), StringLength(50)]
+        public string SubProjectIdentifier { get; set; }
 
         [DataMember(Name = "WaitingLimit")]
         public int? WaitingLimit { get; set; }
@@ -52,7 +52,7 @@ namespace HEAppE.ExtModels.JobManagement.Models
         public TaskSpecificationExt[] Tasks { get; set; }
         public override string ToString()
         {
-            return $"JobSpecificationExt(name={Name}; project={ProjectId}; subProject={SubProject}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
+            return $"JobSpecificationExt(name={Name}; project={ProjectId}; subProject={SubProjectIdentifier}; waitingLimit={WaitingLimit}; walltimeLimit={WalltimeLimit}; notificationEmail={NotificationEmail}; phoneNumber={PhoneNumber}; notifyOnAbort={NotifyOnAbort}; notifyOnFinish={NotifyOnFinish}; notifyOnStart={NotifyOnStart}; clusterId={ClusterId}; fileTransferMethodId={FileTransferMethodId}; environmentVariables={EnvironmentVariables}; tasks={Tasks})";
         }
     }
 }

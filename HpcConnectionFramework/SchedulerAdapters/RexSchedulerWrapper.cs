@@ -222,12 +222,17 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters
         /// Delete job directory
         /// </summary>
         /// <param name="jobInfo">Job info</param>
-        public void DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath)
+        public bool DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath)
         {
             ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
             try
             {
-                _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
+                return _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
+                return false;
             }
             finally
             {

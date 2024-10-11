@@ -35,4 +35,9 @@
     <ProjectReference Include="..\Utils\Utils.csproj" />
   </ItemGroup>
 
+
+    <ItemGroup>
+        <InternalsVisibleTo Include="DataAccessTier.Tests" />
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+    </ItemGroup>
 </Project>

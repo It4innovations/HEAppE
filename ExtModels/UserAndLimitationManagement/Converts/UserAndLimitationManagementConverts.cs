@@ -1,9 +1,10 @@
-﻿using HEAppE.Exceptions.External;
-using HEAppE.BusinessLogicTier.Logic;
+﻿using System.Linq;
+
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Converts;
@@ -64,8 +65,10 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Converts
                     Username = asymmetricKeyCredentials.Username,
                     Password = asymmetricKeyCredentials.Password,
                     CipherType = ConvertFileTransferMethodIntToExt(asymmetricKeyCredentials.FileTransferCipherType),
+                    CredentialsAuthType = asymmetricKeyCredentials.CredentialsAuthType.ConvertIntToExt(),
                     PrivateKey = asymmetricKeyCredentials.PrivateKey,
                     PublicKey = asymmetricKeyCredentials.PublicKey,
+                    PrivateKeyCertificate = asymmetricKeyCredentials.PrivateKeyCertificate,
                     Passphrase = asymmetricKeyCredentials.Passphrase
 
                 };

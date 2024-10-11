@@ -13,5 +13,6 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation
         Failed = 32,
         Canceled = 64,
         WaitingForServiceAccount = 128,
+        Deleted = 256,
     }
 }

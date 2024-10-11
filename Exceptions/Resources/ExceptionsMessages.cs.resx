@@ -513,4 +513,7 @@
   <data name="RequestedObjectDoesNotExistException_CommandTemplateParameterNotFound" xml:space="preserve">
     <value>Specifikovaný CommandTemplate parameter s id '{0}' není definován v HEAppE.</value>
   </data>
+  <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
+    <value>Specifikovaný identifikátor subprojektu již existuje.</value>
+  </data>
 </root>

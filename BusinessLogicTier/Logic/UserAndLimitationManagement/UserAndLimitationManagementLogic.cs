@@ -379,8 +379,8 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     _log.Info($"LEXIS AAI: User \"{user.Username}\" for Project Short Name \"{lexisProject.ProjectShortName}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
                     _unitOfWork.Save();
                 }
-
                 _unitOfWork.Save();
+
                 return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
             }
         }

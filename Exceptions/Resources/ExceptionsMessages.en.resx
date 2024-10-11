@@ -510,4 +510,7 @@
   <data name="RequestedObjectDoesNotExistException_CommandTemplateParameterNotFound" xml:space="preserve">
     <value>The specified command template parameter with id '{0}' is not defined in the HEAppE.</value>
   </data>
+  <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
+    <value>Specified SubProject identifier already exists.</value>
+  </data>
 </root>

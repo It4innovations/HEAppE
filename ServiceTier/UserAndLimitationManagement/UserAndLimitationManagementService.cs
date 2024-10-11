@@ -182,12 +182,12 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// <returns>AdaptorUser object if user has required user role.</returns>
         /// <exception cref="InsufficientRoleException">Is thrown if the user doesn't have <paramref name="requiredUserRole"/>.</exception>
         /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
-        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, AdaptorUserRoleType requiredUserRole, long projectId)
+        public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
         {
             IUserAndLimitationManagementLogic authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             AdaptorUser loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-            CheckUserRoleForProject(loggedUser, requiredUserRole, projectId);
+            CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
             return loggedUser;
         }
 
@@ -211,17 +211,18 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// <param name="projectId">Project Id</param>
         /// <exception cref="InsufficientRoleException">is thrown when the user doesn't have any role specified by <see cref="requiredUserRole"/></exception>
         /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
-        private static void CheckUserRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId)
+        private static void CheckUserRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
         {
             bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => x.AdaptorUserRole.ContainedRoleTypes
                                                                     .Any(a => a == requiredUserRole) 
-                                                                        && x.AdaptorUserGroup.ProjectId == projectId
-                                                                        && x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow);
+                                                                           && x.AdaptorUserGroup.ProjectId == projectId
+                                                                           && (overrideProjectValidityCheck ||
+                                                                            x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow));
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var project = unitOfWork.ProjectRepository.GetById(projectId);
-                if (project is null || project.EndDate < DateTime.UtcNow)
+                if (project is null || (!overrideProjectValidityCheck && project.EndDate < DateTime.UtcNow))
                 {
                     throw new RequestedObjectDoesNotExistException("ProjectNotFound");
                 }

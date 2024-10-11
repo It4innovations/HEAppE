@@ -117,5 +117,7 @@ namespace HEAppE.ServiceTier.Management
         ProjectClusterNodeTypeAggregationExt CreateProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode);
         ProjectClusterNodeTypeAggregationExt ModifyProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, long allocationAmount, string sessionCode);
         void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
+        void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
+        List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
     }
 }

@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+
+using HEAppE.DataAccessTier.Vault;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DomainObjects;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -33,64 +35,64 @@ namespace HEAppE.DataAccessTier
         public MiddlewareContext() : base()
         {
             if (!_isMigrated)
-    {
-        lock (_lockObject)
-        {
-            if (!_isMigrated)
             {
-                try
+                lock (_lockObject)
                 {
-                    string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
-                    if (localRunEnv != "LocalWindows")
+                    if (!_isMigrated)
                     {
-                        // Connection to Database works and Database not exist
-                        if (!Database.CanConnect())
+                        try
                         {
-                            _log.Info("Starting migration and seeding into the new database.");
-                            Database.Migrate();
-                            EnsureDatabaseSeeded();
-                            _isMigrated = true;
+                            string localRunEnv = Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT");
+                            if (localRunEnv != "LocalWindows")
+                            {
+                                // Connection to Database works and Database not exist
+                                if (!Database.CanConnect())
+                                {
+                                    _log.Info("Starting migration and seeding into the new database.");
+                                    Database.Migrate();
+                                    EnsureDatabaseSeeded();
+                                    _isMigrated = true;
+                                }
+                                else
+                                {
+                                    var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
+                                    var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
+
+                                    if (lastAppliedMigration is null)
+                                    {
+                                        _log.Info("Starting migration into the new database.");
+                                        Database.Migrate();
+                                        lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
+                                    }
+                                    else if (DatabaseMigrationSettings.AutoMigrateDatabase && lastAppliedMigration != lastDefinedMigration)
+                                    {
+                                        _log.Info("Applying newer migrations to the database.");
+                                        Database.Migrate();
+                                        _isMigrated = true;
+                                    }
+                                    else if (lastAppliedMigration != lastDefinedMigration)
+                                    {
+                                        throw new DbContextException("MigrationMismatch");
+                                    }
+
+                                    if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
+                                    {
+                                        throw new DbContextException("MigrationCountMismatch");
+                                    }
+
+                                    _log.Info("Application and database migrations are the same. Starting seeding data into the database.");
+                                    EnsureDatabaseSeeded();
+                                    _isMigrated = true;
+                                }
+                            }
                         }
-                        else
+                        catch (SqlException ex)
                         {
-                            var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                            var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-
-                            if (lastAppliedMigration is null)
-                            {
-                                _log.Info("Starting migration into the new database.");
-                                Database.Migrate();
-                                lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
-                            }
-                            else if (DatabaseMigrationSettings.AutoMigrateDatabase && lastAppliedMigration != lastDefinedMigration)
-                            {
-                                _log.Info("Applying newer migrations to the database.");
-                                Database.Migrate();
-                                _isMigrated = true;
-                            }
-                            else if (lastAppliedMigration != lastDefinedMigration)
-                            {
-                                throw new DbContextException("MigrationMismatch");
-                            }
-
-                            if (Database.GetAppliedMigrations().Count() != Database.GetMigrations().Count())
-                            {
-                                throw new DbContextException("MigrationCountMismatch");
-                            }
-
-                            _log.Info("Application and database migrations are the same. Starting seeding data into the database.");
-                            EnsureDatabaseSeeded();
-                            _isMigrated = true;
+                            throw new DbContextException("MigrationError", ex);
                         }
                     }
                 }
-                catch (SqlException ex)
-                {
-                    throw new DbContextException("MigrationError", ex);
-                }
             }
-        }
-    }
         }
         #endregion
         #region Override Methods
@@ -185,6 +187,15 @@ namespace HEAppE.DataAccessTier
                 .WithMany(p => p.ClusterProjectCredentials)
                 .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+            //M:N ClusterProjectCredentials ignore Vault properties
+            modelBuilder.Entity<ClusterAuthenticationCredentials>()
+                //.Ignore(c => c.AuthenticationType)
+                //.Ignore(p => p.CipherType)
+                .Ignore(p => p.Password)
+                .Ignore(p => p.PrivateKey)
+                .Ignore(p => p.PrivateKeyPassphrase)
+                .Ignore(p => p.PrivateKeyCertificate);
+
             //M:N relations for ProjectContact
             modelBuilder.Entity<ProjectContact>()
                 .HasKey(pc => new { pc.ProjectId, pc.ContactId });
@@ -273,10 +284,11 @@ namespace HEAppE.DataAccessTier
                 Id = cc.Id,
                 Username = cc.Username,
                 Password = cc.Password,
-                PrivateKeyFile = cc.PrivateKeyFile,
-                PrivateKeyPassword = cc.PrivateKeyPassword,
+                PrivateKey = cc.PrivateKey,
+                PrivateKeyPassphrase = cc.PrivateKeyPassphrase,
                 CipherType = cc.CipherType,
-                IsDeleted = cc.IsDeleted
+                IsDeleted = cc.IsDeleted,
+                AuthenticationType = cc.AuthenticationType
             }));
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.FileTransferMethods);
@@ -290,6 +302,7 @@ namespace HEAppE.DataAccessTier
 
             InsertOrUpdateSeedData(MiddlewareContextSettings.Projects);
             InsertOrUpdateSeedData(MiddlewareContextSettings.SubProjects);
+            InsertOrUpdateSeedData(MiddlewareContextSettings.AccountingStates);
             
             InsertOrUpdateSeedData(MiddlewareContextSettings.ProjectClusterNodeTypeAggregations, false);
             InsertOrUpdateSeedData(MiddlewareContextSettings.Contacts);
@@ -320,7 +333,10 @@ namespace HEAppE.DataAccessTier
             entries.ToList().ForEach(e => e.State = EntityState.Detached);
 
             //Update Authentication type
-            ClusterAuthenticationCredentials.ToList().ForEach(clusterAuthenticationCredential =>
+
+            var clusterAuthCredWithVaultData = WithVaultData(ClusterAuthenticationCredentials);
+
+            clusterAuthCredWithVaultData.ToList().ForEach(clusterAuthenticationCredential =>
             {
                 var clusters = clusterAuthenticationCredential.ClusterProjectCredentials
                                                                 .Select(x => x.ClusterProject.Cluster)
@@ -330,7 +346,6 @@ namespace HEAppE.DataAccessTier
                     clusterAuthenticationCredential.AuthenticationType = ClusterAuthenticationCredentialsUtils.GetCredentialsAuthenticationType(clusterAuthenticationCredential, clusters.First());
                 }
             });
-
             SaveChanges();
             _log.Info("Seed data into the database completed.");
         }
@@ -342,6 +357,21 @@ namespace HEAppE.DataAccessTier
             ValidateClusterAuthenticationCredentialsClusterReference(MiddlewareContextSettings.ClusterAuthenticationCredentials);
             ValidateProjectContactReferences(MiddlewareContextSettings.ProjectContacts);
             _log.Info("Seed validation completed.");
+        }
+
+        private IEnumerable<ClusterAuthenticationCredentials> WithVaultData(IEnumerable<ClusterAuthenticationCredentials> credentials)
+        {
+            if (credentials == null)
+            {
+                return Enumerable.Empty<ClusterAuthenticationCredentials>();
+            }
+            var _vaultConnector = new VaultConnector();
+            foreach (var item in credentials)
+            {
+                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
+                item.ImportVaultData(vaultData);
+            }
+            return credentials;
         }
 
         /// <summary>
@@ -419,9 +449,9 @@ namespace HEAppE.DataAccessTier
 
                 if (useSetIdentity)
                 {
-                    Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} ON;");
+                    Database.ExecuteSqlInterpolated($"SET IDENTITY_INSERT {tableName} ON;");
                     SaveChanges();
-                    Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} OFF;");
+                    Database.ExecuteSqlInterpolated($"SET IDENTITY_INSERT {tableName} OFF;");
                 }
                 else
                 {
@@ -458,36 +488,49 @@ namespace HEAppE.DataAccessTier
             switch (item)
             {
                 case IdentifiableDbEntity identifiableItem:
+                {
+                    var entity = Set<T>().Find(identifiableItem.Id);
+                    UpdateEntityOrAddItem(entity, item);
+                    entity = Set<T>().Find(identifiableItem.Id);
+
+                    if (entity is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                     {
-                        var entity = Set<T>().Find(identifiableItem.Id);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
+                        var vaultConnector = new VaultConnector();
+                        var vaultData = vaultConnector.GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id).GetAwaiter().GetResult();
+
+                        _log.Info(vaultData.Id > 0
+                            ? $"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials."
+                            : $"Vault data for ClusterAuthenticationCredentials with id {(item as ClusterAuthenticationCredentials)!.Id} not found. Creating new credentials.");
+                        var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();
+                        vaultConnector.SetClusterAuthenticationCredentials(newVaultData);
                     }
+                    break;
+                }
 
                 case AdaptorUserUserGroupRole userGroupItem:
-                    {
-                        var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId, userGroupItem.AdaptorUserRoleId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId, userGroupItem.AdaptorUserRoleId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case OpenStackAuthenticationCredentialProject openstackCredProject:
-                    {
-                        var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId, openstackCredProject.OpenStackProjectId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId, openstackCredProject.OpenStackProjectId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case OpenStackAuthenticationCredentialDomain openstackCredDomain:
-                    {
-                        var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId, openstackCredDomain.OpenStackDomainId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case ClusterProjectCredential clusterProjectCredentials:
-                    {
-                        var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
-                        UpdateEntityOrAddItem(entity, item);
-                        break;
-                    }
+                {
+                    var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId, clusterProjectCredentials.ClusterAuthenticationCredentialsId);
+                    UpdateEntityOrAddItem(entity, item);
+                    break;
+                }
                 case ProjectContact projectContact:
                     {
                         var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
@@ -511,7 +554,7 @@ namespace HEAppE.DataAccessTier
                         break;
                     }
                 default:
-                    throw new DbContextException("NotSupportedSeedEntity", typeof(T).Name);
+                throw new DbContextException("NotSupportedSeedEntity", typeof(T).Name);
             }
         }
         #endregion

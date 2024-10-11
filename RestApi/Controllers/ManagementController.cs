@@ -1927,8 +1927,33 @@ namespace HEAppE.RestApi.Controllers
                 throw new InputValidationException(validationResult.Message);
             }
 
-            _managementService.ComputeAccounting(model.StartTime, model.EndTime, model.SessionCode);
-            return Ok("Accounting was computed.");
+            _managementService.ComputeAccounting(model.StartTime, model.EndTime, model.ProjectId, model.SessionCode);
+            return Ok($"Accounting triggered for project {model.ProjectId}.");
+        }
+        
+        
+        [HttpPost("AccountingState")]
+        [RequestSizeLimit(200)]
+        [ProducesResponseType(typeof(AccountingStateExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult ListAccountingStates(long projectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"AccountingState\"");
+            var model = new AccountingStateModel()
+            {
+                ProjectId = projectId,
+                SessionCode = sessionCode
+            };
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            return Ok(_managementService.ListAccountingStates(projectId, sessionCode));
         }
 
         #endregion

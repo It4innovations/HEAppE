@@ -5,6 +5,7 @@ include:
 variables:
   HEAPPE_IMAGE_NAME: heappe
   SSHAGENT_IMAGE_NAME: sshagent
+  
 
 services:
   - docker:dind
@@ -34,7 +35,7 @@ release_msg_job:
       dotenv: release_variables.env  
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
@@ -61,7 +62,7 @@ heappe_build:
     - docker image prune
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
@@ -88,13 +89,28 @@ sshagent_build:
     - docker image prune
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
 
 semgrep-sast:
   stage: test
+  variables:
+    SAST_EXIT_CODES: "1"  # Nastavení, které způsobí selhání jobu při zjištění zranitelností
+  before_script:
+    # Instalace jq
+    - apk add jq
+  script:
+    - /analyzer run
+    # Kontrola, zda jsou v reportu nějaké zranitelnosti
+    - |
+      if [ $(jq '.vulnerabilities | length' gl-sast-report.json) -gt 0 ]; then
+        echo "Vulnerabilities found, failing the job."
+        exit 1
+      else
+        echo "No vulnerabilities found."
+      fi
   artifacts:
     paths:
       - gl-sast-report.json
@@ -122,7 +138,7 @@ release_job:
     GIT_STRATEGY: clone
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master
@@ -158,7 +174,7 @@ push_to_github_job:
     GIT_STRATEGY: clone
   tags:
     - Docker
-    - Centos9
+    - Centos
     - IT4I_Network
   only:
     - master 

@@ -1,12 +1,13 @@
-﻿using Org.BouncyCastle.Crypto;
+﻿using System;
+using System.IO;
+using System.Text;
+
+using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
 using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Utilities;
 using Org.BouncyCastle.Security;
 using Org.BouncyCastle.Utilities.IO.Pem;
-using System;
-using System.IO;
-using System.Text;
 
 namespace HEAppE.CertificateGenerator.Generators.v2
 {
@@ -117,10 +118,10 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             pemWriter.Writer.Flush();
             return stringWriter.ToString();
         }
-        public new static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKeyPath,
-            string passphrase, string comment= null)
+        public static new string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
+            string passphrase, string comment = null)
         {
-            var fileStream = System.IO.File.OpenText(privateKeyPath);
+            using var fileStream = new StringReader(privateKey);
             var pemReader = new Org.BouncyCastle.OpenSsl.PemReader(fileStream, new PasswordFinder(passphrase));
             var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
             var publicKey = keyPair.Public;
@@ -130,7 +131,7 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             StringBuilder formattedPublicKey = new StringBuilder();
             formattedPublicKey.Append("ssh-rsa ");
             formattedPublicKey.Append(base64PublicKey);
-            
+
             if (!string.IsNullOrEmpty(comment))
             {
                 formattedPublicKey.Append($" {comment}");

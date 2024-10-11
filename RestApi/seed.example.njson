@@ -100,16 +100,18 @@
             "Id":1,
             "Username":"{UserName}",
             "Password":null,
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
+            "PrivateKeyCertificate":"{PrivateKeyCertificate}",
             "CipherType":1
          },
          {
             "Id":2,
             "Username":"{UserName}",
             "Password":null,
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
+            "PrivateKeyCertificate":"{PrivateKeyCertificate}",
             "CipherType":1
          }
       ],
@@ -211,6 +213,17 @@
             "IsDeleted":false,
             "ValidityFrom":"{ValidityFrom}",
             "ValidityTo":"{ValidityTo}"
+         }
+      ],
+      "AccountingStates":[
+         {
+            "Id":1,
+            "ProjectId":1,
+            "AccountingStateType":1,
+            "ComputingStartDate":"{ComputingStartDate}",
+            "ComputingEndDate":"{ComputingEndDate}",
+            "TriggeredAt":"{TriggeredAt}",
+            "LastUpdatedAt":"{LastUpdatedAt}"
          }
       ],
       "ClusterNodeTypeAggregations":[

@@ -85,11 +85,11 @@
             "Id":1,
             "Name":"{LocalComputingClusterName}",
             "Description":"{ClusterDescription}",
-            "MasterNodeName":"host.docker.internal",
+            "MasterNodeName":"localhpc",
             "SchedulerType":1,
             "ConnectionProtocol":2,
             "TimeZone":"CET",
-            "Port":49500,
+            "Port":22,
             "UpdateJobStateByServiceAccount":true,
             "DomainName":"localhost",
             "ProxyConnectionId":null
@@ -100,16 +100,16 @@
             "Id":1,
             "Username":"heappeclient",
             "Password":"pass",
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
             "CipherType":1
          },
          {
             "Id":2,
             "Username":"heappeclient",
             "Password":"pass",
-            "PrivateKeyFile":"{PrivateKeyFile}",
-            "PrivateKeyPassword":"{PrivateKeyPassword}",
+            "PrivateKey":"{PrivateKeyFile}",
+            "PrivateKeyPassphrase":"{PrivateKeyPassword}",
             "CipherType":1
          }
       ],
@@ -198,7 +198,8 @@
             "MaxWalltime":"{MaxWalltime}",
             "ClusterId":1,
             "FileTransferMethodId":1,
-            "ClusterAllocationName":null
+            "ClusterAllocationName":null,
+            "ClusterNodeTypeAggregationId":1
          }
       ],
       "Accountings":[
@@ -212,6 +213,17 @@
             "ValidityTo":"{ValidityTo}"
          }
       ],
+     "AccountingStates":[
+        {
+           "Id":1,
+           "ProjectId":1,
+           "AccountingStateType":1,
+           "ComputingStartDate":"{ComputingStartDate}",
+           "ComputingEndDate":"{ComputingEndDate}",
+           "TriggeredAt":"{TriggeredAt}",
+           "LastUpdatedAt":"{LastUpdatedAt}"
+        }
+     ],
       "ClusterNodeTypeAggregations":[
          {
             "Id":1,
@@ -298,7 +310,7 @@
       "FileTransferMethods":[
          {
             "Id":1,
-            "ServerHostname":"{ServerHostNameDNS}",
+            "ServerHostname":"localhpc",
             "Protocol":2,
             "Port":null,
             "ClusterId":1

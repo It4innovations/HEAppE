@@ -38,10 +38,10 @@ namespace HEAppE.ServiceTier.JobManagement
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                 SubProject subProject = null;
                 
-                if (!string.IsNullOrEmpty(specification.SubProject))
+                if (!string.IsNullOrEmpty(specification.SubProjectIdentifier))
                 {
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                    subProject = managementLogic.CreateSubProject(specification.SubProject, specification.ProjectId);
+                    subProject = managementLogic.CreateSubProject(specification.SubProjectIdentifier, specification.ProjectId);
                 }
                 
                 JobSpecification js = specification.ConvertExtToInt(specification.ProjectId, subProject?.Id);
@@ -74,14 +74,14 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public void DeleteJob(long submittedJobInfoId, string sessionCode)
+        public bool DeleteJob(long submittedJobInfoId, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ?? throw new InputValidationException("NotExistingJob", submittedJobInfoId);
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter, job.Project.Id);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
-                jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
+                return jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
             }
         }
 

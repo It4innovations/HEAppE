@@ -189,15 +189,23 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             return jobInfo;
         }
 
-        public virtual void DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
+        public virtual bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
         {
             _logger.Info($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
             SubmittedJobInfo jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
             var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId, jobInfo.Project.Id) ?? throw new InvalidRequestException("NotExistingProject");
 
-            if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount)
+            if (jobInfo.State is JobState.Configuring or >= JobState.Finished and not JobState.WaitingForServiceAccount and not JobState.Deleted)
             {
-                SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
+                bool isDeleted = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
+                if (isDeleted)
+                {
+                    jobInfo.State = JobState.Deleted;
+                    jobInfo.Tasks.ForEach(f => f.State = TaskState.Deleted);
+                    _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+                    _unitOfWork.Save();
+                }
+                return isDeleted;
             }
             else
             {
@@ -648,16 +656,11 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
 
         protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo clusterTaskInfo)
         {
-            var accountingFormula = dbTaskInfo.NodeType
-                .ClusterNodeTypeAggregation
-                .ClusterNodeTypeAggregationAccountings
-                .LastOrDefault(x=>x.Accounting.IsValid(clusterTaskInfo.StartTime, clusterTaskInfo.EndTime))
-                ?.Accounting.Formula;
+            ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, _logger);
             
             if (clusterTaskInfo is null)
             {
                 dbTaskInfo.State = TaskState.Failed;
-                dbTaskInfo.ResourceConsumed = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, clusterTaskInfo.ParsedParameters, _logger);
                 return dbTaskInfo;
             }
 
@@ -673,7 +676,6 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             dbTaskInfo.State = clusterTaskInfo.State;
             dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
             dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
-            dbTaskInfo.ResourceConsumed = ResourceAccountingUtils.CalculateAllocatedResources(accountingFormula, clusterTaskInfo.ParsedParameters, _logger);
             return dbTaskInfo;
         }
     }
