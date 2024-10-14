@@ -1,4 +1,4 @@
-﻿using AspNetCoreRateLimit;
+using AspNetCoreRateLimit;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
@@ -120,6 +120,7 @@ namespace HEAppE.RestApi
             //SwaggerGen
             services.AddSwaggerGen(gen =>
             {
+                // Default Swagger document
                 gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo
                 {
                     Version = SwaggerConfiguration.Version,
@@ -137,6 +138,44 @@ namespace HEAppE.RestApi
                         Email = SwaggerConfiguration.ContactEmail,
                         Url = new Uri(SwaggerConfiguration.ContactUrl),
                     }
+                });
+
+                // Swagger document for hidden/private API
+                gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
+                {
+                    Version = SwaggerConfiguration.Version,
+                    Title = SwaggerConfiguration.DetailedJobReportingTitle,
+                    Description = SwaggerConfiguration.Description,
+                    TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
+                    License = new OpenApiLicense()
+                    {
+                        Name = SwaggerConfiguration.License,
+                        Url = new Uri(SwaggerConfiguration.LicenseUrl),
+                    },
+                    Contact = new OpenApiContact()
+                    {
+                        Name = SwaggerConfiguration.ContactName,
+                        Email = SwaggerConfiguration.ContactEmail,
+                        Url = new Uri(SwaggerConfiguration.ContactUrl),
+                    }
+                });
+
+                // Group APIs into documents based on ApiExplorerSettings
+                gen.DocInclusionPredicate((documentName, apiDescription) =>
+                {
+                    // Include in the private document if tagged with DetailedJobReporting
+                    if (documentName == "DetailedJobReporting")
+                    {
+                        return apiDescription.GroupName == "DetailedJobReporting";
+                    }
+
+                    // Include in the public document
+                    if (documentName == SwaggerConfiguration.Version)
+                    {
+                        return string.IsNullOrEmpty(apiDescription.GroupName);
+                    }
+
+                    return false;
                 });
 
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
@@ -214,6 +253,7 @@ namespace HEAppE.RestApi
                                         ? string.Empty
                                         : "/" + SwaggerConfiguration.HostPostfix;
                 swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/{SwaggerConfiguration.Version}/swagger.json", SwaggerConfiguration.Title);
+                swaggerUI.SwaggerEndpoint($"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json", SwaggerConfiguration.DetailedJobReportingTitle);
                 swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
                 swaggerUI.EnableTryItOutByDefault();
             });

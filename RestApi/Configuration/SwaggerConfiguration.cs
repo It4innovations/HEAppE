@@ -1,4 +1,4 @@
-﻿namespace HEAppE.RestApi.Configuration
+namespace HEAppE.RestApi.Configuration
 {
     /// <summary>
     /// Swagger setting from config
@@ -21,6 +21,11 @@
         /// API Title
         /// </summary>
         public static string Title { get; set; }
+
+        /// <summary>
+        /// Detailed Job Reporting API Title
+        /// </summary>
+        public static string DetailedJobReportingTitle { get; set; }
 
         /// <summary>
         /// API Description

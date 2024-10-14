@@ -1,4 +1,4 @@
-﻿using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;
@@ -140,6 +140,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="sessionCode"></param>
         /// <returns></returns>
         [HttpGet("AggregatedUserGroupResourceUsageReport")]
+        [ApiExplorerSettings(GroupName = "DetailedJobReporting")]
         [RequestSizeLimit(168)]
         [ProducesResponseType(typeof(IEnumerable<ProjectAggregatedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -228,6 +229,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="sessionCode">Session code</param>
         /// <returns></returns>
         [HttpGet("JobsDetailedReport")]
+        [ApiExplorerSettings(GroupName = "DetailedJobReporting")]
         [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(IEnumerable<ProjectDetailedReportExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
