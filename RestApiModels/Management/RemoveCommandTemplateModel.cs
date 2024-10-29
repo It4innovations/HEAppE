@@ -1,4 +1,5 @@
 ﻿using HEAppE.RestApiModels.AbstractModels;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace HEAppE.RestApiModels.Management
@@ -8,9 +9,14 @@ namespace HEAppE.RestApiModels.Management
     {
         [DataMember(Name = "Id", IsRequired = true)]
         public long CommandTemplateId { get; set; }
+
+        [DataMember(Name = "DoRestore", IsRequired = false)]
+        [DefaultValue(false)]
+        public bool DoRestore { get; set; }
+        
         public override string ToString()
         {
-            return $"RemoveCommandTemplateModel({base.ToString()}; CommandTemplateId: {CommandTemplateId})";
+            return $"RemoveCommandTemplateModel({base.ToString()}; CommandTemplateId: {CommandTemplateId}; DoRestore: {DoRestore})";
         }
     }
 }

@@ -97,7 +97,7 @@ namespace HEAppE.ServiceTier.Management
             }
         }
 
-        public void RemoveCommandTemplate(long commandTemplateId, string sessionCode)
+        public void RemoveCommandTemplate(long commandTemplateId, bool doRestore, string sessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
@@ -111,7 +111,7 @@ namespace HEAppE.ServiceTier.Management
 
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Maintainer, commandTemplate.ProjectId.Value);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                managementLogic.RemoveCommandTemplate(commandTemplateId);
+                managementLogic.RemoveCommandTemplate(commandTemplateId, doRestore);
             }
         }
 
