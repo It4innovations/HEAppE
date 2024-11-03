@@ -1,4 +1,4 @@
-﻿{
+{
    "MiddlewareContextSettings":{
       "AdaptorUsers":[
          {
@@ -254,32 +254,34 @@
          }
       ],
       "CommandTemplates":[
-         {
-            "Id":1,
-            "Name":"TestTemplate",
-            "Description":"TestTemplate",
-            "ExtendedAllocationCommand":null,
-            "ExecutableFile":"~/.key_scripts/test.sh",
-            "CommandParameters":"%%{inputParam}",
-            "PreparationScript":null,
-            "ClusterNodeTypeId":1,
-            "IsGeneric":false,
-            "IsEnabled":true,
-            "ProjectId":1
-         },
-         {
-            "Id":2,
-            "Name":"GenericCommandTemplate",
-            "Description":"Command template for generic job.",
-            "ExtendedAllocationCommand":null,
-            "ExecutableFile":"~/.key_scripts/generic.sh",
-            "CommandParameters":"%%{userScriptPath} %%{userScriptParametres}",
-            "PreparationScript":null,
-            "ClusterNodeTypeId":1,
-            "IsGeneric":true,
-            "IsEnabled":true,
-            "ProjectId":1
-         }
+        {
+            "Id": 1,
+            "Name": "TestTemplate",
+            "Description": "TestTemplate",
+            "ExtendedAllocationCommand": null,
+            "ExecutableFile": "~/.key_scripts/test.sh",
+            "CommandParameters": "%%{inputParam}",
+            "PreparationScript": null,
+            "ClusterNodeTypeId": 1,
+            "IsGeneric": false,
+            "IsEnabled": true,
+            "IsDeleted": false,
+            "ProjectId": 1
+        },
+        {
+            "Id": 2,
+            "Name": "GenericCommandTemplate",
+            "Description": "Command template for generic job.",
+            "ExtendedAllocationCommand": null,
+            "ExecutableFile": "~/.key_scripts/generic.sh",
+            "CommandParameters": "%%{userScriptPath} %%{userScriptParametres}",
+            "PreparationScript": null,
+            "ClusterNodeTypeId": 1,
+            "IsGeneric": true,
+            "IsEnabled": true,
+            "IsDeleted": false,
+            "ProjectId": 1
+        }
       ],
       "CommandTemplateParameters":[
          {

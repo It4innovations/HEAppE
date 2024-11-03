@@ -174,9 +174,14 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 _ = _messageBuilder.AppendLine($"Task {task.Name} has wrong CommandTemplate");
             }
 
-            if (!task.CommandTemplate.IsEnabled)
+            if (task.CommandTemplate.IsDeleted)
             {
                 _ = _messageBuilder.AppendLine($"Task {task.Name} has specified deleted CommandTemplateId \"{task.CommandTemplate.Id}\"");
+            }
+
+            if (!task.CommandTemplate.IsEnabled)
+            {
+                _ = _messageBuilder.AppendLine($"Task {task.Name} has specified disabled CommandTemplateId \"{task.CommandTemplate.Id}\"");
             }
 
             if (task.CommandTemplate.IsGeneric)

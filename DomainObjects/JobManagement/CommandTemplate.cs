@@ -58,7 +58,7 @@ namespace HEAppE.DomainObjects.JobManagement
         
         public override string ToString()
         {
-            return $"CommandTemplate({base.ToString()}; Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; CommandParameters: {CommandParameters}; PreparationScript: {PreparationScript}; IsGeneric: {IsGeneric}; IsEnabled: {IsEnabled}; ClusterNodeTypeId: {ClusterNodeTypeId}; ProjectId: {ProjectId}; CreatedFromId: {CreatedFromId}; CreatedAt: {CreatedAt}; ModifiedAt: {ModifiedAt})";
+            return $"CommandTemplate({base.ToString()}; Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; CommandParameters: {CommandParameters}; PreparationScript: {PreparationScript}; IsGeneric: {IsGeneric}; IsEnabled: {IsEnabled}; IsDeleted: {IsDeleted}; ClusterNodeTypeId: {ClusterNodeTypeId}; ProjectId: {ProjectId}; CreatedFromId: {CreatedFromId}; CreatedAt: {CreatedAt}; ModifiedAt: {ModifiedAt})";
         }
     }
 }
