@@ -36,6 +36,9 @@ namespace HEAppE.DomainObjects.JobManagement
         [Required]
         public bool IsEnabled { get; set; } = true;
 
+        [Required]
+        public bool IsDeleted { get; set; } = false;
+
         public virtual List<CommandTemplateParameter> TemplateParameters { get; set; } = new List<CommandTemplateParameter>();
 
         [ForeignKey("ClusterNodeType")]
