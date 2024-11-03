@@ -316,15 +316,14 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         /// </summary>
         /// <param name="commandTemplateId"></param>
         /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-        public void RemoveCommandTemplate(long commandTemplateId, bool doRestore)
+        public void RemoveCommandTemplate(long commandTemplateId)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
 
-            _logger.Info(doRestore ? $"Restoring command template: {commandTemplate}" : $"Removing command template: {commandTemplate}");
-            commandTemplate.IsEnabled = doRestore;
+            _logger.Info($"Removing command template: {commandTemplate}");
+            commandTemplate.IsEnabled = false;
             _unitOfWork.Save();
         }
-        
         /// <summary>
         /// Creates a new project in the database and returns it
         /// </summary>

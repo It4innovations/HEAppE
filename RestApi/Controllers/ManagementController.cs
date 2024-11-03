@@ -1,4 +1,4 @@
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
+﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
@@ -309,7 +309,7 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="model">RemoveCommandTemplateModel</param>
         /// <returns></returns>
         [HttpDelete("RemoveCommandTemplate")]
-        [RequestSizeLimit(107)]
+        [RequestSizeLimit(90)]
         [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -326,10 +326,9 @@ namespace HEAppE.RestApi.Controllers
             }
 
             ClearListAvailableClusterMethodCache();
-            _managementService.RemoveCommandTemplate(model.CommandTemplateId, model.DoRestore, model.SessionCode);
-            return Ok(model.DoRestore ? "CommandTemplate has been restored." : "CommandTemplate was deleted.");
+            _managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode);
+            return Ok("CommandTemplate was deleted.");
         }
-        
         #endregion
 
         #region CommandTemplateParameter

@@ -25,7 +25,7 @@ namespace HEAppE.ServiceTier.Management
             string description, string extendedAllocationCommand, string executableFile, string preparationScript,
             string sessionCode);
 
-        void RemoveCommandTemplate(long commandTemplateId, bool doRestore, string sessionCode);
+        void RemoveCommandTemplate(long commandTemplateId, string sessionCode);
 
         ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
             DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail,
