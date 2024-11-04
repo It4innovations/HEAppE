@@ -76,7 +76,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new InputValidationException("CommandTemplateNotGeneric");
             }
 
-            if (!commandTemplate.IsEnabled)
+            if (commandTemplate.IsDeleted)
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
@@ -119,6 +119,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 Description = description,
                 IsGeneric = false,
                 IsEnabled = true,
+                IsDeleted = false,
                 Project = project,
                 ClusterNodeType = commandTemplate.ClusterNodeType,
                 ClusterNodeTypeId = commandTemplate.ClusterNodeTypeId,
@@ -169,6 +170,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 Description = modelDescription,
                 IsGeneric = false,
                 IsEnabled = true,
+                IsDeleted = false,
                 Project = project,
                 ProjectId = project.Id,
                 ClusterNodeType = clusterNodeType,
@@ -191,7 +193,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
         public CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription,
             string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
-            long modelClusterNodeTypeId)
+            long modelClusterNodeTypeId, bool modelIsEnabled)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelId);
             if (commandTemplate is null)
@@ -199,7 +201,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
-            if (!commandTemplate.IsEnabled)
+            if (commandTemplate.IsDeleted)
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
@@ -209,6 +211,8 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
             }
+
+            commandTemplate.IsEnabled = modelIsEnabled;
             commandTemplate.Name = modelName;
             commandTemplate.Description = modelDescription;
             commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
@@ -262,7 +266,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             }
 
-            if (!commandTemplate.IsEnabled)
+            if (commandTemplate.IsDeleted)
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
@@ -321,7 +325,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
 
             _logger.Info($"Removing command template: {commandTemplate}");
-            commandTemplate.IsEnabled = false;
+            commandTemplate.IsDeleted = true;
             _unitOfWork.Save();
         }
         /// <summary>
@@ -934,7 +938,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
-            if (!commandTemplate.IsEnabled)
+            if (commandTemplate.IsDeleted)
             {
                 throw new InputValidationException("CommandTemplateDeleted");
             }
@@ -1035,7 +1039,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         public List<CommandTemplate> ListCommandTemplates(long projectId)
         {
             return _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(projectId)
-                .Where(x => x.IsEnabled)
+                .Where(x => !x.IsDeleted)
                 .ToList();
         }
 

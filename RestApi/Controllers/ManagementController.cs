@@ -271,7 +271,7 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
-            var commandTemplate = _managementService.ModifyCommandTemplateModel(model.Id, model.Name, model.Description, model.ExtendedAllocationCommand, model.ExecutableFile, model.PreparationScript, model.ClusterNodeTypeId, model.SessionCode);
+            var commandTemplate = _managementService.ModifyCommandTemplateModel(model.Id, model.Name, model.Description, model.ExtendedAllocationCommand, model.ExecutableFile, model.PreparationScript, model.ClusterNodeTypeId, model.IsEnabled, model.SessionCode);
             ClearListAvailableClusterMethodCache();
             return Ok(commandTemplate);
         }

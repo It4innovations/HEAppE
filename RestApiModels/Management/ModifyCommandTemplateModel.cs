@@ -28,9 +28,12 @@ namespace HEAppE.RestApiModels.Management
         [DataMember(Name = "ClusterNodeTypeId", IsRequired = true)]
         public long ClusterNodeTypeId { get; set; }
         
+        [DataMember(Name = "IsEnabled", IsRequired = true)]
+        public bool IsEnabled { get; set; }
+        
         public override string ToString()
         {
-            return $"ModifyCommandTemplateModel({base.ToString()}; Id: {Id}, Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; PreparationScript: {PreparationScript}, ClusterNodeTypeId: {ClusterNodeTypeId})";
+            return $"ModifyCommandTemplateModel({base.ToString()}; Id: {Id}, Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; PreparationScript: {PreparationScript}, ClusterNodeTypeId: {ClusterNodeTypeId}, IsEnabled: {IsEnabled})";
         }
     }
 }
