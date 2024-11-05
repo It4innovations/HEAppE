@@ -22,6 +22,7 @@ services:
     restart: unless-stopped
     volumes:
       - sql_volume:/var/opt/mssql
+    user: root
     ports:
       - "${HOST_MSSQL_PORT}:1433"
     environment:
