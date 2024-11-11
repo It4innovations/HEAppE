@@ -20,6 +20,7 @@ services:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: "${INSTANCE_NAME}_mssql"
     restart: unless-stopped
+    user: root
     volumes:
       - sql_volume:/var/opt/mssql
     ports:

@@ -449,9 +449,9 @@ namespace HEAppE.DataAccessTier
 
                 if (useSetIdentity)
                 {
-                    Database.ExecuteSqlInterpolated($"SET IDENTITY_INSERT {tableName} ON;");
+                    Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} ON;");
                     SaveChanges();
-                    Database.ExecuteSqlInterpolated($"SET IDENTITY_INSERT {tableName} OFF;");
+                    Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} OFF;");
                 }
                 else
                 {

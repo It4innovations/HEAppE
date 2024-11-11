@@ -36,6 +36,9 @@ namespace HEAppE.DomainObjects.JobManagement
         [Required]
         public bool IsEnabled { get; set; } = true;
 
+        [Required]
+        public bool IsDeleted { get; set; } = false;
+
         public virtual List<CommandTemplateParameter> TemplateParameters { get; set; } = new List<CommandTemplateParameter>();
 
         [ForeignKey("ClusterNodeType")]
@@ -55,7 +58,7 @@ namespace HEAppE.DomainObjects.JobManagement
         
         public override string ToString()
         {
-            return $"CommandTemplate({base.ToString()}; Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; CommandParameters: {CommandParameters}; PreparationScript: {PreparationScript}; IsGeneric: {IsGeneric}; IsEnabled: {IsEnabled}; ClusterNodeTypeId: {ClusterNodeTypeId}; ProjectId: {ProjectId}; CreatedFromId: {CreatedFromId}; CreatedAt: {CreatedAt}; ModifiedAt: {ModifiedAt})";
+            return $"CommandTemplate({base.ToString()}; Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; CommandParameters: {CommandParameters}; PreparationScript: {PreparationScript}; IsGeneric: {IsGeneric}; IsEnabled: {IsEnabled}; IsDeleted: {IsDeleted}; ClusterNodeTypeId: {ClusterNodeTypeId}; ProjectId: {ProjectId}; CreatedFromId: {CreatedFromId}; CreatedAt: {CreatedAt}; ModifiedAt: {ModifiedAt})";
         }
     }
 }

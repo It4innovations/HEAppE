@@ -14,7 +14,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
     {
         CommandTemplate CreateCommandTemplate(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId);
         CommandTemplate CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript);
-        CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript, long modelClusterNodeTypeId);
+        CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript, long modelClusterNodeTypeId, bool modelIsEnabled);
         CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId, string description, string code, string executableFile, string preparationScript);
         void RemoveCommandTemplate(long commandTemplateId);
         Project GetProjectById(long id);

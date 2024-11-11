@@ -22,7 +22,7 @@ heappe_build_development:
     - docker image prune
   tags:
     - Docker
-    - Centos
+    - Centos9
     - IT4I_Network
   only:
     - develop
@@ -46,7 +46,7 @@ sshagent_build_development:
     - docker image prune
   tags:
     - Docker
-    - Centos
+    - Centos9
     - IT4I_Network
   only:
     - develop

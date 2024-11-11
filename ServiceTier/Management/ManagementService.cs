@@ -72,19 +72,19 @@ namespace HEAppE.ServiceTier.Management
 
         public ExtendedCommandTemplateExt ModifyCommandTemplateModel(long modelId, string modelName, string modelDescription,
             string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
-            long modelClusterNodeTypeId, string modelSessionCode)
+            long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelId)
                     ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-                if (!commandTemplate.ProjectId.HasValue || !commandTemplate.IsEnabled)
+                if (!commandTemplate.ProjectId.HasValue || commandTemplate.IsDeleted)
                 {
                     throw new InputValidationException("NotPermitted");
                 }
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                CommandTemplate updatedCommandTemplate = managementLogic.ModifyCommandTemplate(modelId, modelName, modelDescription, modelExtendedAllocationCommand, modelExecutableFile, modelPreparationScript, modelClusterNodeTypeId);
+                CommandTemplate updatedCommandTemplate = managementLogic.ModifyCommandTemplate(modelId, modelName, modelDescription, modelExtendedAllocationCommand, modelExecutableFile, modelPreparationScript, modelClusterNodeTypeId, modelIsEnabled);
                 return updatedCommandTemplate.ConvertIntToExtendedExt();
             }
         }
@@ -310,7 +310,7 @@ namespace HEAppE.ServiceTier.Management
                     throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
                 }
 
-                if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+                if (!commandTemplateParameter.CommandTemplate.IsEnabled || commandTemplateParameter.CommandTemplate.IsDeleted)
                 {
                     throw new InputValidationException("NotPermitted");
                 }
@@ -350,7 +350,7 @@ namespace HEAppE.ServiceTier.Management
             {
                 CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
                                     ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-                if (!commandTemplate.IsEnabled)
+                if (commandTemplate.IsDeleted)
                 {
                     throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
                 }

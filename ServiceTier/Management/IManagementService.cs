@@ -22,7 +22,7 @@ namespace HEAppE.ServiceTier.Management
 
         ExtendedCommandTemplateExt ModifyCommandTemplateModel(long modelId, string modelName, string modelDescription,
             string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
-            long modelClusterNodeTypeId, string modelSessionCode);
+            long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode);
 
         CommandTemplateExt ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
             string description, string extendedAllocationCommand, string executableFile, string preparationScript,
