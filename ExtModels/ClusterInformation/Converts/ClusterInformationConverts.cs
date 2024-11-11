@@ -88,6 +88,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 Description = commandTemplate.Description,
                 ExtendedAllocationCommand = commandTemplate.ExtendedAllocationCommand,
                 IsGeneric = commandTemplate.IsGeneric,
+                IsEnabled = commandTemplate.IsEnabled,
                 TemplateParameters = commandTemplate.TemplateParameters.Where(w => string.IsNullOrEmpty(w.Query) && w.IsVisible)
                                                                         .Select(s => s.ConvertIntToExt())
                                                                         .ToArray()

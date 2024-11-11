@@ -66,7 +66,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException($"ProjectNotFound");
             }
 
-            if (commandTemplate == null)
+            if (commandTemplate is null || commandTemplate.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
@@ -74,11 +74,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (!commandTemplate.IsGeneric)
             {
                 throw new InputValidationException("CommandTemplateNotGeneric");
-            }
-
-            if (commandTemplate.IsDeleted)
-            {
-                throw new InputValidationException("CommandTemplateDeleted");
             }
 
             CommandTemplateParameter commandTemplateParameter =
@@ -196,14 +191,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             long modelClusterNodeTypeId, bool modelIsEnabled)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelId);
-            if (commandTemplate is null)
+            if (commandTemplate is null || commandTemplate.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            }
-
-            if (commandTemplate.IsDeleted)
-            {
-                throw new InputValidationException("CommandTemplateDeleted");
             }
             
             ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId);
@@ -245,7 +235,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
 
-            if (commandTemplate is null)
+            if (commandTemplate is null || commandTemplate.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
@@ -264,11 +254,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             if (project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
-
-            if (commandTemplate.IsDeleted)
-            {
-                throw new InputValidationException("CommandTemplateDeleted");
             }
 
             if (commandTemplate.IsGeneric)
@@ -933,14 +918,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             string modelDescription, long modelCommandTemplateId)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId);
-            if (commandTemplate is null)
+            if (commandTemplate is null || commandTemplate.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            }
-
-            if (commandTemplate.IsDeleted)
-            {
-                throw new InputValidationException("CommandTemplateDeleted");
             }
 
             //if is not static
@@ -981,9 +961,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
             }
 
-            if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+            if (commandTemplateParameter.CommandTemplate.IsDeleted)
             {
-                throw new InputValidationException("CommandTemplateDeleted");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             //if is not static
@@ -1018,9 +998,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound");
             }
 
-            if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+            if (commandTemplateParameter.CommandTemplate.IsDeleted)
             {
-                throw new InputValidationException("CommandTemplateDeleted");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             //if is not static

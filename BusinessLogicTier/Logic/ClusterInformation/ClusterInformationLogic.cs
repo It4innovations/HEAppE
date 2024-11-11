@@ -74,12 +74,12 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
         public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, AdaptorUser loggedUser)
         {
             CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (commandTemplate is null)
+            if (commandTemplate is null || commandTemplate.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
             if (project is null && project.IsDeleted)
             {
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
