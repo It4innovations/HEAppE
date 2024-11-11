@@ -68,7 +68,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 //Task Validation
                 ValidateTaskSpecification(job.Tasks[i]);
 
-                if (job.Tasks[i].CommandTemplate is null)
+                if (job.Tasks[i].CommandTemplate is null || job.Tasks[i].CommandTemplate.IsDeleted)
                 {
                     //_messageBuilder.AppendLine($"Command Template does not exist.");
                     //this is validated in jobSpec
