@@ -68,7 +68,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
                 //Task Validation
                 ValidateTaskSpecification(job.Tasks[i]);
 
-                if (job.Tasks[i].CommandTemplate == null)
+                if (job.Tasks[i].CommandTemplate is null || job.Tasks[i].CommandTemplate.IsDeleted)
                 {
                     //_messageBuilder.AppendLine($"Command Template does not exist.");
                     //this is validated in jobSpec
@@ -153,7 +153,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators
 
             ValidateWallTimeLimit(task);
 
-            if (task.CommandTemplate == null)
+            if (task.CommandTemplate is null || task.CommandTemplate.IsDeleted)
             {
                 _ = _messageBuilder.AppendLine($"Command Template does not exist.");
                 return;

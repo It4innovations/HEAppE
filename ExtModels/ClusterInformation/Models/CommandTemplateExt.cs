@@ -21,12 +21,16 @@ namespace HEAppE.ExtModels.ClusterInformation.Models
         [DataMember(Name = "IsGeneric")]
         public bool IsGeneric { get; set; }
 
+        [DataMember(Name = "IsEnabled")]
+        public bool IsEnabled { get; set; }
+
+
         [DataMember(Name = "TemplateParameters")]
         public CommandTemplateParameterExt[] TemplateParameters { get; set; }
 
         public override string ToString()
         {
-            return $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; templateParameters={string.Join(";", TemplateParameters.Select(x=>x.ToString()))})";
+            return $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; isEnabled={IsEnabled}; templateParameters={string.Join(";", TemplateParameters.Select(x=>x.ToString()))})";
         }
     }
 }

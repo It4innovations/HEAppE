@@ -70,12 +70,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             {
                 throw new InputValidationException("CommandTemplateNotGeneric");
             }
-
-            if (commandTemplate.IsDeleted)
-            {
-                throw new InputValidationException("CommandTemplateDeleted");
-            }
-
+            
             CommandTemplateParameter commandTemplateParameter =
                 commandTemplate.TemplateParameters.FirstOrDefault(f => f.IsVisible);
             if (string.IsNullOrEmpty(commandTemplateParameter?.Identifier))
@@ -146,10 +141,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                  throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, modelProjectId);
 
             Project project = clusterProject.Project;
-            if (project is null)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
 
             CommandTemplate commandTemplate = new()
             {
@@ -196,10 +187,11 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             }
 
             Project project = commandTemplate.Project ??
-                throw new InvalidRequestException("NotPermitted");
+                              throw new InvalidRequestException("NotPermitted");
 
             ClusterNodeType clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId) ??
-                throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
+                                              throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotExists");
+
 
             _ = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterNodeType.ClusterId.Value, project.Id) ??
                 throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", modelClusterNodeTypeId, project.Id);
@@ -245,11 +237,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             Project project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-
-            if (commandTemplate.IsDeleted)
-            {
-                throw new InputValidationException("CommandTemplateDeleted");
-            }
 
             if (commandTemplate.IsGeneric)
             {
@@ -477,8 +464,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             if (cp != null)
             {
-                throw new InputValidationException("ProjectAlreadyExistWithCluster");
+                //Cluster to project is marked as deleted, update it
+                return !cp.IsDeleted
+                    ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
+                    : ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
             }
+
 
             //Create cluster to project mapping
             var modified = DateTime.UtcNow;
@@ -931,11 +922,6 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
-            if (commandTemplate.IsDeleted)
-            {
-                throw new InputValidationException("CommandTemplateDeleted");
-            }
-
             //if is not static
             if (commandTemplate.CreatedFrom is not null)
             {
@@ -985,9 +971,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
             }
 
-            if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+            if (commandTemplateParameter.CommandTemplate.IsDeleted)
             {
-                throw new InputValidationException("CommandTemplateDeleted");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             //if is not static
@@ -1029,9 +1015,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
             }
 
-            if (!commandTemplateParameter.CommandTemplate.IsEnabled)
+            if (commandTemplateParameter.CommandTemplate.IsDeleted)
             {
-                throw new InputValidationException("CommandTemplateDeleted");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             }
 
             //if is not static

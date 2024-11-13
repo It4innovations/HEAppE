@@ -56,7 +56,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
             {
                 throw new RequestedObjectDoesNotExistException($"ProjectNotFound");
             }
-
+                
             var clusterProjectIds = nodeType.Cluster.ClusterProjects.Where(x => x.ProjectId == projectId).Select(y=>y.ProjectId);
             var availableProjectIds = loggedUser.Groups.Where(g => clusterProjectIds.Contains(g.ProjectId.Value)).Select(x => x.ProjectId.Value).Distinct().ToList();
             if (availableProjectIds.Count == 0)
@@ -73,17 +73,9 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation
 
         public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath, AdaptorUser loggedUser)
         {
-            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId);
-            Project project = _unitOfWork.ProjectRepository.GetById(projectId);
-            if (commandTemplate is null)
-            {
-                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            }
+            CommandTemplate commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??  throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            Project project = _unitOfWork.ProjectRepository.GetById(projectId) ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-            if (project is null)
-            {
-                throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            }
 
             if (commandTemplate.IsGeneric)
             {
