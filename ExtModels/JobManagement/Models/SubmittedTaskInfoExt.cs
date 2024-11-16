@@ -40,9 +40,12 @@ namespace HEAppE.ExtModels.JobManagement.Models
         [DataMember(Name = "CpuHyperThreading")]
         public bool? CpuHyperThreading { get; set; }
 
+        [DataMember(Name = "Reason")]
+        public string Reason { get; set; }
+
         public override string ToString()
         {
-            return $"SubmittedTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; allocatedCoreIds={AllocatedCoreIds}; startTime={StartTime}; endTime={EndTime}; nodeType={NodeType}; errorMessage={ErrorMessage})";
+            return $"SubmittedTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; allocatedCoreIds={AllocatedCoreIds}; startTime={StartTime}; endTime={EndTime}; nodeType={NodeType}; errorMessage={ErrorMessage}; Reason={Reason})";
         }
     }
 }

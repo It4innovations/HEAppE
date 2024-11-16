@@ -221,6 +221,8 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 ErrorMessage = task.ErrorMessage,
                 NodeType = task.NodeType == null ? null
                             : task.NodeType?.ConvertIntToExt(task.Project, task.Specification.CommandTemplate),
+
+                Reason = task.Reason,
             };
             return convert;
         }
