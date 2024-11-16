@@ -7,14 +7,17 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Text.Json.Nodes;
 
 namespace HEAppE.ServiceTier.ClusterInformation
 {
@@ -52,26 +55,58 @@ namespace HEAppE.ServiceTier.ClusterInformation
             _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         }
 
-        public IEnumerable<ClusterExt> ListAvailableClusters()
+        public IEnumerable<ClusterExt> ListAvailableClusters(string clusterName, string nodeTypeName, string projectName, string commandTemplateName)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
+                ClusterExt[] value;
                 string memoryCacheKey = nameof(ListAvailableClusters);
 
-                if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] value))
+                if (_cacheProvider.TryGetValue(memoryCacheKey, out value))
                 {
                     _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
-                    return value;
                 }
                 else
                 {
                     _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                     IClusterInformationLogic clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                    var clusters = clusterLogic.ListAvailableClusters();
-                    var result = clusters.Select(s => s.ConvertIntToExt()).ToArray();
-                    _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
-                    return result;
+                    value = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExt()).ToArray();
+                    _cacheProvider.Set(memoryCacheKey, value, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
                 }
+
+                if (clusterName is null && nodeTypeName is null && projectName is null && commandTemplateName is null)
+                    return value;
+
+                var clusters = JsonConvert.DeserializeObject<ClusterExt[]>(JsonConvert.SerializeObject(value));
+
+                clusters = clusters.Where(x => clusterName is null || x.Name == clusterName).ToArray<ClusterExt>();
+                foreach (var cl in clusters)
+                {
+                    if (nodeTypeName is not null)
+                        cl.NodeTypes = cl.NodeTypes.Where(x => x.Name == nodeTypeName).ToArray<ClusterNodeTypeExt>();
+
+                    foreach (var nt in cl.NodeTypes)
+                    {
+                        if (projectName is not null)
+                            nt.Projects = nt.Projects.Where(x => x.Name == projectName).ToArray<ProjectExt>();
+
+                        if (commandTemplateName is not null)
+                        {
+                            foreach (var pr in nt.Projects)
+                                pr.CommandTemplates = pr.CommandTemplates.Where(x => x.Name == commandTemplateName).ToArray<CommandTemplateExt>();
+
+                            nt.Projects = nt.Projects.Where(x => x.CommandTemplates.Length > 0).ToArray<ProjectExt>();
+                        }
+                    }
+
+                    if (commandTemplateName is not null || projectName is not null)
+                        cl.NodeTypes = cl.NodeTypes.Where(x => x.Projects.Length > 0).ToArray<ClusterNodeTypeExt>();
+                }
+
+                if (commandTemplateName is not null || projectName is not null || nodeTypeName is not null)
+                    clusters = clusters.Where(x => x.NodeTypes.Length > 0).ToArray<ClusterExt>();
+
+                return clusters;
             }
         }
 
