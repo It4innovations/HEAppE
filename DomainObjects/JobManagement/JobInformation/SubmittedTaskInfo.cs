@@ -45,6 +45,9 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation
         [Column(TypeName = "text")]
         public string AllParameters { get; set; }
 
+        [StringLength(100)]
+        public string Reason { get; set; }
+
         [NotMapped]
         public Dictionary<string, string> ParsedParameters { get; set; }
         public virtual Project Project { get; set; }

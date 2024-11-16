@@ -4,16 +4,19 @@ using HEAppE.DataAccessTier;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HEAppE.DataAccessTier.Migrations
+namespace HEAppE.DataAccessTier.Mirgrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    partial class MiddlewareContextModelSnapshot : ModelSnapshot
+    [Migration("20241115210159_SubmittedTaskInfoReason")]
+    partial class SubmittedTaskInfoReason
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
