@@ -1,17 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>RestApiModels</AssemblyName>
     <RootNamespace>HEAppE.RestApiModels</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="11.9.1" />
+    <PackageReference Include="FluentValidation" Version="11.11.0" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\ExtModels\ExtModels.csproj" />
   </ItemGroup>
-
 </Project>

@@ -1,26 +1,20 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>CertificateGenerator</AssemblyName>
     <RootNamespace>HEAppE.CertificateGenerator</RootNamespace>
   </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="BouncyCastle.Cryptography" Version="2.3.1" />
-    <PackageReference Include="log4net" Version="2.0.17" />
-    <PackageReference Include="System.Security.Cryptography.Algorithms" Version="4.3.1" />
+    <PackageReference Include="BouncyCastle.Cryptography" Version="2.4.0" />
+    <PackageReference Include="log4net" Version="3.0.3" />
   </ItemGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
     <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
   </ItemGroup>
-
   <ItemGroup>
     <Reference Include="Renci.SshNet">
       <HintPath>..\dll\Renci.SshNet.dll</HintPath>
     </Reference>
   </ItemGroup>
-
 </Project>
