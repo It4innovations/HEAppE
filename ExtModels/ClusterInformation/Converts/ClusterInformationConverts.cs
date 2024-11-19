@@ -44,7 +44,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 foreach (var project in projectExts)
                 {
                     project.CommandTemplates = nodeType.PossibleCommands.Where(c =>
-                            !c.IsDeleted && c.IsEnabled && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
+                            !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
                         .Select(command => command.ConvertIntToExt())
                         .ToArray();
 
