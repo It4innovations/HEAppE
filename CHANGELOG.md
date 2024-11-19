@@ -9,13 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Automatic docker compose Vault initialization and unsealing procedure
-- Added propagation of JobState `Deleted` into `JobSpecification`
+- Propagation of JobState `Deleted` into `JobSpecification`
+- Feature to enable or disable `CommandTemplate` by `IsEnabled` property
 
 ### Fixed
 - An issue where creating and submitting a job with `MaxCores` missing
-
-### Security
-- Identified and fixed a potential SQL injection vulnerability
 
 
 ## V4.3.0
