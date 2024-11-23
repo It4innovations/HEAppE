@@ -136,7 +136,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             StringBuilder commandSb = new();
             var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
                                                         .Distinct();
-            localClusterJobIds.ToList().ForEach(id => commandSb.Append($"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(_scripts.SubExecutionsPath, id.ToString())};"));
+            localClusterJobIds.ToList().ForEach(id => commandSb.Append($"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CancelJobCmdScriptName} {Path.Combine(_scripts.SubExecutionsPath, id.ToString()).Replace('\\','/')};"));
             string command = commandSb.ToString();
 
             _log.Info($"Cancel jobs \"{string.Join(",", submitedTasksInfo.Select(s => s.ScheduledJobId))}\", command \"{command}\", message \"{message}\"");
@@ -328,7 +328,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal
             var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct();
             foreach (var jobId in scheduledJobIdsList)
             {
-                string jobDirPath = Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobId);
+                string jobDirPath = Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobId).Replace('\\','/');
                 string cliCommand= $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
                 var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cliCommand);
                 

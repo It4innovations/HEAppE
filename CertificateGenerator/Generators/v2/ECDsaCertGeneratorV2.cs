@@ -153,7 +153,7 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             return keyGenParameters;
         }
 
-        public static new string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
+        public static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
             string passphrase, string comment = null)
         {
             using var fileStream = new StringReader(privateKey);

@@ -486,9 +486,6 @@
   <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
     <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
-    <value>Nelze zrušit job '{0}', job je ve stavu '{1}'.</value>
-  </data>
   <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
     <value>Specifikovaný SubProject je smazaný nebo neplatný.</value>
   </data>

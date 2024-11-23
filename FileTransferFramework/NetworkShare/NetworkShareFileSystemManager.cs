@@ -17,7 +17,7 @@ namespace HEAppE.FileTransferFramework.NetworkShare
         /// <summary>
         /// Script Configuration
         /// </summary>
-        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
+        protected readonly new ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
         #endregion
         #region Constructors
         public NetworkShareFileSystemManager(ILogger logger, FileTransferMethod configuration, FileSystemFactory synchronizerFactory)
