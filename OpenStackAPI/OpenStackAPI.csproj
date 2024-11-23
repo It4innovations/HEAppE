@@ -8,7 +8,7 @@
     <PackageReference Include="log4net" Version="3.0.3" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="RestSharp" Version="110.2.0" />
+    <PackageReference Include="RestSharp" Version="112.1.0" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
