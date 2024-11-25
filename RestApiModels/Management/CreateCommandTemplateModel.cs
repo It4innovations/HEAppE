@@ -12,7 +12,7 @@ namespace HEAppE.RestApiModels.Management
         [DataMember(Name = "Name", IsRequired = true), StringLength(80)]
         public string Name { get; set; }
         
-        [DataMember(Name = "Description", IsRequired = true), StringLength(200)]
+        [DataMember(Name = "Description", IsRequired = false), StringLength(200)]
         public string Description { get; set; }
         
         [DataMember(Name = "ExtendedAllocationCommand", IsRequired = false), StringLength(100)]

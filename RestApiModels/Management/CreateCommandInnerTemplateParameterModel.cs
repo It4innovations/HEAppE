@@ -10,10 +10,10 @@ namespace HEAppE.RestApiModels.Management
         [DataMember(Name = "Identifier", IsRequired = true), StringLength(20)]
         public string Identifier { get; set; }
         
-        [DataMember(Name = "Query", IsRequired = true), StringLength(200)]
+        [DataMember(Name = "Query", IsRequired = false), StringLength(200)]
         public string Query { get; set; }
 
-        [DataMember(Name = "Description", IsRequired = true), StringLength(200)]
+        [DataMember(Name = "Description", IsRequired = false), StringLength(200)]
         public string Description { get; set; }
         
         public override string ToString()
