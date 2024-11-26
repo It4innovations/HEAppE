@@ -23,7 +23,7 @@ namespace HEAppE.DomainObjects.JobManagement
         [StringLength(255)]
         public string ExecutableFile { get; set; }
 
-        [StringLength(200)]
+        [StringLength(1000)]
         public string CommandParameters { get; set; }
 
         [StringLength(500)]
