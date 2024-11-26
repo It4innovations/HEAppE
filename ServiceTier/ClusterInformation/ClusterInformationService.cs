@@ -55,7 +55,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         }
 
-        public IEnumerable<ClusterExt> ListAvailableClusters(string clusterName, string nodeTypeName, string projectName, string commandTemplateName)
+        public IEnumerable<ClusterExt> ListAvailableClusters(string clusterName, string nodeTypeName, string projectName, string accountingString, string commandTemplateName)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
@@ -74,7 +74,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                     _cacheProvider.Set(memoryCacheKey, value, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
                 }
 
-                if (clusterName is null && nodeTypeName is null && projectName is null && commandTemplateName is null)
+                if (clusterName is null && nodeTypeName is null && projectName is null && accountingString is null && commandTemplateName is null)
                     return value;
 
                 var clusters = JsonConvert.DeserializeObject<ClusterExt[]>(JsonConvert.SerializeObject(value));
@@ -90,6 +90,9 @@ namespace HEAppE.ServiceTier.ClusterInformation
                         if (projectName is not null)
                             nt.Projects = nt.Projects.Where(x => x.Name == projectName).ToArray<ProjectExt>();
 
+                        if (accountingString is not null)
+                            nt.Projects = nt.Projects.Where(x => x.AccountingString == accountingString).ToArray<ProjectExt>();
+
                         if (commandTemplateName is not null)
                         {
                             foreach (var pr in nt.Projects)
@@ -99,11 +102,11 @@ namespace HEAppE.ServiceTier.ClusterInformation
                         }
                     }
 
-                    if (commandTemplateName is not null || projectName is not null)
+                    if (commandTemplateName is not null || projectName is not null || accountingString is not null)
                         cl.NodeTypes = cl.NodeTypes.Where(x => x.Projects.Length > 0).ToArray<ClusterNodeTypeExt>();
                 }
 
-                if (commandTemplateName is not null || projectName is not null || nodeTypeName is not null)
+                if (commandTemplateName is not null || projectName is not null || accountingString is not null || nodeTypeName is not null)
                     clusters = clusters.Where(x => x.NodeTypes.Length > 0).ToArray<ClusterExt>();
 
                 return clusters;
