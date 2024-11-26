@@ -85,7 +85,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             }
             catch (SlurmException)
             {
-                throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Error, command.Result, sshCommandBase64);
+                throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Error, command.Result, sshCommandBase64)
+                {
+                    CommandError = command.Error
+                };
             }
         }
 
@@ -162,7 +165,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             }
             catch (SlurmException)
             {
-                throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand);
+                throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand)
+                {
+                    CommandError = command.Error
+                };
             }
         }
 
@@ -192,7 +198,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             }
             catch (SlurmException)
             {
-                throw new SlurmException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result, command.Error, sshCommand);
+                throw new SlurmException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result, command.Error, sshCommand)
+                {
+                    CommandError = command.Error
+                };
             }
         }
 
@@ -353,8 +362,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             }
             catch (SlurmException)
             {
-                throw new SlurmException("GetActualTasksInfo", string.Join(", ", 
-                    schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()), command.Result, command.Error, sshCommand);
+                throw new SlurmException(
+                    "GetActualTasksInfo",
+                    string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
+                    command.Result,
+                    command.Error,
+                    sshCommand)
+                    {
+                        CommandError = command.Error
+                    };
             }
         }
         #endregion

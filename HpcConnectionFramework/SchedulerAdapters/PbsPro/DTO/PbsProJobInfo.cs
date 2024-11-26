@@ -93,7 +93,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.DTO
                     "Q" or "T" or "H" => TaskState.Queued,
                     "R" or "U" or "S" or "E" or "B" => TaskState.Running,
                     "F" or "X" => TaskState.Failed,
-                    _ => throw new PbsException("TaskStateConvertException", value),
+                    _ => throw new PbsException("TaskStateConvertException", value)
+                        {
+                            CommandError = null
+                        }
                 };
             }
         }

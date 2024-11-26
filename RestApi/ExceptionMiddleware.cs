@@ -1,4 +1,4 @@
-﻿using HEAppE.Exceptions.AbstractTypes;
+using HEAppE.Exceptions.AbstractTypes;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Resources;
 using Microsoft.AspNetCore.Http;
@@ -8,8 +8,10 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Globalization;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.Exceptions.Internal;
 
 namespace HEAppE.RestApi
 {
@@ -19,6 +21,10 @@ namespace HEAppE.RestApi
     public class ExceptionMiddleware
     {
         #region Instances
+
+        private const string Redacted = "*REDACTED*";
+        private const string RedactingRegexPattern = @"(/[^ ]+)|(\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b)";
+        private static Regex _redactingRegex = new(RedactingRegexPattern, RegexOptions.Compiled);
         /// <summary>
         /// Default Culture
         /// </summary>
@@ -109,6 +115,20 @@ namespace HEAppE.RestApi
                         StatusCodes.Status401Unauthorized : StatusCodes.Status500InternalServerError;
                     logLevel = LogLevel.Warning;
                     break;
+                case SlurmException slurmException:
+                    problem.Title = "Slurm Problem";
+                    problem.Detail = string.IsNullOrEmpty(slurmException.CommandError)
+                        ? GetExceptionMessage(exception)
+                        : RedactErrorMessage(slurmException.CommandError);
+                    problem.Status = StatusCodes.Status502BadGateway;
+                    break;
+                case PbsException pbsException:
+                    problem.Title = "Pbs Problem";
+                    problem.Detail = string.IsNullOrEmpty(pbsException.CommandError)
+                        ? GetExceptionMessage(exception)
+                        : RedactErrorMessage(pbsException.CommandError);
+                    problem.Status = StatusCodes.Status502BadGateway;
+                    break;
                 case InternalException:
                     problem.Title = "Problem";
                     problem.Detail = _exceptionsLocalizer["InternalException"];
@@ -117,8 +137,7 @@ namespace HEAppE.RestApi
                     problem.Title = "External Problem";
                     problem.Detail = GetExceptionMessage(exception);
                     break;
-                case BadHttpRequestException:
-                    var badReqException = (BadHttpRequestException)exception;
+                case BadHttpRequestException badReqException:
                     problem.Title = badReqException.Message;
                     problem.Status = badReqException.Message switch
                     {
@@ -140,6 +159,11 @@ namespace HEAppE.RestApi
             context.Response.StatusCode = problem.Status.Value;
             await context.Response.WriteAsJsonAsync(problem);
         }
+
+
+        private string RedactErrorMessage(string exceptionCommandError) =>
+            _redactingRegex.Replace(exceptionCommandError, Redacted);
+    
 
         /// <summary>
         /// Get exception message from resources based on exception type and message

@@ -95,7 +95,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (PbsException)
             {
-                throw new PbsException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Result, command.Error, sshCommandBase64);
+                throw new PbsException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name, command.Result, command.Error, sshCommandBase64)
+                {
+                    CommandError = command.Error
+                };
             }
         }
 
@@ -138,7 +141,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 var reducedjobIdsWithJobArrayIndexes = jobIdsWithJobArrayIndexes.Except(missingJobIds);
                 if (!missingJobIds.Any() || reducedjobIdsWithJobArrayIndexes.Count() >= jobIdsWithJobArrayIndexes.Count())
                 {
-                    throw new PbsException(ce.Message, ce.Args);
+                    throw new PbsException(ce.Message, ce.Args)
+                    {
+                        CommandError = null
+                    };
                 }
 
                 if (!reducedjobIdsWithJobArrayIndexes.Any())
@@ -195,7 +201,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (PbsException)
             {
-                throw new PbsException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand);
+                throw new PbsException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand)
+                {
+                    CommandError = command.Error
+                };
             }
         }
 
@@ -225,7 +234,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (PbsException)
             {
-                throw new PbsException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result, command.Error, sshCommand);
+                throw new PbsException("GetAllocatedNodesException", taskInfo.ScheduledJobId, command.Result, command.Error, sshCommand)
+                {
+                    CommandError = command.Error
+                };
             }
         }
 
@@ -376,7 +388,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
             }
             catch (PbsException)
             {
-                throw new PbsException("GetActualTasksInfo", string.Join(", ", scheduledJobIds), command.Result, command.Error, sshCommand);
+                throw new PbsException("GetActualTasksInfo", string.Join(", ", scheduledJobIds), command.Result, command.Error, sshCommand)
+                {
+                    CommandError = command.Error
+                };
             }
         }
 

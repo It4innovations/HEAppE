@@ -5,6 +5,7 @@ namespace HEAppE.Exceptions.Internal
 {
     public class SlurmException : InternalException
     {
+        public required string CommandError { get; init; }
         public SlurmException(string message) : base(message) { }
         public SlurmException(string message, params object[] args) : base(message, args) { }
         public SlurmException(string message, Exception innerException) : base(message, innerException) { }

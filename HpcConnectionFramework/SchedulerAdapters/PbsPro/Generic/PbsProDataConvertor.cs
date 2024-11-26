@@ -50,7 +50,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
 
             if (!parameters.Any())
             {
-                throw new PbsException("UnableToParseResponse");
+                throw new PbsException("UnableToParseResponse")
+                {
+                    CommandError = null
+                };
             }
 
             FillingSchedulerJobResultObjectFromSchedulerAttribute(nodeType.Cluster, queueInfo, parameters.ToDictionary(i => i.Key, j => j.Value));
@@ -76,7 +79,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                                             .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
                                             .ToList();
 
-            return scheduledJobIds.Any() ? scheduledJobIds : throw new PbsException("UnableToParseResponse");
+            return scheduledJobIds.Any() 
+                ? scheduledJobIds 
+                : throw new PbsException("UnableToParseResponse")
+                {
+                    CommandError = null
+                };
         }
 
         /// <summary>
@@ -163,7 +171,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic
                 jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             }
 
-            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new PbsException("UnableToParseResponse");
+            return jobSubmitedTasksInfo.Any() 
+                ? jobSubmitedTasksInfo 
+                : throw new PbsException("UnableToParseResponse")
+                {
+                    CommandError = null
+                };
         }
         #endregion
     }
