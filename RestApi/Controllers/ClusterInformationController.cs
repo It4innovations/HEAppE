@@ -52,10 +52,10 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult ListAvailableClusters(string clusterName = null, string nodeTypeName = null, string projectName = null, string commandTemplateName = null)
+        public IActionResult ListAvailableClusters(string clusterName = null, string nodeTypeName = null, string projectName = null, string accountingString = null, string commandTemplateName = null)
         {
             _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
-            return Ok(_service.ListAvailableClusters(clusterName, nodeTypeName, projectName, commandTemplateName));
+            return Ok(_service.ListAvailableClusters(clusterName, nodeTypeName, projectName, accountingString, commandTemplateName));
         }
 
         /// <summary>
