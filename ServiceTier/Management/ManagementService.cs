@@ -48,6 +48,7 @@ namespace HEAppE.ServiceTier.Management
             string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
             long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode)
         {
+            _logger.Info($"CreateCommandTemplateModel: Name: {modelName}, Description: {modelDescription}, ExtendedAllocationCommand: {modelExtendedAllocationCommand}, ExecutableFile: {modelExecutableFile}, PreparationScript: {modelPreparationScript}, ProjectId: {modelProjectId}, ClusterNodeTypeId: {modelClusterNodeTypeId}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, modelProjectId);
@@ -60,6 +61,7 @@ namespace HEAppE.ServiceTier.Management
         public CommandTemplateExt CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
             string description, string extendedAllocationCommand, string executableFile, string preparationScript, string sessionCode)
         {
+            _logger.Info($"CreateCommandTemplateFromGeneric: GenericCommandTemplateId: {genericCommandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Maintainer, projectId);
@@ -74,6 +76,7 @@ namespace HEAppE.ServiceTier.Management
             string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
             long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode)
         {
+            _logger.Info($"ModifyCommandTemplateModel: Id: {modelId}, Name: {modelName}, Description: {modelDescription}, ExtendedAllocationCommand: {modelExtendedAllocationCommand}, ExecutableFile: {modelExecutableFile}, PreparationScript: {modelPreparationScript}, ClusterNodeTypeId: {modelClusterNodeTypeId}, IsEnabled: {modelIsEnabled}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelId)
@@ -92,6 +95,7 @@ namespace HEAppE.ServiceTier.Management
         public CommandTemplateExt ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
             string description, string extendedAllocationCommand, string executableFile, string preparationScript, string sessionCode)
         {
+            _logger.Info($"ModifyCommandTemplateFromGeneric: Id: {commandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Maintainer, projectId);
@@ -103,6 +107,7 @@ namespace HEAppE.ServiceTier.Management
 
         public void RemoveCommandTemplate(long commandTemplateId, string sessionCode)
         {
+            _logger.Info($"RemoveCommandTemplate: Id: {commandTemplateId}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
@@ -132,6 +137,7 @@ namespace HEAppE.ServiceTier.Management
 
         public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, string sessionCode)
         {
+            _logger.Info($"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
@@ -143,6 +149,7 @@ namespace HEAppE.ServiceTier.Management
 
         public ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler, string sessionCode)
         {
+            _logger.Info($"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, id);
@@ -154,6 +161,7 @@ namespace HEAppE.ServiceTier.Management
 
         public void RemoveProject(long id, string sessionCode)
         {
+            _logger.Info($"RemoveProject: Id: {id}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, id);
@@ -175,6 +183,7 @@ namespace HEAppE.ServiceTier.Management
 
         public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
         {
+            _logger.Info($"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, LocalBasepath: {localBasepath}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
@@ -186,6 +195,7 @@ namespace HEAppE.ServiceTier.Management
 
         public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath, string sessionCode)
         {
+            _logger.Info($"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, LocalBasepath: {localBasepath}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
@@ -197,6 +207,7 @@ namespace HEAppE.ServiceTier.Management
 
         public void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
         {
+            _logger.Info($"RemoveProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId);
@@ -280,6 +291,7 @@ namespace HEAppE.ServiceTier.Management
             string modelQuery,
             string modelDescription, long modelCommandTemplateId, string modelSessionCode)
         {
+            _logger.Info($"CreateCommandTemplateParameter: Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}, CommandTemplateId: {modelCommandTemplateId}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 CommandTemplate commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId)
@@ -294,6 +306,7 @@ namespace HEAppE.ServiceTier.Management
         public ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long id, string modelIdentifier, string modelQuery,
             string modelDescription, string modelSessionCode)
         {
+            _logger.Info($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
@@ -323,6 +336,7 @@ namespace HEAppE.ServiceTier.Management
 
         public string RemoveCommandTemplateParameter(long id, string modelSessionCode)
         {
+            _logger.Info($"RemoveCommandTemplateParameter: Id: {id}");
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
