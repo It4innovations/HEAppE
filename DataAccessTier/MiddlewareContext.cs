@@ -433,9 +433,11 @@ namespace HEAppE.DataAccessTier
 
                 if (useSetIdentity)
                 {
+#pragma warning disable EF1002
                     Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} ON;");
                     SaveChanges();
                     Database.ExecuteSqlRaw($"SET IDENTITY_INSERT {tableName} OFF;");
+#pragma warning restore EF1002
                 }
                 else
                 {

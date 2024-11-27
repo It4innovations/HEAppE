@@ -23,11 +23,13 @@ namespace HEAppE.DataStagingAPI.Logging
     {
         protected override void Convert(TextWriter writer, LoggingEvent loggingEvent)
         {
+#pragma warning disable CS8602
             if (loggingEvent.Level.Name == "DEBUG") writer.Write(1);
-            if (loggingEvent.Level.Name == "INFO") writer.Write(2);
-            if (loggingEvent.Level.Name == "WARN") writer.Write(3);
-            if (loggingEvent.Level.Name == "ERROR") writer.Write(4);
-            if (loggingEvent.Level.Name == "FATAL") writer.Write(5);
+            else if (loggingEvent.Level.Name == "INFO") writer.Write(2);
+            else if (loggingEvent.Level.Name == "WARN") writer.Write(3);
+            else if (loggingEvent.Level.Name == "ERROR") writer.Write(4);
+            else if (loggingEvent.Level.Name == "FATAL") writer.Write(5);
+#pragma warning restore CS8602
         }
     }
 }

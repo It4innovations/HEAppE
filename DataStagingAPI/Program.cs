@@ -61,7 +61,9 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
+#pragma warning disable CS8604
 var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+#pragma warning restore CS8604
 GlobalContext.Properties["instanceName"] = APIAdoptions.DeploymentConfiguration.Name;
 GlobalContext.Properties["instanceVersion"] = APIAdoptions.DeploymentConfiguration.Version;
 GlobalContext.Properties["ip"] = APIAdoptions.DeploymentConfiguration.DeployedIPAddress;
