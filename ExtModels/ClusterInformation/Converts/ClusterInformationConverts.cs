@@ -136,7 +136,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 CommandParameters = commandTemplate.CommandParameters,
                 ProjectId = commandTemplate.ProjectId.HasValue? commandTemplate.ProjectId.Value : 0,
                 ClusterNodeTypeId = commandTemplate.ClusterNodeTypeId.HasValue? commandTemplate.ClusterNodeTypeId.Value : 0,
-                TemplateParameters = commandTemplate.TemplateParameters.Where(w => string.IsNullOrEmpty(w.Query) && w.IsVisible)
+                TemplateParameters = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
                     .Select(s => s.ConvertIntToExtendedExt())
                     .ToArray()
             };
