@@ -327,6 +327,12 @@ namespace HEAppE.ServiceTier.Management
             {
                 CommandTemplateParameter commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
                     ?? throw new RequestedObjectDoesNotExistException("CommandTemplateParameterNotFound", id);
+                
+                if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
+                {
+                    throw new InputValidationException("The specified command template parameter cannot be removed!");
+                }
+                
                 AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
                 IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
                 managementLogic.RemoveCommandTemplateParameter(id);
