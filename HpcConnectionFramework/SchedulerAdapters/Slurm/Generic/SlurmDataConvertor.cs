@@ -48,7 +48,10 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
             {
                 if (!int.TryParse(parsedNodeUsedLine, out nodesUsed))
                 {
-                    throw new SlurmException("UnableToParseNodeUsage");
+                    throw new SlurmException("UnableToParseNodeUsage")
+                    {
+                        CommandError = null
+                    };
                 }
             }
 
@@ -74,7 +77,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                 .Select(s => s.Groups.GetValueOrDefault("JobId").Value)
                                 .ToList();
 
-            return scheduledJobIds.Any() ? scheduledJobIds : throw new SlurmException("UnableToParseResponse");
+            return scheduledJobIds.Any() 
+                ? scheduledJobIds 
+                : throw new SlurmException("UnableToParseResponse")
+                {
+                    CommandError = null
+                };
         }
 
         /// <summary>
@@ -165,7 +173,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                 jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             }
 
-            return jobSubmitedTasksInfo.Any() ? jobSubmitedTasksInfo : throw new SlurmException("UnableToParseResponse");
+            return jobSubmitedTasksInfo.Any() 
+                ? jobSubmitedTasksInfo 
+                : throw new SlurmException("UnableToParseResponse")
+                {
+                    CommandError = null
+                };
         }
 
         /// <summary>

@@ -5,6 +5,7 @@ namespace HEAppE.Exceptions.Internal
 {
     public class PbsException : InternalException
     {
+        public required string CommandError { get; init; }
         public PbsException(string message) : base(message) { }
         public PbsException(string message, params object[] args) : base(message, args) { }
         public PbsException(string message, Exception innerException) : base(message, innerException) { }
