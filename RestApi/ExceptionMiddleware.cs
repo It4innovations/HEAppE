@@ -1,17 +1,20 @@
-using HEAppE.Exceptions.AbstractTypes;
-using HEAppE.Exceptions.External;
-using HEAppE.Exceptions.Resources;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Localization;
-using Microsoft.Extensions.Logging;
 using System;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+
+using HEAppE.Exceptions.AbstractTypes;
+using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
+using HEAppE.Exceptions.Resources;
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi
 {
@@ -23,8 +26,8 @@ namespace HEAppE.RestApi
         #region Instances
 
         private const string Redacted = "*REDACTED*";
-        private const string RedactingRegexPattern = @"(/[^ ]+)|(\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b)";
-        private static Regex _redactingRegex = new(RedactingRegexPattern, RegexOptions.Compiled);
+        private string _redactingRegexPattern { get; set; } = @"(/[^ ]+)|(\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b)";
+        private Regex _redactingRegex { get; set; }
         /// <summary>
         /// Default Culture
         /// </summary>
@@ -44,6 +47,7 @@ namespace HEAppE.RestApi
         /// Resource localizer
         /// </summary>
         private readonly IStringLocalizer<ExceptionsMessages> _exceptionsLocalizer;
+        private readonly IConfiguration _configuration;
         #endregion
         #region Constructor
         /// <summary>
@@ -52,11 +56,15 @@ namespace HEAppE.RestApi
         /// <param name="next">Request delegate</param>
         /// <param name="logger">Logger</param>
         /// <param name="exceptionsLocalizer"></param>
-        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IStringLocalizer<ExceptionsMessages> exceptionsLocalizer)
+        /// <param name="configuration"></param>
+        public ExceptionMiddleware(RequestDelegate next, ILogger<ExceptionMiddleware> logger, IStringLocalizer<ExceptionsMessages> exceptionsLocalizer, IConfiguration configuration)
         {
             _next = next;
             _logger = logger;
             _exceptionsLocalizer = exceptionsLocalizer;
+            _configuration = configuration;
+            var redactingRegex = _configuration["ClusterManagementLogMessageRedactingRegex"];
+            _redactingRegex = new Regex(redactingRegex, RegexOptions.Compiled);
         }
         #endregion
         #region Methods
@@ -90,66 +98,66 @@ namespace HEAppE.RestApi
                 Status = StatusCodes.Status500InternalServerError
             };
 
-            var logLevel = LogLevel.Error;
+            LogLevel logLevel = LogLevel.Error;
             switch (exception)
             {
                 case InputValidationException:
                 case RequestedObjectDoesNotExistException:
-                    problem.Title = "Validation Problem";
-                    problem.Detail = GetExceptionMessage(exception);
-                    problem.Status = StatusCodes.Status404NotFound;
-                    logLevel = LogLevel.Warning;
-                    break;
+                problem.Title = "Validation Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status404NotFound;
+                logLevel = LogLevel.Warning;
+                break;
                 case SessionCodeNotValidException:
-                    problem.Title = "Session Code Authentication Problem";
-                    problem.Detail = GetExceptionMessage(exception);
-                    problem.Status = StatusCodes.Status401Unauthorized;
-                    logLevel = LogLevel.Warning;
-                    break;
+                problem.Title = "Session Code Authentication Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
                 case AuthenticationTypeException:
-                    problem.Title = "Authentication Problem";
-                    problem.Detail = GetExceptionMessage(exception);
-                    problem.Status = (exception.Message == "InvalidToken" || 
-                                      exception.Message == "Expired" || 
-                                      exception.Message == "NotPresent") ? 
-                        StatusCodes.Status401Unauthorized : StatusCodes.Status500InternalServerError;
-                    logLevel = LogLevel.Warning;
-                    break;
+                problem.Title = "Authentication Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = (exception.Message is "InvalidToken" or
+                                  "Expired" or
+                                  "NotPresent") ?
+                    StatusCodes.Status401Unauthorized : StatusCodes.Status500InternalServerError;
+                logLevel = LogLevel.Warning;
+                break;
                 case SlurmException slurmException:
-                    problem.Title = "Slurm Problem";
-                    problem.Detail = string.IsNullOrEmpty(slurmException.CommandError)
-                        ? GetExceptionMessage(exception)
-                        : RedactErrorMessage(slurmException.CommandError);
-                    problem.Status = StatusCodes.Status502BadGateway;
-                    break;
+                problem.Title = "Slurm Problem";
+                problem.Detail = string.IsNullOrEmpty(slurmException.CommandError)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(slurmException.CommandError);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
                 case PbsException pbsException:
-                    problem.Title = "Pbs Problem";
-                    problem.Detail = string.IsNullOrEmpty(pbsException.CommandError)
-                        ? GetExceptionMessage(exception)
-                        : RedactErrorMessage(pbsException.CommandError);
-                    problem.Status = StatusCodes.Status502BadGateway;
-                    break;
+                problem.Title = "Pbs Problem";
+                problem.Detail = string.IsNullOrEmpty(pbsException.CommandError)
+                    ? GetExceptionMessage(exception)
+                    : RedactErrorMessage(pbsException.CommandError);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
                 case InternalException:
-                    problem.Title = "Problem";
-                    problem.Detail = _exceptionsLocalizer["InternalException"];
-                    break;
+                problem.Title = "Problem";
+                problem.Detail = _exceptionsLocalizer["InternalException"];
+                break;
                 case ExternalException:
-                    problem.Title = "External Problem";
-                    problem.Detail = GetExceptionMessage(exception);
-                    break;
+                problem.Title = "External Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                break;
                 case BadHttpRequestException badReqException:
-                    problem.Title = badReqException.Message;
-                    problem.Status = badReqException.Message switch
-                    {
-                        "Request body too large." => StatusCodes.Status413PayloadTooLarge,
-                        "Not found." => StatusCodes.Status404NotFound,
-                        _ => StatusCodes.Status400BadRequest
-                    };
-                    break;
+                problem.Title = badReqException.Message;
+                problem.Status = badReqException.Message switch
+                {
+                    "Request body too large." => StatusCodes.Status413PayloadTooLarge,
+                    "Not found." => StatusCodes.Status404NotFound,
+                    _ => StatusCodes.Status400BadRequest
+                };
+                break;
                 default:
-                    problem.Title = "Problem";
-                    problem.Detail = _exceptionsLocalizer["InternalException"];
-                    break;
+                problem.Title = "Problem";
+                problem.Detail = _exceptionsLocalizer["InternalException"];
+                break;
             }
 
             // Log exception with default 'en' culture localization
@@ -161,9 +169,11 @@ namespace HEAppE.RestApi
         }
 
 
-        private string RedactErrorMessage(string exceptionCommandError) =>
-            _redactingRegex.Replace(exceptionCommandError, Redacted);
-    
+        private string RedactErrorMessage(string exceptionCommandError)
+        {
+            return _redactingRegex.Replace(exceptionCommandError, Redacted);
+        }
+
 
         /// <summary>
         /// Get exception message from resources based on exception type and message
@@ -178,7 +188,7 @@ namespace HEAppE.RestApi
             // Localize exception message in language from localizationCulture parameter if set
             if (localizationCulture is not null)
             {
-                var currentCultureInfo = Thread.CurrentThread.CurrentCulture;
+                CultureInfo currentCultureInfo = Thread.CurrentThread.CurrentCulture;
                 Thread.CurrentThread.CurrentCulture = localizationCulture;
                 Thread.CurrentThread.CurrentUICulture = localizationCulture;
                 FormatExceptionMessage(exception, localizedMessage);
@@ -200,8 +210,8 @@ namespace HEAppE.RestApi
         /// <param name="builder"></param>
         private void FormatExceptionMessage(Exception exception, StringBuilder builder)
         {
-            string exceptionName = $"{exception.GetType().Name}_{exception.Message}";
-            string localizedException = exception switch
+            var exceptionName = $"{exception.GetType().Name}_{exception.Message}";
+            var localizedException = exception switch
             {
                 BaseException baseException when baseException.Args is not null => _exceptionsLocalizer.GetString(exceptionName, baseException.Args),
                 BaseException => _exceptionsLocalizer.GetString(exceptionName),
