@@ -1,25 +1,28 @@
-﻿using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.Extensions.Logging;
-using Microsoft.Extensions.Localization;
-using Moq;
-using Xunit;
-using FluentAssertions;
-using HEAppE.RestApi;
-using HEAppE.Exceptions.Internal;
+﻿using System.Globalization;
 using System.Text.Json;
-using HEAppE.Exceptions.Resources;
-using Microsoft.AspNetCore.Mvc;
-using System.Globalization;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
-namespace HEAppE.Tests.Exceptions.SchedulerExceptions;
+using FluentAssertions;
+
+using HEAppE.Exceptions.Internal;
+using HEAppE.Exceptions.Resources;
+using HEAppE.RestApi;
+
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Localization;
+using Microsoft.Extensions.Logging;
+
+using Moq;
+
+namespace Exceptions.Tests;
 
 public class ExceptionMiddlewareTests
 {
     private readonly Mock<RequestDelegate> _nextMock;
     private readonly Mock<ILogger<ExceptionMiddleware>> _loggerMock;
     private readonly Mock<IStringLocalizer<ExceptionsMessages>> _localizerMock;
+    private readonly Mock<IConfiguration> _configurationMock;
     private readonly ExceptionMiddleware _middleware;
 
     public ExceptionMiddlewareTests()
@@ -27,14 +30,18 @@ public class ExceptionMiddlewareTests
         _nextMock = new Mock<RequestDelegate>();
         _loggerMock = new Mock<ILogger<ExceptionMiddleware>>();
         _localizerMock = new Mock<IStringLocalizer<ExceptionsMessages>>();
+        _configurationMock = new Mock<IConfiguration>();
 
         _localizerMock.Setup(l => l["SlurmException_UnableToParseNodeUsage"])
             .Returns(new LocalizedString("SlurmException_UnableToParseNodeUsage", "Nelze analyzovat využití cluster node z plánovače HPC."));
-        
+
         _localizerMock.Setup(l => l["PbsException_UnableToParseResponse"])
             .Returns(new LocalizedString("PbsException_UnableToParseResponse", "Nelze analyzovat odpověď od plánovače PBS Professional."));
 
-        _middleware = new ExceptionMiddleware(_nextMock.Object, _loggerMock.Object, _localizerMock.Object);
+        _configurationMock.Setup(c => c["ClusterManagementLogMessageRedactingRegex"])
+            .Returns(@"(/[^ ]+)|(\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\b)");
+
+        _middleware = new ExceptionMiddleware(_nextMock.Object, _loggerMock.Object, _localizerMock.Object, _configurationMock.Object);
     }
 
     [Theory]
@@ -55,7 +62,7 @@ public class ExceptionMiddlewareTests
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var response = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
+        ProblemDetails? problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
 
         problemDetails.Should().NotBeNull();
         problemDetails.Title.Should().Be("Slurm Problem");
@@ -63,8 +70,8 @@ public class ExceptionMiddlewareTests
     }
 
     [Theory]
-    [InlineData(null, "UnableToParseNodeUsage", "Nelze analyzovat využití cluster node z plánovače HPC.")]
-    public async Task HandleException_Should_Localize_Message_When_CommandError_Is_Null_In_SlurmException(string commandError, string exceptionMessage, string localizedMessage)
+    [InlineData("UnableToParseNodeUsage", "Nelze analyzovat využití cluster node z plánovače HPC.")]
+    public async Task HandleException_Should_Localize_Message_When_CommandError_Is_Null_In_SlurmException(string exceptionMessage, string localizedMessage)
     {
         // Arrange
         var context = new DefaultHttpContext();
@@ -79,7 +86,7 @@ public class ExceptionMiddlewareTests
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var response = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
+        ProblemDetails? problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
 
         problemDetails.Should().NotBeNull();
         problemDetails.Title.Should().Be("Slurm Problem");
@@ -106,7 +113,7 @@ public class ExceptionMiddlewareTests
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var response = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
+        ProblemDetails? problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
 
         problemDetails.Should().NotBeNull();
         problemDetails.Title.Should().Be("Pbs Problem");
@@ -115,8 +122,8 @@ public class ExceptionMiddlewareTests
 
 
     [Theory]
-    [InlineData(null, "UnableToParseResponse", "Nelze analyzovat odpověď od plánovače PBS Professional.")]
-    public async Task HandleException_Should_Localize_Message_When_CommandError_Is_Null_In_PbsException(string commandError, string exceptionMessage, string localizedMessage)
+    [InlineData("UnableToParseResponse", "Nelze analyzovat odpověď od plánovače PBS Professional.")]
+    public async Task HandleException_Should_Localize_Message_When_CommandError_Is_Null_In_PbsException(string exceptionMessage, string localizedMessage)
     {
         // Arrange
         var context = new DefaultHttpContext();
@@ -131,7 +138,7 @@ public class ExceptionMiddlewareTests
 
         context.Response.Body.Seek(0, SeekOrigin.Begin);
         var response = await new StreamReader(context.Response.Body).ReadToEndAsync();
-        var problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
+        ProblemDetails? problemDetails = JsonSerializer.Deserialize<ProblemDetails>(response);
 
         problemDetails.Should().NotBeNull();
         problemDetails.Title.Should().Be("Pbs Problem");
@@ -141,7 +148,7 @@ public class ExceptionMiddlewareTests
     private async Task InvokeHandleException(HttpContext context, Exception exception)
     {
         CultureInfo.CurrentCulture = new CultureInfo("cs-CZ");
-        var method = typeof(ExceptionMiddleware).GetMethod("HandleException", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
+        System.Reflection.MethodInfo? method = typeof(ExceptionMiddleware).GetMethod("HandleException", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
         await (Task)method.Invoke(_middleware, new object[] { context, exception });
     }
 }
