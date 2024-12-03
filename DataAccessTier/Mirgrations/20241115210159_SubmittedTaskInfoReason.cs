@@ -13,8 +13,8 @@ namespace HEAppE.DataAccessTier.Mirgrations
             migrationBuilder.AddColumn<string>(
                 name: "Reason",
                 table: "SubmittedTaskInfo",
-                type: "nvarchar(100)",
-                maxLength: 100,
+                type: "nvarchar(255)",
+                maxLength: 255,
                 nullable: true);
         }
 

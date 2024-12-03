@@ -873,8 +873,8 @@ namespace HEAppE.DataAccessTier.Mirgrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Reason")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("ScheduledJobId")
                         .HasColumnType("nvarchar(max)");
