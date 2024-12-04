@@ -219,10 +219,10 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
                                                                         x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == requiredUserRole) &&
                                                                         x.AdaptorUserGroup != null &&
                                                                         x.AdaptorUserGroup.ProjectId == projectId &&
+                                                                        x.AdaptorUserGroup.Project != null &&
+                                                                        !x.AdaptorUserGroup.Project.IsDeleted && 
                                                                         (overrideProjectValidityCheck || 
-                                                                         (x.AdaptorUserGroup.Project != null &&
-                                                                          !x.AdaptorUserGroup.Project.IsDeleted && 
-                                                                          x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow)) &&
+                                                                         x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow) &&
                                                                         !x.IsDeleted);
             if (!hasRequiredRole)
             {
