@@ -213,11 +213,17 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement
         /// <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
         private static void CheckUserRoleForProject(AdaptorUser user, AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
         {
-            bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => x.AdaptorUserRole.ContainedRoleTypes
-                                                                    .Any(a => a == requiredUserRole) 
-                                                                           && x.AdaptorUserGroup.ProjectId == projectId
-                                                                           && (overrideProjectValidityCheck ||
-                                                                            x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow));
+            bool hasRequiredRole = user.AdaptorUserUserGroupRoles.Any(x => 
+                                                                        x.AdaptorUserRole != null &&
+                                                                        x.AdaptorUserRole.ContainedRoleTypes != null &&
+                                                                        x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == requiredUserRole) &&
+                                                                        x.AdaptorUserGroup != null &&
+                                                                        x.AdaptorUserGroup.ProjectId == projectId &&
+                                                                        (overrideProjectValidityCheck || 
+                                                                         (x.AdaptorUserGroup.Project != null &&
+                                                                          !x.AdaptorUserGroup.Project.IsDeleted && 
+                                                                          x.AdaptorUserGroup.Project.EndDate >= DateTime.UtcNow)) &&
+                                                                        !x.IsDeleted);
             if (!hasRequiredRole)
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
