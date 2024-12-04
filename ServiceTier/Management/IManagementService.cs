@@ -30,6 +30,7 @@ namespace HEAppE.ServiceTier.Management
 
         void RemoveCommandTemplate(long commandTemplateId, string sessionCode);
 
+        ProjectExt GetProjectByAccountingString(string accountingString, string sessionCode);
         ProjectExt GetProjectById(long id, string sessionCode);
 
         ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,

@@ -296,6 +296,12 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             commandTemplate.IsDeleted = true;
             _unitOfWork.Save();
         }
+        
+        public Project GetProjectByAccountingString(string accountingString)
+        {
+            return _unitOfWork.ProjectRepository.GetByAccountingString(accountingString) ??
+                   throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        }
 
         /// <summary>
         /// Get Project by id

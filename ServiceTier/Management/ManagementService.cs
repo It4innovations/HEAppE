@@ -123,6 +123,17 @@ namespace HEAppE.ServiceTier.Management
                 managementLogic.RemoveCommandTemplate(commandTemplateId);
             }
         }
+        
+        public ProjectExt GetProjectByAccountingString(string accountingString, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                (AdaptorUser loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                Project project = managementLogic.GetProjectByAccountingString(accountingString);
+                return project.ConvertIntToExt();
+            }
+        }
 
         public ProjectExt GetProjectById(long id, string sessionCode)
         {

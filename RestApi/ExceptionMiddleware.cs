@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Globalization;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -64,7 +64,7 @@ namespace HEAppE.RestApi
             _exceptionsLocalizer = exceptionsLocalizer;
             _configuration = configuration;
             var redactingRegex = _configuration["ClusterManagementLogMessageRedactingRegex"];
-            _redactingRegex = new Regex(redactingRegex, RegexOptions.Compiled);
+            _redactingRegex = new Regex(redactingRegex ?? "a^", RegexOptions.Compiled);
         }
         #endregion
         #region Methods

@@ -435,6 +435,27 @@ namespace HEAppE.RestApi.Controllers
         #endregion
         #region Project
         /// <summary>
+        /// Get project by accounting string
+        /// </summary>
+        /// <param name="accountingString"></param>
+        /// <param name="sessionCode"></param>
+        /// <returns></returns>
+        [HttpGet("ProjectByAccountingString")]
+        [RequestSizeLimit(100)]
+        [ProducesResponseType(typeof(ProjectExt), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetProjectByAccountingString(string accountingString, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectByAccountingString\" Parameters: AccountingString: \"{accountingString}\", SessionCode: \"{sessionCode}\"");
+
+            var project = _managementService.GetProjectByAccountingString(accountingString, sessionCode);
+            return Ok(project);
+        }
+        
+        /// <summary>
         /// Get Project by id
         /// </summary>
         /// <param name="id"></param>
