@@ -355,7 +355,16 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                 _unitOfWork.AdaptorUserGroupRepository.Insert(lexisAdaptorUserGroup);
                 _unitOfWork.AdaptorUserGroupRepository.Insert(openIdAdaptorUserGroup);
 
-                _unitOfWork.Save();
+                try
+                {
+                    _unitOfWork.Save(); 
+                }
+                //catch unique constraing to AccountingString 
+                catch (Exception ex) when (ex.InnerException is not null && ex.InnerException.Message.Contains("IX_Project_AccountingString"))
+                {
+                    throw new InputValidationException("ProjectAlreadyExist");
+                }
+                
 
                 // Check if an admin user exists and is not the logged-in user
                 var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
