@@ -10,6 +10,8 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.ExtModels.JobReporting.Models;
 
 namespace HEAppE.ExtModels.JobManagement.Converts
 {
@@ -235,9 +237,24 @@ namespace HEAppE.ExtModels.JobManagement.Converts
                 AccountingString = project.AccountingString,
                 StartDate = project.StartDate,
                 EndDate = project.EndDate,
+                UsageType = project.UsageType.ConvertIntToExt(),
+                UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
                 CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
             };
             return convert;
+        }
+        
+        public static UsageTypeExt ConvertIntToExt(this UsageType usageType)
+        {
+            switch (usageType)
+            {
+                case UsageType.NodeHours:
+                    return UsageTypeExt.NodeHours;
+                case UsageType.CoreHours:
+                    return UsageTypeExt.CoreHours;
+                default:
+                    return UsageTypeExt.NodeHours;
+            }
         }
 
         public static ExtendedProjectInfoExt ConvertIntToExtendedInfoExt(this Project project)
