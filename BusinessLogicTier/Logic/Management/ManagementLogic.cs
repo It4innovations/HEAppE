@@ -9,6 +9,7 @@ using System.Transactions;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -647,6 +648,9 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
             _unitOfWork.Save();
+            VaultConnector vaultConnector = new VaultConnector();
+            vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
+            vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
             return secureShellKey;
         }
 
