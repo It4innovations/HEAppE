@@ -641,16 +641,22 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             project.ModifiedAt = DateTime.UtcNow;
             _unitOfWork.ProjectRepository.Update(project);
+            bool serviceCredentialStored = false;
             if (serviceCredentials.ClusterProjectCredentials.Any())
             {
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
+                serviceCredentialStored = true;
             }
 
             _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
             _unitOfWork.Save();
             VaultConnector vaultConnector = new VaultConnector();
-            vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
-            vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
+
+            if (serviceCredentialStored)
+            {
+                vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
+            }
+            vaultConnector.SetClusterAuthenticationCredentials(nonServiceCredentials.ExportVaultData());
             return secureShellKey;
         }
 
