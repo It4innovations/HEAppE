@@ -9,6 +9,7 @@ using System.Transactions;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -635,13 +636,22 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
             project.ModifiedAt = DateTime.UtcNow;
             _unitOfWork.ProjectRepository.Update(project);
+            bool serviceCredentialStored = false;
             if (serviceCredentials.ClusterProjectCredentials.Any())
             {
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(serviceCredentials);
+                serviceCredentialStored = true;
             }
 
             _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
             _unitOfWork.Save();
+            VaultConnector vaultConnector = new VaultConnector();
+
+            if (serviceCredentialStored)
+            {
+                vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
+            }
+            vaultConnector.SetClusterAuthenticationCredentials(nonServiceCredentials.ExportVaultData());
             return secureShellKey;
         }
 
