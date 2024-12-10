@@ -1,4 +1,4 @@
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
+﻿using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -52,7 +52,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult ListAvailableClusters(string clusterName = null, string nodeTypeName = null, string projectName = null, string accountingString = null, string commandTemplateName = null)
+        public IActionResult ListAvailableClusters(string clusterName = null, string nodeTypeName = null, string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null)
         {
             _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
             return Ok(_service.ListAvailableClusters(clusterName, nodeTypeName, projectName, accountingString, commandTemplateName));

@@ -55,7 +55,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
             _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         }
 
-        public IEnumerable<ClusterExt> ListAvailableClusters(string clusterName, string nodeTypeName, string projectName, string accountingString, string commandTemplateName)
+        public IEnumerable<ClusterExt> ListAvailableClusters(string clusterName, string nodeTypeName, string projectName, string[] accountingString, string commandTemplateName)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
@@ -91,7 +91,7 @@ namespace HEAppE.ServiceTier.ClusterInformation
                             nt.Projects = nt.Projects.Where(x => x.Name == projectName).ToArray<ProjectExt>();
 
                         if (accountingString is not null)
-                            nt.Projects = nt.Projects.Where(x => x.AccountingString == accountingString).ToArray<ProjectExt>();
+                            nt.Projects = nt.Projects.Where(x => accountingString.Contains(x.AccountingString) ).ToArray<ProjectExt>();
 
                         if (commandTemplateName is not null)
                         {
