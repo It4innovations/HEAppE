@@ -440,19 +440,33 @@ namespace HEAppE.RestApi.Controllers
         /// <param name="accountingString"></param>
         /// <param name="sessionCode"></param>
         /// <returns></returns>
-        [HttpGet("ProjectByAccountingString")]
-        [RequestSizeLimit(100)]
-        [ProducesResponseType(typeof(ProjectExt), StatusCodes.Status200OK)]
+        [HttpGet("ProjectsByAccountingStrings")]
+        [RequestSizeLimit(3000)]
+        [ProducesResponseType(typeof(List<ProjectExt>), StatusCodes.Status200OK)]
         [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
         [ProducesResponseType(StatusCodes.Status404NotFound)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult GetProjectByAccountingString(string accountingString, string sessionCode)
+        public IActionResult GetProjectsByAccountingStrings([FromQuery] string[] accountingString, string sessionCode)
         {
-            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectByAccountingString\" Parameters: AccountingString: \"{accountingString}\", SessionCode: \"{sessionCode}\"");
+            List<ProjectExt> projects = new();
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetProjectsByAccountingStrings\" Parameters: AccountingString: \"{string.Join(",", accountingString)}\", SessionCode: \"{sessionCode}\"");
 
-            var project = _managementService.GetProjectByAccountingString(accountingString, sessionCode);
-            return Ok(project);
+            foreach (string element in accountingString)
+            {
+                try
+                {
+                    var project = _managementService.GetProjectByAccountingString(element, sessionCode);
+                    projects.Add(project);
+                    _logger.LogDebug($"Project with accounting string \"{element}\" found.");
+                }
+                catch (Exception e)
+                {
+                    _logger.LogWarning($"Project with accounting string \"{element}\" not found. {e.Message}");
+                }
+            }
+            
+            return Ok(projects);
         }
         
         /// <summary>
