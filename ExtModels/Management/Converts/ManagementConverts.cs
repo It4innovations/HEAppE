@@ -5,12 +5,27 @@ using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.Management.Models;
 using System;
+using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.ExtModels.JobReporting.Models;
 
 namespace HEAppE.ExtModels.Management.Converts
 {
     public static class ManagementConverts
     {
         #region Public Methods
+
+        public static UsageType ConvertExtToInt(this UsageTypeExt? usageType)
+        {
+            switch (usageType)
+            {
+                case UsageTypeExt.CoreHours:
+                    return UsageType.CoreHours;
+                case UsageTypeExt.NodeHours:
+                    return UsageType.NodeHours;
+                default:
+                    return UsageType.CoreHours;
+            }
+        }
         public static DeploymentTypeExt ConvertIntToExt(this DeploymentType type)
         {
             _ = Enum.TryParse(type.ToString(), out DeploymentTypeExt convert);

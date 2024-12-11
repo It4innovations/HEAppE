@@ -501,7 +501,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
             project.ModifiedAt = modified;
             _unitOfWork.ProjectRepository.Update(project);
             _unitOfWork.ClusterProjectRepository.Insert(clusterProject);
-            _unitOfWork.Save();
+            _unitOfWork.Save(); 
 
             _logger.Info($"Created Project ID '{projectId} assignment to Cluster ID '{clusterId}'.");
             return clusterProject;

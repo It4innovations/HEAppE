@@ -541,8 +541,8 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
-
-            var project = _managementService.ModifyProject(model.Id, (UsageType)model.UsageType, model.Name, model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.SessionCode);
+            
+            var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name, model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.SessionCode);
             ClearListAvailableClusterMethodCache();
             return Ok(project);
         }

@@ -153,6 +153,9 @@
   <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
     <value>The specified command template is disabled.</value>
   </data>
+  <data name="InputValidationException_ProjectDeleted" xml:space="preserve">
+    <value>The specified project was deleted.</value>
+  </data>
   <data name="InputValidationException_NotPermitted" xml:space="preserve">
     <value>Operation is not permitted.</value>
   </data>
