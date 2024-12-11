@@ -60,7 +60,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
                 CoresPerNode = nodeType.CoresPerNode,
                 MaxWalltime = nodeType.MaxWalltime,
                 FileTransferMethodId = nodeType.FileTransferMethodId,
-                Projects = projectExts.Where(p => p.CommandTemplates.Any()).ToArray()
+                Projects = projectExts.ToArray()
             };
             return convert;
         }
