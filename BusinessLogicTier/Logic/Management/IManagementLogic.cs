@@ -22,6 +22,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         Project CreateProject(string accountingString, UsageType usageType, string name, string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, AdaptorUser loggedUser);
         Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate, DateTime endDate, bool? useAccountingStringForScheduler);
         void RemoveProject(long id);
+        List<SecureShellKey> GetSecureShellKeys(long projectId);
         List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId);
         SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);
         void RemoveSecureShellKey(string publicKey, long projectId);

@@ -52,6 +52,7 @@ namespace HEAppE.ServiceTier.Management
 
         void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
 
+        List<PublicKeyExt> GetSecureShellKeys(long projectId, string sessionCode);
         List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
             string sessionCode);
 

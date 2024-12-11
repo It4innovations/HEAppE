@@ -27,6 +27,7 @@ namespace HEAppE.RestApi.InputValidator
                 CreateSecureShellKeyModelObsolete ext => ValidateCreateSecureShellKeyModelObsolete(ext),
                 RegenerateSecureShellKeyModelObsolete ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModelObsolete ext => ValidateRemoveSecureShellKeyModel(ext),
+                GetSecureShellKeysModel ext => ValidateGetSecureShellKeysModel(ext),
                 CreateSecureShellKeyModel ext => ValidateCreateSecureShellKeyModel(ext),
                 RegenerateSecureShellKeyModel ext => ValidateRecreateSecureShellKeyModel(ext),
                 RemoveSecureShellKeyModel ext => ValidateRemoveSecureShellKeyModel(ext),
@@ -75,6 +76,19 @@ namespace HEAppE.RestApi.InputValidator
             };
 
             return new ValidationResult(string.IsNullOrEmpty(message), message);
+        }
+
+        private string ValidateGetSecureShellKeysModel(GetSecureShellKeysModel ext)
+        {
+            ValidationResult sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+            if (!sessionCodeValidation.IsValid)
+            {
+                _messageBuilder.AppendLine(sessionCodeValidation.Message);
+            }
+
+            ValidateId(ext.ProjectId, "ProjectId");
+
+            return _messageBuilder.ToString();
         }
 
         private string ValidateAccountingStateModel(AccountingStateModel ext)

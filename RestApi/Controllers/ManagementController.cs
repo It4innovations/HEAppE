@@ -1713,6 +1713,36 @@ namespace HEAppE.RestApi.Controllers
         }
 
         /// <summary>
+        /// Get SSH keys for project
+        /// </summary>
+        /// <param name="model"></param>
+        /// <returns></returns>
+        [HttpGet("SecureShellKeys")]
+        [RequestSizeLimit(1000)]
+        [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
+        [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+        [ProducesResponseType(StatusCodes.Status404NotFound)]
+        [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+        [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+        [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+        public IActionResult GetSecureShellKeys(long projectId, string sessionCode)
+        {
+            _logger.LogDebug($"Endpoint: \"Management\" Method: \"GetSecureShellKeys\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
+            GetSecureShellKeysModel model = new()
+            {
+                ProjectId = projectId,
+                SessionCode = sessionCode
+            };
+            ValidationResult validationResult = new ManagementValidator(model).Validate();
+            if (!validationResult.IsValid)
+            {
+                throw new InputValidationException(validationResult.Message);
+            }
+            
+            return Ok(_managementService.GetSecureShellKeys(model.ProjectId, model.SessionCode));
+        }
+        
+        /// <summary>
         /// Generate SSH key
         /// </summary>
         /// <param name="model"></param>

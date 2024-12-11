@@ -226,6 +226,17 @@ namespace HEAppE.ServiceTier.Management
                 managementLogic.RemoveProjectAssignmentToCluster(projectId, clusterId);
             }
         }
+        
+        public List<PublicKeyExt> GetSecureShellKeys(long projectId, string sessionCode)
+        {
+            using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                AdaptorUser loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.ManagementAdmin, projectId, true);
+                IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                return managementLogic.GetSecureShellKeys(projectId).Select(x => x.ConvertIntToExt()).ToList();
+            }
+        }
+        
 
         public List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, string sessionCode)
         {

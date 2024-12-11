@@ -562,6 +562,18 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
         }
 
         /// <summary>
+        /// Returns a list of SSH keys for the specified project
+        /// </summary>
+        /// <param name="projectId"></param>
+        /// <returns></returns>
+        public List<SecureShellKey> GetSecureShellKeys(long projectId)
+        {
+            return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
+                .Where(x=>!x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
+                .Select(SSHGenerator.GetPublicKeyFromPrivateKey).ToList();
+        }
+
+        /// <summary>
         /// Creates encrypted SSH key for the specified user and saves it to the database.
         /// </summary>
         /// <param name="credentials"></param>
