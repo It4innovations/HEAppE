@@ -37,7 +37,7 @@ namespace HEAppE.ExtModels.ClusterInformation.Converts
             var projectExts = new List<ProjectExt>();
             if (nodeType.Cluster != null)
             {
-                var projects = nodeType.Cluster.ClusterProjects?.Select(x => x.Project).ToList();
+                var projects = nodeType.Cluster.ClusterProjects?.Where(x=>x.Project != null).Select(x => x.Project).ToList();
                 projectExts = projects?.Select(x => x.ConvertIntToExt()).ToList() ?? new List<ProjectExt>();
 
                 // select possible commands for specific project or command for all projects
