@@ -1,4 +1,4 @@
-﻿using HEAppE.Exceptions.External;
+using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
@@ -141,6 +141,7 @@ namespace HEAppE.RestApi.Controllers
         ///Get all jobs for user
         /// </summary>
         /// <param name="sessionCode">Session code</param>
+        /// <param name="jobStates">Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed", "1,2,Running,Failed" etc.</param>
         /// <returns></returns>
         [HttpGet("ListJobsForCurrentUser")]
         [RequestSizeLimit(60)]
@@ -150,7 +151,7 @@ namespace HEAppE.RestApi.Controllers
         [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
         [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
         [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-        public IActionResult ListJobsForCurrentUser(string sessionCode)
+        public IActionResult ListJobsForCurrentUser(string sessionCode, string jobStates = null)
         {
             var model = new ListJobsForCurrentUserModel()
             {
@@ -162,8 +163,8 @@ namespace HEAppE.RestApi.Controllers
             {
                 throw new InputValidationException(validationResult.Message);
             }
-
-            return Ok(_service.ListJobsForCurrentUser(model.SessionCode));
+            
+            return Ok(_service.ListJobsForCurrentUser(model.SessionCode, jobStates));
         }
 
         /// <summary>

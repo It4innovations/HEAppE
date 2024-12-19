@@ -15,6 +15,8 @@ using System.Linq;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.Exceptions.External;
+using System;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.ServiceTier.JobManagement
 {
@@ -85,14 +87,30 @@ namespace HEAppE.ServiceTier.JobManagement
             }
         }
 
-        public SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode)
+        public SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null)
         {
             using (IUnitOfWork unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 (AdaptorUser loggedUser, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Submitter);
                 IJobManagementLogic jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
                 var jobInfos = jobLogic.GetJobsForUser(loggedUser);
-                return jobInfos.Select(s => s.ConvertIntToExt()).ToArray();
+                var result = jobInfos.Select(s => s.ConvertIntToExt()).ToArray();
+                if (jobStates != null)
+                {
+                    var values = Enum.GetValues(typeof(JobStateExt));
+                    Array.Reverse(values);
+                    foreach (JobStateExt st in values)
+                    {
+                        jobStates = jobStates.Replace(((int)st).ToString(),st.ToString());
+                    }
+                    jobStates = Regex.Replace(jobStates.Replace(" ", ""), @",+", ",").Trim(',');
+                    if (!Enum.TryParse(jobStates, true, out JobStateExt statesComb))
+                    {
+                        throw new InputValidationException("JobStatesInvalid", jobStates);
+                    }
+                    result = result.Where(x => ((int)statesComb & (int)x.State) != 0).ToArray();
+                }
+                return result;
             }
         }
 
