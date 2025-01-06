@@ -335,11 +335,11 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     Permissions = x.SystemPermissionTypes
                 });
 
-            IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-                .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
-
             lock (_lockCreateUserObj)
             {
+                IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
+                    .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
+
                 DateTime changedTime = DateTime.UtcNow;
                 AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(lexisUser.UserName);
                 if (user is null)
@@ -373,12 +373,12 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     AdaptorUserRole userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
                     foreach (AdaptorUserGroup prefixedGroup in groupsWithProject)
                     {
-                        UpdateRoleForUserAndGroup(user, prefixedGroup, userRole);
+                        user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
                     }
 
                     hasUserGroup = true;
                     _log.Info($"LEXIS AAI: User \"{user.Username}\" for Project Short Name \"{lexisProject.ProjectShortName}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
-                    _unitOfWork.Save();
+
                 }
                 _unitOfWork.Save();
 
@@ -417,7 +417,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
                     }
 
                     AdaptorUserRole userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(project.Roles);
-                    UpdateRoleForUserAndGroup(user, openIdGroup, userRole);
+                    user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
 
                     hasUserGroup = true;
                     _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
@@ -453,30 +453,6 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement
             return user;
         }
 
-        /// <summary>
-        /// Update role for user and group
-        /// </summary>
-        /// <param name="user">User</param>
-        /// <param name="group">Group</param>
-        /// <param name="userRole">UserRole</param>
-        private static void UpdateRoleForUserAndGroup(AdaptorUser user, AdaptorUserGroup group, AdaptorUserRole userRole)
-        {
-            AdaptorUserUserGroupRole adaptorUserWithGroupRole = user.AdaptorUserUserGroupRoles.FirstOrDefault(f => f.AdaptorUserGroup == group);
-            if (adaptorUserWithGroupRole is null)
-            {
-                user.CreateSpecificUserRoleForUser(group, userRole.RoleType);
-            }
-            else
-            {
-                if (adaptorUserWithGroupRole.AdaptorUserRole == userRole)
-                {
-                    adaptorUserWithGroupRole.IsDeleted = false;
-                }
-
-                user.CreateSpecificUserRoleForUser(group, userRole.RoleType);
-                user.AdaptorUserUserGroupRoles.Remove(adaptorUserWithGroupRole);
-            }
-        }
 
         /// <summary>
         /// Tries to get user group from database by its unique name.

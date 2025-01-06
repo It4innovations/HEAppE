@@ -374,10 +374,10 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
 
                 _unitOfWork.Save();
 
-                // Check if an admin user exists and is not the logged-in user
+                // Check if an admin user exists
                 var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
-                if (heappeAdminUser != null && heappeAdminUser.Id != loggedUser.Id)
-                {
+                if (heappeAdminUser != null)
+                {           
                     heappeAdminUser.CreateSpecificUserRoleForUser(defaultAdaptorUserGroup, AdaptorUserRoleType.Administrator);
                     _unitOfWork.AdaptorUserRepository.Update(heappeAdminUser);
                     _unitOfWork.Save();
@@ -391,7 +391,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management
                     _ => defaultAdaptorUserGroup
                 };
 
-                loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Administrator);
+                loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
                 _unitOfWork.AdaptorUserRepository.Update(loggedUser);
                 _unitOfWork.Save();
 
