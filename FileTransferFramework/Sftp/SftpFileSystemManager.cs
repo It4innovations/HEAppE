@@ -23,7 +23,7 @@ namespace HEAppE.FileTransferFramework.Sftp
         /// <summary>
         /// Script Configuration
         /// </summary>
-        protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
+        protected readonly new ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
         #endregion
         #region Constructors
         public SftpFileSystemManager(ILogger logger, FileTransferMethod configuration, FileSystemFactory synchronizerFactory, IConnectionPool connectionPool)

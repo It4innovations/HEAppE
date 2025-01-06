@@ -17,7 +17,7 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic.Con
         protected StringBuilder _taskBuilder = new();
         protected StringBuilder _hqAutoAllocParametersBuilder = new();
 
-        private string _queueTimeLimit;
+        //private string _queueTimeLimit;
 
         public HyperQueueTaskAdapter(string taskSource)
         {

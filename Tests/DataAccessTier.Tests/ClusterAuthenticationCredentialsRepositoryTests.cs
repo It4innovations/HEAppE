@@ -137,6 +137,8 @@ public class ClusterAuthenticationCredentialsRepositoryTests : IAsyncLifetime
 
         entity.Id.Should().Be(preparedEntityId);
         entity.ExportVaultData().Id.Should().Be(preparedEntityId);
+
+        await Task.CompletedTask; // Suppress warning
     }
 
 
@@ -156,6 +158,8 @@ public class ClusterAuthenticationCredentialsRepositoryTests : IAsyncLifetime
 
         entity.Id.Should().Be(preparedEntityId);
         entity.ExportVaultData().Id.Should().Be(preparedEntityId);
+
+        await Task.CompletedTask; // Suppress warning
     }
 
 

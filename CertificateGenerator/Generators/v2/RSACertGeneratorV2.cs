@@ -118,7 +118,7 @@ namespace HEAppE.CertificateGenerator.Generators.v2
             pemWriter.Writer.Flush();
             return stringWriter.ToString();
         }
-        public static new string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
+        public static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
             string passphrase, string comment = null)
         {
             using var fileStream = new StringReader(privateKey);

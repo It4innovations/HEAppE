@@ -156,7 +156,7 @@ namespace HEAppE.DataStagingAPI
         /// <param name="exception"></param>
         /// <param name="localizationCulture">Optional parameter to change localization culture</param>
         /// <returns></returns>
-        private string GetExceptionMessage(Exception exception, CultureInfo localizationCulture = null)
+        private string GetExceptionMessage(Exception exception, CultureInfo? localizationCulture = null)
         {
             StringBuilder localizedMessage = new();
 

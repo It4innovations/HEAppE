@@ -45,7 +45,7 @@ namespace HEAppE.Utils
         public static string GetRandomString()
         {
             var random = new byte[16];
-            var rng = new RNGCryptoServiceProvider();
+            var rng = RandomNumberGenerator.Create();
             rng.GetNonZeroBytes(random);
             return Convert.ToBase64String(random);
         }

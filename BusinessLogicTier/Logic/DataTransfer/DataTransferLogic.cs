@@ -15,6 +15,7 @@ using System.Net;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Threading.Tasks;
+using System;
 
 namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
 {
@@ -177,7 +178,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+                    Timeout = TimeSpan.FromMilliseconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
                 };
                 var basicRestClient = new RestClient(options);
 
@@ -216,7 +217,7 @@ namespace HEAppE.BusinessLogicTier.Logic.DataTransfer
                         NoCache = true,
                         NoStore = true
                     },
-                    MaxTimeout = (int)(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+                    Timeout = TimeSpan.FromMilliseconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
                 };
                 var basicRestClient = new RestClient(options);
 

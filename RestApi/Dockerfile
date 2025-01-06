@@ -1,6 +1,6 @@
 #See https://aka.ms/containerfastmode to understand how Visual Studio uses this Dockerfile to build your images for faster debugging.
 
-FROM mcr.microsoft.com/dotnet/aspnet:7.0-bullseye-slim AS base
+FROM mcr.microsoft.com/dotnet/aspnet:9.0 AS base
 WORKDIR /app
 RUN mkdir /sftp
 RUN chmod 700 /sftp
@@ -11,8 +11,7 @@ RUN apt-get install -y --no-install-recommends openssh-client
 
 EXPOSE 80
 
-
-FROM mcr.microsoft.com/dotnet/sdk:7.0-bullseye-slim AS build
+FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 COPY ["RestApi/RestApi.csproj", "RestApi/"]
