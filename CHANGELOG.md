@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Automatic docker compose Vault initialization and unsealing procedure
 - Propagation of JobState `Deleted` into `JobSpecification`
 - Feature to enable or disable `CommandTemplate` by `IsEnabled` property
+- Advanced filter for `ListavailableClusters` endpoint
+- JobState filter for `ListJobsForCurrentUser`
 
 ### Fixed
 - An issue where creating and submitting a job with `MaxCores` missing
