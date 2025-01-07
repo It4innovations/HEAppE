@@ -6,17 +6,15 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQu
 
 public class Resources
 {
-    [JsonProperty("cpus")]
-    public Cpus Cpus { get; set; }
+    [JsonProperty("cpus")] public Cpus Cpus { get; set; }
 
-    [JsonProperty("generic")]
-    public List<Generic> Generic { get; set; }
+    [JsonProperty("generic")] public List<Generic> Generic { get; set; }
 
-    [JsonProperty("min_time")]
-    public double MinTime { get; set; }
+    [JsonProperty("min_time")] public double MinTime { get; set; }
+
     public override string ToString()
     {
-        string genericInfo = Generic != null ? string.Join(", ", Generic.Select(g => g.ToString())) : "null";
+        var genericInfo = Generic != null ? string.Join(", ", Generic.Select(g => g.ToString())) : "null";
 
         return $"Resources(Cpus={Cpus}, Generic=[{genericInfo}], MinTime={MinTime})";
     }

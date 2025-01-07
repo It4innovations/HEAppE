@@ -1,8 +1,7 @@
-﻿namespace HEAppE.BackgroundThread.Tasks
+﻿namespace HEAppE.BackgroundThread.Tasks;
+
+internal interface IBackgroundTask
 {
-    internal interface IBackgroundTask
-    {
-        void StartTimer();
-        void StopTimer();
-    }
+    void StartTimer();
+    void StopTimer();
 }

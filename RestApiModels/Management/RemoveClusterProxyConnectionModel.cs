@@ -1,12 +1,11 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+[DataContract(Name = "RemoveClusterProxyConnectionModel")]
+public class RemoveClusterProxyConnectionModel : SessionCodeModel
 {
-    [DataContract(Name = "RemoveClusterProxyConnectionModel")]
-    public class RemoveClusterProxyConnectionModel : SessionCodeModel
-    {
-        [DataMember(Name = "Id", IsRequired = true)]
-        public long Id { get; set; }
-    }
+    [DataMember(Name = "Id", IsRequired = true)]
+    public long Id { get; set; }
 }

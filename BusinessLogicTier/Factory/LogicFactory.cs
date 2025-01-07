@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
@@ -11,48 +10,51 @@ using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
 
-namespace HEAppE.BusinessLogicTier.Factory
+namespace HEAppE.BusinessLogicTier.Factory;
+
+public abstract class LogicFactory
 {
-  public abstract class LogicFactory
-  {
+    private static readonly Dictionary<BusinessLogicType, LogicFactory> factoryInstances =
+        new(Enum.GetValues(typeof(BusinessLogicType)).Length);
+
     /// <summary>
-    /// Hack, initialized in Startup
+    ///     Hack, initialized in Startup
     /// </summary>
     public static IServiceProvider ServiceProvider { get; set; }
 
-    private static readonly Dictionary<BusinessLogicType, LogicFactory> factoryInstances =
-        new Dictionary<BusinessLogicType, LogicFactory>(Enum.GetValues(typeof(BusinessLogicType)).Length);
-
     #region Instantiation
+
     public static LogicFactory GetLogicFactory()
     {
-      return GetLogicFactory(BusinessLogicType.Poco);
+        return GetLogicFactory(BusinessLogicType.Poco);
     }
 
     public static LogicFactory GetLogicFactory(BusinessLogicType type)
     {
-      lock (factoryInstances)
-      {
-        if (!factoryInstances.ContainsKey(type))
+        lock (factoryInstances)
         {
-          factoryInstances.Add(type, CreateLogicFactory(type));
+            if (!factoryInstances.ContainsKey(type)) factoryInstances.Add(type, CreateLogicFactory(type));
         }
-      }
-      return factoryInstances[type];
+
+        return factoryInstances[type];
     }
 
     private static LogicFactory CreateLogicFactory(BusinessLogicType type)
     {
-      switch (type)
-      {
-        case BusinessLogicType.Poco:
-        return new PocoLogicFactory();
-      }
-      throw new ArgumentException($"Business logic factory for type {type} is not implemented. Check the switch in HaaSMiddleware.BusinessLogicTier.Factory.AbstracLogicFactory.CreateLogicFactory(BusinessLogicType type) method.");
+        switch (type)
+        {
+            case BusinessLogicType.Poco:
+                return new PocoLogicFactory();
+        }
+
+        throw new ArgumentException(
+            $"Business logic factory for type {type} is not implemented. Check the switch in HaaSMiddleware.BusinessLogicTier.Factory.AbstracLogicFactory.CreateLogicFactory(BusinessLogicType type) method.");
     }
+
     #endregion
 
     #region Abstract methods
+
     public abstract IAdminUserManagementLogic CreateAdminUserManagementLogic(IUnitOfWork unitOfWork);
     public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork);
     public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork);
@@ -61,6 +63,6 @@ namespace HEAppE.BusinessLogicTier.Factory
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);
     public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork);
     public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork);
+
     #endregion
-  }
 }

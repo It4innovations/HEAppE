@@ -41,7 +41,6 @@
       "environmentVariables": {
         "ASPNETCORE_RUNTYPE_ENVIRONMENT": "Docker"
       }
-
     }
   }
 }

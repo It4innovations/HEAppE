@@ -1,16 +1,16 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <AssemblyName>ExtModels</AssemblyName>
-    <RootNamespace>HEAppE.ExtModels</RootNamespace>
-  </PropertyGroup>
-  <ItemGroup>
-    <PackageReference Include="FluentValidation" Version="11.11.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj" />
-    <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
-    <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
-    <ProjectReference Include="..\Utils\Utils.csproj" />
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <AssemblyName>ExtModels</AssemblyName>
+        <RootNamespace>HEAppE.ExtModels</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <PackageReference Include="FluentValidation" Version="11.11.0"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj"/>
+        <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj"/>
+        <ProjectReference Include="..\DomainObjects\DomainObjects.csproj"/>
+        <ProjectReference Include="..\Utils\Utils.csproj"/>
+    </ItemGroup>
 </Project>

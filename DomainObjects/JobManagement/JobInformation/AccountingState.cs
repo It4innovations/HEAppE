@@ -6,8 +6,8 @@ namespace HEAppE.DomainObjects.JobManagement.JobInformation;
 [Table("AccountingState")]
 public class AccountingState : IdentifiableDbEntity
 {
-    [ForeignKey("Project")]
-    public virtual long ProjectId { get; set; }
+    [ForeignKey("Project")] public virtual long ProjectId { get; set; }
+
     public virtual Project Project { get; set; }
     public virtual AccountingStateType AccountingStateType { get; set; }
     public DateTime ComputingStartDate { get; set; }

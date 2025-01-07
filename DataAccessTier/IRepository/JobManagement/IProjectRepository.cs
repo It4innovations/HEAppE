@@ -1,11 +1,10 @@
-﻿using HEAppE.DomainObjects.JobManagement;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement;
 
-namespace HEAppE.DataAccessTier.IRepository.JobManagement
+namespace HEAppE.DataAccessTier.IRepository.JobManagement;
+
+public interface IProjectRepository : IRepository<Project>
 {
-    public interface IProjectRepository : IRepository<Project>
-    {
-        IEnumerable<Project> GetAllActiveProjects();
-        Project GetByAccountingString(string accountingString);
-    }
+    IEnumerable<Project> GetAllActiveProjects();
+    Project GetByAccountingString(string accountingString);
 }

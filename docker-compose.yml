@@ -9,8 +9,8 @@ services:
     volumes:
       - app_volume:/app/shared
     environment:
-      TZ: "Europe/Prague" 
-      SSH_AUTH_SOCK: "/app/shared/agentsocket" 
+      TZ: "Europe/Prague"
+      SSH_AUTH_SOCK: "/app/shared/agentsocket"
     networks:
       - sshagent_internal_network
     profiles:
@@ -28,7 +28,7 @@ services:
     environment:
       ACCEPT_EULA: "Y"
       MSSQL_PID: "Express"
-      TZ: "Europe/Prague" 
+      TZ: "Europe/Prague"
       SA_PASSWORD: "${HOST_MSSQL_PASSWORD}"
     networks:
       - db_internal_network
@@ -51,7 +51,7 @@ services:
       - "${HOST_DATA_STAGING_PORT}:80"
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
-      TZ: "Europe/Prague" 
+      TZ: "Europe/Prague"
     networks:
       - db_internal_network
       - external_network
@@ -74,7 +74,7 @@ services:
     environment:
       ASPNETCORE_RUNTYPE_ENVIRONMENT: "Docker"
       SSH_AUTH_SOCK: "/app/shared/agentsocket"
-      TZ: "Europe/Prague" 
+      TZ: "Europe/Prague"
     networks:
       - sshagent_internal_network
       - db_internal_network
@@ -97,7 +97,7 @@ services:
       - "${BASE_PATH}/vault/vault:/vault/config"
     healthcheck:
       retries: 5
-    command: server 
+    command: server
     cap_add:
       - IPC_LOCK
     networks:
@@ -142,7 +142,7 @@ services:
       - initVault
     depends_on:
       - vault
-    
+  
   vault_unseal:
     build:
       context: .
@@ -167,10 +167,10 @@ services:
 
 
 volumes:
-# Shared volumes
+  # Shared volumes
   app_volume:
   app_sftp_temp_volume:
-# Invidual volumes
+  # Invidual volumes
   sql_volume:
   vault-volume:
   vault-agent-volume:

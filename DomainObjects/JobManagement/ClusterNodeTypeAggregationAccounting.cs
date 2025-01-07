@@ -8,10 +8,9 @@ public class ClusterNodeTypeAggregationAccounting : ISoftDeletableEntity
 {
     public long ClusterNodeTypeAggregationId { get; set; }
     public virtual ClusterNodeTypeAggregation ClusterNodeTypeAggregation { get; set; }
-    
+
     public long AccountingId { get; set; }
     public virtual Accounting Accounting { get; set; }
 
-    [Required]
-    public bool IsDeleted { get; set; } = false;
+    [Required] public bool IsDeleted { get; set; } = false;
 }

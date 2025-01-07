@@ -1,8 +1,7 @@
-﻿namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication
+﻿namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+
+public class DigitalSignatureCredentials : AuthenticationCredentials
 {
-    public class DigitalSignatureCredentials : AuthenticationCredentials
-    {
-        public string SignedContent { get; set; }
-        public byte[] DigitalSignature { get; set; }
-    }
+    public string SignedContent { get; set; }
+    public byte[] DigitalSignature { get; set; }
 }

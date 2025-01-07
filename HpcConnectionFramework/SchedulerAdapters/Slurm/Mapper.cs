@@ -1,118 +1,114 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Collections.Generic;
 using System.Text.RegularExpressions;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Enums;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm;
+
+/// <summary>
+///     Mapper class
+/// </summary>
+internal static class Mapper
 {
     /// <summary>
-    /// Mapper class
+    ///     Mapping task state from Slurm state
     /// </summary>
-    internal static class Mapper
+    /// <param name="taskState">Task state</param>
+    /// <returns></returns>
+    internal static TaskState Map(this SlurmTaskState taskState)
     {
-        /// <summary>
-        /// Mapping task state from Slurm state
-        /// </summary>
-        /// <param name="taskState">Task state</param>
-        /// <returns></returns>
-        internal static TaskState Map(this SlurmTaskState taskState)
+        return taskState switch
         {
-            return taskState switch
+            SlurmTaskState.Requeued
+                or SlurmTaskState.Pending
+                or SlurmTaskState.RequeueHold
+                or SlurmTaskState.RequeueFed
+                or SlurmTaskState.Configuring
+                or SlurmTaskState.ResvDelHold => TaskState.Queued,
+
+
+            SlurmTaskState.StageOut
+                or SlurmTaskState.Signaling => TaskState.Configuring,
+
+            SlurmTaskState.Completed
+                or SlurmTaskState.SpecialExit => TaskState.Finished,
+
+            SlurmTaskState.Stopped
+                or SlurmTaskState.Canceled
+                or SlurmTaskState.Suspended
+                or SlurmTaskState.Resizing => TaskState.Canceled,
+
+            SlurmTaskState.Running
+                or SlurmTaskState.Completing => TaskState.Running,
+
+            SlurmTaskState.Failed
+                or SlurmTaskState.BootFailed
+                or SlurmTaskState.NodeFail
+                or SlurmTaskState.Deadline
+                or SlurmTaskState.Timeout
+                or SlurmTaskState.OutOfMemory
+                or SlurmTaskState.Preempted
+                or SlurmTaskState.Revoked => TaskState.Failed,
+
+            _ => TaskState.Failed
+        };
+    }
+
+    /// <summary>
+    ///     Get allocated nodes for job
+    /// </summary>
+    /// <param name="responseMessage">Server response text</param>
+    /// <returns></returns>
+    internal static IEnumerable<string> GetAllocatedNodes(string responseMessage)
+    {
+        var nodes = new List<string>();
+        var pattern = @"([^\[,]+)(\[[^\]]+\])?";
+
+        foreach (Match match in Regex.Matches(responseMessage, pattern))
+        {
+            var nodeName = match.Groups[1].Value;
+            var rangePart = match.Groups[2].Value;
+
+            if (string.IsNullOrEmpty(rangePart))
             {
-                SlurmTaskState.Requeued
-                    or SlurmTaskState.Pending
-                    or SlurmTaskState.RequeueHold
-                    or SlurmTaskState.RequeueFed
-                    or SlurmTaskState.Configuring
-                    or SlurmTaskState.ResvDelHold => TaskState.Queued,
-
-                
-                SlurmTaskState.StageOut
-                    or SlurmTaskState.Signaling => TaskState.Configuring,
-
-                SlurmTaskState.Completed
-                    or SlurmTaskState.SpecialExit => TaskState.Finished,
-
-                SlurmTaskState.Stopped
-                    or SlurmTaskState.Canceled
-                    or SlurmTaskState.Suspended
-                    or SlurmTaskState.Resizing => TaskState.Canceled,
-
-                SlurmTaskState.Running
-                    or SlurmTaskState.Completing => TaskState.Running,
-
-                SlurmTaskState.Failed
-                    or SlurmTaskState.BootFailed
-                    or SlurmTaskState.NodeFail
-                    or SlurmTaskState.Deadline
-                    or SlurmTaskState.Timeout
-                    or SlurmTaskState.OutOfMemory
-                    or SlurmTaskState.Preempted
-                    or SlurmTaskState.Revoked => TaskState.Failed,
-
-                _ => TaskState.Failed
-            };
+                nodes.Add(nodeName);
+            }
+            else
+            {
+                var expandedNodes = ExpandRange(nodeName, rangePart);
+                nodes.AddRange(expandedNodes);
+            }
         }
 
-        /// <summary>
-        /// Get allocated nodes for job
-        /// </summary>
-        /// <param name="responseMessage">Server response text</param>
-        /// <returns></returns>
-        internal static IEnumerable<string> GetAllocatedNodes(string responseMessage)
-        {
-            List<string> nodes = new List<string>();
-            string pattern = @"([^\[,]+)(\[[^\]]+\])?";
+        return nodes;
+    }
 
-            foreach (Match match in Regex.Matches(responseMessage, pattern))
+    private static List<string> ExpandRange(string nodeName, string rangePart)
+    {
+        var expandedNodes = new List<string>();
+
+        var ranges = rangePart.Trim('[', ']').Split(',');
+
+        foreach (var range in ranges)
+            if (range.Contains("-"))
             {
-                string nodeName = match.Groups[1].Value;
-                string rangePart = match.Groups[2].Value;
+                var parts = range.Split('-');
+                var start = int.Parse(parts[0]);
+                var end = int.Parse(parts[1]);
 
-                if (string.IsNullOrEmpty(rangePart))
+                var paddingLength = parts[0].Length; // Get the length of the first part
+
+                for (var i = start; i <= end; i++)
                 {
-                    nodes.Add(nodeName);
-                }
-                else
-                {
-                    List<string> expandedNodes = ExpandRange(nodeName, rangePart);
-                    nodes.AddRange(expandedNodes);
+                    var paddedI = i.ToString($"D{paddingLength}");
+                    expandedNodes.Add($"{nodeName}{paddedI}");
                 }
             }
-
-            return nodes;
-        }
-
-        static List<string> ExpandRange(string nodeName, string rangePart)
-        {
-            List<string> expandedNodes = new List<string>();
-
-            string[] ranges = rangePart.Trim('[', ']').Split(',');
-
-            foreach (string range in ranges)
+            else
             {
-                if (range.Contains("-"))
-                {
-                    string[] parts = range.Split('-');
-                    int start = int.Parse(parts[0]);
-                    int end = int.Parse(parts[1]);
-
-                    int paddingLength = parts[0].Length; // Get the length of the first part
-
-                    for (int i = start; i <= end; i++)
-                    {
-                        string paddedI = i.ToString($"D{paddingLength}");
-                        expandedNodes.Add($"{nodeName}{paddedI}");
-                    }
-                }
-                else
-                {
-                    expandedNodes.Add($"{nodeName}{range}");
-                }
+                expandedNodes.Add($"{nodeName}{range}");
             }
 
-            return expandedNodes;
-        }
+        return expandedNodes;
     }
 }

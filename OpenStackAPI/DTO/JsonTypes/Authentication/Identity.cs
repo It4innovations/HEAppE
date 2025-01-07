@@ -1,19 +1,17 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
-namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication
+namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
+
+public class Identity
 {
-    public class Identity
-    {
-        #region Properties
-        [JsonProperty("methods")]
-        public List<string> Methods { get; set; }
+    #region Properties
 
-        [JsonProperty("password")]
-        public PasswordAuthentication Password { get; set; }
+    [JsonProperty("methods")] public List<string> Methods { get; set; }
 
-        [JsonProperty("scope")]
-        public Project Scope { get; set; }
-        #endregion
-    }
+    [JsonProperty("password")] public PasswordAuthentication Password { get; set; }
+
+    [JsonProperty("scope")] public Project Scope { get; set; }
+
+    #endregion
 }

@@ -1,66 +1,64 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
-namespace HEAppE.DomainObjects.JobManagement
+namespace HEAppE.DomainObjects.JobManagement;
+
+public abstract class CommonTaskProperties : IdentifiableDbEntity
 {
-    public abstract class CommonTaskProperties : IdentifiableDbEntity
+    public CommonTaskProperties()
     {
-        [Required]
-        [StringLength(50)]
-        public string Name { get; set; }
+    }
 
-        public int? MinCores { get; set; }
+    public CommonTaskProperties(CommonTaskProperties commonTaskProperties) : base(commonTaskProperties)
+    {
+        Name = commonTaskProperties.Name;
+        MinCores = commonTaskProperties.MinCores;
+        MaxCores = commonTaskProperties.MaxCores;
+        Priority = commonTaskProperties.Priority;
+        Project = commonTaskProperties.Project;
+        WalltimeLimit = commonTaskProperties.WalltimeLimit;
+        //ref types 
+        EnvironmentVariables = new List<EnvironmentVariable>();
+        if (commonTaskProperties.EnvironmentVariables != null)
+            foreach (var envVariable in commonTaskProperties.EnvironmentVariables)
+                EnvironmentVariables.Add(new EnvironmentVariable(envVariable));
+    }
 
-        public int? MaxCores { get; set; }
+    [Required] [StringLength(50)] public string Name { get; set; }
 
-        public TaskPriority? Priority { get; set; }
+    public int? MinCores { get; set; }
 
-        [ForeignKey("Project")]
-        public long? ProjectId { get; set; }
-        public virtual Project Project { get; set; }
+    public int? MaxCores { get; set; }
 
-        public int? WalltimeLimit { get; set; }
+    public TaskPriority? Priority { get; set; }
 
-        // Objects in all related collections have to implement the ICloneable interface to support the combination with client job specification.
-        public virtual List<EnvironmentVariable> EnvironmentVariables { get; set; } = new List<EnvironmentVariable>();
+    [ForeignKey("Project")] public long? ProjectId { get; set; }
 
-        public CommonTaskProperties() : base() { }
-        public CommonTaskProperties(CommonTaskProperties commonTaskProperties) : base(commonTaskProperties)
-        {
-            this.Name = commonTaskProperties.Name;
-            this.MinCores = commonTaskProperties.MinCores;
-            this.MaxCores = commonTaskProperties.MaxCores;
-            this.Priority = commonTaskProperties.Priority;
-            this.Project = commonTaskProperties.Project;
-            this.WalltimeLimit = commonTaskProperties.WalltimeLimit;
-            //ref types 
-            this.EnvironmentVariables = new List<EnvironmentVariable>();
-            if (commonTaskProperties.EnvironmentVariables != null)
-                foreach (var envVariable in commonTaskProperties.EnvironmentVariables)
-                    this.EnvironmentVariables.Add(new EnvironmentVariable(envVariable));
-        }
+    public virtual Project Project { get; set; }
+
+    public int? WalltimeLimit { get; set; }
+
+    // Objects in all related collections have to implement the ICloneable interface to support the combination with client job specification.
+    public virtual List<EnvironmentVariable> EnvironmentVariables { get; set; } = new();
 
 
-        public override string ToString()
-        {
-            StringBuilder result = new StringBuilder();
-            result.AppendLine("Id=" + Id);
-            result.AppendLine("Name=" + Name);
-            result.AppendLine("MinCores=" + MinCores);
-            result.AppendLine("MaxCores=" + MaxCores);
-            result.AppendLine("Priority=" + Priority);
-            result.AppendLine("Project=" + Project);
-            result.AppendLine("WalltimeLimit=" + WalltimeLimit);
-            int i = 0;
-            if (EnvironmentVariables != null)
-                foreach (EnvironmentVariable variable in EnvironmentVariables)
-                {
-                    result.AppendLine("EnvironmentVariable" + (i++) + ": " + variable);
-                }
-            return result.ToString();
-        }
+    public override string ToString()
+    {
+        var result = new StringBuilder();
+        result.AppendLine("Id=" + Id);
+        result.AppendLine("Name=" + Name);
+        result.AppendLine("MinCores=" + MinCores);
+        result.AppendLine("MaxCores=" + MaxCores);
+        result.AppendLine("Priority=" + Priority);
+        result.AppendLine("Project=" + Project);
+        result.AppendLine("WalltimeLimit=" + WalltimeLimit);
+        var i = 0;
+        if (EnvironmentVariables != null)
+            foreach (var variable in EnvironmentVariables)
+                result.AppendLine("EnvironmentVariable" + i++ + ": " + variable);
+        return result.ToString();
     }
 }

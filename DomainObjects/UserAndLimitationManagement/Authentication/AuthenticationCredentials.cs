@@ -1,7 +1,6 @@
-﻿namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication
+﻿namespace HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+
+public abstract class AuthenticationCredentials
 {
-    public abstract class AuthenticationCredentials
-    {
-        public string Username { get; set; }
-    }
+    public string Username { get; set; }
 }

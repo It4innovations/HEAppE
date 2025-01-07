@@ -1,14 +1,14 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+[DataContract(Name = "InitializeClusterScriptDirectoryModel")]
+public class InitializeClusterScriptDirectoryModel : SessionCodeModel
 {
-    [DataContract(Name = "InitializeClusterScriptDirectoryModel")]
-    public class InitializeClusterScriptDirectoryModel : SessionCodeModel
-    {
-        [DataMember(Name = "ProjectId", IsRequired = true)]
-        public long ProjectId { get; set; }
-        [DataMember(Name = "ClusterProjectRootDirectory", IsRequired = true)]
-        public string ClusterProjectRootDirectory { get; set; }
-    }
+    [DataMember(Name = "ProjectId", IsRequired = true)]
+    public long ProjectId { get; set; }
+
+    [DataMember(Name = "ClusterProjectRootDirectory", IsRequired = true)]
+    public string ClusterProjectRootDirectory { get; set; }
 }

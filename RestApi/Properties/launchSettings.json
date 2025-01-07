@@ -1,42 +1,42 @@
 {
-  "iisSettings": {
-    "windowsAuthentication": false,
-    "anonymousAuthentication": true,
-    "iisExpress": {
-      "environmentVariables": {
-        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "IISExpress",
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "http://localhost:5000"
-    }
-  },
-  "$schema": "http://json.schemastore.org/launchsettings.json",
-  "profiles": {
-    "IIS Express": {
-      "commandName": "IISExpress",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "IISExpress",
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "http://localhost:5000"
+    "iisSettings": {
+        "windowsAuthentication": false,
+        "anonymousAuthentication": true,
+        "iisExpress": {
+            "environmentVariables": {
+                "ASPNETCORE_RUNTYPE_ENVIRONMENT": "IISExpress",
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "applicationUrl": "http://localhost:5000"
+        }
     },
-    "RestApi": {
-      "commandName": "Project",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "RestApi",
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
-      "applicationUrl": "http://localhost:5000"
-    },
-    "Docker": {
-      "commandName": "Docker",
-      "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_RUNTYPE_ENVIRONMENT": "Docker"
-      },
-      "launchUrl": "{Scheme}://localhost:{ServicePort}"
+    "$schema": "http://json.schemastore.org/launchsettings.json",
+    "profiles": {
+        "IIS Express": {
+            "commandName": "IISExpress",
+            "launchBrowser": true,
+            "environmentVariables": {
+                "ASPNETCORE_RUNTYPE_ENVIRONMENT": "IISExpress",
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "applicationUrl": "http://localhost:5000"
+        },
+        "RestApi": {
+            "commandName": "Project",
+            "launchBrowser": true,
+            "environmentVariables": {
+                "ASPNETCORE_RUNTYPE_ENVIRONMENT": "RestApi",
+                "ASPNETCORE_ENVIRONMENT": "Development"
+            },
+            "applicationUrl": "http://localhost:5000"
+        },
+        "Docker": {
+            "commandName": "Docker",
+            "launchBrowser": true,
+            "environmentVariables": {
+                "ASPNETCORE_RUNTYPE_ENVIRONMENT": "Docker"
+            },
+            "launchUrl": "{Scheme}://localhost:{ServicePort}"
+        }
     }
-  }
 }

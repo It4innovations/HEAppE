@@ -3,7 +3,6 @@ using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
-
 using log4net;
 
 namespace HEAppE.DataAccessTier.Vault;
@@ -17,7 +16,7 @@ public class VaultConnector : IVaultConnector
 
     public void DeleteClusterAuthenticationCredentials(long id)
     {
-        throw new System.NotImplementedException();
+        throw new NotImplementedException();
     }
 
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
@@ -55,15 +54,13 @@ public class VaultConnector : IVaultConnector
         var messageTask = httpClient.PostAsync(path, payload);
         messageTask.Wait(10000);
         var result = messageTask.Result;
-        if(result.IsSuccessStatusCode)
+        if (result.IsSuccessStatusCode)
         {
             _log.Debug($"Set vault ClusterProjectCredential with ID: {data.Id}");
             return true;
         }
-        else
-        {
-            _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
-            return false;
-        }
+
+        _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
+        return false;
     }
 }

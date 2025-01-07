@@ -1,14 +1,13 @@
-﻿using HEAppE.DomainObjects.JobManagement;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement;
 
-namespace HEAppE.DataAccessTier.IRepository.JobManagement
+namespace HEAppE.DataAccessTier.IRepository.JobManagement;
+
+public interface IProjectClusterNodeTypeAggregationRepository
 {
-    public interface IProjectClusterNodeTypeAggregationRepository
-    {
-        ProjectClusterNodeTypeAggregation GetById(long projectId, long clusterNodeTypeAggregationId);
-        List<ProjectClusterNodeTypeAggregation> GetAllByProjectId(long projectId);
-        ProjectClusterNodeTypeAggregation GetByIdIncludeSoftDeleted(long projectId, long clusterNodeTypeAggregationId);
-        void Insert(ProjectClusterNodeTypeAggregation entity);
-        void Update(ProjectClusterNodeTypeAggregation entity);
-    }
+    ProjectClusterNodeTypeAggregation GetById(long projectId, long clusterNodeTypeAggregationId);
+    List<ProjectClusterNodeTypeAggregation> GetAllByProjectId(long projectId);
+    ProjectClusterNodeTypeAggregation GetByIdIncludeSoftDeleted(long projectId, long clusterNodeTypeAggregationId);
+    void Insert(ProjectClusterNodeTypeAggregation entity);
+    void Update(ProjectClusterNodeTypeAggregation entity);
 }

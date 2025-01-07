@@ -1,54 +1,54 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk.Web">
-  <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
-    <DockerTargetOS>Linux</DockerTargetOS>
-    <UserSecretsId>a72f16e1-281e-4278-a259-fe4b1a9cef3a</UserSecretsId>
-  </PropertyGroup>
-  <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);1591</NoWarn>
-    <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
-    <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
-    <AssemblyName>RestApi</AssemblyName>
-    <RootNamespace>HEAppE.RestApi</RootNamespace>
-  </PropertyGroup>
-  <ItemGroup>
-    <Compile Remove="Models\**" />
-    <Compile Remove="wwwroot\**" />
-    <Content Remove="Models\**" />
-    <Content Remove="wwwroot\**" />
-    <EmbeddedResource Remove="Models\**" />
-    <EmbeddedResource Remove="wwwroot\**" />
-    <None Remove="Models\**" />
-    <None Remove="wwwroot\**" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
-    <PackageReference Include="log4net" Version="3.0.3" />
-    <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0" />
-    <PackageReference Include="MicroKnights.Log4NetHelper" Version="2.2.0" />
-    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-    <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0" />
-    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-    <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\BackgroundThread\BackgroundThread.csproj" />
-    <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
-    <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
-    <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
-    <ProjectReference Include="..\OpenStackAPI\OpenStackAPI.csproj" />
-    <ProjectReference Include="..\RestApiModels\RestApiModels.csproj" />
-    <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Update="appsettings.default.json">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </Content>
-    <Content Update="Logging\log4net.config">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-  </ItemGroup>
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <DockerTargetOS>Linux</DockerTargetOS>
+        <UserSecretsId>a72f16e1-281e-4278-a259-fe4b1a9cef3a</UserSecretsId>
+    </PropertyGroup>
+    <PropertyGroup>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+        <NoWarn>$(NoWarn);1591</NoWarn>
+        <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+        <AssemblyName>RestApi</AssemblyName>
+        <RootNamespace>HEAppE.RestApi</RootNamespace>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="Models\**"/>
+        <Compile Remove="wwwroot\**"/>
+        <Content Remove="Models\**"/>
+        <Content Remove="wwwroot\**"/>
+        <EmbeddedResource Remove="Models\**"/>
+        <EmbeddedResource Remove="wwwroot\**"/>
+        <None Remove="Models\**"/>
+        <None Remove="wwwroot\**"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0"/>
+        <PackageReference Include="log4net" Version="3.0.3"/>
+        <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0"/>
+        <PackageReference Include="MicroKnights.Log4NetHelper" Version="2.2.0"/>
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2"/>
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\BackgroundThread\BackgroundThread.csproj"/>
+        <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj"/>
+        <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj"/>
+        <ProjectReference Include="..\Exceptions\Exceptions.csproj"/>
+        <ProjectReference Include="..\OpenStackAPI\OpenStackAPI.csproj"/>
+        <ProjectReference Include="..\RestApiModels\RestApiModels.csproj"/>
+        <ProjectReference Include="..\ServiceTier\ServiceTier.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <Content Update="appsettings.default.json">
+            <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+        </Content>
+        <Content Update="Logging\log4net.config">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
+    </ItemGroup>
 </Project>

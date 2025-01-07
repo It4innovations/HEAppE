@@ -1,10 +1,8 @@
-﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Enums
+﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Enums;
+
+/// <summary>
+///     HyperQueue states
+/// </summary>
+internal enum HyperQueueTaskState
 {
-    /// <summary>
-    /// HyperQueue states
-    /// </summary>
-    internal enum HyperQueueTaskState
-    {
-        
-    }
 }

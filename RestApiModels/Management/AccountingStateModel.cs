@@ -1,12 +1,10 @@
-﻿using System;
+﻿using System.Runtime.Serialization;
 using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+[DataContract(Name = "AccountingStateModel")]
+public class AccountingStateModel : SessionCodeModel
 {
-    [DataContract(Name = "AccountingStateModel")]
-    public class AccountingStateModel : SessionCodeModel
-    {
-        public long ProjectId { get; set; }
-    }
+    public long ProjectId { get; set; }
 }

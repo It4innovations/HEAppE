@@ -1,32 +1,32 @@
-using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace HEAppE.DomainObjects.JobManagement
+namespace HEAppE.DomainObjects.JobManagement;
+
+[Table("CommandTemplateParameterValue")]
+public class CommandTemplateParameterValue : IdentifiableDbEntity
 {
-    [Table("CommandTemplateParameterValue")]
-    public class CommandTemplateParameterValue : IdentifiableDbEntity
+    public CommandTemplateParameterValue()
     {
-        [Required]
-        [StringLength(1000)]
-        public string Value { get; set; }
+    }
 
-        [NotMapped]
-        public string CommandParameterIdentifier { get; set; }
+    public CommandTemplateParameterValue(CommandTemplateParameterValue commandTemplateParameterValue) : base(
+        commandTemplateParameterValue)
+    {
+        Value = commandTemplateParameterValue.Value;
+        CommandParameterIdentifier = commandTemplateParameterValue.CommandParameterIdentifier;
+        TemplateParameter = commandTemplateParameterValue.TemplateParameter; //shallow copy
+    }
 
-        public virtual CommandTemplateParameter TemplateParameter { get; set; }
+    [Required] [StringLength(1000)] public string Value { get; set; }
 
-        public CommandTemplateParameterValue() : base() { }
-        public CommandTemplateParameterValue(CommandTemplateParameterValue commandTemplateParameterValue) : base(commandTemplateParameterValue)
-        {
-            this.Value = commandTemplateParameterValue.Value;
-            this.CommandParameterIdentifier = commandTemplateParameterValue.CommandParameterIdentifier;
-            this.TemplateParameter = commandTemplateParameterValue.TemplateParameter;//shallow copy
-        }
+    [NotMapped] public string CommandParameterIdentifier { get; set; }
 
-        public override string ToString()
-        {
-            return String.Format("CommandTemplateParameterValue: Id={0}, Parameter={1}, Value={2}", Id, TemplateParameter, Value);
-        }
+    public virtual CommandTemplateParameter TemplateParameter { get; set; }
+
+    public override string ToString()
+    {
+        return string.Format("CommandTemplateParameterValue: Id={0}, Parameter={1}, Value={2}", Id, TemplateParameter,
+            Value);
     }
 }
