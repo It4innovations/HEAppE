@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## V4.3.1
+## V5.0.0
 
 ### Changed
 - Updated to the .NET 9 
@@ -16,9 +16,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Feature to enable or disable `CommandTemplate` by `IsEnabled` property
 - Advanced filter for `ListavailableClusters` endpoint
 - JobState filter for `ListJobsForCurrentUser`
+- Management endpoints for HEAppE entities
 
 ### Fixed
 - An issue where creating and submitting a job with `MaxCores` missing
+- Concurrent auth token evaluation issue and role mapping (by single user)
 
 
 ## V4.3.0
