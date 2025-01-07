@@ -1,6 +1,5 @@
-﻿namespace HEAppE.Exceptions.Resources
+﻿namespace HEAppE.Exceptions.Resources;
+
+public class ExceptionsMessages
 {
-    public class ExceptionsMessages
-    {
-    }
 }

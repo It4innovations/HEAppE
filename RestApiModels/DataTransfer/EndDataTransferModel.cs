@@ -1,17 +1,17 @@
-﻿using HEAppE.ExtModels.DataTransfer.Models;
+﻿using System.Runtime.Serialization;
+using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
 
-namespace HEAppE.RestApiModels.DataTransfer
+namespace HEAppE.RestApiModels.DataTransfer;
+
+[DataContract(Name = "EndDataTransferModel")]
+public class EndDataTransferModel : SessionCodeModel
 {
-    [DataContract(Name = "EndDataTransferModel")]
-    public class EndDataTransferModel : SessionCodeModel
+    [DataMember(Name = "UsedTransferMethod")]
+    public DataTransferMethodExt UsedTransferMethod { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "UsedTransferMethod")]
-        public DataTransferMethodExt UsedTransferMethod { get; set; }
-        public override string ToString()
-        {
-            return $"EndDataTransferModel({base.ToString()}; UsedTransferMethod: {UsedTransferMethod})";
-        }
+        return $"EndDataTransferModel({base.ToString()}; UsedTransferMethod: {UsedTransferMethod})";
     }
 }

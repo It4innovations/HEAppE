@@ -1,16 +1,15 @@
-﻿using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
-namespace HEAppE.RestApiModels.UserAndLimitationManagement
+namespace HEAppE.RestApiModels.UserAndLimitationManagement;
+
+[DataContract(Name = "AuthenticateUserDigitalSignatureModel")]
+public class AuthenticateUserDigitalSignatureModel
 {
-    [DataContract(Name = "AuthenticateUserDigitalSignatureModel")]
-    public class AuthenticateUserDigitalSignatureModel
+    [DataMember(Name = "Credentials")] public DigitalSignatureCredentialsExt Credentials { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "Credentials")]
-        public DigitalSignatureCredentialsExt Credentials { get; set; }
-        public override string ToString()
-        {
-            return $"AuthenticateUserDigitalSignatureModel({base.ToString()}; Credentials: {Credentials})";
-        }
+        return $"AuthenticateUserDigitalSignatureModel({base.ToString()}; Credentials: {Credentials})";
     }
 }

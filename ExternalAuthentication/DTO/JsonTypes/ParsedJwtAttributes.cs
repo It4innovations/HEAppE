@@ -1,79 +1,80 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 
-namespace HEAppE.ExternalAuthentication.DTO.JsonTypes
+namespace HEAppE.ExternalAuthentication.DTO.JsonTypes;
+
+internal class ParsedJwtAttributes
 {
-    internal class ParsedJwtAttributes
+    /// <summary>
+    ///     Array of organization-project pairs which can be listed by the user.
+    /// </summary>
+    internal List<OrganizationProjectPair> ListPairs { get; set; } = new();
+
+    /// <summary>
+    ///     Array of organization-project pairs which can be read by the user.
+    /// </summary>
+    internal List<OrganizationProjectPair> ReadPairs { get; set; } = new();
+
+    /// <summary>
+    ///     Array of organization-project pairs which can be written to by the user.
+    /// </summary>
+    internal List<OrganizationProjectPair> WritePairs { get; set; } = new();
+
+    /// <summary>
+    ///     Check if user has access to given organization project pair.
+    /// </summary>
+    /// <param name="accessType">Access type.</param>
+    /// <param name="organization">Organization name.</param>
+    /// <param name="project">Project name.</param>
+    /// <returns></returns>
+    internal bool HasAccess(AccessType accessType, string organization, string project)
     {
-        internal sealed class OrganizationProjectPair
+        var pairArray = accessType switch
         {
-            /// <summary>
-            /// Organization name.
-            /// </summary>
-            internal string OrganizationName { get; }
+            AccessType.List => ListPairs,
+            AccessType.Read => ReadPairs,
+            AccessType.Write => WritePairs,
+            _ => throw new ArgumentException("Invalid project access type", nameof(accessType))
+        };
+        if (pairArray.Count == 0)
+            return false;
 
-            /// <summary>
-            /// Project name.
-            /// </summary>
-            internal string ProjectName { get; }
+        return pairArray.SingleOrDefault(x => x.OrganizationName == organization && x.ProjectName == project) is not
+            null;
+    }
 
-            /// <summary>
-            /// Construct organization-project pair.
-            /// </summary>
-            /// <param name="organization">Organization name.</param>
-            /// <param name="project">Project pair.</param>
-            internal OrganizationProjectPair(string organization, string project)
-            {
-                OrganizationName = organization;
-                ProjectName = project;
-            }
-        }
-
+    internal sealed class OrganizationProjectPair
+    {
         /// <summary>
-        /// Project access type.
+        ///     Construct organization-project pair.
         /// </summary>
-        internal enum AccessType
-        {
-            List,
-            Read,
-            Write
-        }
-
-        /// <summary>
-        /// Array of organization-project pairs which can be listed by the user.
-        /// </summary>
-        internal List<OrganizationProjectPair> ListPairs { get; set; } = new();
-
-        /// <summary>
-        /// Array of organization-project pairs which can be read by the user.
-        /// </summary>
-        internal List<OrganizationProjectPair> ReadPairs { get; set; } = new();
-
-        /// <summary>
-        /// Array of organization-project pairs which can be written to by the user.
-        /// </summary>
-        internal List<OrganizationProjectPair> WritePairs { get; set; } = new();
-
-        /// <summary>
-        /// Check if user has access to given organization project pair.
-        /// </summary>
-        /// <param name="accessType">Access type.</param>
         /// <param name="organization">Organization name.</param>
-        /// <param name="project">Project name.</param>
-        /// <returns></returns>
-        internal bool HasAccess(AccessType accessType, string organization, string project)
+        /// <param name="project">Project pair.</param>
+        internal OrganizationProjectPair(string organization, string project)
         {
-            var pairArray = accessType switch
-            {
-                AccessType.List => ListPairs,
-                AccessType.Read => ReadPairs,
-                AccessType.Write => WritePairs,
-                _ => throw new System.ArgumentException("Invalid project access type", nameof(accessType))
-            };
-            if (pairArray.Count == 0)
-                return false;
-
-            return pairArray.SingleOrDefault(x => x.OrganizationName == organization && x.ProjectName == project) is not null;
+            OrganizationName = organization;
+            ProjectName = project;
         }
+
+        /// <summary>
+        ///     Organization name.
+        /// </summary>
+        internal string OrganizationName { get; }
+
+        /// <summary>
+        ///     Project name.
+        /// </summary>
+        internal string ProjectName { get; }
+    }
+
+    /// <summary>
+    ///     Project access type.
+    /// </summary>
+    internal enum AccessType
+    {
+        List,
+        Read,
+        Write
     }
 }

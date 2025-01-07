@@ -1,10 +1,9 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.FileTransfer;
 
-namespace HEAppE.DataAccessTier.IRepository.FileTransfer
+namespace HEAppE.DataAccessTier.IRepository.FileTransfer;
+
+public interface IFileTransferMethodRepository : IRepository<FileTransferMethod>
 {
-    public interface IFileTransferMethodRepository : IRepository<FileTransferMethod>
-    {
-        IEnumerable<FileTransferMethod> GetByClusterId(long clusterId);
-    }
+    IEnumerable<FileTransferMethod> GetByClusterId(long clusterId);
 }

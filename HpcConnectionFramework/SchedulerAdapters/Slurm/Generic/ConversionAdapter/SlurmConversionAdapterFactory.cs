@@ -1,29 +1,28 @@
 ﻿using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
+
+/// <summary>
+///     Slurm conversion adapter factory
+/// </summary>
+public class SlurmConversionAdapterFactory : ConversionAdapterFactory
 {
     /// <summary>
-    /// Slurm conversion adapter factory
+    ///     Create job adapter
     /// </summary>
-    public class SlurmConversionAdapterFactory : ConversionAdapterFactory
+    /// <returns></returns>
+    public override ISchedulerJobAdapter CreateJobAdapter()
     {
-        /// <summary>
-        /// Create job adapter
-        /// </summary>
-        /// <returns></returns>
-        public override ISchedulerJobAdapter CreateJobAdapter()
-        {
-            return new SlurmJobAdapter();
-        }
+        return new SlurmJobAdapter();
+    }
 
-        /// <summary>
-        /// Create job task adapter
-        /// </summary>
-        /// <param name="taskSource">Task source</param>
-        /// <returns></returns>
-        public override ISchedulerTaskAdapter CreateTaskAdapter(object taskSource)
-        {
-            return new SlurmTaskAdapter((string)taskSource);
-        }
+    /// <summary>
+    ///     Create job task adapter
+    /// </summary>
+    /// <param name="taskSource">Task source</param>
+    /// <returns></returns>
+    public override ISchedulerTaskAdapter CreateTaskAdapter(object taskSource)
+    {
+        return new SlurmTaskAdapter((string)taskSource);
     }
 }

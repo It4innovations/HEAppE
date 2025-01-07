@@ -1,11 +1,10 @@
-﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 
-namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation
+namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
+
+public interface ISubmittedTaskInfoRepository : IRepository<SubmittedTaskInfo>
 {
-    public interface ISubmittedTaskInfoRepository : IRepository<SubmittedTaskInfo>
-    {
-        IEnumerable<SubmittedTaskInfo> GetAllUnFinished();
-        IEnumerable<SubmittedTaskInfo> GetAllFinished();
-    }
+    IEnumerable<SubmittedTaskInfo> GetAllUnFinished();
+    IEnumerable<SubmittedTaskInfo> GetAllFinished();
 }

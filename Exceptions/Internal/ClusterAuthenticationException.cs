@@ -1,12 +1,19 @@
-﻿using HEAppE.Exceptions.AbstractTypes;
-using System;
+﻿using System;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace HEAppE.Exceptions.Internal
+namespace HEAppE.Exceptions.Internal;
+
+public class ClusterAuthenticationException : InternalException
 {
-    public class ClusterAuthenticationException : InternalException
+    public ClusterAuthenticationException(string message) : base(message)
     {
-        public ClusterAuthenticationException(string message) : base(message) { }
-        public ClusterAuthenticationException(string message, params object[] args) : base(message, args) { }
-        public ClusterAuthenticationException(string message, Exception innerException) : base(message, innerException) { }
+    }
+
+    public ClusterAuthenticationException(string message, params object[] args) : base(message, args)
+    {
+    }
+
+    public ClusterAuthenticationException(string message, Exception innerException) : base(message, innerException)
+    {
     }
 }

@@ -1,16 +1,15 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.JobReporting
+namespace HEAppE.RestApiModels.JobReporting;
+
+[DataContract(Name = "ResourceUsageReportForJobModel")]
+public class ResourceUsageReportForJobModel : SessionCodeModel
 {
-    [DataContract(Name = "ResourceUsageReportForJobModel")]
-    public class ResourceUsageReportForJobModel : SessionCodeModel
+    [DataMember(Name = "JobId")] public long JobId { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "JobId")]
-        public long JobId { get; set; }
-        public override string ToString()
-        {
-            return $"ResourceUsageReportForJobModel({base.ToString()}; JobId: {JobId})";
-        }
+        return $"ResourceUsageReportForJobModel({base.ToString()}; JobId: {JobId})";
     }
 }

@@ -1,14 +1,13 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.JobReporting
+namespace HEAppE.RestApiModels.JobReporting;
+
+[DataContract(Name = "ListAdaptorUserGroupsModel")]
+public class ListAdaptorUserGroupsModel : SessionCodeModel
 {
-    [DataContract(Name = "ListAdaptorUserGroupsModel")]
-    public class ListAdaptorUserGroupsModel : SessionCodeModel
+    public override string ToString()
     {
-        public override string ToString()
-        {
-            return $"ListAdaptorUserGroupsModel({base.ToString()})";
-        }
+        return $"ListAdaptorUserGroupsModel({base.ToString()})";
     }
 }

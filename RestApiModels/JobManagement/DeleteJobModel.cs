@@ -1,14 +1,13 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.JobManagement
+namespace HEAppE.RestApiModels.JobManagement;
+
+[DataContract(Name = "DeleteJobModel")]
+public class DeleteJobModel : SubmittedJobInfoModel
 {
-    [DataContract(Name = "DeleteJobModel")]
-    public class DeleteJobModel : SubmittedJobInfoModel
+    public override string ToString()
     {
-        public override string ToString()
-        {
-            return $"DeleteJobModel({base.ToString()})";
-        }
+        return $"DeleteJobModel({base.ToString()})";
     }
 }

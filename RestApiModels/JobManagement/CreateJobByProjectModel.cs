@@ -1,17 +1,17 @@
-﻿using HEAppE.ExtModels.JobManagement.Models;
+﻿using System.Runtime.Serialization;
+using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
 
-namespace HEAppE.RestApiModels.JobManagement
+namespace HEAppE.RestApiModels.JobManagement;
+
+[DataContract(Name = "CreateJobByProjectModel")]
+public class CreateJobByProjectModel : SessionCodeModel
 {
-    [DataContract(Name = "CreateJobByProjectModel")]
-    public class CreateJobByProjectModel : SessionCodeModel
+    [DataMember(Name = "JobSpecification")]
+    public JobSpecificationExt JobSpecification { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "JobSpecification")]
-        public JobSpecificationExt JobSpecification { get; set; }
-        public override string ToString()
-        {
-            return $"CreateJobModel({base.ToString()}; JobSpecification: {JobSpecification})";
-        }
+        return $"CreateJobModel({base.ToString()}; JobSpecification: {JobSpecification})";
     }
 }

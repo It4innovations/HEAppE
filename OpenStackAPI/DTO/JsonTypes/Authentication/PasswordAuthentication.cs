@@ -1,12 +1,12 @@
 ﻿using Newtonsoft.Json;
 
-namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication
+namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
+
+public class PasswordAuthentication
 {
-    public class PasswordAuthentication
-    {
-        #region Properties
-        [JsonProperty("user")]
-        public User User { get; set; }
-        #endregion
-    }
+    #region Properties
+
+    [JsonProperty("user")] public User User { get; set; }
+
+    #endregion
 }

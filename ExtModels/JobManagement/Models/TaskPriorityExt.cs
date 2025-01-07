@@ -1,15 +1,14 @@
-﻿namespace HEAppE.ExtModels.JobManagement.Models
+﻿namespace HEAppE.ExtModels.JobManagement.Models;
+
+public enum TaskPriorityExt
 {
-    public enum TaskPriorityExt
-    {
-        Lowest,
-        VeryLow,
-        Low,
-        BelowAverage,
-        Average,
-        AboveAverage,
-        High,
-        VeryHigh,
-        Critical
-    }
+    Lowest,
+    VeryLow,
+    Low,
+    BelowAverage,
+    Average,
+    AboveAverage,
+    High,
+    VeryHigh,
+    Critical
 }

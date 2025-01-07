@@ -1,12 +1,19 @@
-﻿using HEAppE.Exceptions.AbstractTypes;
-using System;
+﻿using System;
+using HEAppE.Exceptions.AbstractTypes;
 
-namespace HEAppE.Exceptions.Internal
+namespace HEAppE.Exceptions.Internal;
+
+public class DbContextException : InternalException
 {
-    public class DbContextException : InternalException
+    public DbContextException(string message) : base(message)
     {
-        public DbContextException(string message) : base(message) { }
-        public DbContextException(string message, params object[] args) : base(message, args) { }
-        public DbContextException(string message, Exception innerException) : base(message, innerException) { }
+    }
+
+    public DbContextException(string message, params object[] args) : base(message, args)
+    {
+    }
+
+    public DbContextException(string message, Exception innerException) : base(message, innerException)
+    {
     }
 }

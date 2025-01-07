@@ -1,16 +1,15 @@
-﻿using HEAppE.ExtModels.UserAndLimitationManagement.Models;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
-namespace HEAppE.RestApiModels.UserAndLimitationManagement
+namespace HEAppE.RestApiModels.UserAndLimitationManagement;
+
+[DataContract(Name = "AuthenticateUserPasswordModel")]
+public class AuthenticateUserPasswordModel
 {
-    [DataContract(Name = "AuthenticateUserPasswordModel")]
-    public class AuthenticateUserPasswordModel
+    [DataMember(Name = "Credentials")] public PasswordCredentialsExt Credentials { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "Credentials")]
-        public PasswordCredentialsExt Credentials { get; set; }
-        public override string ToString()
-        {
-            return $"AuthenticateUserPasswordModel({base.ToString()}; Credentials: {Credentials})";
-        }
+        return $"AuthenticateUserPasswordModel({base.ToString()}; Credentials: {Credentials})";
     }
 }

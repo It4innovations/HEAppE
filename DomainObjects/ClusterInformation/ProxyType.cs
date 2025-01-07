@@ -1,12 +1,11 @@
-﻿namespace HEAppE.DomainObjects.ClusterInformation
+﻿namespace HEAppE.DomainObjects.ClusterInformation;
+
+/// <summary>
+///     Proxy types
+/// </summary>
+public enum ProxyType
 {
-    /// <summary>
-    /// Proxy types
-    /// </summary>
-    public enum ProxyType
-    {
-        Socks4 = 1,
-        Socks5 = 2,
-        Http = 3
-    }
+    Socks4 = 1,
+    Socks5 = 2,
+    Http = 3
 }

@@ -1,25 +1,20 @@
 ﻿using HEAppE.Utils.Validation;
 
-namespace HEAppE.RestApi.InputValidator
+namespace HEAppE.RestApi.InputValidator;
+
+public class PathValidator : AbstractValidator
 {
-    public class PathValidator : AbstractValidator
+    public PathValidator(object validationObj) : base(validationObj)
     {
-        public PathValidator(object validationObj) : base(validationObj)
-        {
-        }
+    }
 
-        public override ValidationResult Validate()
-        {
-            string message = string.Empty;
-            if (_validationObject is string validationObject)
-            {
-                if (ContainsIllegalCharactersForPath(validationObject))
-                {
-                    message = "Path contains some illegal characters";
-                }
-            }
+    public override ValidationResult Validate()
+    {
+        var message = string.Empty;
+        if (_validationObject is string validationObject)
+            if (ContainsIllegalCharactersForPath(validationObject))
+                message = "Path contains some illegal characters";
 
-            return new ValidationResult(string.IsNullOrEmpty(message), message);
-        }
+        return new ValidationResult(string.IsNullOrEmpty(message), message);
     }
 }

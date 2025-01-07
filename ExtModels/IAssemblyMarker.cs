@@ -1,6 +1,5 @@
-﻿namespace HEAppE.ExtModels
+﻿namespace HEAppE.ExtModels;
+
+public interface IAssemblyMarker
 {
-    public interface IAssemblyMarker
-    {
-    }
 }

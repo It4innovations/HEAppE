@@ -1,10 +1,9 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 
-namespace HEAppE.ConnectionPool
+namespace HEAppE.ConnectionPool;
+
+public interface IConnectionPool
 {
-    public interface IConnectionPool
-    {
-        ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster);
-        void ReturnConnection(ConnectionInfo schedulerConnection);
-    }
+    ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster);
+    void ReturnConnection(ConnectionInfo schedulerConnection);
 }

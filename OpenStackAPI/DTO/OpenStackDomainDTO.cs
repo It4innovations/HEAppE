@@ -1,13 +1,14 @@
-﻿namespace HEAppE.OpenStackAPI.DTO
+﻿namespace HEAppE.OpenStackAPI.DTO;
+
+public class OpenStackDomainDTO
 {
-    public class OpenStackDomainDTO
-    {
-        #region Properties
-        public string Name { get; set; }
+    #region Properties
 
-        public string UID { get; set; }
+    public string Name { get; set; }
 
-        public string InstanceUrl { get; set; }
-        #endregion
-    }
+    public string UID { get; set; }
+
+    public string InstanceUrl { get; set; }
+
+    #endregion
 }

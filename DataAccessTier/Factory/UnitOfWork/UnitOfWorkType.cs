@@ -1,7 +1,6 @@
-﻿namespace HEAppE.DataAccessTier.Factory.UnitOfWork
+﻿namespace HEAppE.DataAccessTier.Factory.UnitOfWork;
+
+public enum UnitOfWorkType
 {
-    public enum UnitOfWorkType
-    {
-        Database
-    }
+    Database
 }

@@ -1,11 +1,9 @@
-﻿using HEAppE.DomainObjects.JobManagement;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement;
 
-namespace HEAppE.DataAccessTier.IRepository.JobManagement.Command
+namespace HEAppE.DataAccessTier.IRepository.JobManagement.Command;
+
+public interface ICommandTemplateRepository : IRepository<CommandTemplate>
 {
-    public interface ICommandTemplateRepository : IRepository<CommandTemplate>
-    {
-        IList<CommandTemplate> GetCommandTemplatesByProjectId(long projectId);
-    }
-
+    IList<CommandTemplate> GetCommandTemplatesByProjectId(long projectId);
 }

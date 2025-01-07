@@ -1,26 +1,27 @@
-﻿using FluentValidation;
-using HEAppE.RestApiModels.AbstractModels;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using FluentValidation;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.FileTransfer
+namespace HEAppE.RestApiModels.FileTransfer;
+
+[DataContract(Name = "DownloadFileFromClusterModel")]
+public class DownloadFileFromClusterModel : SubmittedJobInfoModel
 {
-    [DataContract(Name = "DownloadFileFromClusterModel")]
-    public class DownloadFileFromClusterModel : SubmittedJobInfoModel
-    {
-        [DataMember(Name = "RelativeFilePath"), StringLength(255)]
-        public string RelativeFilePath { get; set; }
-        public override string ToString()
-        {
-            return $"DownloadFileFromClusterModel({base.ToString()}; RelativeFilePath: {RelativeFilePath})";
-        }
+    [DataMember(Name = "RelativeFilePath")]
+    [StringLength(255)]
+    public string RelativeFilePath { get; set; }
 
-    }
-    public class DownloadFileFromClusterModelValidator : AbstractValidator<DownloadFileFromClusterModel>
+    public override string ToString()
     {
-        public DownloadFileFromClusterModelValidator()
-        {
-            Include(new SubmittedJobInfoModelValidator());
-        }
+        return $"DownloadFileFromClusterModel({base.ToString()}; RelativeFilePath: {RelativeFilePath})";
+    }
+}
+
+public class DownloadFileFromClusterModelValidator : AbstractValidator<DownloadFileFromClusterModel>
+{
+    public DownloadFileFromClusterModelValidator()
+    {
+        Include(new SubmittedJobInfoModelValidator());
     }
 }

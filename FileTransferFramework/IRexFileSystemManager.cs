@@ -1,33 +1,33 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
+﻿using System;
+using System.Collections.Generic;
+using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using System;
-using System.Collections.Generic;
 
-namespace HEAppE.FileTransferFramework
+namespace HEAppE.FileTransferFramework;
+
+public interface IRexFileSystemManager
 {
-    public interface IRexFileSystemManager
-    {
-        void CopyInputFilesToCluster(SubmittedJobInfo jobSpecification, string localJobDirectory);
+    void CopyInputFilesToCluster(SubmittedJobInfo jobSpecification, string localJobDirectory);
 
-        ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobSpecification);
+    ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobSpecification);
 
-        ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobSpecification);
+    ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobSpecification);
 
-        ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobSpecification);
+    ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobSpecification);
 
-        ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobSpecification);
+    ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobSpecification);
 
-        ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskSpecification, SynchronizableFiles fileType, long offset);
+    ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskSpecification,
+        SynchronizableFiles fileType, long offset);
 
-        void CopyCreatedFilesFromCluster(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime);
+    void CopyCreatedFilesFromCluster(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime);
 
-        ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime);
+    ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime);
 
-        byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
+    byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
 
-        byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath);
+    byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath);
 
-        void DeleteSessionFromCluster(SubmittedJobInfo jobSpecification);
-    }
+    void DeleteSessionFromCluster(SubmittedJobInfo jobSpecification);
 }

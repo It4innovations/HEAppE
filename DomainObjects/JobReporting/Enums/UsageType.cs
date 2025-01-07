@@ -1,8 +1,7 @@
-﻿namespace HEAppE.DomainObjects.JobReporting.Enums
+﻿namespace HEAppE.DomainObjects.JobReporting.Enums;
+
+public enum UsageType
 {
-    public enum UsageType
-    {
-        NodeHours = 1,
-        CoreHours = 2
-    }
+    NodeHours = 1,
+    CoreHours = 2
 }

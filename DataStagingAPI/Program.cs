@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
 using HEAppE.BusinessLogicTier.Factory;
@@ -12,8 +14,6 @@ using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
-using System.Globalization;
-using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -53,15 +53,15 @@ builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoption
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
     if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
-    {
         conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
-    }
 });
 
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
+#pragma warning disable CS8604
 var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+#pragma warning restore CS8604
 GlobalContext.Properties["instanceName"] = APIAdoptions.DeploymentConfiguration.Name;
 GlobalContext.Properties["instanceVersion"] = APIAdoptions.DeploymentConfiguration.Version;
 GlobalContext.Properties["ip"] = APIAdoptions.DeploymentConfiguration.DeployedIPAddress;
@@ -78,16 +78,16 @@ builder.Services.AddSwaggerGen(options =>
         Title = APIAdoptions.SwaggerConfiguration.Title,
         Description = APIAdoptions.SwaggerConfiguration.Description,
         TermsOfService = new Uri(APIAdoptions.SwaggerConfiguration.TermOfUsageUrl),
-        License = new OpenApiLicense()
+        License = new OpenApiLicense
         {
             Name = APIAdoptions.SwaggerConfiguration.License,
-            Url = new Uri(APIAdoptions.SwaggerConfiguration.LicenseUrl),
+            Url = new Uri(APIAdoptions.SwaggerConfiguration.LicenseUrl)
         },
-        Contact = new OpenApiContact()
+        Contact = new OpenApiContact
         {
             Name = APIAdoptions.SwaggerConfiguration.ContactName,
             Email = APIAdoptions.SwaggerConfiguration.ContactEmail,
-            Url = new Uri(APIAdoptions.SwaggerConfiguration.ContactUrl),
+            Url = new Uri(APIAdoptions.SwaggerConfiguration.ContactUrl)
         }
     });
     options.AddSecurityDefinition(APIAdoptions.AuthenticationParamHeaderName, new OpenApiSecurityScheme
@@ -98,7 +98,7 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
-    var key = new OpenApiSecurityScheme()
+    var key = new OpenApiSecurityScheme
     {
         Reference = new OpenApiReference
         {
@@ -108,9 +108,9 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header
     };
     var requirement = new OpenApiSecurityRequirement
-        {
-            { key, new List<string>() }
-        };
+    {
+        { key, new List<string>() }
+    };
     options.AddSecurityRequirement(requirement);
 });
 
@@ -121,10 +121,10 @@ builder.Services.AddLocalization();
 builder.Services.Configure<RequestLocalizationOptions>(options =>
 {
     var supportedCultures = new List<CultureInfo>
-                {
-                    new CultureInfo("en"),
-                    new CultureInfo("cs")
-                };
+    {
+        new("en"),
+        new("cs")
+    };
 
     options.DefaultRequestCulture = new RequestCulture("en");
     options.SupportedCultures = supportedCultures;
@@ -134,11 +134,11 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
 //CORS
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy(name: "HEAppEDefaultOrigins", builder =>
+    options.AddPolicy("HEAppEDefaultOrigins", builder =>
     {
         builder.WithOrigins(APIAdoptions.AllowedHosts)
-                .AllowAnyHeader()
-                .AllowAnyMethod();
+            .AllowAnyHeader()
+            .AllowAnyMethod();
     });
 });
 
@@ -154,10 +154,7 @@ builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLif
 var app = builder.Build();
 LogicFactory.ServiceProvider = app.Services;
 // Configure the HTTP request pipeline.
-if (app.Environment.IsDevelopment())
-{
-    app.UseDeveloperExceptionPage();
-}
+if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 
 //TODO Need to be delete after DI rework
 ServiceActivator.Configure(app.Services);
@@ -174,21 +171,25 @@ app.UseSwagger(swagger =>
 {
     swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
     {
-        swaggerDoc.Servers = new List<OpenApiServer> {
-                        new OpenApiServer{
-                            Url =  $"{APIAdoptions.SwaggerConfiguration.Host}/{APIAdoptions.SwaggerConfiguration.HostPostfix}"
-                        }
-                    };
+        swaggerDoc.Servers = new List<OpenApiServer>
+        {
+            new()
+            {
+                Url = $"{APIAdoptions.SwaggerConfiguration.Host}/{APIAdoptions.SwaggerConfiguration.HostPostfix}"
+            }
+        };
     });
     swagger.RouteTemplate = $"/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
 });
 
 app.UseSwaggerUI(swaggerUI =>
 {
-    string hostPrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
-                            ? string.Empty
-                            : "/" + APIAdoptions.SwaggerConfiguration.HostPostfix;
-    swaggerUI.SwaggerEndpoint($"{hostPrefix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{APIAdoptions.SwaggerConfiguration.Version}/swagger.json", APIAdoptions.SwaggerConfiguration.Title);
+    var hostPrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
+        ? string.Empty
+        : "/" + APIAdoptions.SwaggerConfiguration.HostPostfix;
+    swaggerUI.SwaggerEndpoint(
+        $"{hostPrefix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{APIAdoptions.SwaggerConfiguration.Version}/swagger.json",
+        APIAdoptions.SwaggerConfiguration.Title);
     swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
     swaggerUI.EnableTryItOutByDefault();
 });

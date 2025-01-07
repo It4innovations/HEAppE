@@ -1,12 +1,11 @@
 ﻿using System;
 
-namespace HEAppE.DomainObjects.FileTransfer
+namespace HEAppE.DomainObjects.FileTransfer;
+
+[Flags]
+public enum FileTransferProtocol
 {
-    [Flags]
-    public enum FileTransferProtocol
-    {
-        NetworkShare = 1,
-        SftpScp = 2,
-        LocalSftpScp = 4
-    }
+    NetworkShare = 1,
+    SftpScp = 2,
+    LocalSftpScp = 4
 }

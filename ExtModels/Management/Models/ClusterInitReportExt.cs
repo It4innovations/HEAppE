@@ -1,8 +1,7 @@
-namespace HEAppE.ExtModels.Management.Models
+namespace HEAppE.ExtModels.Management.Models;
+
+public class ClusterInitReportExt
 {
-    public class ClusterInitReportExt
-    {
-        public string ClusterName { get; set; }
-        public bool IsClusterInitialized { get; set; }
-    }
+    public string ClusterName { get; set; }
+    public bool IsClusterInitialized { get; set; }
 }

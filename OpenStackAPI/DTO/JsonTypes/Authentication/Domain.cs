@@ -1,6 +1,5 @@
-﻿namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication
+﻿namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
+
+public class Domain : Identifiable
 {
-    public class Domain : Identifiable
-    {
-    }
 }

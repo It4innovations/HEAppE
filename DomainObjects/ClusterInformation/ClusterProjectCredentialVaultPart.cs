@@ -2,25 +2,30 @@
 
 namespace HEAppE.DomainObjects.ClusterInformation;
 
-
 /// <summary>
-/// Represents a cluster project credential vault part.
+///     Represents a cluster project credential vault part.
 /// </summary>
-public record ClusterProjectCredentialVaultPart(long Id,
-        string Password,
-        string PrivateKey,
-        string PrivateKeyPassword,
-        string PrivateKeyCertificate
-        )
+public record ClusterProjectCredentialVaultPart(
+    long Id,
+    string Password,
+    string PrivateKey,
+    string PrivateKeyPassword,
+    string PrivateKeyCertificate
+)
 {
-    private ClusterProjectCredentialVaultPart() : this(-1, "", "", "", "") { }
+    private ClusterProjectCredentialVaultPart() : this(-1, "", "", "", "")
+    {
+    }
 
     /// <summary>
-    /// Gets the default empty cluster project credential vault part.
+    ///     Gets the default empty cluster project credential vault part.
     /// </summary>
-    public static ClusterProjectCredentialVaultPart Empty => new ClusterProjectCredentialVaultPart();
+    public static ClusterProjectCredentialVaultPart Empty => new();
 
-    public string AsVaultDataJsonObject() => $"{{ \"data\":{JsonSerializer.Serialize(this)}}}"; 
+    public string AsVaultDataJsonObject()
+    {
+        return $"{{ \"data\":{JsonSerializer.Serialize(this)}}}";
+    }
 
     public static ClusterProjectCredentialVaultPart FromVaultJsonData(string json)
     {
@@ -30,6 +35,6 @@ public record ClusterProjectCredentialVaultPart(long Id,
     }
 
     private record DataPart(ClusterProjectCredentialVaultPart data);
+
     private record VaultResponse(DataPart data);
 }
-

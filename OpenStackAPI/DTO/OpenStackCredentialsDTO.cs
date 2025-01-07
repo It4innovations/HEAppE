@@ -1,13 +1,14 @@
-﻿namespace HEAppE.OpenStackAPI.DTO
+﻿namespace HEAppE.OpenStackAPI.DTO;
+
+public class OpenStackCredentialsDTO
 {
-    public class OpenStackCredentialsDTO
-    {
-        #region Properties
-        public string Id { get; set; }
+    #region Properties
 
-        public string Username { get; set; }
+    public string Id { get; set; }
 
-        public string Password { get; set; }
-        #endregion
-    }
+    public string Username { get; set; }
+
+    public string Password { get; set; }
+
+    #endregion
 }
