@@ -57,35 +57,34 @@ public static class UserRoleTypeExtensions
         AdaptorUserRoleType.Reporter
     };
 
-        public static IEnumerable<AdaptorUserRoleType> GetAllowedRolesForUserRoleType(this AdaptorUserRoleType userRoleType)
+    public static IEnumerable<AdaptorUserRoleType> GetAllowedRolesForUserRoleType(this AdaptorUserRoleType userRoleType)
+    {
+        return userRoleType switch
         {
-            return userRoleType switch
-            {
-                AdaptorUserRoleType.Administrator => _administratorSubRoles,
-                AdaptorUserRoleType.Maintainer => _maintainerSubRoles,
-                AdaptorUserRoleType.Submitter => _submitterSubRoles,
-                AdaptorUserRoleType.GroupReporter => _groupReporterSubRoles,
-                AdaptorUserRoleType.Reporter => _reporterSubRoles,
-                AdaptorUserRoleType.ManagementAdmin => _managementAdminSubRoles,
-                AdaptorUserRoleType.Manager => _managerSubRoles,
-                _ => new List<AdaptorUserRoleType>(),
-            };
-        }
+            AdaptorUserRoleType.Administrator => _administratorSubRoles,
+            AdaptorUserRoleType.Maintainer => _maintainerSubRoles,
+            AdaptorUserRoleType.Submitter => _submitterSubRoles,
+            AdaptorUserRoleType.GroupReporter => _groupReporterSubRoles,
+            AdaptorUserRoleType.Reporter => _reporterSubRoles,
+            AdaptorUserRoleType.ManagementAdmin => _managementAdminSubRoles,
+            AdaptorUserRoleType.Manager => _managerSubRoles,
+            _ => new List<AdaptorUserRoleType>(),
+        };
+    }
 
-        public static AdaptorUserRoleType GetHighestRole(this AdaptorUserRoleType roleType, AdaptorUserRoleType roleType2)
+    public static AdaptorUserRoleType GetHighestRole(this AdaptorUserRoleType roleType, AdaptorUserRoleType roleType2)
+    {
+        var rolePriority = new Dictionary<AdaptorUserRoleType, int>
         {
-            var rolePriority = new Dictionary<AdaptorUserRoleType, int>
-            {
-                { AdaptorUserRoleType.Administrator, 1 },
-                { AdaptorUserRoleType.ManagementAdmin, 2 },
-                { AdaptorUserRoleType.Maintainer, 3 },
-                { AdaptorUserRoleType.Manager, 4 },
-                { AdaptorUserRoleType.Submitter, 5 },
-                { AdaptorUserRoleType.GroupReporter, 6 },
-                { AdaptorUserRoleType.Reporter, 7 }
-            };
+            { AdaptorUserRoleType.Administrator, 1 },
+            { AdaptorUserRoleType.ManagementAdmin, 2 },
+            { AdaptorUserRoleType.Maintainer, 3 },
+            { AdaptorUserRoleType.Manager, 4 },
+            { AdaptorUserRoleType.Submitter, 5 },
+            { AdaptorUserRoleType.GroupReporter, 6 },
+            { AdaptorUserRoleType.Reporter, 7 }
+        };
 
-            return rolePriority[roleType] < rolePriority[roleType2] ? roleType: roleType2;
-        }
+        return rolePriority[roleType] < rolePriority[roleType2] ? roleType: roleType2;
     }
 }
