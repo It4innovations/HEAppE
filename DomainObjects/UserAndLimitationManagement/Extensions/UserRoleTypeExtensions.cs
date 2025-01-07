@@ -7,21 +7,21 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Extensions
     public static class UserRoleTypeExtensions
     {
         private static readonly List<AdaptorUserRoleType> _administratorSubRoles = new()
-        {  
-            AdaptorUserRoleType.Reporter, 
+        {
+            AdaptorUserRoleType.Reporter,
             AdaptorUserRoleType.GroupReporter,
             AdaptorUserRoleType.Submitter,
             AdaptorUserRoleType.Maintainer,
             AdaptorUserRoleType.Manager,
             AdaptorUserRoleType.ManagementAdmin,
-            AdaptorUserRoleType.Administrator 
+            AdaptorUserRoleType.Administrator
         };
 
         private static readonly List<AdaptorUserRoleType> _managementAdminSubRoles = new()
         {
             AdaptorUserRoleType.ManagementAdmin
         };
-        
+
         private static readonly List<AdaptorUserRoleType> _managerSubRoles = new()
         {
             AdaptorUserRoleType.Manager,
@@ -30,27 +30,27 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Extensions
             AdaptorUserRoleType.Submitter
         };
 
-        private static readonly List<AdaptorUserRoleType> _maintainerSubRoles = new() 
-        { 
+        private static readonly List<AdaptorUserRoleType> _maintainerSubRoles = new()
+        {
             AdaptorUserRoleType.Reporter,
             AdaptorUserRoleType.GroupReporter,
             AdaptorUserRoleType.Submitter,
             AdaptorUserRoleType.Manager,
             AdaptorUserRoleType.ManagementAdmin,
-            AdaptorUserRoleType.Maintainer 
+            AdaptorUserRoleType.Maintainer
         };
 
-        private static readonly List<AdaptorUserRoleType> _submitterSubRoles = new() 
-        { 
+        private static readonly List<AdaptorUserRoleType> _submitterSubRoles = new()
+        {
             AdaptorUserRoleType.Reporter,
             AdaptorUserRoleType.GroupReporter,
             AdaptorUserRoleType.Submitter
         };
 
-        private static readonly List<AdaptorUserRoleType> _groupReporterSubRoles = new() 
-        { 
+        private static readonly List<AdaptorUserRoleType> _groupReporterSubRoles = new()
+        {
             AdaptorUserRoleType.Reporter,
-            AdaptorUserRoleType.GroupReporter 
+            AdaptorUserRoleType.GroupReporter
         };
 
         private static readonly List<AdaptorUserRoleType> _reporterSubRoles = new()
@@ -71,6 +71,22 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement.Extensions
                 AdaptorUserRoleType.Manager => _managerSubRoles,
                 _ => new List<AdaptorUserRoleType>(),
             };
+        }
+
+        public static AdaptorUserRoleType GetHighestRole(this AdaptorUserRoleType roleType, AdaptorUserRoleType roleType2)
+        {
+            var rolePriority = new Dictionary<AdaptorUserRoleType, int>
+            {
+                { AdaptorUserRoleType.Administrator, 1 },
+                { AdaptorUserRoleType.ManagementAdmin, 2 },
+                { AdaptorUserRoleType.Maintainer, 3 },
+                { AdaptorUserRoleType.Manager, 4 },
+                { AdaptorUserRoleType.Submitter, 5 },
+                { AdaptorUserRoleType.GroupReporter, 6 },
+                { AdaptorUserRoleType.Reporter, 7 }
+            };
+
+            return rolePriority[roleType] < rolePriority[roleType2] ? roleType: roleType2;
         }
     }
 }
