@@ -1,7 +1,6 @@
-﻿namespace HEAppE.DomainObjects
+﻿namespace HEAppE.DomainObjects;
+
+public interface ISoftDeletableEntity
 {
-    public interface ISoftDeletableEntity
-    {
-        public bool IsDeleted { get; set; }
-    }
+    public bool IsDeleted { get; set; }
 }

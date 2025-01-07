@@ -1,9 +1,8 @@
-﻿namespace HEAppE.ExtModels.FileTransfer.Models
+﻿namespace HEAppE.ExtModels.FileTransfer.Models;
+
+public enum FileTransferProtocolExt
 {
-    public enum FileTransferProtocolExt
-    {
-        NetworkShare = 1,
-        SftpScp = 2,
-        LocalSftpScp = 4
-    }
+    NetworkShare = 1,
+    SftpScp = 2,
+    LocalSftpScp = 4
 }

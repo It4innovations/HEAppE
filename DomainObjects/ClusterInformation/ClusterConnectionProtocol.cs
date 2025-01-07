@@ -1,12 +1,11 @@
 ﻿using System;
 
-namespace HEAppE.DomainObjects.ClusterInformation
+namespace HEAppE.DomainObjects.ClusterInformation;
+
+[Flags]
+public enum ClusterConnectionProtocol
 {
-    [Flags]
-    public enum ClusterConnectionProtocol
-    {
-        MicrosoftHpcApi = 1,
-        Ssh = 2,
-        SshInteractive = 4
-    }
+    MicrosoftHpcApi = 1,
+    Ssh = 2,
+    SshInteractive = 4
 }

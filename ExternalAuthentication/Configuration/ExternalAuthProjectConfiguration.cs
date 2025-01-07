@@ -1,22 +1,23 @@
-﻿namespace HEAppE.ExternalAuthentication.Configuration
+﻿namespace HEAppE.ExternalAuthentication.Configuration;
+
+public sealed class ExternalAuthProjectConfiguration
 {
-    public sealed class ExternalAuthProjectConfiguration
-    {
-        #region Properties
-        /// <summary>
-        /// UUID
-        /// </summary>
-        public string UUID { get; set; }
+    #region Properties
 
-        /// <summary>
-        /// Name
-        /// </summary>
-        public string Name { get; set; }
+    /// <summary>
+    ///     UUID
+    /// </summary>
+    public string UUID { get; set; }
 
-        /// <summary>
-        /// Group name in HEAppE DB
-        /// </summary>
-        public string HEAppEGroupName { get; set; }
-        #endregion
-    }
+    /// <summary>
+    ///     Name
+    /// </summary>
+    public string Name { get; set; }
+
+    /// <summary>
+    ///     Group name in HEAppE DB
+    /// </summary>
+    public string HEAppEGroupName { get; set; }
+
+    #endregion
 }

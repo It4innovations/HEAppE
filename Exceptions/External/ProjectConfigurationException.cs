@@ -1,8 +1,10 @@
 ﻿using HEAppE.Exceptions.AbstractTypes;
 
-namespace HEAppE.Exceptions.External
+namespace HEAppE.Exceptions.External;
+
+public class ProjectConfigurationException : ExternalException
 {
-    public class ProjectConfigurationException : ExternalException {
-		public ProjectConfigurationException(string message) : base(message) {}
-	}
+    public ProjectConfigurationException(string message) : base(message)
+    {
+    }
 }

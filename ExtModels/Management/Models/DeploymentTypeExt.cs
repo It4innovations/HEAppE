@@ -1,9 +1,8 @@
-﻿namespace HEAppE.ExtModels.Management.Models
+﻿namespace HEAppE.ExtModels.Management.Models;
+
+public enum DeploymentTypeExt
 {
-    public enum DeploymentTypeExt
-    {
-        Unspecific = 1,
-        Docker = 2,
-        Kubernetes = 3
-    }
+    Unspecific = 1,
+    Docker = 2,
+    Kubernetes = 3
 }

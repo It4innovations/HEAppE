@@ -1,14 +1,13 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.FileTransfer
+namespace HEAppE.RestApiModels.FileTransfer;
+
+[DataContract(Name = "ListChangedFilesForJobModel")]
+public class ListChangedFilesForJobModel : SubmittedJobInfoModel
 {
-    [DataContract(Name = "ListChangedFilesForJobModel")]
-    public class ListChangedFilesForJobModel : SubmittedJobInfoModel
+    public override string ToString()
     {
-        public override string ToString()
-        {
-            return $"ListChangedFilesForJobModel({base.ToString()})";
-        }
+        return $"ListChangedFilesForJobModel({base.ToString()})";
     }
 }

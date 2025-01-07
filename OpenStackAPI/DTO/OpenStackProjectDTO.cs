@@ -1,19 +1,20 @@
-﻿namespace HEAppE.OpenStackAPI.DTO
+﻿namespace HEAppE.OpenStackAPI.DTO;
+
+public class OpenStackProjectDTO
 {
-    public class OpenStackProjectDTO
-    {
-        #region Properties
-        public string Name { get; set; }
+    #region Properties
 
-        public string UID { get; set; }
+    public string Name { get; set; }
 
-        public long? HEAppEProjectId { get; set; }
+    public string UID { get; set; }
 
-        public OpenStackProjectDomainDTO ProjectDomain { get; set; }
+    public long? HEAppEProjectId { get; set; }
 
-        public OpenStackDomainDTO Domain { get; set; }
+    public OpenStackProjectDomainDTO ProjectDomain { get; set; }
 
-        public OpenStackCredentialsDTO Credentials { get; set; }
-        #endregion
-    }
+    public OpenStackDomainDTO Domain { get; set; }
+
+    public OpenStackCredentialsDTO Credentials { get; set; }
+
+    #endregion
 }

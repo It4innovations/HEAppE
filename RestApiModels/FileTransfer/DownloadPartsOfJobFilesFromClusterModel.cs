@@ -1,28 +1,29 @@
-﻿using FluentValidation;
-using HEAppE.DomainObjects.FileTransfer;
+﻿using System.Linq;
+using System.Runtime.Serialization;
+using FluentValidation;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.RestApiModels.AbstractModels;
-using System.Linq;
-using System.Runtime.Serialization;
 
-namespace HEAppE.RestApiModels.FileTransfer
+namespace HEAppE.RestApiModels.FileTransfer;
+
+[DataContract(Name = "DownloadPartsOfJobFilesFromClusterModel")]
+public class DownloadPartsOfJobFilesFromClusterModel : SubmittedJobInfoModel
 {
-    [DataContract(Name = "DownloadPartsOfJobFilesFromClusterModel")]
-    public class DownloadPartsOfJobFilesFromClusterModel : SubmittedJobInfoModel
+    [DataMember(Name = "TaskFileOffsets")] public TaskFileOffsetExt[] TaskFileOffsets { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "TaskFileOffsets")]
-        public TaskFileOffsetExt[] TaskFileOffsets { get; set; }
-        public override string ToString()
-        {
-            return $"DownloadPartsOfJobFilesFromClusterModel({base.ToString()}; TaskFileOffsets: {string.Join("; ", TaskFileOffsets.ToList())})";
-        }
+        return
+            $"DownloadPartsOfJobFilesFromClusterModel({base.ToString()}; TaskFileOffsets: {string.Join("; ", TaskFileOffsets.ToList())})";
     }
-    public class DownloadPartsOfJobFilesFromClusterModelValidator : AbstractValidator<DownloadPartsOfJobFilesFromClusterModel>
+}
+
+public class
+    DownloadPartsOfJobFilesFromClusterModelValidator : AbstractValidator<DownloadPartsOfJobFilesFromClusterModel>
+{
+    public DownloadPartsOfJobFilesFromClusterModelValidator()
     {
-        public DownloadPartsOfJobFilesFromClusterModelValidator()
-        {
-            Include(new SubmittedJobInfoModelValidator());
-            RuleForEach(x => x.TaskFileOffsets).SetValidator(new TaskFileOffsetExtValidator());
-        }
+        Include(new SubmittedJobInfoModelValidator());
+        RuleForEach(x => x.TaskFileOffsets).SetValidator(new TaskFileOffsetExtValidator());
     }
 }

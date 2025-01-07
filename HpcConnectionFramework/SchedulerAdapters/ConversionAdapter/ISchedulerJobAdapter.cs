@@ -1,16 +1,15 @@
 ﻿using System.Collections.Generic;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+
+/// <summary>
+///     IScheduler job adapter
+/// </summary>
+public interface ISchedulerJobAdapter
 {
-    /// <summary>
-    /// IScheduler job adapter
-    /// </summary>
-    public interface ISchedulerJobAdapter
-    {
-        object AllocationCmd { get; }
+    object AllocationCmd { get; }
 
-        void SetTasks(IEnumerable<object> tasksAllocationcmd);
+    void SetTasks(IEnumerable<object> tasksAllocationcmd);
 
-        void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure);
-    }
+    void SetNotifications(string mailAddress, bool? notifyOnStart, bool? notifyOnCompletion, bool? notifyOnFailure);
 }

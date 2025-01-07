@@ -1,24 +1,22 @@
-﻿using FluentValidation;
+﻿using System.Runtime.Serialization;
+using FluentValidation;
 using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
 
-namespace HEAppE.RestApiModels.FileTransfer
+namespace HEAppE.RestApiModels.FileTransfer;
+
+[DataContract(Name = "GetFileTransferMethodModel")]
+public class GetFileTransferMethodModel : SubmittedJobInfoModel
 {
-
-    [DataContract(Name = "GetFileTransferMethodModel")]
-    public class GetFileTransferMethodModel : SubmittedJobInfoModel
+    public override string ToString()
     {
-        public override string ToString()
-        {
-            return $"GetFileTransferMethodModel({base.ToString()})";
-        }
+        return $"GetFileTransferMethodModel({base.ToString()})";
+    }
 
-        public class GetFileTransferMethodModelValidator : AbstractValidator<GetFileTransferMethodModel>
+    public class GetFileTransferMethodModelValidator : AbstractValidator<GetFileTransferMethodModel>
+    {
+        public GetFileTransferMethodModelValidator()
         {
-            public GetFileTransferMethodModelValidator()
-            {
-                Include(new SubmittedJobInfoModelValidator());
-            }
+            Include(new SubmittedJobInfoModelValidator());
         }
     }
 }

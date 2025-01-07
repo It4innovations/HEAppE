@@ -1,13 +1,12 @@
-﻿using HEAppE.DomainObjects.UserAndLimitationManagement;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 
-namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement
+namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+
+public interface IAdaptorUserGroupRepository : IRepository<AdaptorUserGroup>
 {
-    public interface IAdaptorUserGroupRepository : IRepository<AdaptorUserGroup>
-    {
-        AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id);
-        IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndActiveProjects();
-        AdaptorUserGroup GetDefaultSubmitterGroup();
-        AdaptorUserGroup GetGroupByUniqueName(string groupName);
-    }
+    AdaptorUserGroup GetByIdWithAdaptorUserGroups(long id);
+    IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndActiveProjects();
+    AdaptorUserGroup GetDefaultSubmitterGroup();
+    AdaptorUserGroup GetGroupByUniqueName(string groupName);
 }

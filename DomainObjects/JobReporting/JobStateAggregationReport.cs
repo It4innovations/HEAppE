@@ -1,11 +1,10 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 
-namespace HEAppE.DomainObjects.JobReporting
-{
-    public class JobStateAggregationReport
-    {
-        public JobState State { get; set; }
+namespace HEAppE.DomainObjects.JobReporting;
 
-        public long Count { get; set; }
-    }
+public class JobStateAggregationReport
+{
+    public JobState State { get; set; }
+
+    public long Count { get; set; }
 }

@@ -1,14 +1,14 @@
 ﻿using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
+namespace HEAppE.ExtModels.UserAndLimitationManagement.Models;
+
+[DataContract(Name = "NodeUsedCoresAndLimitationExt")]
+public class NodeUsedCoresAndLimitationExt
 {
-    [DataContract(Name = "NodeUsedCoresAndLimitationExt")]
-    public class NodeUsedCoresAndLimitationExt
+    public int CoresUsed { get; set; } = 0;
+
+    public override string ToString()
     {
-        public int CoresUsed { get; set; } = 0;
-        public override string ToString()
-        {
-            return $"NodeUsedCoresAndLimitationExt: CoresUsed={CoresUsed}";
-        }
+        return $"NodeUsedCoresAndLimitationExt: CoresUsed={CoresUsed}";
     }
 }

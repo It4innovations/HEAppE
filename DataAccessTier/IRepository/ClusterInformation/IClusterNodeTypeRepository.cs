@@ -1,11 +1,10 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.ClusterInformation;
 
-namespace HEAppE.DataAccessTier.IRepository.ClusterInformation
+namespace HEAppE.DataAccessTier.IRepository.ClusterInformation;
+
+public interface IClusterNodeTypeRepository : IRepository<ClusterNodeType>
 {
-    public interface IClusterNodeTypeRepository : IRepository<ClusterNodeType>
-    {
-        IEnumerable<ClusterNodeType> GetAllWithPossibleCommands();
-        IEnumerable<ClusterNodeType> GetAllByFileTransferMethod(long fileTransferMethodId);
-    }
+    IEnumerable<ClusterNodeType> GetAllWithPossibleCommands();
+    IEnumerable<ClusterNodeType> GetAllByFileTransferMethod(long fileTransferMethodId);
 }

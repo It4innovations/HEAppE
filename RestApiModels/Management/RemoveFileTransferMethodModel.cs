@@ -1,12 +1,11 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
-using System.Runtime.Serialization;
+﻿using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+[DataContract(Name = "RemoveFileTransferMethodModel")]
+public class RemoveFileTransferMethodModel : SessionCodeModel
 {
-    [DataContract(Name = "RemoveFileTransferMethodModel")]
-    public class RemoveFileTransferMethodModel : SessionCodeModel
-    {
-        [DataMember(Name = "Id", IsRequired = true)]
-        public long Id { get; set; }
-    }
+    [DataMember(Name = "Id", IsRequired = true)]
+    public long Id { get; set; }
 }

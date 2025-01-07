@@ -1,17 +1,17 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
-{
-    [DataContract(Name = "AuthenticationCredentialsExt")]
-    public class AuthenticationCredentialsExt
-    {
-        [DataMember(Name = "UserName"), StringLength(100)]
-        public string Username { get; set; }
+namespace HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
-        public override string ToString()
-        {
-            return $"""AuthenticationCredentialsExt(Username="{Username}")""";
-        }
+[DataContract(Name = "AuthenticationCredentialsExt")]
+public class AuthenticationCredentialsExt
+{
+    [DataMember(Name = "UserName")]
+    [StringLength(100)]
+    public string Username { get; set; }
+
+    public override string ToString()
+    {
+        return $"""AuthenticationCredentialsExt(Username="{Username}")""";
     }
 }
