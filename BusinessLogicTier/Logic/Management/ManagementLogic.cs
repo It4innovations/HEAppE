@@ -853,6 +853,8 @@ public class ManagementLogic : IManagementLogic
 
         return !noAccessClusterIds.Any();
     }
+    
+    
 
     /// <summary>
     ///     Get GetCommandTemplateParameter by id

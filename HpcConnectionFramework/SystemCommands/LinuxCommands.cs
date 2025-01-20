@@ -276,5 +276,34 @@ internal class LinuxCommands : ICommands
         return true;
     }
 
+    public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    {
+        _log.Info($"Copying job files to cluster");
+        var cmdBuilder = new StringBuilder();
+        foreach (var sourceDestination in sourceDestinations)
+        {
+            //mkdir dest, eremove filename
+            string destinationDirectory = Path.GetDirectoryName(sourceDestination.Item2);
+            cmdBuilder.Append($"mkdir -p {destinationDirectory};");
+            cmdBuilder.Append($"cp {sourceDestination.Item1} {sourceDestination.Item2};");
+        }
+
+        try
+        {
+            _log.Info($"Copy job files command: \"{cmdBuilder}\"");
+            var sshCommand =
+                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection),
+                    cmdBuilder.ToString());
+            _log.Info($"Copy job files result: \"{sshCommand.Result}\"");
+        }
+        catch (SshCommandException ex)
+        {
+            _log.Error($"Copy job files failed: \"{ex.Message}\"");
+            return false;
+        }
+
+        return true;
+    }
+
     #endregion
 }

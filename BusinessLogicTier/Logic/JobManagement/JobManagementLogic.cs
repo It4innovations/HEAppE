@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text;
@@ -15,10 +16,13 @@ using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
+using HEAppE.FileTransferFramework.Sftp;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
 using log4net;
+using Renci.SshNet;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
@@ -206,6 +210,55 @@ internal class JobManagementLogic : IJobManagementLogic
         }
 
         throw new InvalidRequestException("CannotDeleteJob", submittedJobInfoId, jobInfo.State);
+    }
+    
+    public virtual bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
+    {
+        _logger.Info($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
+        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        
+        var basePath = jobInfo.Specification.Cluster.ClusterProjects
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+        
+        var localBasePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'));
+        var jobLogArchivePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'));
+        
+        var sourceDestinations = jobInfo.
+                                            Specification.
+                                            Tasks.
+                                            SelectMany(x => new[]
+                                            {
+                                                new Tuple<string, string>(
+                                                Path.Join(localBasePath,
+                                                    x.JobSpecification.Id.ToString(), 
+                                                    x.Id.ToString(),
+                                                    string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
+                                                    x.StandardOutputFile),
+                                                Path.Join(jobLogArchivePath,
+                                                    x.JobSpecification.Id.ToString(), 
+                                                    x.Id.ToString(),
+                                                    string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
+                                                    x.StandardErrorFile)),
+                                                new Tuple<string, string>(
+                                                    Path.Join(localBasePath,
+                                                        x.JobSpecification.Id.ToString(), 
+                                                        x.Id.ToString(),
+                                                        string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
+                                                        x.StandardOutputFile),
+                                                    Path.Join(jobLogArchivePath,
+                                                        x.JobSpecification.Id.ToString(), 
+                                                        x.Id.ToString(),
+                                                        string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
+                                                        x.StandardErrorFile)),
+                                            });
+        
+        var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
+            CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).
+            MoveJobFiles(jobInfo, sourceDestinations);
+        return isArchived;
+
+       
+        throw new InvalidRequestException("CannotArchiveJob", submittedJobInfoId, jobInfo.State);
     }
 
     public virtual SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser)

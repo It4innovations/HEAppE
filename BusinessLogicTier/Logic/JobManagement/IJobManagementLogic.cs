@@ -11,6 +11,7 @@ public interface IJobManagementLogic
     SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
     SubmittedJobInfo CancelJob(long submittedJobInfoId, AdaptorUser loggedUser);
     bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
+    bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser);
     SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser);
     SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser);
     IEnumerable<SubmittedJobInfo> GetJobsForUser(AdaptorUser loggedUser);

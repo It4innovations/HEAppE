@@ -307,34 +307,104 @@ public class FileTransferLogic : IFileTransferLogic
 
     public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var jobInfo = LogicFactory.GetLogicFactory()
+            .CreateJobManagementLogic(_unitOfWork)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-        if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
-            return null;
 
-        var fileManager =
-            FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+        var fileManager = FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
+            .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+
+        if (jobInfo.State == JobState.Deleted)
+        {
+            return HandleDeletedJobFileDownload(jobInfo, relativeFilePath, fileManager, loggedUser);
+        }
+
+        if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
+        {
+            _log.Error(
+                $"Job is not submitted or is waiting for service account, cannot download file for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
+            return null;
+        }
+
+        return HandleActiveJobFileDownload(jobInfo, relativeFilePath, fileManager, loggedUser);
+    }
+
+    private byte[] HandleDeletedJobFileDownload(
+        SubmittedJobInfo jobInfo,
+        string relativeFilePath,
+        IRexFileSystemManager fileManager,
+        AdaptorUser loggedUser)
+    {
+        _log.Info($"Getting file from archive for submitted job Id {jobInfo.Id} with user {loggedUser.GetLogIdentification()}");
+
         try
         {
-            var allowedPathStarts = new List<string>();
             relativeFilePath = relativeFilePath.TrimStart('/');
+            var localBasePath = GetLocalArchiveBasePath(jobInfo);
+
             foreach (var task in jobInfo.Tasks)
             {
-                var start1 = Path.Combine($"{jobInfo.Id}", $"{task.Id}",
-                    $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
-                var start2 = Path.Combine($"{task.Id}",
-                    $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
-                if (relativeFilePath.StartsWith(start1))
-                    return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                var paths = GetTaskPathVariants(jobInfo, task);
 
-                if (relativeFilePath.StartsWith(start2))
+                foreach (var path in paths)
                 {
-                    relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
-                    return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                    if (relativeFilePath.StartsWith(path))
+                    {
+                        try
+                        {
+                            var fullPath = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
+                            return fileManager.DownloadFileFromClusterByAbsolutePath(jobInfo.Specification, fullPath);
+                        }
+                        catch (Exception ex)
+                        {
+                            _log.Info(
+                                $"File not found in cluster, trying to get it from archive for submitted job Id {jobInfo.Id} with user {loggedUser.GetLogIdentification()}, {ex.Message}");
+                        }
+                    }
                 }
             }
+        }
+        catch (SftpPathNotFoundException exception)
+        {
+            throw new InvalidRequestException("NotExistingPathInArchive", relativeFilePath, exception.Message);
+        }
 
+        return null;
+    }
+
+    private byte[] HandleActiveJobFileDownload(
+        SubmittedJobInfo jobInfo,
+        string relativeFilePath,
+        IRexFileSystemManager fileManager,
+        AdaptorUser loggedUser)
+    {
+        _log.Info($"Getting file from cluster for submitted job Id {jobInfo.Id} with user {loggedUser.GetLogIdentification()}");
+
+        relativeFilePath = relativeFilePath.TrimStart('/');
+
+        foreach (var task in jobInfo.Tasks)
+        {
+            var paths = GetTaskPathVariants(jobInfo, task);
+
+            foreach (var path in paths)
+            {
+                if (relativeFilePath.StartsWith(path))
+                {
+                    try
+                    {
+                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                    }
+                    catch (Exception ex)
+                    {
+                        _log.Error(
+                            $"File not found in cluster for submitted job Id {jobInfo.Id} with user {loggedUser.GetLogIdentification()}, {ex.Message}");
+                    }
+                }
+            }
+        }
+
+        try
+        {
             return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
         }
         catch (SftpPathNotFoundException exception)
@@ -342,6 +412,23 @@ public class FileTransferLogic : IFileTransferLogic
             throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
         }
     }
+
+    private string GetLocalArchiveBasePath(SubmittedJobInfo jobInfo)
+    {
+        var basePath = jobInfo.Specification.Cluster.ClusterProjects
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+
+        return Path.Combine(basePath, _scripts.JobLogArchiveSubPath.TrimStart('/'));
+    }
+
+    private IEnumerable<string> GetTaskPathVariants(SubmittedJobInfo jobInfo, SubmittedTaskInfo task)
+    {
+        var taskSubdirectory = task.Specification.ClusterTaskSubdirectory ?? string.Empty;
+
+        yield return Path.Combine($"{jobInfo.Id}", $"{task.Id}", taskSubdirectory);
+        yield return Path.Combine($"{task.Id}", taskSubdirectory);
+    }
+
 
     public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)
     {

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -387,6 +388,20 @@ public class RexSchedulerWrapper : IRexScheduler
             _log.Info(
                 $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
             return false;
+        }
+    }
+
+    public bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    {
+        var schedulerConnection =
+            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+        try
+        {
+            return _adapter.MoveJobFiles(schedulerConnection.Connection, jobInfo, sourceDestinations);
+        }
+        finally
+        {
+            _connectionPool.ReturnConnection(schedulerConnection);
         }
     }
 
