@@ -1,21 +1,49 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
 using HEAppE.ExtModels.ClusterInformation.Models;
 
 namespace HEAppE.ExtModels.JobManagement.Models;
 
+/// <summary>
+/// Project for task model
+/// </summary>
 [DataContract(Name = "ProjectForTaskExt")]
+[Description("Project for task model")]
 public class ProjectForTaskExt
 {
-    [DataMember(Name = "Id")] public long Id { get; set; }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember(Name = "Id")]
+    [Description("Id")]
+    public long Id { get; set; }
 
-    [DataMember(Name = "Name")] public string Name { get; set; }
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember(Name = "Name")]
+    [Description("Name")]
+    public string Name { get; set; }
 
-    [DataMember(Name = "Description")] public string Description { get; set; }
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember(Name = "Description")]
+    [Description("Description")]
+    public string Description { get; set; }
 
+    /// <summary>
+    /// Accounting string
+    /// </summary>
     [DataMember(Name = "AccountingString")]
+    [Description("Accounting string")]
     public string AccountingString { get; set; }
 
+    /// <summary>
+    /// Command template
+    /// </summary>
     [DataMember(Name = "CommandTemplates")]
+    [Description("Command template")]
     public CommandTemplateExt CommandTemplate { get; set; }
 
     #region Public methods

@@ -1,27 +1,77 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 
+/// <summary>
+/// Project detailed report ext
+/// </summary>
 [DataContract(Name = "ProjectDetailedReportExt")]
+[Description("Project detailed report ext")]
 public class ProjectDetailedReportExt
 {
-    [DataMember] public long Id { get; set; }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember]
+    [Description("Id")]
+    public long Id { get; set; }
 
-    [DataMember] public string Name { get; set; }
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember]
+    [Description("Name")]
+    public string Name { get; set; }
 
-    [DataMember] public string Description { get; set; }
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember]
+    [Description("Description")]
+    public string Description { get; set; }
 
-    [DataMember] public string AccountingString { get; set; }
+    /// <summary>
+    /// Accounting string
+    /// </summary>
+    [DataMember]
+    [Description("Accounting string")]
+    public string AccountingString { get; set; }
 
-    [DataMember] public double? TotalUsage { get; set; }
+    /// <summary>
+    /// Total usage
+    /// </summary>
+    [DataMember]
+    [Description("Total usage")]
+    public double? TotalUsage { get; set; }
 
-    [DataMember] public UsageTypeExt UsageType { get; set; }
+    /// <summary>
+    /// Usage type
+    /// </summary>
+    [DataMember]
+    [Description("Usage type")]
+    public UsageTypeExt UsageType { get; set; }
 
-    [DataMember] public DateTime StartDate { get; set; }
+    /// <summary>
+    /// Start date
+    /// </summary>
+    [DataMember]
+    [Description("Start date")]
+    public DateTime StartDate { get; set; }
 
-    [DataMember] public DateTime EndDate { get; set; }
+    /// <summary>
+    /// End date
+    /// </summary>
+    [DataMember]
+    [Description("End date")]
+    public DateTime EndDate { get; set; }
 
-    [DataMember] public List<ClusterDetailedReportExt> Clusters { get; set; }
+    /// <summary>
+    /// List of cluster detailed reports
+    /// </summary>
+    [DataMember]
+    [Description("List of cluster detailed reports")]
+    public List<ClusterDetailedReportExt> Clusters { get; set; }
 }

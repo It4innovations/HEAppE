@@ -1,17 +1,42 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models;
 
+/// <summary>
+/// Cluster ext
+/// </summary>
 [DataContract(Name = "ClusterExt")]
+[Description("Cluster ext")]
 public class ClusterExt
 {
-    [DataMember(Name = "Id")] public long? Id { get; set; }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember(Name = "Id")]
+    [Description("Id")]
+    public long? Id { get; set; }
 
-    [DataMember(Name = "Name")] public string Name { get; set; }
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember(Name = "Name")]
+    [Description("Name")]
+    public string Name { get; set; }
 
-    [DataMember(Name = "Description")] public string Description { get; set; }
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember(Name = "Description")]
+    [Description("Description")]
+    public string Description { get; set; }
 
-    [DataMember(Name = "NodeTypes")] public ClusterNodeTypeExt[] NodeTypes { get; set; }
+    /// <summary>
+    /// Array of node types
+    /// </summary>
+    [DataMember(Name = "NodeTypes")]
+    [Description("Array of node types")]
+    public ClusterNodeTypeExt[] NodeTypes { get; set; }
 
     public override string ToString()
     {

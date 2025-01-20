@@ -1,5 +1,11 @@
-﻿namespace HEAppE.ExtModels.JobManagement.Models;
+﻿using System.ComponentModel;
 
+namespace HEAppE.ExtModels.JobManagement.Models;
+
+/// <summary>
+/// Task state types
+/// </summary>
+[Description("Task state types")]
 public enum TaskStateExt
 {
     Configuring = 1,

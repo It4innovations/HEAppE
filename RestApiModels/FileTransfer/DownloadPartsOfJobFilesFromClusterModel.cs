@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.ComponentModel;
+using System.Linq;
 using System.Runtime.Serialization;
 using FluentValidation;
 using HEAppE.ExtModels.FileTransfer.Models;
@@ -6,10 +7,19 @@ using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.FileTransfer;
 
+/// <summary>
+/// Model for downloading parts of job files from cluster
+/// </summary>
 [DataContract(Name = "DownloadPartsOfJobFilesFromClusterModel")]
+[Description("Model for downloading parts of job files from cluster")]
 public class DownloadPartsOfJobFilesFromClusterModel : SubmittedJobInfoModel
 {
-    [DataMember(Name = "TaskFileOffsets")] public TaskFileOffsetExt[] TaskFileOffsets { get; set; }
+    /// <summary>
+    /// Task file models array
+    /// </summary>
+    [DataMember(Name = "TaskFileOffsets")]
+    [Description("Task file models array")]
+    public TaskFileOffsetExt[] TaskFileOffsets { get; set; }
 
     public override string ToString()
     {

@@ -1,5 +1,11 @@
-﻿namespace HEAppE.DomainObjects.ClusterInformation;
+﻿using System.ComponentModel;
 
+namespace HEAppE.DomainObjects.ClusterInformation;
+
+/// <summary>
+/// Cluster authentication credentials types
+/// </summary>
+[Description("Cluster authentication credentials types")]
 public enum ClusterAuthenticationCredentialsAuthTypeExt
 {
     Unknown = 0,
