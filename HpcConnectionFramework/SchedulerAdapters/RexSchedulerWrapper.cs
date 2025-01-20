@@ -365,7 +365,7 @@ public class RexSchedulerWrapper : IRexScheduler
         catch (Exception ex)
         {
             _log.Error(
-                $"Cluster script directory initialization failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}",
+                $"Cluster script directory initialization failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId}, {ex.Message}",
                 ex);
             return false;
         }

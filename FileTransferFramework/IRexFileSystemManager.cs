@@ -24,6 +24,7 @@ public interface IRexFileSystemManager
     void CopyCreatedFilesFromCluster(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime);
 
     ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime);
+    ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime);
 
     byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
 

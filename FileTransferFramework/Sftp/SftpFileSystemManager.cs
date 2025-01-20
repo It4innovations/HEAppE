@@ -47,6 +47,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var localBasePath = Path.Combine(basePath, _scripts.SubExecutionsPath.TrimStart('/'));
         var connection =
             _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+        _logger.LogInformation($"Downloading file {relativeFilePath} from cluster");
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -66,6 +67,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
         string absoluteFilePath)
     {
+        _logger.LogInformation($"Downloading file {absoluteFilePath} from cluster");
         var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser, jobSpecification.Cluster);
         try
         {

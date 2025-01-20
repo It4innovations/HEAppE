@@ -95,6 +95,7 @@ public class JobManagementService : IJobManagementService
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
             if (archiveLogs)
             {
+                _logger.Info($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
                 jobLogic.ArchiveJob(submittedJobInfoId, loggedUser);
             }
             return jobLogic.DeleteJob(submittedJobInfoId, loggedUser);

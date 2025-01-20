@@ -13,6 +13,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Automatic docker compose Vault initialization and unsealing procedure
 - Propagation of JobState `Deleted` into `JobSpecification`
+- HPC job archive option at `DeleteJob` endpoint
+- `ListChangedFilesForJob` endpoint job logs archive listing when HPC Job deleted and archived
 - Feature to enable or disable `CommandTemplate` by `IsEnabled` property
 - Advanced filter for `ListavailableClusters` endpoint
 - JobState filter for `ListJobsForCurrentUser`

@@ -235,6 +235,7 @@ internal class LinuxCommands : ICommands
         cmdBuilder.Append($"rm -rf {_scripts.ScriptsBasePath} && ");
         if (isServiceAccount)
         {
+            cmdBuilder.Append($"mkdir -p {clusterProjectRootDirectory} && ");
             cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
             cmdBuilder.Append($"rm -rf {Path.Combine(_scripts.SubScriptsPath, ".key_scripts").Replace('\\', '/')} && ");
 

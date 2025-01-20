@@ -223,42 +223,34 @@ internal class JobManagementLogic : IJobManagementLogic
         var localBasePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'));
         var jobLogArchivePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'));
         
-        var sourceDestinations = jobInfo.
-                                            Specification.
-                                            Tasks.
-                                            SelectMany(x => new[]
-                                            {
-                                                new Tuple<string, string>(
-                                                Path.Join(localBasePath,
-                                                    x.JobSpecification.Id.ToString(), 
-                                                    x.Id.ToString(),
-                                                    string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
-                                                    x.StandardOutputFile),
-                                                Path.Join(jobLogArchivePath,
-                                                    x.JobSpecification.Id.ToString(), 
-                                                    x.Id.ToString(),
-                                                    string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
-                                                    x.StandardErrorFile)),
-                                                new Tuple<string, string>(
-                                                    Path.Join(localBasePath,
-                                                        x.JobSpecification.Id.ToString(), 
-                                                        x.Id.ToString(),
-                                                        string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
-                                                        x.StandardOutputFile),
-                                                    Path.Join(jobLogArchivePath,
-                                                        x.JobSpecification.Id.ToString(), 
-                                                        x.Id.ToString(),
-                                                        string.IsNullOrEmpty(x.ClusterTaskSubdirectory)?string.Empty:x.ClusterTaskSubdirectory,
-                                                        x.StandardErrorFile)),
-                                            });
+        var sourceDestinations = jobInfo.Specification.Tasks
+            .SelectMany(x => new[]
+            {
+                CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardOutputFile),
+                CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardErrorFile)
+            });
         
         var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
             CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).
             MoveJobFiles(jobInfo, sourceDestinations);
         return isArchived;
+    }
+    
+    static Tuple<string, string> CreatePathTuple(string localBasePath, string jobLogArchivePath, TaskSpecification task, string fileName)
+    {
+        var localPath = Path.Join(localBasePath,
+            task.JobSpecification.Id.ToString(),
+            task.Id.ToString(),
+            string.IsNullOrEmpty(task.ClusterTaskSubdirectory) ? string.Empty : task.ClusterTaskSubdirectory,
+            fileName);
 
-       
-        throw new InvalidRequestException("CannotArchiveJob", submittedJobInfoId, jobInfo.State);
+        var archivePath = Path.Join(jobLogArchivePath,
+            task.JobSpecification.Id.ToString(),
+            task.Id.ToString(),
+            string.IsNullOrEmpty(task.ClusterTaskSubdirectory) ? string.Empty : task.ClusterTaskSubdirectory,
+            fileName);
+
+        return new Tuple<string, string>(localPath, archivePath);
     }
 
     public virtual SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser)

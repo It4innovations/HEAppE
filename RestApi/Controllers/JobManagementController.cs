@@ -110,7 +110,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpDelete("DeleteJob")]
-    [RequestSizeLimit(98)]
+    [RequestSizeLimit(120)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
