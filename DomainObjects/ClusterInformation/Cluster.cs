@@ -21,21 +21,27 @@ public class Cluster : IdentifiableDbEntity, ISoftDeletableEntity
 
     #region Properties
 
-    [Required] [StringLength(50)] public string Name { get; set; }
+    [Required] [StringLength(50)] 
+    public string Name { get; set; }
 
-    [Required] [StringLength(200)] public string Description { get; set; }
+    [Required] [StringLength(200)] 
+    public string Description { get; set; }
 
-    [Required] [StringLength(50)] public string MasterNodeName { get; set; }
+    [Required] [StringLength(50)] 
+    public string MasterNodeName { get; set; }
 
-    [StringLength(50)] public string DomainName { get; set; }
+    [StringLength(50)] 
+    public string DomainName { get; set; }
 
     public int? Port { get; set; }
 
-    [Required] [StringLength(30)] public string TimeZone { get; set; } = "UTC";
+    [Required] [StringLength(30)] 
+    public string TimeZone { get; set; } = "UTC";
 
     public bool? UpdateJobStateByServiceAccount { get; set; } = true;
 
-    [Required] public bool IsDeleted { get; set; } = false;
+    [Required] 
+    public bool IsDeleted { get; set; } = false;
 
     public SchedulerType SchedulerType { get; set; }
 
@@ -45,7 +51,8 @@ public class Cluster : IdentifiableDbEntity, ISoftDeletableEntity
 
     public virtual List<FileTransferMethod> FileTransferMethods { get; set; } = new();
 
-    [ForeignKey("ClusterProxyConnection")] public long? ProxyConnectionId { get; set; }
+    [ForeignKey("ClusterProxyConnection")] 
+    public long? ProxyConnectionId { get; set; }
 
     public virtual ClusterProxyConnection ProxyConnection { get; set; }
     public virtual List<ClusterProject> ClusterProjects { get; set; } = new();

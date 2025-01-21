@@ -88,14 +88,14 @@ public interface IManagementService
         DateTime modelStartDate, DateTime? modelEndDate, string modelSessionCode);
 
     void RemoveSubProject(long modelId, string modelSessionCode);
-    ClusterExt GetClusterById(long clusterId, string sessionCode);
+    ExtendedClusterExt GetClusterById(long clusterId, string sessionCode);
 
-    ClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode);
 
-    ClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
+    ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode);

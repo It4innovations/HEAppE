@@ -692,7 +692,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpGet("Cluster")]
     [RequestSizeLimit(100)]
-    [ProducesResponseType(typeof(ClusterExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ExtendedClusterExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -713,7 +713,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpPost("Cluster")]
     [RequestSizeLimit(600)]
-    [ProducesResponseType(typeof(ClusterExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ExtendedClusterExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -741,7 +741,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpPut("Cluster")]
     [RequestSizeLimit(600)]
-    [ProducesResponseType(typeof(ClusterExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ExtendedClusterExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
