@@ -1,8 +1,11 @@
-﻿namespace HEAppE.ExtModels.ClusterInformation.Models;
+﻿using System.ComponentModel;
+
+namespace HEAppE.ExtModels.ClusterInformation.Models;
 
 /// <summary>
-///     Proxy types
+/// Proxy types
 /// </summary>
+[Description("Proxy types")]
 public enum ProxyTypeExt
 {
     Socks4 = 1,

@@ -1,11 +1,13 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.Management.Models;
 
 /// <summary>
-///     Instance information Ext
+/// Instance information ext
 /// </summary>
 [DataContract(Name = "VersionInformationExt")]
+[Description("Instance information ext")]
 public class VersionInformationExt
 {
     #region Override methods
@@ -24,21 +26,24 @@ public class VersionInformationExt
     #region Properties
 
     /// <summary>
-    ///     Name
+    /// Name
     /// </summary>
     [DataMember(Name = "Name")]
+    [Description("Name")]
     public string Name { get; set; }
 
     /// <summary>
-    ///     Description
+    /// Description
     /// </summary>
     [DataMember(Name = "Description")]
+    [Description("Description")]
     public string Description { get; set; }
 
     /// <summary>
-    ///     Version
+    /// Version
     /// </summary>
     [DataMember(Name = "Version")]
+    [Description("Version")]
     public string Version { get; set; }
 
     #endregion

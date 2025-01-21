@@ -1,17 +1,36 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
 using FluentValidation;
 
 namespace HEAppE.ExtModels.FileTransfer.Models;
 
+/// <summary>
+/// Task file model
+/// </summary>
 [DataContract(Name = "TaskFileOffsetExt")]
+[Description("Task file model")]
 public class TaskFileOffsetExt
 {
+    /// <summary>
+    /// Submitted task info id
+    /// </summary>
     [DataMember(Name = "SubmittedTaskInfoId")]
+    [Description("Submitted task info id")]
     public long? SubmittedTaskInfoId { get; set; }
 
-    [DataMember(Name = "FileType")] public SynchronizableFilesExt? FileType { get; set; }
+    /// <summary>
+    /// File type
+    /// </summary>
+    [DataMember(Name = "FileType")]
+    [Description("File type")]
+    public SynchronizableFilesExt? FileType { get; set; }
 
-    [DataMember(Name = "Offset")] public long? Offset { get; set; }
+    /// <summary>
+    /// Offset
+    /// </summary>
+    [DataMember(Name = "Offset")]
+    [Description("Offset")]
+    public long? Offset { get; set; }
 
     public override string ToString()
     {

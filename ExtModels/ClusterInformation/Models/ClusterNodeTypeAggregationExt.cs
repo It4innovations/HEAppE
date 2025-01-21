@@ -1,22 +1,57 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models;
 
+/// <summary>
+/// Cluster node type aggregation ext
+/// </summary>
 [DataContract(Name = "ClusterNodeTypeAggregationExt")]
+[Description("Cluster node type aggregation ext")]
 public class ClusterNodeTypeAggregationExt
 {
-    [DataMember(Name = "Id")] public long? Id { get; set; }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember(Name = "Id")]
+    [Description("Id")]
+    public long? Id { get; set; }
 
-    [DataMember(Name = "Name")] public string Name { get; set; }
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember(Name = "Name")]
+    [Description("Name")]
+    public string Name { get; set; }
 
-    [DataMember(Name = "Description")] public string Description { get; set; }
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember(Name = "Description")]
+    [Description("Description")]
+    public string Description { get; set; }
 
-    [DataMember(Name = "AllocationType")] public string AllocationType { get; set; }
+    /// <summary>
+    /// Allocation type
+    /// </summary>
+    [DataMember(Name = "AllocationType")]
+    [Description("Allocation type")]
+    public string AllocationType { get; set; }
 
-    [DataMember(Name = "ValidityFrom")] public DateTime ValidityFrom { get; set; }
+    /// <summary>
+    /// Validity from
+    /// </summary>
+    [DataMember(Name = "ValidityFrom")]
+    [Description("Valid from")]
+    public DateTime ValidityFrom { get; set; }
 
-    [DataMember(Name = "ValidityTo")] public DateTime? ValidityTo { get; set; }
+    /// <summary>
+    /// Validity to
+    /// </summary>
+    [DataMember(Name = "ValidityTo")]
+    [Description("Valid to")]
+    public DateTime? ValidityTo { get; set; }
 
     public override string ToString()
     {
