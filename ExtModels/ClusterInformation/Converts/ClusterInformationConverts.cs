@@ -56,6 +56,11 @@ public static class ClusterInformationConverts
             SchedulerType = cluster.SchedulerType.ConvertIntToExt(),
             TimeZone = cluster.TimeZone,
             Port = cluster.Port,
+            ConnectionProtocol = cluster.ConnectionProtocol.ConvertIntToExt(),
+            DomainName = cluster.DomainName,
+            UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount??false,
+            ProxyConnection = cluster.ProxyConnection.ConvertIntToExt(),
+            
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt())
                 .ToArray()
         };
@@ -71,6 +76,17 @@ public static class ClusterInformationConverts
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
             _ => throw new InputValidationException("EnumValueMustBeInInterval", "Scheduler type", "<1, 2, 4, 8>")
+        };
+    }
+    
+    public static ClusterConnectionProtocolExt ConvertIntToExt(this ClusterConnectionProtocol connectionProtocol)
+    {
+        return connectionProtocol switch
+        {
+            ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
+            ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
+            ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
+            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Connection protocol", "<1, 2, 4>")
         };
     }
 
