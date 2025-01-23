@@ -486,9 +486,9 @@ internal class MiddlewareContext : DbContext
         {
             case IdentifiableDbEntity identifiableItem:
             {
-                var entity = Set<T>().Find(identifiableItem.Id);
-                UpdateEntityOrAddItem(entity, item);
-                entity = Set<T>().Find(identifiableItem.Id);
+                var entity = Set<T>().OfType<IdentifiableDbEntity>().IgnoreQueryFilters().FirstOrDefault(c => c.Id == identifiableItem.Id);
+                UpdateEntityOrAddItem((T)(object)entity, item);
+                var entity_after_update = Set<T>().Find(identifiableItem.Id);
 
                 if (entity is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
@@ -509,36 +509,49 @@ internal class MiddlewareContext : DbContext
 
             case AdaptorUserUserGroupRole userGroupItem:
             {
-                var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId,
-                    userGroupItem.AdaptorUserRoleId);
-                UpdateEntityOrAddItem(entity, item);
+                //var entity = Set<T>().Find(userGroupItem.AdaptorUserId, userGroupItem.AdaptorUserGroupId,
+                //     userGroupItem.AdaptorUserRoleId);
+                var entity = Set<T>().OfType<AdaptorUserUserGroupRole>().IgnoreQueryFilters().FirstOrDefault(c =>
+                    c.AdaptorUserId == userGroupItem.AdaptorUserId &&
+                    c.AdaptorUserGroupId == userGroupItem.AdaptorUserGroupId &&
+                    c.AdaptorUserRoleId == userGroupItem.AdaptorUserRoleId);
+                UpdateEntityOrAddItem((T)(object)entity, item);
                 break;
             }
             case OpenStackAuthenticationCredentialProject openstackCredProject:
             {
-                var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId,
-                    openstackCredProject.OpenStackProjectId);
-                UpdateEntityOrAddItem(entity, item);
+                //var entity = Set<T>().Find(openstackCredProject.OpenStackAuthenticationCredentialId,
+                //    openstackCredProject.OpenStackProjectId);
+                var entity = Set<T>().OfType<OpenStackAuthenticationCredentialProject>().IgnoreQueryFilters().FirstOrDefault(c =>
+                    c.OpenStackAuthenticationCredentialId == openstackCredProject.OpenStackAuthenticationCredentialId &&
+                    c.OpenStackProjectId == openstackCredProject.OpenStackProjectId);
+                UpdateEntityOrAddItem((T)(object)entity, item);
                 break;
             }
             case OpenStackAuthenticationCredentialDomain openstackCredDomain:
             {
-                var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId,
-                    openstackCredDomain.OpenStackDomainId);
-                UpdateEntityOrAddItem(entity, item);
+                //var entity = Set<T>().Find(openstackCredDomain.OpenStackAuthenticationCredentialId,
+                //    openstackCredDomain.OpenStackDomainId);
+                var entity = Set<T>().OfType<OpenStackAuthenticationCredentialDomain>().IgnoreQueryFilters().FirstOrDefault(c =>
+                    c.OpenStackAuthenticationCredentialId == openstackCredDomain.OpenStackAuthenticationCredentialId &&
+                    c.OpenStackDomainId == openstackCredDomain.OpenStackDomainId);
+                UpdateEntityOrAddItem((T)(object)entity, item);
                 break;
             }
             case ClusterProjectCredential clusterProjectCredentials:
             {
-                var entity = Set<T>().Find(clusterProjectCredentials.ClusterProjectId,
-                    clusterProjectCredentials.ClusterAuthenticationCredentialsId);
-                UpdateEntityOrAddItem(entity, item);
+                var entity = Set<T>().OfType<ClusterProjectCredential>().IgnoreQueryFilters().FirstOrDefault(c =>
+                    c.ClusterProjectId == clusterProjectCredentials.ClusterProjectId &&
+                    c.ClusterAuthenticationCredentialsId == clusterProjectCredentials.ClusterAuthenticationCredentialsId);
+                UpdateEntityOrAddItem((T)(object)entity, item);
                 break;
             }
             case ProjectContact projectContact:
             {
-                var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
-                UpdateEntityOrAddItem(entity, item);
+                //var entity = Set<T>().Find(projectContact.ProjectId, projectContact.ContactId);
+                var entity = Set<T>().OfType<ProjectContact>().IgnoreQueryFilters().FirstOrDefault(c =>
+                    c.ProjectId == projectContact.ProjectId && c.ContactId == projectContact.ContactId);
+                UpdateEntityOrAddItem((T)(object)entity, item);
                 break;
             }
             case ClusterNodeTypeAggregationAccounting clusterNodeTypeAggregationAccounting:

@@ -31,7 +31,7 @@ body="{
 }"
 
 # Execute the curl command and capture the status code
-status_code=$(docker compose exec -T -e VAULT_TOKEN=$root_token heappe sh -c "curl -o /dev/null -s -w '%{ }' -H 'Content-Type: application/json' -d '${body}' '${url}'" &)
+status_code=$(docker exec -e VAULT_TOKEN=$root_token heappe sh -c "curl -o /dev/null -s -w '%{http_code}' -H 'Content-Type: application/json' -d '${body}' '${url}'")
 
 # Output the status code
 echo "Status code: $status_code"
