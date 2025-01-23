@@ -59,6 +59,34 @@ public class ExtendedClusterExt
     [DataMember(Name = "Port")]
     [Description("SSH port")]
     public int? Port { get; set; }
+    
+    /// <summary>
+    /// Connection protocol
+    /// </summary>
+    [DataMember(Name = "ConnectionProtocol")]
+    [Description("ConnectionProtocol")]
+    public ClusterConnectionProtocolExt ConnectionProtocol { get; set; }
+    
+    /// <summary>
+    /// Update job state by service account
+    /// </summary>
+    [DataMember(Name = "UpdateJobStateByServiceAccount")]
+    [Description("Update Job State By ServiceAccount")]
+    public bool UpdateJobStateByServiceAccount { get; set; }
+    
+    /// <summary>
+    /// Domain Name
+    /// </summary>
+    [DataMember(Name = "DomainName")]
+    [Description("DomainName")]
+    public string DomainName { get; set; }
+    
+    /// <summary>
+    /// Proxy connection
+    /// </summary>
+    [DataMember(Name = "ProxyConnection")]
+    [Description("Proxy connection")]
+    public virtual ClusterProxyConnectionExt ProxyConnection { get; set; }
 
     /// <summary>
     /// Array of node types
