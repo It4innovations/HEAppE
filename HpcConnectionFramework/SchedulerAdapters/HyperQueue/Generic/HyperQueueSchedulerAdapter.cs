@@ -225,6 +225,10 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
             localBasepath, isServiceAccount);
     }
+    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    {
+        return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
+    }
 
     #endregion
 }

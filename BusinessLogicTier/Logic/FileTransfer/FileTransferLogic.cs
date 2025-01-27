@@ -18,6 +18,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueDTO;
 using HEAppE.Utils;
 using log4net;
 using Renci.SshNet.Common;
@@ -237,19 +238,36 @@ public class FileTransferLogic : IFileTransferLogic
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
                 .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
         IList<JobFileContent> result = new List<JobFileContent>();
+        
         foreach (var taskInfo in jobInfo.Tasks)
         {
             IList<TaskFileOffset> currentTaskFileOffsets = (from taskFileOffset in taskFileOffsets
                 where taskFileOffset.SubmittedTaskInfoId == taskInfo.Id
                 select taskFileOffset).ToList();
+            
             foreach (var currentOffset in currentTaskFileOffsets)
             {
-                var contents =
-                    fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                        currentOffset.Offset);
+                ICollection<JobFileContent> contents = null;
+                if (jobInfo.State == JobState.Deleted)
+                {
+                    contents =
+                        fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
+                            currentOffset.Offset, _scripts.JobLogArchiveSubPath);
+                }
+                else
+                {
+                    contents =
+                        fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
+                            currentOffset.Offset, _scripts.SubExecutionsPath);
+                }
+
                 if (contents != null)
+                {
                     foreach (var content in contents)
-                        result.Add(content);
+                    {
+                        result.Add(content); 
+                    }
+                } 
             }
         }
 
@@ -296,28 +314,39 @@ public class FileTransferLogic : IFileTransferLogic
     {
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-        if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
-            return null;
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
                 .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
 
+        if(jobInfo.State == JobState.Deleted)
+        {
+            return fileManager.ListArchivedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
+        }
+        
+        if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
+            return null;
+       
         return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
     }
-
     public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
         var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
-        if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
-            return null;
-
+        
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
                 .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+        
+        if (jobInfo.State == JobState.Deleted)
+        {
+            return HandleDeletedJobFileDownload(jobInfo, relativeFilePath, fileManager, loggedUser);
+        }
+        
+        if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
+            return null;
+        
         try
         {
-            var allowedPathStarts = new List<string>();
             relativeFilePath = relativeFilePath.TrimStart('/');
             foreach (var task in jobInfo.Tasks)
             {
@@ -326,15 +355,30 @@ public class FileTransferLogic : IFileTransferLogic
                 var start2 = Path.Combine($"{task.Id}",
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
                 if (relativeFilePath.StartsWith(start1))
-                    return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                {
+                    try
+                    {
+                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                    }
+                    catch (Exception exception)
+                    {
+                        throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
+                    }
+                }
 
                 if (relativeFilePath.StartsWith(start2))
                 {
-                    relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
-                    return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                    try
+                    {
+                        relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
+                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                    }
+                    catch (Exception exception)
+                    {
+                        throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
+                    }
                 }
             }
-
             return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
         }
         catch (SftpPathNotFoundException exception)
@@ -343,6 +387,63 @@ public class FileTransferLogic : IFileTransferLogic
         }
     }
 
+    private byte[] HandleDeletedJobFileDownload(
+        SubmittedJobInfo jobInfo,
+        string relativeFilePath,
+        IRexFileSystemManager fileManager,
+        AdaptorUser loggedUser)
+    {
+        _log.Info($"Getting file from archive for submitted job Id {jobInfo.Id} with user {loggedUser.GetLogIdentification()}");
+
+        try
+        {
+            relativeFilePath = relativeFilePath.TrimStart('/');
+            foreach (var task in jobInfo.Tasks)
+            {
+                var start1 = Path.Combine($"{jobInfo.Id}", $"{task.Id}",
+                    $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
+                var start2 = Path.Combine($"{task.Id}",
+                    $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
+                
+                var basePath = jobInfo.Specification.Cluster.ClusterProjects
+                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+                var localBasePath = Path.Combine(basePath, _scripts.JobLogArchiveSubPath.TrimStart('/'));
+ 
+                if (relativeFilePath.StartsWith(start1))
+                {
+                    try
+                    {
+                        var file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
+                        return fileManager.DownloadFileFromClusterByAbsolutePath(jobInfo.Specification, file);
+                    }
+                    catch (Exception exception)
+                    {
+                        throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
+                    }
+                }
+
+                if (relativeFilePath.StartsWith(start2))
+                {
+                    try
+                    {
+                        relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
+                        var file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
+                        return fileManager.DownloadFileFromClusterByAbsolutePath(jobInfo.Specification, file);
+                    }
+                    catch (Exception exception)
+                    {
+                        throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
+                    }
+                }
+            }
+            return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+        }
+        catch (SftpPathNotFoundException exception)
+        {
+            throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
+        }
+    }
+    
     public virtual FileTransferMethod GetFileTransferMethodById(long fileTransferMethodById)
     {
         return _unitOfWork.FileTransferMethodRepository.GetById(fileTransferMethodById)

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands;
@@ -85,4 +86,6 @@ public interface ICommands
     /// <param name="isServiceAccount">Is servis account</param>
     bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
         string localBasepath, bool isServiceAccount);
+
+    bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
 }

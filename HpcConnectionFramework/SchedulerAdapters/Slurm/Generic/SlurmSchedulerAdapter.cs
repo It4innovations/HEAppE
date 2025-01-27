@@ -401,6 +401,11 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             localBasepath, isServiceAccount);
     }
 
+    public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
+    {
+        return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
+    }
+
     #endregion
 
     #endregion

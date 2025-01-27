@@ -84,7 +84,7 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public bool DeleteJob(long submittedJobInfoId, string sessionCode)
+    public bool DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -93,6 +93,11 @@ public class JobManagementService : IJobManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, job.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork);
+            if (archiveLogs)
+            {
+                _logger.Info($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
+                jobLogic.ArchiveJob(submittedJobInfoId, loggedUser);
+            }
             return jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
         }
     }

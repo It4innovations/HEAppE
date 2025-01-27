@@ -8,6 +8,7 @@ public sealed class ScriptsConfiguration
     #region Instances
 
     private string _subExecutionPath = "HEAppE/Executions";
+    private string _jobLogArchiveSubPath = "HEAppE/JobLogs";
     private string _subScriptsPath = "HEAppE/Scripts";
     private string _scriptsBasePath = "~/.key_scripts";
 
@@ -34,6 +35,15 @@ public sealed class ScriptsConfiguration
         set
         {
             if (!string.IsNullOrEmpty(value)) _subExecutionPath = value.Replace("\\", "/").TrimStart('/').TrimEnd('/');
+        }
+    }
+
+    public string JobLogArchiveSubPath
+    {
+        get => _jobLogArchiveSubPath;
+        set
+        {
+            if (!string.IsNullOrEmpty(value)) _jobLogArchiveSubPath = value.Replace("\\", "/").TrimStart('/').TrimEnd('/');
         }
     }
 

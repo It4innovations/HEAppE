@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
@@ -110,7 +110,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpDelete("DeleteJob")]
-    [RequestSizeLimit(98)]
+    [RequestSizeLimit(120)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -123,7 +123,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.SessionCode);
+        var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
         if (isDeleted) return Ok("Job was deleted");
         return BadRequest("Job was not deleted");
     }

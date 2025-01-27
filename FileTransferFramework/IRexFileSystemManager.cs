@@ -19,11 +19,12 @@ public interface IRexFileSystemManager
     ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobSpecification);
 
     ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskSpecification,
-        SynchronizableFiles fileType, long offset);
+        SynchronizableFiles fileType, long offset, string subPath);
 
     void CopyCreatedFilesFromCluster(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime);
 
     ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime);
+    ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime);
 
     byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
 

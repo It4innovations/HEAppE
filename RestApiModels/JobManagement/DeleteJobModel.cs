@@ -11,8 +11,10 @@ namespace HEAppE.RestApiModels.JobManagement;
 [Description("Model to delete job")]
 public class DeleteJobModel : SubmittedJobInfoModel
 {
+    [DataMember(Name = "archiveLogs")]
+    public bool ArchiveLogs { get; set; } = false;
     public override string ToString()
     {
-        return $"DeleteJobModel({base.ToString()})";
+        return $"DeleteJobModel(ArchiveLogs: {ArchiveLogs}{base.ToString()})";
     }
 }
