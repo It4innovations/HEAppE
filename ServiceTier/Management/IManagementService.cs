@@ -89,6 +89,7 @@ public interface IManagementService
 
     void RemoveSubProject(long modelId, string modelSessionCode);
     ExtendedClusterExt GetClusterById(long clusterId, string sessionCode);
+    List<ExtendedClusterExt> GetClusters(string sessionCode);
 
     ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,

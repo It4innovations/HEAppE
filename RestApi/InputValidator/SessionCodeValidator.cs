@@ -11,7 +11,15 @@ public class SessionCodeValidator : AbstractValidator
     public override ValidationResult Validate()
     {
         var message = string.Empty;
-        if (_validationObject is string validationObject) message = ValidateSessionCode(validationObject);
+        if (_validationObject is null)
+        { 
+            message = "SessionCode cannot be empty.";
+        }
+        else if (_validationObject is string validationObject)
+        {
+            message = ValidateSessionCode(validationObject); 
+        }
+            
         return new ValidationResult(string.IsNullOrEmpty(message), message);
     }
 

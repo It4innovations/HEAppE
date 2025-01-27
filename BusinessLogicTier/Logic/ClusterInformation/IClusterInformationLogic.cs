@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 
 namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation;

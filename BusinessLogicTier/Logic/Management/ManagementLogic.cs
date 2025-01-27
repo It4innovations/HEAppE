@@ -1005,6 +1005,11 @@ public class ManagementLogic : IManagementLogic
 
         return cluster ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
     }
+    
+    public Cluster GetByIdWithProxyConnection(long id)
+    {
+        return _unitOfWork.ClusterRepository.GetByIdWithProxyConnection(id);
+    }
 
     /// <summary>
     ///     Creates a new cluster in the database and returns it

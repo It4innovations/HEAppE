@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.DataAccessTier.Repository.ClusterInformation;
 
@@ -36,6 +38,11 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     public IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId)
     {
         return _dbSet.Where(c => c.ProxyConnectionId == clusterProxyConnectionId).ToList();
+    }
+    
+    public Cluster GetByIdWithProxyConnection(long id)
+    {
+        return _dbSet.Include(c => c.ProxyConnection).FirstOrDefault(c => c.Id == id);
     }
 
     #endregion
