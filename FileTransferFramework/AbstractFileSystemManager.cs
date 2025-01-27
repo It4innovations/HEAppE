@@ -92,13 +92,13 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     }
 
     public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo,
-        SynchronizableFiles fileType, long offset)
+        SynchronizableFiles fileType, long offset, string subPath)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(taskInfo.Specification.JobSpecification,
-                _scripts.SubExecutionsPath);
+                subPath);
         var taskClusterDirectoryPath =
-            FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.SubExecutionsPath);
+            FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, subPath);
         var fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
         var synchronizer = CreateFileSynchronizer(fileInfo, taskInfo.Specification.JobSpecification.ClusterUser);
         synchronizer.Offset = offset;

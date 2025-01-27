@@ -18,6 +18,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueDTO;
 using HEAppE.Utils;
 using log4net;
 using Renci.SshNet.Common;
@@ -237,19 +238,36 @@ public class FileTransferLogic : IFileTransferLogic
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
                 .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
         IList<JobFileContent> result = new List<JobFileContent>();
+        
         foreach (var taskInfo in jobInfo.Tasks)
         {
             IList<TaskFileOffset> currentTaskFileOffsets = (from taskFileOffset in taskFileOffsets
                 where taskFileOffset.SubmittedTaskInfoId == taskInfo.Id
                 select taskFileOffset).ToList();
+            
             foreach (var currentOffset in currentTaskFileOffsets)
             {
-                var contents =
-                    fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                        currentOffset.Offset);
+                ICollection<JobFileContent> contents = null;
+                if (jobInfo.State == JobState.Deleted)
+                {
+                    contents =
+                        fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
+                            currentOffset.Offset, _scripts.JobLogArchiveSubPath);
+                }
+                else
+                {
+                    contents =
+                        fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
+                            currentOffset.Offset, _scripts.SubExecutionsPath);
+                }
+
                 if (contents != null)
+                {
                     foreach (var content in contents)
-                        result.Add(content);
+                    {
+                        result.Add(content); 
+                    }
+                } 
             }
         }
 
