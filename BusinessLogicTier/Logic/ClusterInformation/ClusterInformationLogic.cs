@@ -3,6 +3,7 @@ using System.Linq;
 using System.Reflection;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
@@ -43,9 +44,9 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     #region IClusterInformationLogic
 
-    public IEnumerable<Cluster> ListAvailableClusters()
+    public IEnumerable<Cluster> ListAvailableClusters(IEnumerable<Project> projects)
     {
-        return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
+        return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter(projects);
     }
 
     public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, long projectId)

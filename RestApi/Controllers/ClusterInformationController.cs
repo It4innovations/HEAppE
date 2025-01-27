@@ -43,8 +43,14 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     #region Methods
 
     /// <summary>
-    ///     Get available clusters
+    /// Get available clusters
     /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <param name="clusterName"></param>
+    /// <param name="nodeTypeName"></param>
+    /// <param name="projectName"></param>
+    /// <param name="accountingString"></param>
+    /// <param name="commandTemplateName"></param>
     /// <returns></returns>
     [HttpGet("ListAvailableClusters")]
     [RequestSizeLimit(0)]
@@ -53,11 +59,11 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListAvailableClusters(string clusterName = null, string nodeTypeName = null,
+    public IActionResult ListAvailableClusters(string sessionCode, string clusterName = null, string nodeTypeName = null,
         string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null)
     {
         _logger.LogDebug("Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
-        return Ok(_service.ListAvailableClusters(clusterName, nodeTypeName, projectName, accountingString,
+        return Ok(_service.ListAvailableClusters(sessionCode, clusterName, nodeTypeName, projectName, accountingString,
             commandTemplateName));
     }
 

@@ -23,13 +23,16 @@ public class ClusterInformationService : IClusterInformationService
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
-    public IEnumerable<ClusterExt> ListAvailableClusters(string clusterName, string nodeTypeName, string projectName,
+    public IEnumerable<ClusterExt> ListAvailableClusters(string sessionCode, string clusterName, string nodeTypeName,
+        string projectName,
         string[] accountingString, string commandTemplateName)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
+            (var loggedUser, var projectIds) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                AdaptorUserRoleType.Reporter);
             ClusterExt[] value;
-            var memoryCacheKey = nameof(ListAvailableClusters);
+            var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
 
             if (_cacheProvider.TryGetValue(memoryCacheKey, out value))
             {
@@ -39,7 +42,7 @@ public class ClusterInformationService : IClusterInformationService
             {
                 _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                 var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                value = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExt()).ToArray();
+                value = clusterLogic.ListAvailableClusters(projectIds).Select(s => s.ConvertIntToExt()).ToArray();
                 _cacheProvider.Set(memoryCacheKey, value, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
             }
 

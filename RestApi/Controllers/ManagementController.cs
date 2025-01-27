@@ -47,9 +47,9 @@ public class ManagementController : BaseController<ManagementController>
 
     #region Private Methods
 
-    private void ClearListAvailableClusterMethodCache()
+    private void ClearListAvailableClusterMethodCache(string sessionCode)
     {
-        var memoryCacheKey = nameof(ClusterInformationController.ListAvailableClusters);
+         var memoryCacheKey =$"{nameof(ClusterInformationController.ListAvailableClusters)}_{sessionCode}";
         _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
     }
 
@@ -232,7 +232,7 @@ public class ManagementController : BaseController<ManagementController>
         }
 
         commandTemplate.TemplateParameters = templateParameters.ToArray();
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(commandTemplate);
     }
 
@@ -258,7 +258,7 @@ public class ManagementController : BaseController<ManagementController>
             fromGenericModel.GenericCommandTemplateId, fromGenericModel.Name, fromGenericModel.ProjectId,
             fromGenericModel.Description, fromGenericModel.ExtendedAllocationCommand, fromGenericModel.ExecutableFile,
             fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(fromGenericModel.SessionCode);
         return Ok(commandTemplate);
     }
 
@@ -283,7 +283,7 @@ public class ManagementController : BaseController<ManagementController>
         var commandTemplate = _managementService.ModifyCommandTemplateModel(model.Id, model.Name, model.Description,
             model.ExtendedAllocationCommand, model.ExecutableFile, model.PreparationScript, model.ClusterNodeTypeId,
             model.IsEnabled, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(commandTemplate);
     }
 
@@ -309,7 +309,7 @@ public class ManagementController : BaseController<ManagementController>
             fromGenericModel.Name, fromGenericModel.ProjectId, fromGenericModel.Description,
             fromGenericModel.ExtendedAllocationCommand,
             fromGenericModel.ExecutableFile, fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(fromGenericModel.SessionCode);
         return Ok(commandTemplate);
     }
 
@@ -332,7 +332,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         _managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode);
         return Ok("CommandTemplate was deleted.");
     }
@@ -383,7 +383,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplateParameter = _managementService.CreateCommandTemplateParameter(model.Identifier, model.Query,
             model.Description, model.CommandTemplateId, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(commandTemplateParameter);
     }
 
@@ -407,7 +407,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var commandTemplateParameter = _managementService.ModifyCommandTemplateParameter(model.Id, model.Identifier,
             model.Query, model.Description, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(commandTemplateParameter);
     }
 
@@ -432,7 +432,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var message = _managementService.RemoveCommandTemplateParameter(model.Id, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(message);
     }
 
@@ -520,7 +520,7 @@ public class ManagementController : BaseController<ManagementController>
             model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
             model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
     }
 
@@ -547,7 +547,7 @@ public class ManagementController : BaseController<ManagementController>
         var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
             model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
     }
 
@@ -571,7 +571,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         _managementService.RemoveProject(model.Id, model.SessionCode);
         return Ok("Project was deleted.");
     }
@@ -625,7 +625,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var clusterProject = _managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
             model.LocalBasepath, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProject);
     }
 
@@ -651,7 +651,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var clusterProject = _managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
             model.LocalBasepath, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProject);
     }
 
@@ -676,7 +676,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("Removed assignment of the Project to the Cluster.");
     }
 
@@ -730,7 +730,7 @@ public class ManagementController : BaseController<ManagementController>
             model.SchedulerType, model.ConnectionProtocol,
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(cluster);
     }
 
@@ -758,7 +758,7 @@ public class ManagementController : BaseController<ManagementController>
             model.SchedulerType, model.ConnectionProtocol,
             model.TimeZone, model.Port, model.UpdateJobStateByServiceAccount, model.DomainName, model.ProxyConnectionId,
             model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(cluster);
     }
 
@@ -783,7 +783,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveCluster(model.Id, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("Cluster was deleted.");
     }
 
@@ -837,7 +837,7 @@ public class ManagementController : BaseController<ManagementController>
             model.NumberOfNodes, model.CoresPerNode, model.Queue, model.QualityOfService,
             model.MaxWalltime, model.ClusterAllocationName, model.ClusterId, model.FileTransferMethodId,
             model.ClusterNodeTypeAggregationId, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterNodeType);
     }
 
@@ -866,7 +866,7 @@ public class ManagementController : BaseController<ManagementController>
             model.QualityOfService, model.MaxWalltime, model.ClusterAllocationName, model.ClusterId,
             model.FileTransferMethodId, model.ClusterNodeTypeAggregationId,
             model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterNodeType);
     }
 
@@ -891,7 +891,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveClusterNodeType(model.Id, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("ClusterNodeType was deleted.");
     }
 
@@ -943,7 +943,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var clusterProxyConnection = _managementService.CreateClusterProxyConnection(model.Host, model.Port,
             model.Username, model.Password, model.Type, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProxyConnection);
     }
 
@@ -970,7 +970,7 @@ public class ManagementController : BaseController<ManagementController>
         var clusterProxyConnection = _managementService.ModifyClusterProxyConnection(model.Id, model.Host, model.Port,
             model.Username, model.Password, model.Type,
             model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProxyConnection);
     }
 
@@ -995,7 +995,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveClusterProxyConnection(model.Id, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("ClusterProxyConnection was deleted.");
     }
 
@@ -1047,7 +1047,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var fileTransferMethod = _managementService.CreateFileTransferMethod(model.ServerHostname, model.Protocol,
             model.ClusterId, model.Port, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(fileTransferMethod);
     }
 
@@ -1073,7 +1073,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var fileTransferMethod = _managementService.ModifyFileTransferMethod(model.Id, model.ServerHostname,
             model.Protocol, model.ClusterId, model.Port, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(fileTransferMethod);
     }
 
@@ -1098,7 +1098,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveFileTransferMethod(model.Id, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("FileTransferMethod was deleted.");
     }
 
@@ -1172,7 +1172,7 @@ public class ManagementController : BaseController<ManagementController>
         var clusterNodeTypeAggregation = _managementService.CreateClusterNodeTypeAggregation(model.Name,
             model.Description, model.AllocationType, model.ValidityFrom,
             model.ValidityTo, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterNodeTypeAggregation);
     }
 
@@ -1199,7 +1199,7 @@ public class ManagementController : BaseController<ManagementController>
         var clusterNodeTypeAggregation = _managementService.ModifyClusterNodeTypeAggregation(model.Id, model.Name,
             model.Description, model.AllocationType, model.ValidityFrom,
             model.ValidityTo, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterNodeTypeAggregation);
     }
 
@@ -1224,7 +1224,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveClusterNodeTypeAggregation(model.Id, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("ClusterNodeTypeAggregation was deleted.");
     }
 
@@ -1282,7 +1282,7 @@ public class ManagementController : BaseController<ManagementController>
         var clusterNodeTypeAggregationAccounting =
             _managementService.CreateClusterNodeTypeAggregationAccounting(model.ClusterNodeTypeAggregationId,
                 model.AccountingId, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterNodeTypeAggregationAccounting);
     }
 
@@ -1309,7 +1309,7 @@ public class ManagementController : BaseController<ManagementController>
 
         _managementService.RemoveClusterNodeTypeAggregationAccounting(model.ClusterNodeTypeAggregationId,
             model.AccountingId, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("ClusterNodeTypeAggregationAccounting was deleted.");
     }
 
@@ -1360,7 +1360,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var accounting = _managementService.CreateAccounting(model.Formula, model.ValidityFrom, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(accounting);
     }
 
@@ -1386,7 +1386,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var accounting = _managementService.ModifyAccounting(model.Id, model.Formula, model.ValidityFrom,
             model.ValidityTo, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(accounting);
     }
 
@@ -1411,7 +1411,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _managementService.RemoveAccounting(model.Id, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("Accounting was deleted.");
     }
 
@@ -1490,7 +1490,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var projectClusterNodeTypeAggregation = _managementService.CreateProjectClusterNodeTypeAggregation(
             model.ProjectId, model.ClusterNodeTypeAggregationId, model.AllocationAmount, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(projectClusterNodeTypeAggregation);
     }
 
@@ -1516,7 +1516,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var projectClusterNodeTypeAggregation = _managementService.ModifyProjectClusterNodeTypeAggregation(
             model.ProjectId, model.ClusterNodeTypeAggregationId, model.AllocationAmount, model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(projectClusterNodeTypeAggregation);
     }
 
@@ -1542,7 +1542,7 @@ public class ManagementController : BaseController<ManagementController>
 
         _managementService.RemoveProjectClusterNodeTypeAggregation(model.ProjectId, model.ClusterNodeTypeAggregationId,
             model.SessionCode);
-        ClearListAvailableClusterMethodCache();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("ProjectClusterNodeTypeAggregation was deleted.");
     }
 

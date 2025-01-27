@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.DataAccessTier.Repository.ClusterInformation;
 
@@ -23,9 +24,9 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     ///     Get all clusters with cluster nodes and defined command templates only with active project
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
+    public IEnumerable<Cluster> GetAllWithActiveProjectFilter(IEnumerable<Project> projects)
     {
-        return _dbSet.ToList().Select(c => GetCluster(c)).ToList();
+        return _dbSet.ToList().Select(c => GetCluster(c, projects)).ToList();
     }
 
     /// <summary>
@@ -42,7 +43,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
 
     #region Private Methods
 
-    private Cluster GetCluster(Cluster cluster)
+    private Cluster GetCluster(Cluster cluster, IEnumerable<Project> projects)
     {
         return new Cluster
         {
@@ -60,11 +61,11 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             SchedulerType = cluster.SchedulerType,
             TimeZone = cluster.TimeZone,
             UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount,
-            NodeTypes = cluster.NodeTypes.Select(n => GetClusterNodeType(n)).ToList()
+            NodeTypes = cluster.NodeTypes.Select(n => GetClusterNodeType(n, projects)).ToList()
         };
     }
 
-    private ClusterNodeType GetClusterNodeType(ClusterNodeType n)
+    private ClusterNodeType GetClusterNodeType(ClusterNodeType n, IEnumerable<Project> projects)
     {
         return new ClusterNodeType
         {
