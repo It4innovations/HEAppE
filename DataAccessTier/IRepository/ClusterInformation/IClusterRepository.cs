@@ -8,4 +8,5 @@ public interface IClusterRepository : IRepository<Cluster>
 {
     IEnumerable<Cluster> GetAllWithActiveProjectFilter();
     IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId);
+    Cluster GetByIdWithProxyConnection(long id);
 }

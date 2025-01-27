@@ -786,6 +786,28 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("Cluster was deleted.");
     }
+    
+    /// <summary>
+    ///     Get all clusters
+    /// </summary>
+    /// <param name="id"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpGet("Clusters")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ExtendedClusterExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetAllClusters(string sessionCode)
+    {
+        _logger.LogDebug(
+            $"Endpoint: \"Management\" Method: \"GetAllClusters\", SessionCode: \"{sessionCode}\"");
+
+        var clusters = _managementService.GetClusters(sessionCode);
+        return Ok(clusters);
+    }
 
     #endregion
 

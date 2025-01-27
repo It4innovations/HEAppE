@@ -571,8 +571,28 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var cluster = managementLogic.GetClusterById(clusterId);
+            var cluster = managementLogic.GetByIdWithProxyConnection(clusterId);
             return cluster.ConvertIntToExtendedExt(projects);
+        }
+    }
+    
+    public List<ExtendedClusterExt> GetClusters(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, var projects) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var accessibleClusters = projects.SelectMany(p => p.ClusterProjects.Select(cp => cp.Cluster)).Distinct();
+
+            List<ExtendedClusterExt> clusters = new List<ExtendedClusterExt>();
+            foreach (var accessibleCluster in accessibleClusters)
+            {
+                var cluster = managementLogic.GetByIdWithProxyConnection(accessibleCluster.Id);
+                clusters.Add(cluster.ConvertIntToExtendedExt(projects));
+            }
+            return clusters;
         }
     }
 

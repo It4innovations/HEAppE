@@ -59,8 +59,7 @@ public static class ClusterInformationConverts
             ConnectionProtocol = cluster.ConnectionProtocol.ConvertIntToExt(),
             DomainName = cluster.DomainName,
             UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount??false,
-            ProxyConnection = cluster.ProxyConnection.ConvertIntToExt(),
-            
+            ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects))
                 .ToArray()
         };
