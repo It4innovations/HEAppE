@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.RestApi.InputValidator;
@@ -63,6 +64,12 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
         string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null)
     {
         _logger.LogDebug("Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\"");
+        ListAvailableClustersModel model = new()
+        {
+            SessionCode = sessionCode
+        };
+        var validationResult = new ClusterInformationValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_service.ListAvailableClusters(sessionCode, clusterName, nodeTypeName, projectName, accountingString,
             commandTemplateName));
     }

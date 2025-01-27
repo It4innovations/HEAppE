@@ -44,9 +44,9 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     #region IClusterInformationLogic
 
-    public IEnumerable<Cluster> ListAvailableClusters(IEnumerable<Project> projects)
+    public IEnumerable<Cluster> ListAvailableClusters()
     {
-        return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter(projects);
+        return _unitOfWork.ClusterRepository.GetAllWithActiveProjectFilter();
     }
 
     public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, long projectId)

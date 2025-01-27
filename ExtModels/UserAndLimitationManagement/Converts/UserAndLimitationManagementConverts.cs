@@ -1,5 +1,7 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Wrapper;
@@ -44,11 +46,11 @@ public static class UserAndLimitationManagementConverts
         return convert;
     }
 
-    public static ResourceUsageExt ConvertIntToExt(this ResourceUsage usage)
+    public static ResourceUsageExt ConvertIntToExt(this ResourceUsage usage, IEnumerable<Project> projects)
     {
         var convert = new ResourceUsageExt
         {
-            NodeType = usage.NodeType.ConvertIntToExt(),
+            NodeType = usage.NodeType.ConvertIntToExt(projects),
             CoresUsed = usage.CoresUsed
         };
         return convert;

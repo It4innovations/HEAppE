@@ -15,10 +15,18 @@ public class ClusterInformationValidator : AbstractValidator
         {
             CurrentClusterNodeUsageModel ext => ValidateCurrentClusterNodeUsageModel(ext),
             GetCommandTemplateParametersNameModel ext => ValidateGetCommandTemplateParametersNameModele(ext),
+            ListAvailableClustersModel ext => ValidateListAvailableClustersModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateListAvailableClustersModel(ListAvailableClustersModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
     }
 
     private string ValidateCurrentClusterNodeUsageModel(CurrentClusterNodeUsageModel model)

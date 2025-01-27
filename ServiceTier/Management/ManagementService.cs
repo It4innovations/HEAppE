@@ -567,12 +567,12 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, _) =
+            (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var cluster = managementLogic.GetClusterById(clusterId);
-            return cluster.ConvertIntToExtendedExt();
+            return cluster.ConvertIntToExtendedExt(projects);
         }
     }
 
@@ -583,14 +583,14 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, _) =
+            (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
-            return cluster.ConvertIntToExtendedExt();
+            return cluster.ConvertIntToExtendedExt(projects);
         }
     }
 
@@ -601,14 +601,14 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, _) =
+            (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
-            return cluster.ConvertIntToExtendedExt();
+            return cluster.ConvertIntToExtendedExt(projects);
         }
     }
 
@@ -628,12 +628,12 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, _) =
+            (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var clusterNodeType = managementLogic.GetClusterNodeTypeById(clusterId);
-            return clusterNodeType.ConvertIntToExt();
+            return clusterNodeType.ConvertIntToExt(projects);
         }
     }
 
@@ -644,14 +644,14 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, _) =
+            (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var clusterNodeType = managementLogic.CreateClusterNodeType(name, description, numberOfNodes, coresPerNode,
                 queue, qualityOfService, maxWalltime,
                 clusterAllocationName, clusterId, fileTransferMethodId, clusterNodeTypeAggregationId);
-            return clusterNodeType.ConvertIntToExt();
+            return clusterNodeType.ConvertIntToExt(projects);
         }
     }
 
@@ -662,14 +662,14 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, _) =
+            (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var clusterNodeType = managementLogic.ModifyClusterNodeType(id, name, description, numberOfNodes,
                 coresPerNode, queue, qualityOfService, maxWalltime,
                 clusterAllocationName, clusterId, fileTransferMethodId, clusterNodeTypeAggregationId);
-            return clusterNodeType.ConvertIntToExt();
+            return clusterNodeType.ConvertIntToExt(projects);
         }
     }
 

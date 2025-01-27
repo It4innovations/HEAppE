@@ -24,9 +24,9 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     ///     Get all clusters with cluster nodes and defined command templates only with active project
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<Cluster> GetAllWithActiveProjectFilter(IEnumerable<Project> projects)
+    public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
     {
-        return _dbSet.ToList().Select(c => GetCluster(c, projects)).ToList();
+        return _dbSet.ToList().Select(c => GetCluster(c)).ToList();
     }
 
     /// <summary>
@@ -43,7 +43,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
 
     #region Private Methods
 
-    private Cluster GetCluster(Cluster cluster, IEnumerable<Project> projects)
+    private Cluster GetCluster(Cluster cluster)
     {
         return new Cluster
         {
@@ -61,11 +61,11 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             SchedulerType = cluster.SchedulerType,
             TimeZone = cluster.TimeZone,
             UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount,
-            NodeTypes = cluster.NodeTypes.Select(n => GetClusterNodeType(n, projects)).ToList()
+            NodeTypes = cluster.NodeTypes.Select(n => GetClusterNodeType(n)).ToList()
         };
     }
 
-    private ClusterNodeType GetClusterNodeType(ClusterNodeType n, IEnumerable<Project> projects)
+    private ClusterNodeType GetClusterNodeType(ClusterNodeType n)
     {
         return new ClusterNodeType
         {

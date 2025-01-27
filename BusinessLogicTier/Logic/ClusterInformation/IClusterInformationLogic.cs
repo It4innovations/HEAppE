@@ -7,7 +7,7 @@ namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 
 public interface IClusterInformationLogic
 {
-    IEnumerable<Cluster> ListAvailableClusters(IEnumerable<Project> projects);
+    IEnumerable<Cluster> ListAvailableClusters();
     ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, long projectId);
 
     IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath,

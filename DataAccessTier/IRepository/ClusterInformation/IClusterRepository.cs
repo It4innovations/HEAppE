@@ -6,6 +6,6 @@ namespace HEAppE.DataAccessTier.IRepository.ClusterInformation;
 
 public interface IClusterRepository : IRepository<Cluster>
 {
-    IEnumerable<Cluster> GetAllWithActiveProjectFilter(IEnumerable<Project> project);
+    IEnumerable<Cluster> GetAllWithActiveProjectFilter();
     IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId);
 }

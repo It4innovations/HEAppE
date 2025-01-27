@@ -29,7 +29,7 @@ public class ClusterInformationService : IClusterInformationService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, var projectIds) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+            (var loggedUser, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Reporter);
             ClusterExt[] value;
             var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
@@ -42,7 +42,7 @@ public class ClusterInformationService : IClusterInformationService
             {
                 _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                 var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                value = clusterLogic.ListAvailableClusters(projectIds).Select(s => s.ConvertIntToExt()).ToArray();
+                value = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExt(projects)).ToArray();
                 _cacheProvider.Set(memoryCacheKey, value, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
             }
 
