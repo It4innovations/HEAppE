@@ -1,17 +1,37 @@
 ﻿using System;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.RestApiModels.AbstractModels;
 
 namespace HEAppE.RestApiModels.JobReporting;
 
+/// <summary>
+/// Model for retrieving usage report for user
+/// </summary>
 [DataContract(Name = "UserResourceUsageReportModel")]
+[Description("Model for retrieving usage report for user")]
 public class UserResourceUsageReportModel : SessionCodeModel
 {
-    [DataMember(Name = "UserId")] public long UserId { get; set; }
+    /// <summary>
+    /// User id
+    /// </summary>
+    [DataMember(Name = "UserId")]
+    [Description("User id")]
+    public long UserId { get; set; }
 
-    [DataMember(Name = "StartTime")] public DateTime StartTime { get; set; }
+    /// <summary>
+    /// Start time
+    /// </summary>
+    [DataMember(Name = "StartTime")]
+    [Description("Start time")]
+    public DateTime StartTime { get; set; }
 
-    [DataMember(Name = "EndTime")] public DateTime EndTime { get; set; }
+    /// <summary>
+    /// End time
+    /// </summary>
+    [DataMember(Name = "EndTime")]
+    [Description("End time")]
+    public DateTime EndTime { get; set; }
 
     public override string ToString()
     {

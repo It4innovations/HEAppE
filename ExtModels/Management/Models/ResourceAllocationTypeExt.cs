@@ -1,5 +1,11 @@
-﻿namespace HEAppE.ExtModels.Management.Models;
+﻿using System.ComponentModel;
 
+namespace HEAppE.ExtModels.Management.Models;
+
+/// <summary>
+/// Resource allocation types
+/// </summary>
+[Description("Resource allocation types")]
 public enum ResourceAllocationTypeExt
 {
     None = 1,

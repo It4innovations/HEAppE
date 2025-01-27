@@ -1,41 +1,95 @@
-﻿using System.Linq;
+﻿using System.ComponentModel;
+using System.Linq;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models;
 
+/// <summary>
+/// Extended command template ext
+/// </summary>
 [DataContract(Name = "ExtendedCommandTemplateExt")]
+[Description("Extended command template ext")]
 public class ExtendedCommandTemplateExt
 {
-    [DataMember(Name = "Id")] public long? Id { get; set; }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember(Name = "Id")]
+    [Description("Id")]
+    public long? Id { get; set; }
 
-    [DataMember(Name = "Name")] public string Name { get; set; }
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember(Name = "Name")]
+    [Description("Name")]
+    public string Name { get; set; }
 
-    [DataMember(Name = "Description")] public string Description { get; set; }
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember(Name = "Description")]
+    [Description("Description")]
+    public string Description { get; set; }
 
+    /// <summary>
+    /// Extended allocation command
+    /// </summary>
     [DataMember(Name = "ExtendedAllocationCommand")]
+    [Description("Extended allocation command")]
     public string ExtendedAllocationCommand { get; set; }
 
-    [DataMember(Name = "ExecutableFile")] public string ExecutableFile { get; set; }
+    /// <summary>
+    /// Executable file
+    /// </summary>
+    [DataMember(Name = "ExecutableFile")]
+    [Description("Executable file")]
+    public string ExecutableFile { get; set; }
 
+    /// <summary>
+    /// Preparation script
+    /// </summary>
     [DataMember(Name = "PreparationScript")]
+    [Description("Preparation script")]
     public string PreparationScript { get; set; }
 
+    /// <summary>
+    /// Command parameters
+    /// </summary>
     [DataMember(Name = "CommandParameters")]
+    [Description("Command parameters")]
     public string CommandParameters { get; set; }
 
-    [DataMember(Name = "IsGeneric")] public bool IsGeneric { get; set; }
+    /// <summary>
+    /// Is generic
+    /// </summary>
+    [DataMember(Name = "IsGeneric")]
+    [Description("Is generic")]
+    public bool IsGeneric { get; set; }
 
-    [DataMember(Name = "ProjectId")] public long ProjectId { get; set; }
+    /// <summary>
+    /// Project id
+    /// </summary>
+    [DataMember(Name = "ProjectId")]
+    [Description("Project id")]
+    public long ProjectId { get; set; }
 
+    /// <summary>
+    /// Cluster node type id
+    /// </summary>
     [DataMember(Name = "ClusterNodeTypeId")]
+    [Description("Cluster node type id")]
     public long ClusterNodeTypeId { get; set; }
 
+    /// <summary>
+    /// Array of template parameters
+    /// </summary>
     [DataMember(Name = "TemplateParameters")]
+    [Description("Array of template parameters")]
     public ExtendedCommandTemplateParameterExt[] TemplateParameters { get; set; }
 
     public override string ToString()
     {
-        return
-            $"ExtendedCommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; ProjectId={ProjectId}; ClusterNodeTypeId={ClusterNodeTypeId}; templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
+        return $"ExtendedCommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; ProjectId={ProjectId}; ClusterNodeTypeId={ClusterNodeTypeId}; templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
     }
 }

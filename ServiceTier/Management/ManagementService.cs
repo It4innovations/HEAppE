@@ -563,7 +563,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public ClusterExt GetClusterById(long clusterId, string sessionCode)
+    public ExtendedClusterExt GetClusterById(long clusterId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -572,11 +572,11 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var cluster = managementLogic.GetClusterById(clusterId);
-            return cluster.ConvertIntToExt();
+            return cluster.ConvertIntToExtendedExt();
         }
     }
 
-    public ClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
+    public ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
@@ -590,11 +590,11 @@ public class ManagementService : IManagementService
             var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
-            return cluster.ConvertIntToExt();
+            return cluster.ConvertIntToExtendedExt();
         }
     }
 
-    public ClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
+    public ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
         string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
@@ -608,7 +608,7 @@ public class ManagementService : IManagementService
             var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
-            return cluster.ConvertIntToExt();
+            return cluster.ConvertIntToExtendedExt();
         }
     }
 

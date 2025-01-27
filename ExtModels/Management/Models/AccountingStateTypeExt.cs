@@ -1,5 +1,11 @@
+using System.ComponentModel;
+
 namespace HEAppE.ExtModels.Management.Models;
 
+/// <summary>
+/// Accounting state types
+/// </summary>
+[Description("Accounting state types")]
 public enum AccountingStateTypeExt
 {
     Unknown = 0,

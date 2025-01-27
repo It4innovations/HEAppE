@@ -1,12 +1,26 @@
 ﻿using FluentValidation;
+using System.ComponentModel;
 
 namespace HEAppE.ExtModels.General.Models;
 
+/// <summary>
+/// Authorized submitted job id model
+/// </summary>
+[Description("Authorized submitted job id model")]
 public class AuthorizedSubmittedJobIdModel
 {
     #region Properties
 
+    /// <summary>
+    /// Session code
+    /// </summary>
+    [Description("Session code")] 
     public string SessionCode { get; set; }
+
+    /// <summary>
+    /// Submitted job info id
+    /// </summary>
+    [Description("Submitted job info id")] 
     public long SubmittedJobInfoId { get; set; }
 
     #endregion

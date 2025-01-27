@@ -1,5 +1,11 @@
-﻿namespace HEAppE.ExtModels.FileTransfer.Models;
+﻿using System.ComponentModel;
 
+namespace HEAppE.ExtModels.FileTransfer.Models;
+
+/// <summary>
+/// File tansfer cipher types
+/// </summary>
+[Description("File tansfer cipher types")]
 public enum FileTransferCipherTypeExt
 {
     None = 0,

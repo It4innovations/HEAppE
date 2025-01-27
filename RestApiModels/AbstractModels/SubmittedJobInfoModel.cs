@@ -1,11 +1,20 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
 using FluentValidation;
 
 namespace HEAppE.RestApiModels.AbstractModels;
 
+/// <summary>
+/// Subbmited job info model
+/// </summary>
+[Description("Subbmited job info model")]
 public abstract class SubmittedJobInfoModel : SessionCodeModel
 {
+    /// <summary>
+    /// Subbmited job info id
+    /// </summary>
     [DataMember(Name = "SubmittedJobInfoId")]
+    [Description("Subbmited job info id")]
     public long SubmittedJobInfoId { get; set; }
 
     public override string ToString()

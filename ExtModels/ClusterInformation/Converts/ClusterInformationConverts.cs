@@ -44,6 +44,51 @@ public static class ClusterInformationConverts
         };
         return convert;
     }
+    
+    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster)
+    {
+        var convert = new ExtendedClusterExt
+        {
+            Id = cluster.Id,
+            Name = cluster.Name,
+            Description = cluster.Description,
+            MasterNodeName = cluster.MasterNodeName,
+            SchedulerType = cluster.SchedulerType.ConvertIntToExt(),
+            TimeZone = cluster.TimeZone,
+            Port = cluster.Port,
+            ConnectionProtocol = cluster.ConnectionProtocol.ConvertIntToExt(),
+            DomainName = cluster.DomainName,
+            UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount??false,
+            ProxyConnection = cluster.ProxyConnection.ConvertIntToExt(),
+            
+            NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt())
+                .ToArray()
+        };
+        return convert;
+    }
+    
+    public static SchedulerTypeExt ConvertIntToExt(this SchedulerType schedulerType)
+    {
+        return schedulerType switch
+        {
+            SchedulerType.LinuxLocal => SchedulerTypeExt.LinuxLocal,
+            SchedulerType.PbsPro => SchedulerTypeExt.PbsPro,
+            SchedulerType.Slurm => SchedulerTypeExt.Slurm,
+            SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
+            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Scheduler type", "<1, 2, 4, 8>")
+        };
+    }
+    
+    public static ClusterConnectionProtocolExt ConvertIntToExt(this ClusterConnectionProtocol connectionProtocol)
+    {
+        return connectionProtocol switch
+        {
+            ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
+            ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
+            ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
+            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Connection protocol", "<1, 2, 4>")
+        };
+    }
 
     public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
     {

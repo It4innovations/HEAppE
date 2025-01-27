@@ -52,7 +52,7 @@ fi
 rm -rf .temp
 mkdir -p .temp
 # Načtěte CSV soubor a přeskočte první řádek
-tail -n +2 data.csv | while IFS=',' read -r id password private_key private_key_password private_key_certificate
+tail -n +2 ./data.csv | while IFS=',' read -r id password private_key private_key_password private_key_certificate
 do
     # pokud je private_key prazdny nebo obsahuje pouze mezery, tak preskoc na dalsi
     if [[ -z "$private_key" || "$private_key" =~ ^[[:space:]]*$ ]]; then
@@ -75,6 +75,10 @@ do
     # pokud je private_key_certificate prazdny, tak inicializuj na mezeru
     if [ -z "$private_key_certificate" ]; then
         private_key_certificate=" "
+    fi
+
+    if [ -z "$password" ]; then
+        password=" "
     fi
 
     # Volání skriptu sendFullKeyToVault.sh s potřebnými parametry
