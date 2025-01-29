@@ -81,8 +81,6 @@ internal class JobManagementLogic : IJobManagementLogic
                        new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
             {
                 _unitOfWork.JobSpecificationRepository.Insert(specification);
-                //needs to be saved before SubmittedJobInfo 
-                _unitOfWork.Save();
                 jobInfo = CreateSubmittedJobInfo(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
                 _unitOfWork.Save();
