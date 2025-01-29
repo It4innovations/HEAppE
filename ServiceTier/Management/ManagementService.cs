@@ -584,14 +584,8 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var accessibleClusters = projects.SelectMany(p => p.ClusterProjects.Select(cp => cp.Cluster)).Distinct();
-
-            List<ExtendedClusterExt> clusters = new List<ExtendedClusterExt>();
-            foreach (var accessibleCluster in accessibleClusters)
-            {
-                var cluster = managementLogic.GetByIdWithProxyConnection(accessibleCluster.Id);
-                clusters.Add(cluster.ConvertIntToExtendedExt(projects));
-            }
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+            var clusters = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExtendedExt(projects)).ToList();
             return clusters;
         }
     }
