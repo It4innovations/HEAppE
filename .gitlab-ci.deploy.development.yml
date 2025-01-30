@@ -1,0 +1,39 @@
+stages:
+  - update
+  - build
+  - deploy
+
+variables:
+  DEPLOY_DIR: "/opt/heappe/projects/development/heappe-core"
+
+update_repo:
+  stage: update
+  tags:
+    - heappe2-c9
+  script:
+    - cd $DEPLOY_DIR
+    - git fetch origin
+    - git checkout develop
+    - git pull origin develop
+  only:
+    - develop
+
+build_service:
+  stage: build
+  tags:
+    - heappe2-c9
+  script:
+    - cd $DEPLOY_DIR
+    - docker compose build
+  only:
+    - develop
+
+deploy_service:
+  stage: deploy
+  tags:
+    - heappe2-c9
+  script:
+    - cd $DEPLOY_DIR
+    - docker compose up -d --profile vault_init --profile db --profile heappe --profile vault --profile vaultagent --profile sshagent
+  only:
+    - develop

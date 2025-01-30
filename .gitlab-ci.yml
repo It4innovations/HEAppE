@@ -1,5 +1,6 @@
 include:
   - local: '.gitlab-ci.develop.yml'
+  - local: '.gitlab-ci.deploy.development.yml'
   - template: Security/SAST.gitlab-ci.yml
 
 variables:
