@@ -1,6 +1,5 @@
 include:
   - local: '.gitlab-ci.develop.yml'
-  - local: '.gitlab-ci.deploy.development.yml'
   - template: Security/SAST.gitlab-ci.yml
 
 variables:
@@ -12,9 +11,6 @@ services:
   - docker:dind
 
 stages:
-  - update-develop
-  - build-develop
-  - deploy-develop
   - prepare_release
   - build 
   - test  
