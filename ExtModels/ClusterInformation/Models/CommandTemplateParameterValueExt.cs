@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models;
@@ -14,6 +15,7 @@ public class CommandTemplateParameterValueExt
     /// Command parameter identifier
     /// </summary>
     [DataMember(Name = "CommandParameterIdentifier")]
+    [StringLength(20)]
     [Description("Command parameter identifier")]
     public string CommandParameterIdentifier { get; set; }
 
@@ -21,6 +23,7 @@ public class CommandTemplateParameterValueExt
     /// Parameter value
     /// </summary>
     [DataMember(Name = "ParameterValue")]
+    [StringLength(1000)]
     [Description("Parameter value")]
     public string ParameterValue { get; set; }
 
