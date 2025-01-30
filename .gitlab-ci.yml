@@ -12,6 +12,9 @@ services:
   - docker:dind
 
 stages:
+  - update-develop
+  - build-develop
+  - deploy-develop
   - prepare_release
   - build 
   - test  
