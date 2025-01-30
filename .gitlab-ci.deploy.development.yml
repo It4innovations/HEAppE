@@ -6,7 +6,7 @@ update_repo:
   tags:
     - heappe2-c9
   script:
-    - sudo cd $DEPLOY_DIR
+    - cd $DEPLOY_DIR
     - git fetch origin
     - git checkout develop
     - git pull origin develop
