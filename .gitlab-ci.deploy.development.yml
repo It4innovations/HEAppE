@@ -1,13 +1,13 @@
 stages:
-  - update
-  - build
-  - deploy
+  - update-develop
+  - build-develop
+  - deploy-develop
 
 variables:
   DEPLOY_DIR: "/opt/heappe/projects/development/heappe-core"
 
 update_repo:
-  stage: update
+  stage: update-develop
   tags:
     - heappe2-c9
   script:
@@ -19,7 +19,7 @@ update_repo:
     - develop
 
 build_service:
-  stage: build
+  stage: build-develop
   tags:
     - heappe2-c9
   script:
@@ -29,7 +29,7 @@ build_service:
     - develop
 
 deploy_service:
-  stage: deploy
+  stage: deploy-develop
   tags:
     - heappe2-c9
   script:
