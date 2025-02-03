@@ -124,10 +124,9 @@ public class Startup
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
         });
 
-        //SwaggerGen
         services.AddSwaggerGen(gen =>
         {
-            // Default Swagger document
+            // Default Swagger document (Public API)
             gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo
             {
                 Version = SwaggerConfiguration.Version,
@@ -147,42 +146,69 @@ public class Startup
                 }
             });
 
-            // Swagger document for hidden/private API
-            gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
-            {
-                Version = SwaggerConfiguration.Version,
-                Title = SwaggerConfiguration.DetailedJobReportingTitle,
-                Description = SwaggerConfiguration.Description,
-                TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
-                License = new OpenApiLicense
+                // Swagger document for DetailedJobReporting (Private API)
+                gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
                 {
-                    Name = SwaggerConfiguration.License,
-                    Url = new Uri(SwaggerConfiguration.LicenseUrl)
-                },
-                Contact = new OpenApiContact
+                    Version = SwaggerConfiguration.Version,
+                    Title = SwaggerConfiguration.DetailedJobReportingTitle,
+                    Description = SwaggerConfiguration.Description,
+                    TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
+                    License = new OpenApiLicense
+                    {
+                        Name = SwaggerConfiguration.License,
+                        Url = new Uri(SwaggerConfiguration.LicenseUrl)
+                    },
+                    Contact = new OpenApiContact
+                    {
+                        Name = SwaggerConfiguration.ContactName,
+                        Email = SwaggerConfiguration.ContactEmail,
+                        Url = new Uri(SwaggerConfiguration.ContactUrl)
+                    }
+                });
+
+                // Merged Swagger document for py4heappe client
+                gen.SwaggerDoc("py4heappe", new OpenApiInfo
                 {
-                    Name = SwaggerConfiguration.ContactName,
-                    Email = SwaggerConfiguration.ContactEmail,
-                    Url = new Uri(SwaggerConfiguration.ContactUrl)
-                }
-            });
+                    Version = SwaggerConfiguration.Version,
+                    Title = "py4heappe API",
+                    Description = "Merged API documentation for py4heappe client",
+                    TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
+                    License = new OpenApiLicense
+                    {
+                        Name = SwaggerConfiguration.License,
+                        Url = new Uri(SwaggerConfiguration.LicenseUrl)
+                    },
+                    Contact = new OpenApiContact
+                    {
+                        Name = SwaggerConfiguration.ContactName,
+                        Email = SwaggerConfiguration.ContactEmail,
+                        Url = new Uri(SwaggerConfiguration.ContactUrl)
+                    }
+                });
 
-            // Group APIs into documents based on ApiExplorerSettings
-            gen.DocInclusionPredicate((documentName, apiDescription) =>
-            {
-                // Include in the private document if tagged with DetailedJobReporting
-                if (documentName == "DetailedJobReporting") return apiDescription.GroupName == "DetailedJobReporting";
+                // Group APIs into documents based on ApiExplorerSettings
+                gen.DocInclusionPredicate((documentName, apiDescription) =>
+                {
+                    // Include in DetailedJobReporting document if tagged
+                    if (documentName == "DetailedJobReporting")
+                        return apiDescription.GroupName == "DetailedJobReporting";
 
-                // Include in the public document
-                if (documentName == SwaggerConfiguration.Version) return string.IsNullOrEmpty(apiDescription.GroupName);
+                    // Include in the public document if not in DetailedJobReporting
+                    if (documentName == SwaggerConfiguration.Version)
+                        return string.IsNullOrEmpty(apiDescription.GroupName);
 
-                return false;
-            });
+                    // Include everything in the merged document
+                    if (documentName == "py4heappe")
+                        return true;
 
-            var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
-            var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-            gen.IncludeXmlComments(xmlPath);
+                    return false;
+                });
+
+                var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
+                var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
+                gen.IncludeXmlComments(xmlPath);
         });
+
         services.AddRazorPages();
         //Localization and resources
         services.AddLocalization();
