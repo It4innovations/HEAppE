@@ -19,9 +19,7 @@ public static class FileTransferConverts
             ServerHostname = fileTransferMethod.ServerHostname,
             SharedBasepath = fileTransferMethod.SharedBasePath,
             Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
-            Port = fileTransferMethod.Port,
-            ProxyConnection = fileTransferMethod.Cluster?.ProxyConnection?.ConvertIntToExt(),
-            Credentials = fileTransferMethod.Credentials.ConvertIntToExt()
+            Port = fileTransferMethod.Port
         };
         return convert;
     }
