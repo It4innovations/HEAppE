@@ -48,23 +48,9 @@ public class FileTransferMethodExt
     [Description("Port")]
     public int? Port { get; set; }
 
-    /// <summary>
-    /// Proxy connection
-    /// </summary>
-    [DataMember(Name = "ProxyConnection", IsRequired = false, EmitDefaultValue = false)]
-    [Description("Proxy connection")]
-    public ClusterProxyConnectionExt ProxyConnection { get; set; }
-
-    /// <summary>
-    /// File transfer key credentials
-    /// </summary>
-    [DataMember(Name = "Credentials")]
-    [Description("File transfer key credentials")]
-    public FileTransferKeyCredentialsExt Credentials { get; set; }
-
     public override string ToString()
     {
         return
-            $"FileTransferMethodExt: ServerHostname={ServerHostname}, SharedBasepath={SharedBasepath}, Protocol={Protocol}, Port={Port}, Credentials={Credentials}, ProxyConnection={ProxyConnection}";
+            $"FileTransferMethodExt: ServerHostname={ServerHostname}, SharedBasepath={SharedBasepath}, Protocol={Protocol}, Port={Port}";
     }
 }

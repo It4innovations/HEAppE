@@ -90,9 +90,6 @@ public class FileTransferValidator : AbstractValidator
 
     private string ValidateFileTransferMethod(FileTransferMethodExt fileTransferMethod)
     {
-        var credentialsValidator = new CredentialsValidator(fileTransferMethod.Credentials).Validate();
-        if (!credentialsValidator.IsValid) _messageBuilder.AppendLine(credentialsValidator.Message);
-
         if (string.IsNullOrEmpty(fileTransferMethod.ServerHostname))
             _messageBuilder.AppendLine("ServerHostname cannot be empty");
         else if (!IsIpAddress(fileTransferMethod.ServerHostname) &&
