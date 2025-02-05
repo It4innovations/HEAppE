@@ -133,15 +133,15 @@ public class HyperQueueTaskAdapter : ISchedulerTaskAdapter
 
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy,
-        IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode)
+        IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
         var nodeCount = maxCores / coresPerNode;
         nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
-
-        if (placementPolicy.Contains("gpus"))
+        
+        if (placementPolicy.Contains("gpus") || aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"))
         {
             _hqAutoAllocParametersBuilder.Append($" --gpus={maxCores}");
-            _taskBuilder.Append($" --resource {placementPolicy}={maxCores}");
+            _taskBuilder.Append($" --resource gpus={maxCores}");
         }
         else
         {

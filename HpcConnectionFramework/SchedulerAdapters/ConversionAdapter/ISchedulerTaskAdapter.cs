@@ -47,7 +47,7 @@ public interface ISchedulerTaskAdapter
 
     void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode);
+        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation);
 
     void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables);
 

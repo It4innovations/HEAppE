@@ -101,7 +101,8 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
             taskSpecification.TaskParalizationSpecifications,
             Convert.ToInt32(taskSpecification.MinCores),
             Convert.ToInt32(taskSpecification.MaxCores),
-            taskSpecification.ClusterNodeType.CoresPerNode);
+            taskSpecification.ClusterNodeType.CoresPerNode,
+            taskSpecification.ClusterNodeType.ClusterNodeTypeAggregation);
 
         // Do not change!!! Task name on the cluster is set as ID of the used task specification to enable pairing of cluster task info with DB task info.
         taskAdapter.Name = taskSpecification.Id.ToString(CultureInfo.InvariantCulture);
