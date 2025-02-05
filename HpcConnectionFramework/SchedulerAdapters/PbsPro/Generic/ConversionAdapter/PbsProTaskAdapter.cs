@@ -277,7 +277,7 @@ public class PbsProTaskAdapter : ISchedulerTaskAdapter
     /// <param name="coresPerNode">Cores per node</param>
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode)
+        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
         var allocationCmdBuilder = new StringBuilder(" -l select=");
 

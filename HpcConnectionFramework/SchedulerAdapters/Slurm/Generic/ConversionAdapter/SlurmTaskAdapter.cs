@@ -208,7 +208,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
     /// <param name="coresPerNode">Cores per node</param>
     public void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
-        int maxCores, int coresPerNode)
+        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
         if (maxCores <= 0) throw new ArgumentException($"Invalid number of cores: {maxCores}");
         var allocationCmdBuilder = new StringBuilder();
@@ -218,6 +218,12 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
 
         var parSpec = paralizationSpecs.FirstOrDefault();
+
+        if (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"))
+        {
+            allocationCmdBuilder.Append($" --gpus={maxCores}");
+        }
+        
         allocationCmdBuilder.Append(
             $" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
 
