@@ -42,7 +42,8 @@ public class ClusterInformationService : IClusterInformationService
             {
                 _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
                 var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                value = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExt(projects)).ToArray();
+                var c = projects.ToList();
+                value = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExt(projects, true)).ToArray();
                 _cacheProvider.Set(memoryCacheKey, value, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
             }
 

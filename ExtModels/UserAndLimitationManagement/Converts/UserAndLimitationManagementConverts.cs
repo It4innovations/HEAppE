@@ -46,11 +46,11 @@ public static class UserAndLimitationManagementConverts
         return convert;
     }
 
-    public static ResourceUsageExt ConvertIntToExt(this ResourceUsage usage, IEnumerable<Project> projects)
+    public static ResourceUsageExt ConvertIntToExt(this ResourceUsage usage, IEnumerable<Project> projects, bool onlyActive)
     {
         var convert = new ResourceUsageExt
         {
-            NodeType = usage.NodeType.ConvertIntToExt(projects),
+            NodeType = usage.NodeType.ConvertIntToExt(projects, onlyActive),
             CoresUsed = usage.CoresUsed
         };
         return convert;

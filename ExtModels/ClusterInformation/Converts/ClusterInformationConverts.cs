@@ -32,20 +32,20 @@ public static class ClusterInformationConverts
 
     #region Public Methods
 
-    public static ClusterExt ConvertIntToExt(this Cluster cluster, IEnumerable<Project> projects)
+    public static ClusterExt ConvertIntToExt(this Cluster cluster, IEnumerable<Project> projects, bool onlyActive)
     {
         var convert = new ClusterExt
         {
             Id = cluster.Id,
             Name = cluster.Name,
             Description = cluster.Description,
-            NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects))
+            NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray()
         };
         return convert;
     }
     
-    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects)
+    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects, bool onlyActive)
     {
         var convert = new ExtendedClusterExt
         {
@@ -60,7 +60,7 @@ public static class ClusterInformationConverts
             DomainName = cluster.DomainName,
             UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount??false,
             ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
-            NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects))
+            NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray()
         };
         return convert;
@@ -89,7 +89,7 @@ public static class ClusterInformationConverts
         };
     }
 
-    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects)
+    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
     {
         // get all projects
         var projectExts = new List<ProjectExt>();
@@ -97,7 +97,22 @@ public static class ClusterInformationConverts
         {
             var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => x.Project != null && projects.Any(y=> y.Id == x.ProjectId)).Select(x => x.Project)
                 .ToList();
-            projectExts = dbProjects?.Select(x => x.ConvertIntToExt()).ToList() ?? new List<ProjectExt>();
+            if (onlyActive)
+            {
+                projectExts = dbProjects?
+                    .Where(x => x.EndDate >= DateTime.UtcNow)
+                    .Select(x => x.ConvertIntToExt())
+                    .ToList() ?? new List<ProjectExt>();
+            }
+            else
+            {
+                projectExts = dbProjects?
+                    .Select(x => x.ConvertIntToExt())
+                    .ToList() ?? new List<ProjectExt>();
+            }
+            
+
+            
 
             // select possible commands for specific project or command for all projects
             foreach (var project in projectExts)
