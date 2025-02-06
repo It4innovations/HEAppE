@@ -572,7 +572,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var cluster = managementLogic.GetByIdWithProxyConnection(clusterId);
-            return cluster.ConvertIntToExtendedExt(projects);
+            return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
     
@@ -585,7 +585,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-            var clusters = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExtendedExt(projects)).ToList();
+            var clusters = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExtendedExt(projects, false)).ToList();
             return clusters;
         }
     }
@@ -604,7 +604,7 @@ public class ManagementService : IManagementService
             var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
-            return cluster.ConvertIntToExtendedExt(projects);
+            return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
 
@@ -622,7 +622,7 @@ public class ManagementService : IManagementService
             var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
                 clusterConnectionProtocol,
                 timeZone, port, updateJobStateByServiceAccount, domainName, proxyConnectionId);
-            return cluster.ConvertIntToExtendedExt(projects);
+            return cluster.ConvertIntToExtendedExt(projects, false);
         }
     }
 
@@ -647,7 +647,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var clusterNodeType = managementLogic.GetClusterNodeTypeById(clusterId);
-            return clusterNodeType.ConvertIntToExt(projects);
+            return clusterNodeType.ConvertIntToExt(projects, false);
         }
     }
 
@@ -665,7 +665,7 @@ public class ManagementService : IManagementService
             var clusterNodeType = managementLogic.CreateClusterNodeType(name, description, numberOfNodes, coresPerNode,
                 queue, qualityOfService, maxWalltime,
                 clusterAllocationName, clusterId, fileTransferMethodId, clusterNodeTypeAggregationId);
-            return clusterNodeType.ConvertIntToExt(projects);
+            return clusterNodeType.ConvertIntToExt(projects, false);
         }
     }
 
@@ -683,7 +683,7 @@ public class ManagementService : IManagementService
             var clusterNodeType = managementLogic.ModifyClusterNodeType(id, name, description, numberOfNodes,
                 coresPerNode, queue, qualityOfService, maxWalltime,
                 clusterAllocationName, clusterId, fileTransferMethodId, clusterNodeTypeAggregationId);
-            return clusterNodeType.ConvertIntToExt(projects);
+            return clusterNodeType.ConvertIntToExt(projects, false);
         }
     }
 
