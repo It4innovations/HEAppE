@@ -11,6 +11,18 @@ public static class FileTransferConverts
 {
     #region Public Methods
 
+    public static FileTransferMethodNoCredentialsExt ConvertIntToNoCredentialsExt(this FileTransferMethod fileTransferMethod)
+    {
+        var convert = new FileTransferMethodNoCredentialsExt
+        {
+            Id = fileTransferMethod.Id,
+            ServerHostname = fileTransferMethod.ServerHostname,
+            SharedBasepath = fileTransferMethod.SharedBasePath,
+            Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
+            Port = fileTransferMethod.Port
+        };
+        return convert;
+    }
     public static FileTransferMethodExt ConvertIntToExt(this FileTransferMethod fileTransferMethod)
     {
         var convert = new FileTransferMethodExt
@@ -19,7 +31,9 @@ public static class FileTransferConverts
             ServerHostname = fileTransferMethod.ServerHostname,
             SharedBasepath = fileTransferMethod.SharedBasePath,
             Protocol = ConvertFileTransferProtocolIntToExt(fileTransferMethod.Protocol),
-            Port = fileTransferMethod.Port
+            Port = fileTransferMethod.Port,
+            ProxyConnection = fileTransferMethod.Cluster?.ProxyConnection?.ConvertIntToExt(),
+            Credentials = fileTransferMethod.Credentials.ConvertIntToExt()
         };
         return convert;
     }

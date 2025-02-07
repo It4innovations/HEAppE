@@ -124,12 +124,12 @@ public interface IManagementService
         string password, ProxyType type, string sessionCode);
 
     void RemoveClusterProxyConnection(long id, string sessionCode);
-    FileTransferMethodExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode);
+    FileTransferMethodNoCredentialsExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode);
 
-    FileTransferMethodExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId,
+    FileTransferMethodNoCredentialsExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId,
         int? port, string sessionCode);
 
-    FileTransferMethodExt ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol,
+    FileTransferMethodNoCredentialsExt ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol,
         long clusterId, int? port, string sessionCode);
 
     void RemoveFileTransferMethod(long id, string sessionCode);

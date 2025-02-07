@@ -754,7 +754,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public FileTransferMethodExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode)
+    public FileTransferMethodNoCredentialsExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -763,11 +763,11 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var fileTransferMethod = managementLogic.GetFileTransferMethodById(fileTransferMethodId);
-            return fileTransferMethod.ConvertIntToExt();
+            return fileTransferMethod.ConvertIntToNoCredentialsExt();
         }
     }
 
-    public FileTransferMethodExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol,
+    public FileTransferMethodNoCredentialsExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol,
         long clusterId, int? port, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -778,11 +778,11 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var fileTransferMethod =
                 managementLogic.CreateFileTransferMethod(serverHostname, protocol, clusterId, port);
-            return fileTransferMethod.ConvertIntToExt();
+            return fileTransferMethod.ConvertIntToNoCredentialsExt();
         }
     }
 
-    public FileTransferMethodExt ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol,
+    public FileTransferMethodNoCredentialsExt ModifyFileTransferMethod(long id, string serverHostname, FileTransferProtocol protocol,
         long clusterId, int? port, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -793,7 +793,7 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var fileTransferMethod =
                 managementLogic.ModifyFileTransferMethod(id, serverHostname, protocol, clusterId, port);
-            return fileTransferMethod.ConvertIntToExt();
+            return fileTransferMethod.ConvertIntToNoCredentialsExt();
         }
     }
 

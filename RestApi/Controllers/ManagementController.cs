@@ -1033,7 +1033,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpGet("FileTransferMethod")]
     [RequestSizeLimit(100)]
-    [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(FileTransferMethodNoCredentialsExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -1054,7 +1054,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpPost("FileTransferMethod")]
     [RequestSizeLimit(300)]
-    [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(FileTransferMethodNoCredentialsExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -1080,7 +1080,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpPut("FileTransferMethod")]
     [RequestSizeLimit(300)]
-    [ProducesResponseType(typeof(FileTransferMethodExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(FileTransferMethodNoCredentialsExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
