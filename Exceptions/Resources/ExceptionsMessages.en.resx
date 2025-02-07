@@ -522,4 +522,7 @@
     <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
     <value>Specified SubProject identifier already exists.</value>
   </data>
+    <data name="SecureVaultException_ConnectionFailed" xml:space="preserve">
+      <value>Secure Vault connection failed.</value>
+    </data>
 </root>

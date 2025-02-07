@@ -1878,11 +1878,36 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
         _unitOfWork.Save();
+
         var vaultConnector = new VaultConnector();
+        bool vaultSuccess;
 
         if (serviceCredentialStored)
-            vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
-        vaultConnector.SetClusterAuthenticationCredentials(nonServiceCredentials.ExportVaultData());
+        {
+            vaultSuccess = vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
+            
+            if (!vaultSuccess)
+            {
+                _logger.Warn("Failed to set service credentials in the vault. Rolling back database insert.");
+                // Perform rollback for serviceCredentials insertion here if needed
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(serviceCredentials);
+                _unitOfWork.Save();
+                throw new SecureVaultException("ConnectionFailed");
+            }
+        }
+
+        vaultSuccess = vaultConnector.SetClusterAuthenticationCredentials(nonServiceCredentials.ExportVaultData());
+
+        if (!vaultSuccess)
+        {
+            _logger.Warn("Failed to set non-service credentials in the vault. Rolling back database insert.");
+            // Perform rollback for nonServiceCredentials insertion here
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Delete(nonServiceCredentials);
+            _unitOfWork.Save();
+            throw new SecureVaultException("ConnectionFailed");
+        }
+
         return secureShellKey;
     }
 

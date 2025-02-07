@@ -16,7 +16,23 @@ public class VaultConnector : IVaultConnector
 
     public void DeleteClusterAuthenticationCredentials(long id)
     {
-        throw new NotImplementedException();
+        using var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(_vaultBaseAddress)
+        };
+
+        var path = $"{_clusterAuthenticationCredentialsPath}/{id}";
+        var messageTask = httpClient.DeleteAsync(path);
+        messageTask.Wait(10000);
+        var result = messageTask.Result;
+        if (result.IsSuccessStatusCode)
+        {
+            _log.Debug($"Deleted vault ClusterProjectCredential with ID: {id}");
+        }
+        else
+        {
+            _log.Warn($"Failed to delete vault ClusterProjectCredential with ID: {id}");
+        }
     }
 
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
