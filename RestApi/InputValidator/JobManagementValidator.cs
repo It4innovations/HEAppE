@@ -313,6 +313,22 @@ public class JobManagementValidator : AbstractValidator
                         $"Required node \"{requiredNode}\" specification for task \"{task.Name}\" contains illegal characters.");
             }
 
+        if (task.TemplateParameterValues != null)
+        {
+            foreach (var parameter in task.TemplateParameterValues)
+            {
+                if (parameter.CommandParameterIdentifier == null)
+                {
+                    _messageBuilder.AppendLine(
+                        $"Parameter identifier for parameter in task \"{task.Name}\" cannot be null.");
+                }
+                if (parameter.ParameterValue == null)
+                {
+                    _messageBuilder.AppendLine(
+                        $"Parameter value for parameter \"{parameter.CommandParameterIdentifier}\" in task \"{task.Name}\" cannot be null.");
+                }
+            }
+        }
         if (task.EnvironmentVariables != null)
             foreach (var variable in task.EnvironmentVariables)
                 if (string.IsNullOrEmpty(variable.Name))
