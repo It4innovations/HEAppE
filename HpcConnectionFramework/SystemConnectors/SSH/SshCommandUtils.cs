@@ -50,7 +50,7 @@ internal static class SshCommandUtils
                 throw new InputValidationException("NoFileOrDirectory");
             }
 
-            throw new SshCommandException("CommandException", sshCommand.Error, sshCommand.ExitStatus,
+            throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus,
                 sshCommand.CommandText);
         }
 
