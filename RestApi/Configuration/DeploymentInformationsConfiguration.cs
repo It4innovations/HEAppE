@@ -95,7 +95,7 @@ public sealed class DeploymentInformationsConfiguration
     /// <summary>
     ///     Deployment type
     /// </summary>
-    public static DeploymentType DeploymentType => DeploymentType;
+    public static DeploymentType DeploymentType => _deploymentType;
 
     /// <summary>
     ///     Resource allocation types
@@ -133,7 +133,7 @@ public sealed class DeploymentInformationsConfiguration
     /// <summary>
     ///     Resource allocation types
     /// </summary>
-    public static ResourceAllocationType[] ResourceAllocationTypes => ResourceAllocationTypes;
+    public static ResourceAllocationType[] ResourceAllocationTypes => _resourceAllocationTypes;
 
     #endregion
 }
