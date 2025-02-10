@@ -59,6 +59,20 @@ public class ClusterNodeTypeExt
     [DataMember(Name = "FileTransferMethodId")]
     [Description("File transfer id")]
     public long? FileTransferMethodId { get; set; }
+    
+    /// <summary>
+    /// Cluster node type aggregation ext
+    /// </summary>
+    [DataMember(Name = "ClusterNodeTypeAggregation")]
+    [Description("Cluster node type aggregation ext")]
+    public ClusterNodeTypeAggregationExt ClusterNodeTypeAggregation { get; set; }
+    
+    /// <summary>
+    /// Accounting
+    /// </summary>
+    [DataMember(Name = "Accounting")]
+    [Description("Accounting")]
+    public AccountingExt[] Accounting { get; set; }
 
     /// <summary>
     /// Array of projects
