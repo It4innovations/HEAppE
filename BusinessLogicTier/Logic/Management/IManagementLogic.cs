@@ -75,11 +75,11 @@ public interface IManagementLogic
 
     Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
 
     Cluster ModifyCluster(long id, string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
 
     void RemoveCluster(long id);
     ClusterNodeType GetClusterNodeTypeById(long id);

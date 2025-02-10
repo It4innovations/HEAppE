@@ -592,7 +592,7 @@ public class ManagementService : IManagementService
 
     public ExtendedClusterExt CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -610,7 +610,7 @@ public class ManagementService : IManagementService
 
     public ExtendedClusterExt ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
