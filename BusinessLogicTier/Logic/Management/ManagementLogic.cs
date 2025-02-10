@@ -1008,7 +1008,8 @@ public class ManagementLogic : IManagementLogic
     
     public Cluster GetByIdWithProxyConnection(long id)
     {
-        return _unitOfWork.ClusterRepository.GetByIdWithProxyConnection(id);
+        var cluster = _unitOfWork.ClusterRepository.GetByIdWithProxyConnection(id);
+        return cluster ?? throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);
     }
 
     /// <summary>
