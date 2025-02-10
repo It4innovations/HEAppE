@@ -111,9 +111,6 @@ public static class ClusterInformationConverts
                     .ToList() ?? new List<ProjectExt>();
             }
             
-
-            
-
             // select possible commands for specific project or command for all projects
             foreach (var project in projectExts)
                 project.CommandTemplates = nodeType.PossibleCommands.Where(c =>
@@ -131,6 +128,9 @@ public static class ClusterInformationConverts
             CoresPerNode = nodeType.CoresPerNode,
             MaxWalltime = nodeType.MaxWalltime,
             FileTransferMethodId = nodeType.FileTransferMethodId,
+            ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
+            Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings
+                .Select(s => s.Accounting?.ConvertIntToExt()).ToArray(),
             Projects = projectExts.ToArray()
         };
         return convert;

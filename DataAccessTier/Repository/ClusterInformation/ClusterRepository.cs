@@ -88,6 +88,7 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
             NumberOfNodes = n.NumberOfNodes,
             Queue = n.Queue,
             RequestedNodeGroups = n.RequestedNodeGroups,
+            ClusterNodeTypeAggregation = n.ClusterNodeTypeAggregation,
             PossibleCommands = n.PossibleCommands
                 .Where(p => p.ProjectId == null || p.Project?.EndDate >= DateTime.UtcNow).ToList()
         };

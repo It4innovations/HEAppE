@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobReporting.Models;
+using HEAppE.ExtModels.Management.Models;
 
 namespace HEAppE.ExtModels.JobManagement.Models;
 

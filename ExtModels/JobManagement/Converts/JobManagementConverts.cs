@@ -10,6 +10,7 @@ using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.JobReporting.Models;
+using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.ExtModels.JobManagement.Converts;
