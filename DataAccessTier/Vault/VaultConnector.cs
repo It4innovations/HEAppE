@@ -2,6 +2,7 @@
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
 using log4net;
 
@@ -9,8 +10,8 @@ namespace HEAppE.DataAccessTier.Vault;
 
 public class VaultConnector : IVaultConnector
 {
-    private const string _vaultBaseAddress = "http://vaultagent:8100";
-    private const string _clusterAuthenticationCredentialsPath = "v1/HEAppE/data/ClusterAuthenticationCredentials";
+    private string _vaultBaseAddress = VaultConnectorSettings.VaultBaseAddress;
+    private string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
 
     protected readonly ILog _log = LogManager.GetLogger(typeof(VaultConnector));
 

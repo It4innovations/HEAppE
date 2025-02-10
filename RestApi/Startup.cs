@@ -10,6 +10,7 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
@@ -92,6 +93,7 @@ public class Startup
         Configuration.Bind("ApplicationAPISettings", new ApplicationAPIConfiguration());
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
+        Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
