@@ -268,7 +268,7 @@ internal class LinuxCommands : ICommands
                     cmdBuilder.ToString());
             _log.Info($"Cluster scripts initialization result: \"{sshCommand.Result}\"");
         }
-        catch (SshCommandException ex)
+        catch (Exception ex)
         {
             _log.Error($"Cluster scripts initialization failed: \"{ex.Message}\"");
             return false;
