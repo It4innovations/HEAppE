@@ -1028,7 +1028,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Cluster CreateCluster(string name, string description, string masterNodeName, SchedulerType schedulerType,
         ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
     {
         if (proxyConnectionId.HasValue)
             _ = _unitOfWork.ClusterProxyConnectionRepository.GetById((long)proxyConnectionId) ??
@@ -1071,7 +1071,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Cluster ModifyCluster(long id, string name, string description, string masterNodeName,
         SchedulerType schedulerType, ClusterConnectionProtocol clusterConnectionProtocol,
-        string timeZone, int port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
+        string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId)
     {
         var existingCluster = _unitOfWork.ClusterRepository.GetById(id) ??
                               throw new RequestedObjectDoesNotExistException("ClusterNotExists", id);

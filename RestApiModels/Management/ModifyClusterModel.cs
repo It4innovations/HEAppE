@@ -69,9 +69,9 @@ public class ModifyClusterModel : SessionCodeModel
     /// <summary>
     /// Port
     /// </summary>
-    [DataMember(Name = "Port", IsRequired = true)]
+    [DataMember(Name = "Port", IsRequired = false)]
     [Description("Port")]
-    public int Port { get; set; }
+    public int? Port { get; set; }
 
     /// <summary>
     /// Update job state by service account
