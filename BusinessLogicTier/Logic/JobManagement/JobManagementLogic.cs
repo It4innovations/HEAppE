@@ -104,6 +104,9 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         _logger.Info($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+        if(jobInfo.Specification.Tasks.Any(x=>x.CommandTemplate.IsEnabled == false))
+            throw new InvalidRequestException("CannotSubmitJobWithDisabledCommandTemplate");
+        
         if (jobInfo.State == JobState.Configuring || jobInfo.State == JobState.WaitingForServiceAccount)
         {
             if (!BusinessLogicConfiguration.SharedAccountsPoolMode)
