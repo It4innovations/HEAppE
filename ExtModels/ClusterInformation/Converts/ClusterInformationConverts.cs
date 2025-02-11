@@ -203,6 +203,7 @@ public static class ClusterInformationConverts
             Description = commandTemplate.Description,
             ExtendedAllocationCommand = commandTemplate.ExtendedAllocationCommand,
             IsGeneric = commandTemplate.IsGeneric,
+            IsEnabled = commandTemplate.IsEnabled,
             PreparationScript = commandTemplate.PreparationScript,
             ExecutableFile = commandTemplate.ExecutableFile,
             CommandParameters = commandTemplate.CommandParameters,
