@@ -66,6 +66,13 @@ public class ExtendedCommandTemplateExt
     [DataMember(Name = "IsGeneric")]
     [Description("Is generic")]
     public bool IsGeneric { get; set; }
+    
+    /// <summary>
+    /// Is genabled
+    /// </summary>
+    [DataMember(Name = "IsEnabled")]
+    [Description("Is enabled")]
+    public bool IsEnabled { get; set; }
 
     /// <summary>
     /// Project id
@@ -90,6 +97,6 @@ public class ExtendedCommandTemplateExt
 
     public override string ToString()
     {
-        return $"ExtendedCommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; ProjectId={ProjectId}; ClusterNodeTypeId={ClusterNodeTypeId}; templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
+        return $"ExtendedCommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; isEnabled={IsEnabled}; ProjectId={ProjectId}; ClusterNodeTypeId={ClusterNodeTypeId}; templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
     }
 }
