@@ -151,6 +151,11 @@ public class ExceptionMiddleware
                     : RedactErrorMessage(pbsException.CommandError);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case InvalidRequestException:
+                problem.Title = "Invalid Request";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status400BadRequest;
+                break;
             case InternalException:
                 problem.Title = "Problem";
                 problem.Detail = _exceptionsLocalizer["InternalException"];
