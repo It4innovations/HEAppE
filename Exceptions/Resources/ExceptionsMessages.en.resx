@@ -525,4 +525,10 @@
     <data name="SecureVaultException_ConnectionFailed" xml:space="preserve">
       <value>Secure Vault connection failed.</value>
     </data>
+    <data name="InvalidRequestException_CannotSubmitJobWithDisabledCommandTemplate" xml:space="preserve">
+      <value>Cannot submit job with disabled command template in task.</value>
+    </data>
+    <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
+      <value>Specified SubProject is deleted or not valid.</value>
+    </data>
 </root>
