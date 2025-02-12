@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using HEAppE.BackgroundThread;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
@@ -13,15 +12,9 @@ namespace HEAppE.RestApi;
 
 public class Program
 {
-    private static MiddlewareBackgroundTaskRunner _timer;
-
     public static void Main(string[] args)
     {
         var host = CreateWebHostBuilder(args).Build();
-
-        _timer = new MiddlewareBackgroundTaskRunner();
-        _timer.Start();
-
         host.Run();
     }
 
