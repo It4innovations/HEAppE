@@ -86,6 +86,8 @@ public class FileTransferLogic : IFileTransferLogic
 
             foreach (var tempKey in clusterUserActiveTempKey)
             {
+                _log.Info(
+                    $"Removing file transfer key for user \"{tempKey.Key.ClusterUser.Username}\" in cluster \"{tempKey.Key.Cluster.Name}\"");
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                     .CreateScheduler(cluster, tempKey.Key.Project);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),

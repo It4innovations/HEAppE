@@ -38,7 +38,11 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 
                     //Try to submit them again
                     foreach (var job in allWaitingJobs)
+                    {
+                        _log.Info($"Trying to submit wainting job {job.Id} for user {job.Submitter}");
                         LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).SubmitJob(job.Id, job.Submitter);
+                    }
+                        
                 }
             }
             catch (Exception ex)
