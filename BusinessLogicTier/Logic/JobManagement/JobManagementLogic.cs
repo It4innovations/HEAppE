@@ -305,7 +305,6 @@ internal class JobManagementLogic : IJobManagementLogic
     /// </summary>
     public void UpdateCurrentStateOfUnfinishedJobs()
     {
-        _logger.Info("Updating current state of unfinished jobs.");
         var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished()
             .GroupBy(g => new { g.Specification.Cluster, g.Project })
             .ToList();
@@ -315,7 +314,8 @@ internal class JobManagementLogic : IJobManagementLogic
             var cluster = jobGroup.Key.Cluster;
             var project = jobGroup.Key.Project;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
-
+            _logger.Info($"Updating current state of unfinished jobs for cluster {cluster.Name} and project {project.Name}");
+            
             var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
 
             var userJobsGroup = jobGroup.GroupBy(g => g.Specification.ClusterUser)
