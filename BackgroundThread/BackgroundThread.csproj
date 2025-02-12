@@ -5,9 +5,12 @@
         <AssemblyName>BackgroundThread</AssemblyName>
     </PropertyGroup>
     <ItemGroup>
-        <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj"/>
-        <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj"/>
-        <ProjectReference Include="..\DomainObjects\DomainObjects.csproj"/>
-        <ProjectReference Include="..\ServiceTier\ServiceTier.csproj"/>
+      <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.1" />
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj" />
+        <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
+        <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+        <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />
     </ItemGroup>
 </Project>

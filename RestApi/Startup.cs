@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using AspNetCoreRateLimit;
+using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
@@ -75,6 +76,8 @@ public class Startup
     /// <param name="services">Collection services</param>
     public void ConfigureServices(IServiceCollection services)
     {
+        services.AddBackgroundServices();
+
         services.AddMemoryCache();
 
         //IP rate limitation
