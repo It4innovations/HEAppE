@@ -305,6 +305,7 @@ internal class JobManagementLogic : IJobManagementLogic
     /// </summary>
     public void UpdateCurrentStateOfUnfinishedJobs()
     {
+        _logger.Info("Updating current state of unfinished jobs.");
         var jobsGroup = _unitOfWork.SubmittedJobInfoRepository.GetAllUnfinished()
             .GroupBy(g => new { g.Specification.Cluster, g.Project })
             .ToList();
@@ -328,8 +329,12 @@ internal class JobManagementLogic : IJobManagementLogic
                     .ToList();
 
                 if (tasksExceedWaitLimit.Any())
+                {
                     scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.",
                         userJobGroup.Key);
+                    tasksExceedWaitLimit.ForEach(x=>_logger.Warn($"Job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
+                }
+                   
             }
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
@@ -679,7 +684,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ? unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobSpecification.ClusterId, jobSpecification.ProjectId)
             : jobSpecification.ClusterUser;
-
+        _logger.Info($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
         return scheduler.GetActualTasksInfo(unfinishedTasks, account);
     }
 
