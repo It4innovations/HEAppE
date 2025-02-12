@@ -124,10 +124,12 @@ public class Startup
         services.AddControllers().AddJsonOptions(options =>
         {
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
         services.AddSwaggerGen(gen =>
         {
+            gen.ParameterFilter<PascalCaseParameterFilter>();
             // Default Swagger document (Public API)
             gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo
             {
