@@ -61,6 +61,27 @@ public class ClusterNodeTypeExt
     public long? FileTransferMethodId { get; set; }
     
     /// <summary>
+    /// Queue
+    /// </summary>
+    [DataMember(Name = "Queue")]
+    [Description("Queue")]
+    public string Queue { get; set; }
+    
+    /// <summary>
+    /// Quality of service
+    /// </summary>
+    [DataMember(Name = "QualityOfService")]
+    [Description("Quality of service")]
+    public string QualityOfService { get; set; }
+
+    /// <summary>
+    /// Cluster allocation name
+    /// </summary>
+    [DataMember(Name = "ClusterAllocationName")]
+    [Description("Cluster allocation name")]
+    public string ClusterAllocationName { get; set; }
+    
+    /// <summary>
     /// Cluster node type aggregation ext
     /// </summary>
     [DataMember(Name = "ClusterNodeTypeAggregation")]
