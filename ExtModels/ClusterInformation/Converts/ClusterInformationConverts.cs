@@ -128,6 +128,9 @@ public static class ClusterInformationConverts
             CoresPerNode = nodeType.CoresPerNode,
             MaxWalltime = nodeType.MaxWalltime,
             FileTransferMethodId = nodeType.FileTransferMethodId,
+            Queue = nodeType.Queue,
+            QualityOfService = nodeType.QualityOfService,
+            ClusterAllocationName = nodeType.ClusterAllocationName,
             ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
             Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings
                 .Select(s => s.Accounting?.ConvertIntToExt()).ToArray(),
