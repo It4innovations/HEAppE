@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Updated to the .NET 9 
+- Allowed to `DeleteJob` in state `Configuring` or `WaitingForServiceAccount`
 
 ### Added
 - Automatic docker compose Vault initialization and unsealing procedure
