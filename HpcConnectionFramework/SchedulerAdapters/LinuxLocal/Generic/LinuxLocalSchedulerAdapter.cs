@@ -209,7 +209,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         };
 
         var command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{_scripts.SubScriptsPath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}");
+            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.CountJobsCmdScriptName}");
         _log.Info($"Get usage of queue \"{nodeType.Queue}\", command \"{command}\"");
         if (int.TryParse(command.Result, out var totalJobs)) usage.TotalJobs = totalJobs;
 
