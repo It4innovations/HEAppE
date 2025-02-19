@@ -171,7 +171,7 @@ internal class JobManagementLogic : IJobManagementLogic
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
             _unitOfWork.Save();
         }
-        else if (jobInfo.State is JobState.WaitingForServiceAccount)
+        else if (jobInfo.State is JobState.WaitingForServiceAccount || jobInfo.State is JobState.Configuring)
         {
             jobInfo.State = JobState.Canceled;
             jobInfo.Tasks.ForEach(f => f.State = TaskState.Canceled);
