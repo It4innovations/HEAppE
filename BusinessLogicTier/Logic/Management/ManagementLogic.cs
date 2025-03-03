@@ -1772,6 +1772,7 @@ public class ManagementLogic : IManagementLogic
         {
             projectClusterNodeTypeAggregation.IsDeleted = false;
             projectClusterNodeTypeAggregation.AllocationAmount = allocationAmount;
+            projectClusterNodeTypeAggregation.ModifiedAt = DateTime.UtcNow;
         }
         else
         {
