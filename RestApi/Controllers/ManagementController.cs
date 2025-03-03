@@ -1581,7 +1581,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <exception cref="InputValidationException"></exception>
     [HttpGet("SubProjects")]
     [RequestSizeLimit(100)]
-    [ProducesResponseType(typeof(SubProjectExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<SubProjectExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
