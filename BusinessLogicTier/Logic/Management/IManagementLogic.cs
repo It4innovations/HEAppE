@@ -130,7 +130,7 @@ public interface IManagementLogic
 
     void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId);
     Accounting GetAccountingById(long id);
-    Accounting CreateAccounting(string formula, DateTime validityFrom);
+    Accounting CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo);
     Accounting ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo);
     void RemoveAccounting(long id);
 

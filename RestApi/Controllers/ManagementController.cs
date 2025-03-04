@@ -1381,7 +1381,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var accounting = _managementService.CreateAccounting(model.Formula, model.ValidityFrom, model.SessionCode);
+        var accounting = _managementService.CreateAccounting(model.Formula, model.ValidityFrom, model.ValidityTo, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(accounting);
     }

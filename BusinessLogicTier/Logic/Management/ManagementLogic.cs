@@ -1661,13 +1661,15 @@ public class ManagementLogic : IManagementLogic
     /// </summary>
     /// <param name="formula"></param>
     /// <param name="validityFrom"></param>
+    /// <param name="validityTo"></param>
     /// <returns></returns>
-    public Accounting CreateAccounting(string formula, DateTime validityFrom)
+    public Accounting CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo)
     {
         var accounting = new Accounting
         {
             Formula = formula,
             ValidityFrom = validityFrom,
+            ValidityTo = validityTo,
             CreatedAt = DateTime.UtcNow
         };
         _unitOfWork.AccountingRepository.Insert(accounting);
