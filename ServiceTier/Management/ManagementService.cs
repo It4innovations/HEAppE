@@ -937,7 +937,8 @@ public class ManagementService : IManagementService
         }
     }
 
-    public AccountingExt CreateAccounting(string formula, DateTime validityFrom, string sessionCode)
+    public AccountingExt CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo,
+        string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -945,7 +946,7 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var accounting = managementLogic.CreateAccounting(formula, validityFrom);
+            var accounting = managementLogic.CreateAccounting(formula, validityFrom, validityTo);
             return accounting.ConvertIntToExt();
         }
     }

@@ -156,7 +156,7 @@ public interface IManagementService
         string sessionCode);
 
     AccountingExt GetAccountingById(long id, string sessionCode);
-    AccountingExt CreateAccounting(string formula, DateTime validityFrom, string sessionCode);
+    AccountingExt CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo, string sessionCode);
 
     AccountingExt ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo,
         string sessionCode);

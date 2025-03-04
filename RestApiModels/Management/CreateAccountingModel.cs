@@ -27,4 +27,11 @@ public class CreateAccountingModel : SessionCodeModel
     [DataMember(Name = "ValidityFrom", IsRequired = true)]
     [Description("Validity from")]
     public DateTime ValidityFrom { get; set; }
+    
+    /// <summary>
+    /// Validity to
+    /// </summary>
+    [DataMember(Name = "ValidityTo", IsRequired = false)]
+    [Description("Validity to")]
+    public DateTime? ValidityTo { get; set; }
 }
