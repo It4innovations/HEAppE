@@ -387,8 +387,7 @@ public class ManagementService : IManagementService
             if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
                 throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
 
-            if (!commandTemplateParameter.CommandTemplate.IsEnabled ||
-                commandTemplateParameter.CommandTemplate.IsDeleted) throw new InputValidationException("NotPermitted");
+            if (commandTemplateParameter.CommandTemplate.IsDeleted) throw new InputValidationException("NotPermitted");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
