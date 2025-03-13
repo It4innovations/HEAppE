@@ -382,9 +382,6 @@ public class ManagementService : IManagementService
             var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
                                                "CommandTemplateParameterNotFound", id);
-            if (!commandTemplateParameter.IsEnabled)
-                //unauthorized
-                throw new InputValidationException("NotPermitted");
 
             //command template not found or not enabled
             if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
