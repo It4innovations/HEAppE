@@ -29,8 +29,15 @@ public class ClusterInformationService : IClusterInformationService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, var projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+            (var loggedUser, var projectsReporter) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Reporter);
+            (_, var projectsManagementAdmin) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                AdaptorUserRoleType.ManagementAdmin);
+            (_, var projectsManager) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                AdaptorUserRoleType.Manager);
+            var projects = projectsReporter
+                .Union(projectsManagementAdmin)
+                .Union(projectsManager);
             ClusterExt[] value;
             var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
 
