@@ -1,4 +1,5 @@
-﻿using HEAppE.Exceptions.External;
+﻿using System;
+using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using log4net;
 
@@ -40,24 +41,37 @@ internal static class SshCommandUtils
     /// <returns></returns>
     internal static SshCommandWrapper RunSshCommand(SshClientAdapter client, string command)
     {
+        _log.Info($"Running SSH command. Command: {command}, Client: {client}");
+        var startTime = DateTime.UtcNow;
         var sshCommand = client.RunCommand(command);
+        var duration = DateTime.UtcNow - startTime;
+        _log.Info($"SSH command executed. Command: {command}, Duration: {duration.TotalMilliseconds}ms, Exit Code: {sshCommand.ExitStatus}");
+
         if (sshCommand.ExitStatus != 0)
         {
             if (sshCommand.Error.Contains("No such file or directory"))
             {
-                _log.Warn(
-                    $"SSH command error: {sshCommand.Error} Error code: {sshCommand.ExitStatus} SSH command: {sshCommand.CommandText}");
+                _log.Warn($"SSH command error (No such file or directory). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");
                 throw new InputValidationException("NoFileOrDirectory");
             }
 
-            throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus,
-                sshCommand.CommandText);
+            _log.Error($"SSH command failed. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");
+            throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
         }
 
-        if (sshCommand.Error.Length > 0) _log.WarnFormat("SSH command finished with error: {0}", sshCommand.Error);
+        if (!string.IsNullOrEmpty(sshCommand.Error))
+        {
+            _log.Warn($"SSH command finished with warnings/errors. Error: {sshCommand.Error}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");
+        }
+
+        if (!string.IsNullOrEmpty(sshCommand.Result))
+        {
+            _log.Debug($"SSH command output: {sshCommand.Result}");
+        }
 
         return sshCommand;
     }
+
 
     #endregion
 }
