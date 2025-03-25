@@ -195,8 +195,11 @@ public class DataTransferLogic : IDataTransferLogic
         headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
 
         var response = await basicRestClient.ExecuteAsync(request);
-        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk");
-
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            _logger.Info($"Response: \"{response.Content}\"");
+            throw new UnableToCreateConnectionException("ResponseNotOk");
+        }
         return response.Content;
     }
 
@@ -238,7 +241,11 @@ public class DataTransferLogic : IDataTransferLogic
 
         var response = await basicRestClient.ExecuteAsync(request);
 
-        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk");
+        if (response.StatusCode != HttpStatusCode.OK)
+        {
+            _logger.Info($"Response: \"{response.Content}\"");
+            throw new UnableToCreateConnectionException("ResponseNotOk");
+        }
 
         return response.Content;
     }
