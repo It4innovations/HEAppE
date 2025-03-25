@@ -562,9 +562,10 @@ public class ManagementLogic : IManagementLogic
     public List<SecureShellKey> GetSecureShellKeys(long projectId)
     {
         return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
-            .DistinctBy(x=>x.Username)
             .Where(x => !x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
-            .Select(SSHGenerator.GetPublicKeyFromPrivateKey).ToList();
+            .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
+            .DistinctBy(x=>x.Username)
+            .ToList();
     }
 
     /// <summary>
