@@ -1907,8 +1907,12 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_managementService.InitializeClusterScriptDirectory(model.ProjectId,
-            model.ClusterProjectRootDirectory, model.SessionCode));
+        List<ClusterInitReportExt> report = _managementService.InitializeClusterScriptDirectory(model.ProjectId,
+            model.ClusterProjectRootDirectory, model.SessionCode);
+        
+        if(report.Any(x=> !x.IsClusterInitialized))
+            return BadRequest(report);
+        return Ok(report);
     }
 
     /// <summary>
