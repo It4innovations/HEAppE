@@ -112,9 +112,13 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Maintainer, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var commandTemplate = managementLogic.ModifyCommandTemplateFromGeneric(commandTemplateId, name, projectId,
+            var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??
+                                  throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            if (!commandTemplate.ProjectId.HasValue || commandTemplate.IsDeleted)
+                throw new InputValidationException("NotPermitted");
+            var updatedCommandTemplate = managementLogic.ModifyCommandTemplateFromGeneric(commandTemplateId, name, projectId,
                 description, extendedAllocationCommand, executableFile, preparationScript);
-            return commandTemplate.ConvertIntToExt();
+            return updatedCommandTemplate.ConvertIntToExt();
         }
     }
 
