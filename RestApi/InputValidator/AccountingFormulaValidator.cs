@@ -9,7 +9,7 @@ namespace HEAppE.RestApi.InputValidator;
 public partial class AccountingFormulaValidator
 {
     // Regular expression to match valid elements: strings, numbers, and math operators
-    [GeneratedRegex("^[a-zA-Z0-9\\s\\+\\-\\*\\/\\%\\(\\)]*$")]
+    [GeneratedRegex("^[a-zA-Z0-9\\s\\+\\-\\*\\/\\%\\(\\)\\.]*$")]
     private static partial Regex AccountingFormulaRegex();
 
     public static bool IsValidAccountingFormula(string formula)
