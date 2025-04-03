@@ -87,6 +87,13 @@ public class ExtendedCommandTemplateExt
     [DataMember(Name = "ClusterNodeTypeId")]
     [Description("Cluster node type id")]
     public long ClusterNodeTypeId { get; set; }
+    
+    /// <summary>
+    /// Created from generic template id
+    /// </summary>
+    [DataMember(Name = "CreatedFromGenericTemplateId")]
+    [Description("Created from generic template id")]
+    public long? CreatedFromGenericTemplateId { get; set; }
 
     /// <summary>
     /// Array of template parameters
@@ -97,6 +104,6 @@ public class ExtendedCommandTemplateExt
 
     public override string ToString()
     {
-        return $"ExtendedCommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; isEnabled={IsEnabled}; ProjectId={ProjectId}; ClusterNodeTypeId={ClusterNodeTypeId}; templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
+        return $"ExtendedCommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; isEnabled={IsEnabled}; ProjectId={ProjectId}; ClusterNodeTypeId={ClusterNodeTypeId}; IsCreatedFromCommandTemplate={CreatedFromGenericTemplateId};templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
     }
 }
