@@ -39,6 +39,7 @@ public class SSHGenerator
             FileTransferCipherType.RSA4096 => new RSACertGenerator(4096),
             FileTransferCipherType.nistP256 => new ECDsaCertGenerator("nistP256"),
             FileTransferCipherType.nistP521 => new ECDsaCertGenerator("nistP521"),
+            FileTransferCipherType.Ed25519 => new EdDSACertGenerator(),
             _ => new RSACertGenerator(4096)
         };
 
@@ -48,6 +49,7 @@ public class SSHGenerator
             FileTransferCipherType.RSA4096 => new RSACertGeneratorV2(4096),
             FileTransferCipherType.nistP256 => new ECDsaCertGeneratorV2(256),
             FileTransferCipherType.nistP521 => new ECDsaCertGeneratorV2(521),
+            FileTransferCipherType.Ed25519 => new EdDSACertGeneratorV2(),
             _ => new RSACertGeneratorV2(4096)
         };
     }
@@ -112,6 +114,17 @@ public class SSHGenerator
                         ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
+            case FileTransferCipherType.Ed25519:
+                return new SecureShellKey
+                {
+                    Username = existingKey.Username,
+                    CipherType = CipherGeneratorConfiguration.Type,
+                    PublicKeyPEM = GenericCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey,
+                        existingKey.PrivateKeyPassphrase),
+                    PublicKeyInAuthorizedKeysFormat =
+                        EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
+                            existingKey.PrivateKeyPassphrase, existingKey.Username)
+                };
             case FileTransferCipherType.RSA3072:
             case FileTransferCipherType.RSA4096:
             default:
@@ -125,9 +138,7 @@ public class SSHGenerator
                         RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
-        }
-
-        ;
+        };
     }
 
     /// <summary>
