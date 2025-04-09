@@ -55,6 +55,7 @@ services:
     networks:
       - db_internal_network
       - external_network
+      - vaultNet
     profiles:
       - staging
 
