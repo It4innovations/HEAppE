@@ -48,7 +48,9 @@ internal class MiddlewareContext : DbContext
                             {
                                 var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                 var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-
+                                _log.Info(
+                                    $"Last applied migration: {lastAppliedMigration}, last defined migration: {lastDefinedMigration}");
+                                
                                 if (lastAppliedMigration is null)
                                 {
                                     _log.Info("Starting migration into the new database.");
