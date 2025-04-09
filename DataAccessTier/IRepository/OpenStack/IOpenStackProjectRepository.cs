@@ -1,9 +1,8 @@
 ﻿using HEAppE.DomainObjects.OpenStack;
 
-namespace HEAppE.DataAccessTier.IRepository.OpenStack
+namespace HEAppE.DataAccessTier.IRepository.OpenStack;
+
+public interface IOpenStackProjectRepository : IRepository<OpenStackProject>
 {
-    public interface IOpenStackProjectRepository : IRepository<OpenStackProject>
-    {
-        OpenStackProject GetOpenStackProjectByProjectId(long projectId);
-    }
+    OpenStackProject GetOpenStackProjectByProjectId(long projectId);
 }

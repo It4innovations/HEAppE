@@ -1,23 +1,26 @@
-﻿using HEAppE.DataAccessTier.IRepository.OpenStack;
+﻿using System.Linq;
+using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DomainObjects.OpenStack;
-using System.Linq;
 
-namespace HEAppE.DataAccessTier.Repository.OpenStack
+namespace HEAppE.DataAccessTier.Repository.OpenStack;
+
+internal class OpenStackInstanceRepository : GenericRepository<OpenStackInstance>, IOpenStackInstanceRepository
 {
-    internal class OpenStackInstanceRepository : GenericRepository<OpenStackInstance>, IOpenStackInstanceRepository
-    {
-        #region Constructors
-        internal OpenStackInstanceRepository(MiddlewareContext context)
-            : base(context)
-        {
+    #region Constructors
 
-        }
-        #endregion
-        #region Methods
-        public OpenStackInstance GetByName(string instanceName)
-        {
-            return GetAll().SingleOrDefault(instance => instance.Name == instanceName);
-        }
-        #endregion
+    internal OpenStackInstanceRepository(MiddlewareContext context)
+        : base(context)
+    {
     }
+
+    #endregion
+
+    #region Methods
+
+    public OpenStackInstance GetByName(string instanceName)
+    {
+        return GetAll().SingleOrDefault(instance => instance.Name == instanceName);
+    }
+
+    #endregion
 }

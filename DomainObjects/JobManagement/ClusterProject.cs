@@ -1,36 +1,33 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using HEAppE.DomainObjects.ClusterInformation;
 
-namespace HEAppE.DomainObjects.JobManagement
+namespace HEAppE.DomainObjects.JobManagement;
+
+[Table("ClusterProject")]
+public class ClusterProject : IdentifiableDbEntity //, ISoftDeletableEntity
 {
-    [Table("ClusterProject")]
-    public class ClusterProject : IdentifiableDbEntity
+    public long ClusterId { get; set; }
+    public virtual Cluster Cluster { get; set; }
+
+    public long ProjectId { get; set; }
+    public virtual Project Project { get; set; }
+
+    [Required] [StringLength(100)] public string LocalBasepath { get; set; }
+
+    [Required] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+
+    public DateTime? ModifiedAt { get; set; }
+
+    [Required] public bool IsDeleted { get; set; } = false;
+
+    public virtual List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new();
+
+    public override string ToString()
     {
-        public long ClusterId { get; set; }
-        public virtual Cluster Cluster { get; set; }
-
-        public long ProjectId { get; set; }
-        public virtual Project Project { get; set; }
-
-        [Required]
-        [StringLength(100)]
-        public string LocalBasepath { get; set; }
-
-        [Required]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        public DateTime? ModifiedAt { get; set; }
-
-        [Required]
-        public bool IsDeleted { get; set; } = false;
-        public virtual List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new List<ClusterProjectCredential>();
-
-        public override string ToString()
-        {
-            return $"""ClusterProject: Cluster={Cluster}, Project={Project}, LocalBasepath={LocalBasepath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
-        }
+        return
+            $"""ClusterProject: Cluster={Cluster}, Project={Project}, LocalBasepath={LocalBasepath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
     }
 }

@@ -1,54 +1,56 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using System.Collections.Generic;
 
-namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
+namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+
+/// <summary>
+///     IScheduler task adapter
+/// </summary>
+public interface ISchedulerTaskAdapter
 {
-    /// <summary>
-    /// IScheduler task adapter
-    /// </summary>
-    public interface ISchedulerTaskAdapter
-    {
-        object AllocationCmd { get; }
+    object AllocationCmd { get; }
 
-        TaskPriority Priority { set; }
+    TaskPriority Priority { set; }
 
-        string Queue { set; }
+    string Queue { set; }
 
-        string QualityOfService { set; }
+    string QualityOfService { set; }
 
-        string ClusterAllocationName { set; }
+    string ClusterAllocationName { set; }
 
-        bool CpuHyperThreading { set; }
+    bool CpuHyperThreading { set; }
 
-        string JobArrays { set; }
+    string JobArrays { set; }
 
-        string Name { set; }
+    string Name { set; }
 
-        string Project { set; }
+    string Project { set; }
 
-        IEnumerable<TaskDependency> DependsOn { set; }
+    IEnumerable<TaskDependency> DependsOn { set; }
 
-        bool IsExclusive { set; }
+    bool IsExclusive { set; }
 
-        bool IsRerunnable { set; }
+    bool IsRerunnable { set; }
 
-        int Runtime { set; }
+    int Runtime { set; }
 
-        string StdErrFilePath { set; }
+    string StdErrFilePath { set; }
 
-        string StdInFilePath { set; }
+    string StdInFilePath { set; }
 
-        string StdOutFilePath { set; }
+    string StdOutFilePath { set; }
 
-        string WorkDirectory { set; }
+    string WorkDirectory { set; }
 
-        string ExtendedAllocationCommand { set; }
+    string ExtendedAllocationCommand { set; }
 
-        void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes, string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores, int maxCores, int coresPerNode);
+    void SetRequestedResourceNumber(IEnumerable<string> requestedNodeGroups, ICollection<string> requiredNodes,
+        string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
+        int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation);
 
-        void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables);
+    void SetEnvironmentVariablesToTask(IEnumerable<EnvironmentVariable> variables);
 
-        void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine, string stdOutFile, string stdErrFile, string recursiveSymlinkCommand);
-    }
+    void SetPreparationAndCommand(string workDir, string preparationScript, string commandLine, string stdOutFile,
+        string stdErrFile, string recursiveSymlinkCommand);
 }

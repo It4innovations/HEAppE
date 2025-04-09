@@ -1,492 +1,534 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <!-- 
-    Microsoft ResX Schema 
-    
-    Version 2.0
-    
-    The primary goals of this format is to allow a simple XML format 
-    that is mostly human readable. The generation and parsing of the 
-    various data types are done through the TypeConverter classes 
-    associated with the data types.
-    
-    Example:
-    
-    ... ado.net/XML headers & schema ...
-    <resheader name="resmimetype">text/microsoft-resx</resheader>
-    <resheader name="version">2.0</resheader>
-    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
-    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
-    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
-    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
-    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
-        <value>[base64 mime encoded serialized .NET Framework object]</value>
-    </data>
-    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
-        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
-        <comment>This is a comment</comment>
-    </data>
-                
-    There are any number of "resheader" rows that contain simple 
-    name/value pairs.
-    
-    Each data row contains a name, and value. The row also contains a 
-    type or mimetype. Type corresponds to a .NET class that support 
-    text/value conversion through the TypeConverter architecture. 
-    Classes that don't support this are serialized and stored with the 
-    mimetype set.
-    
-    The mimetype is used for serialized objects, and tells the 
-    ResXResourceReader how to depersist the object. This is currently not 
-    extensible. For a given mimetype the value must be set accordingly:
-    
-    Note - application/x-microsoft.net.object.binary.base64 is the format 
-    that the ResXResourceWriter will generate, however the reader can 
-    read any of the formats listed below.
-    
-    mimetype: application/x-microsoft.net.object.binary.base64
-    value   : The object must be serialized with 
-            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
-            : and then encoded with base64 encoding.
-    
-    mimetype: application/x-microsoft.net.object.soap.base64
-    value   : The object must be serialized with 
-            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
-            : and then encoded with base64 encoding.
-
-    mimetype: application/x-microsoft.net.object.bytearray.base64
-    value   : The object must be serialized into a byte array 
-            : using a System.ComponentModel.TypeConverter
-            : and then encoded with base64 encoding.
-    -->
-  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
-    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
-    <xsd:element name="root" msdata:IsDataSet="true">
-      <xsd:complexType>
-        <xsd:choice maxOccurs="unbounded">
-          <xsd:element name="metadata">
+    <!-- 
+      Microsoft ResX Schema 
+      
+      Version 2.0
+      
+      The primary goals of this format is to allow a simple XML format 
+      that is mostly human readable. The generation and parsing of the 
+      various data types are done through the TypeConverter classes 
+      associated with the data types.
+      
+      Example:
+      
+      ... ado.net/XML headers & schema ...
+      <resheader name="resmimetype">text/microsoft-resx</resheader>
+      <resheader name="version">2.0</resheader>
+      <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+      <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+      <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+      <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+      <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+          <value>[base64 mime encoded serialized .NET Framework object]</value>
+      </data>
+      <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+          <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+          <comment>This is a comment</comment>
+      </data>
+                  
+      There are any number of "resheader" rows that contain simple 
+      name/value pairs.
+      
+      Each data row contains a name, and value. The row also contains a 
+      type or mimetype. Type corresponds to a .NET class that support 
+      text/value conversion through the TypeConverter architecture. 
+      Classes that don't support this are serialized and stored with the 
+      mimetype set.
+      
+      The mimetype is used for serialized objects, and tells the 
+      ResXResourceReader how to depersist the object. This is currently not 
+      extensible. For a given mimetype the value must be set accordingly:
+      
+      Note - application/x-microsoft.net.object.binary.base64 is the format 
+      that the ResXResourceWriter will generate, however the reader can 
+      read any of the formats listed below.
+      
+      mimetype: application/x-microsoft.net.object.binary.base64
+      value   : The object must be serialized with 
+              : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+              : and then encoded with base64 encoding.
+      
+      mimetype: application/x-microsoft.net.object.soap.base64
+      value   : The object must be serialized with 
+              : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+              : and then encoded with base64 encoding.
+  
+      mimetype: application/x-microsoft.net.object.bytearray.base64
+      value   : The object must be serialized into a byte array 
+              : using a System.ComponentModel.TypeConverter
+              : and then encoded with base64 encoding.
+      -->
+    <xsd:schema xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata" id="root"
+                xmlns="">
+        <xsd:import namespace="http://www.w3.org/XML/1998/namespace"/>
+        <xsd:element name="root" msdata:IsDataSet="true">
             <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" />
-              </xsd:sequence>
-              <xsd:attribute name="name" use="required" type="xsd:string" />
-              <xsd:attribute name="type" type="xsd:string" />
-              <xsd:attribute name="mimetype" type="xsd:string" />
-              <xsd:attribute ref="xml:space" />
+                <xsd:choice maxOccurs="unbounded">
+                    <xsd:element name="metadata">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" use="required" type="xsd:string"/>
+                            <xsd:attribute name="type" type="xsd:string"/>
+                            <xsd:attribute name="mimetype" type="xsd:string"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="assembly">
+                        <xsd:complexType>
+                            <xsd:attribute name="alias" type="xsd:string"/>
+                            <xsd:attribute name="name" type="xsd:string"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="data">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1"/>
+                            <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3"/>
+                            <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4"/>
+                            <xsd:attribute ref="xml:space"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                    <xsd:element name="resheader">
+                        <xsd:complexType>
+                            <xsd:sequence>
+                                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1"/>
+                            </xsd:sequence>
+                            <xsd:attribute name="name" type="xsd:string" use="required"/>
+                        </xsd:complexType>
+                    </xsd:element>
+                </xsd:choice>
             </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="assembly">
-            <xsd:complexType>
-              <xsd:attribute name="alias" type="xsd:string" />
-              <xsd:attribute name="name" type="xsd:string" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="data">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
-              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
-              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
-              <xsd:attribute ref="xml:space" />
-            </xsd:complexType>
-          </xsd:element>
-          <xsd:element name="resheader">
-            <xsd:complexType>
-              <xsd:sequence>
-                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
-              </xsd:sequence>
-              <xsd:attribute name="name" type="xsd:string" use="required" />
-            </xsd:complexType>
-          </xsd:element>
-        </xsd:choice>
-      </xsd:complexType>
-    </xsd:element>
-  </xsd:schema>
-  <resheader name="resmimetype">
-    <value>text/microsoft-resx</value>
-  </resheader>
-  <resheader name="version">
-    <value>2.0</value>
-  </resheader>
-  <resheader name="reader">
-    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <resheader name="writer">
-    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
-  </resheader>
-  <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithJob" xml:space="preserve">
+        </xsd:element>
+    </xsd:schema>
+    <resheader name="resmimetype">
+        <value>text/microsoft-resx</value>
+    </resheader>
+    <resheader name="version">
+        <value>2.0</value>
+    </resheader>
+    <resheader name="reader">
+        <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <resheader name="writer">
+        <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral,
+            PublicKeyToken=b77a5c561934e089
+        </value>
+    </resheader>
+    <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithJob" xml:space="preserve">
     <value>Logged user '{0}' is not authorized to query job info '{1}'.</value>
   </data>
-  <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
+    <data name="AdaptorUserNotAuthorizedForJobException_UserNotAuthorizedToWorkWithTask" xml:space="preserve">
     <value>Logged user '{0}' is not authorized to query task info '{1}'.</value>
   </data>
-  <data name="AuthenticatedUserAlreadyDeletedException_UserDeleted" xml:space="preserve">
-    <value>User '{0}', that requested authentication was already deleted from the HEAppE.</value>
-  </data>
-  <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
+    <data name="AdaptorUserGroupException_NoExist" xml:space="preserve">
     <value>None Group does not exist in the HEAppE.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenStack-UnableToRetrieveCredentials" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenStack-UnableToRetrieveCredentials" xml:space="preserve">
     <value>Unable to retrieve OpenStack application credentials for this user.</value>
   </data>
-  <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
+    <data name="AuthenticationTypeException_NotSupportedAuthentication" xml:space="preserve">
     <value>External authentication method is not implemented.</value>
   </data>
-  <data name="AuthenticationTypeException_NoUserGroup" xml:space="preserve">
+    <data name="AuthenticationTypeException_NoUserGroup" xml:space="preserve">
     <value>External authentication: User('{0}') has not User group!</value>
   </data>
-  <data name="AuthenticationTypeException_InvalidToken" xml:space="preserve">
+    <data name="AuthenticationTypeException_InvalidToken" xml:space="preserve">
     <value>Invalid or not active token provided. Unable to authenticate user by provided credentials.</value>
   </data>
-  <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
+    <data name="CurrentUsageAndLimitationsException_UsageNotCreated" xml:space="preserve">
     <value>Current usage for user '{0}' and node type '{1}' was not created by the GetCurrentUsageAndLimitationsForUser method.</value>
   </data>
-  <data name="FileTransferTemporaryKeyException_PublicKeyMismatch" xml:space="preserve">
+    <data name="FileTransferTemporaryKeyException_PublicKeyMismatch" xml:space="preserve">
     <value>The direct transfer could not be finished due to a public key mismatch.</value>
   </data>
-  <data name="FileTransferTemporaryKeyException_SshKeyGenerationLimit" xml:space="preserve">
+    <data name="FileTransferTemporaryKeyException_SshKeyGenerationLimit" xml:space="preserve">
     <value>The maximum limit for the number of generated file transfer ssh keys was reached.</value>
   </data>
-  <data name="InputValidationException_CommandTemplateAlreadyParameterExists" xml:space="preserve">
+    <data name="InputValidationException_CommandTemplateAlreadyParameterExists" xml:space="preserve">
     <value>The specified command template parameter already exists.</value>
   </data>
-  <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
+    <data name="InputValidationException_CommandTemplateDeleted" xml:space="preserve">
     <value>The specified command template is disabled.</value>
   </data>
-  <data name="InputValidationException_NotPermitted" xml:space="preserve">
+    <data name="InputValidationException_ProjectDeleted" xml:space="preserve">
+    <value>The specified project was deleted.</value>
+  </data>
+    <data name="InputValidationException_NotPermitted" xml:space="preserve">
     <value>Operation is not permitted.</value>
   </data>
-  <data name="InputValidationException_CommandTemplateIsGeneric" xml:space="preserve">
+    <data name="InputValidationException_CommandTemplateIsGeneric" xml:space="preserve">
     <value>The specified command template is generic.</value>
   </data>
-  <data name="InputValidationException_CommandTemplateNoExecutableFile" xml:space="preserve">
+    <data name="InputValidationException_CommandTemplateNoExecutableFile" xml:space="preserve">
     <value>The specified command template does not contain the executable file.</value>
   </data>
-  <data name="InputValidationException_CommandTemplateNotGeneric" xml:space="preserve">
+    <data name="InputValidationException_CommandTemplateNotGeneric" xml:space="preserve">
     <value>The specified command template is not generic.</value>
   </data>
-  <data name="InputValidationException_InvalidPublicKey" xml:space="preserve">
+    <data name="InputValidationException_InvalidPublicKey" xml:space="preserve">
     <value>The specified public key is not valid.</value>
   </data>
-  <data name="InputValidationException_IPAddressesProvidedOnlyForRunningTask" xml:space="preserve">
+    <data name="InputValidationException_IPAddressesProvidedOnlyForRunningTask" xml:space="preserve">
     <value>Allocated nodes IP addresses are provided only for running task.</value>
   </data>
-  <data name="InputValidationException_NoFileOrDirectory" xml:space="preserve">
+    <data name="InputValidationException_NoFileOrDirectory" xml:space="preserve">
     <value>No such file or directory.</value>
   </data>
-  <data name="InputValidationException_NoScriptPath" xml:space="preserve">
+    <data name="InputValidationException_NoScriptPath" xml:space="preserve">
     <value>The generic command template does not contain the script path.</value>
   </data>
-  <data name="InputValidationException_NotExistingJob" xml:space="preserve">
+    <data name="InputValidationException_NotExistingJob" xml:space="preserve">
     <value>Job '{0}' does not exist in the HEAppE.</value>
   </data>
-  <data name="InputValidationException_NotExistingTask" xml:space="preserve">
+    <data name="InputValidationException_NotExistingTask" xml:space="preserve">
     <value>Task '{0}' does not exist in the HEAppE.</value>
   </data>
-  <data name="InputValidationException_NotValidJobSpecification" xml:space="preserve">
+    <data name="InputValidationException_NotValidJobSpecification" xml:space="preserve">
     <value>Submitted job specification is not valid: \r\n {0}</value>
   </data>
-  <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
+    <data name="InputValidationException_PublicKeyNotFound" xml:space="preserve">
     <value>The specified public key is not defined in the HEAppE.</value>
   </data>
-  <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
+    <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
     <value>The specified HPC identity is not defined in HEAppE!</value>
   </data>
-  <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
+    <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Unable to submit the job (incorrect job state).</value>
   </data>
-  <data name="InsufficientRoleException_MissingRoleForProject" xml:space="preserve">
+    <data name="InsufficientRoleException_MissingRoleForProject" xml:space="preserve">
     <value>User does not have '{0}' role for project '{1}'.</value>
   </data>
-  <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
+    <data name="InvalidAuthenticationCredentialsException_WrongCredentials" xml:space="preserve">
     <value>Authentication of user '{0}' was not successful.</value>
   </data>
-  <data name="InvalidRequestException_CannotDeleteJob" xml:space="preserve">
+    <data name="InvalidRequestException_CannotDeleteJob" xml:space="preserve">
     <value>Cannot delete job '{0}', this job is in state '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
+    <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
     <value>The specified cluster node has no reference to cluster.</value>
   </data>
-  <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
+    <data name="InvalidRequestException_NotExistingPath" xml:space="preserve">
     <value>Requested path '{0}' was not found. Exception message: '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
+    <data name="InvalidRequestException_NotExistingProject" xml:space="preserve">
     <value>This project does not exist in the HEAppE for selected cluster.</value>
   </data>
-  <data name="InvalidRequestException_ParameterIllegalCharacters" xml:space="preserve">
+    <data name="InvalidRequestException_ParameterIllegalCharacters" xml:space="preserve">
     <value>Parameter '{0}': '{1}' contains illegal characters.</value>
   </data>
-  <data name="InvalidRequestException_ProjectAlreadyExist" xml:space="preserve">
+    <data name="InvalidRequestException_ProjectAlreadyExist" xml:space="preserve">
     <value>Project with accounting string '{0}' already exists.</value>
   </data>
-  <data name="InvalidRequestException_ProjectAlreadyExistWithCluster" xml:space="preserve">
+    <data name="InvalidRequestException_ProjectAlreadyExistWithCluster" xml:space="preserve">
     <value>ProjectId '{0}' is already assigned to ClusterId '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_ProjectDeleted" xml:space="preserve">
-    <value>Project with accounting string '{0}' was already deleted.</value>
-  </data>
-  <data name="InvalidRequestException_ProjectNoAssignToCluster" xml:space="preserve">
+    <data name="InvalidRequestException_ProjectNoAssignToCluster" xml:space="preserve">
     <value>The ProjectId'{0}' has not been assigned to any cluster.</value>
   </data>
-  <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
+    <data name="InvalidRequestException_ProjectNoReferenceToCluster" xml:space="preserve">
     <value>ProjectId '{0}' has no reference to ClusterId '{1}'.</value>
   </data>
-  <data name="InvalidRequestException_TaskEmptyAttribute" xml:space="preserve">
+    <data name="InvalidRequestException_TaskEmptyAttribute" xml:space="preserve">
     <value>'{0}' attribute in the task '{1}' cannot be empty.</value>
   </data>
-  <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
+    <data name="InvalidRequestException_UserNoAccessToClusterNode" xml:space="preserve">
     <value>User '{0}' has no access to ClusterNodeId {1}.</value>
   </data>
-  <data name="JwtDecodeException_BadAccessTokenFormat" xml:space="preserve">
+    <data name="JwtDecodeException_BadAccessTokenFormat" xml:space="preserve">
     <value>Provided access_token is not well formed JWT.</value>
   </data>
-  <data name="JwtDecodeException_NotReadableAccessToken" xml:space="preserve">
+    <data name="JwtDecodeException_NotReadableAccessToken" xml:space="preserve">
     <value>Unable to read provided access_token as JWT token.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenId-BadProtocol" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenId-BadProtocol" xml:space="preserve">
     <value>Other client protocol than 'open-id' connect is not implemented. Please switch the client to 'openid-connect'.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenId-BadURLForUser" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenId-BadURLForUser" xml:space="preserve">
     <value>Bad URL address for external authentication.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenId-NotInAllowedClientIds" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenId-NotInAllowedClientIds" xml:space="preserve">
     <value>User is not in allowed clientIds.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenId-NotVerifiedEmail" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenId-NotVerifiedEmail" xml:space="preserve">
     <value>User does not have a verified email.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenId-UserNotActive" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenId-UserNotActive" xml:space="preserve">
     <value>User account is disabled.</value>
   </data>
-  <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
+    <data name="NotAllowedException_NotAllowedToRequestReport" xml:space="preserve">
     <value>Logged user is not allowed to request this report.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenId-NotSupportedAuthentication" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenId-NotSupportedAuthentication" xml:space="preserve">
     <value>Credentials of type '{0}' are not supported for OpenStack authentication.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenStack-MissingCreateCredentialsPermission" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenStack-MissingCreateCredentialsPermission" xml:space="preserve">
     <value>User does not have permission to create OpenStack credentials for project '{0}'.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenStack-NoOpenStackProject" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenStack-NoOpenStackProject" xml:space="preserve">
     <value>There is no defined OpenStack project '{0}'.</value>
   </data>
-  <data name="AuthenticationTypeException_OpenStack-NotSpecifiedUrl" xml:space="preserve">
+    <data name="AuthenticationTypeException_OpenStack-NotSpecifiedUrl" xml:space="preserve">
     <value>URL address for OpenStack is not specified or valid.</value>
   </data>
-  <data name="PbsException_ClusterUsageException" xml:space="preserve">
+    <data name="PbsException_ClusterUsageException" xml:space="preserve">
     <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
-  <data name="PbsException_GetActualTasksInfo" xml:space="preserve">
+    <data name="PbsException_GetActualTasksInfo" xml:space="preserve">
     <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
-  <data name="PbsException_GetAllocatedNodesException" xml:space="preserve">
+    <data name="PbsException_GetAllocatedNodesException" xml:space="preserve">
     <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
-  <data name="PbsException_SubmitJobException" xml:space="preserve">
+    <data name="PbsException_SubmitJobException" xml:space="preserve">
     <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'. Command line for job submission: '{4}'.</value>
   </data>
-  <data name="PbsException_TaskStateConvertException" xml:space="preserve">
+    <data name="PbsException_TaskStateConvertException" xml:space="preserve">
     <value>Task state: '{0}' could not be converted to any known task state.</value>
   </data>
-  <data name="PbsException_UnableToParseResponse" xml:space="preserve">
+    <data name="PbsException_UnableToParseResponse" xml:space="preserve">
     <value>Unable to parse response from the scheduler.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeNotExists" xml:space="preserve">
     <value>Requested cluster node type with Id '{0}' does not exist in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_ClusterNotExists" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_ClusterNotExists" xml:space="preserve">
     <value>Requested cluster with Id '{0}' does not exist in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNoServiceAccount" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNoServiceAccount" xml:space="preserve">
     <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no Service Account Credentials reference in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
     <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
     <value>The specified command template is not defined in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
     <value>Specified CommandTemplateId '{0}' is not referenced to ProjectId '{1}'.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_NotExistingFileTransferMethod" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_NotExistingFileTransferMethod" xml:space="preserve">
     <value>Requested FileTransferMethod with Id '{0}' does not exist in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_NotExistingJobInfo" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_NotExistingJobInfo" xml:space="preserve">
     <value>Requested job info with Id: '{0}' does not exist in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_NotExistingPublicKey" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_NotExistingPublicKey" xml:space="preserve">
     <value>The specified public key is not defined in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_NotExistingTaskInfo" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_NotExistingTaskInfo" xml:space="preserve">
     <value>Requested task info with Id: '{0}' does not exist in the HEAppE</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_ProjectNotFound" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_ProjectNotFound" xml:space="preserve">
     <value>The specified project is not defined in the HEAppE.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_ServiceAccountCredentialsNotDefinedInCommandTemplate"
+          xml:space="preserve">
     <value>ServiceAccountCredentials is not defined in the HEAppE for this CommandTemplate.</value>
   </data>
-  <data name="RequestedObjectDoesNotExistException_UserScriptNotDefined" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_UserScriptNotDefined" xml:space="preserve">
     <value>The user-script command parameter for the generic Command Template is not defined in the HEAppE.</value>
   </data>
-  <data name="ResourceUsageException_GroupNotSpecified" xml:space="preserve">
+    <data name="ResourceUsageException_GroupNotSpecified" xml:space="preserve">
     <value>SpecifiedGroupId: '{0}' is not specified in the HEAppE.</value>
   </data>
-  <data name="ResourceUsageException_JobNotSpecified" xml:space="preserve">
+    <data name="ResourceUsageException_JobNotSpecified" xml:space="preserve">
     <value>SpecifiedJobId: '{0}' is not specified in the HEAppE.</value>
   </data>
-  <data name="ResourceUsageException_ReporterNoAccessToJob" xml:space="preserve">
+    <data name="ResourceUsageException_ReporterNoAccessToJob" xml:space="preserve">
     <value>This reporter does not have access to report for Job: '{0}'.</value>
   </data>
-  <data name="ResourceUsageException_UserNotSpecified" xml:space="preserve">
+    <data name="ResourceUsageException_UserNotSpecified" xml:space="preserve">
     <value>SpecifiedUserId: '{0}' is not specified in the HEAppE.</value>
   </data>
-  <data name="SchedulerException_ConvertingError" xml:space="preserve">
+    <data name="SchedulerException_ConvertingError" xml:space="preserve">
     <value>Error occurred when object was converting property type: '{0}' for input data: '{1}' with format: '{2}'.</value>
   </data>
-  <data name="SchedulerException_NotExistingCommandTemplate" xml:space="preserve">
+    <data name="SchedulerException_NotExistingCommandTemplate" xml:space="preserve">
     <value>Command Template '{0}' for task '{1}' is missing in the specification.</value>
   </data>
-  <data name="SchedulerException_NotSupportedEndpoint" xml:space="preserve">
+    <data name="SchedulerException_NotSupportedEndpoint" xml:space="preserve">
     <value>'{0}' scheduler does not support this endpoint.</value>
   </data>
-  <data name="SchedulerException_NotValidCommandTemplateParameter" xml:space="preserve">
+    <data name="SchedulerException_NotValidCommandTemplateParameter" xml:space="preserve">
     <value>Parameter '{0}' in the Command Template '{1}' could not be found either as a property of the task, nor as an additional parameter.</value>
   </data>
-  <data name="SchedulerException_NotValidType" xml:space="preserve">
+    <data name="SchedulerException_NotValidType" xml:space="preserve">
     <value>Scheduler factory with type '{0}' does not exist.</value>
   </data>
-  <data name="SessionCodeNotValidException_Expired" xml:space="preserve">
+    <data name="SessionCodeNotValidException_Expired" xml:space="preserve">
     <value>Session code '{0}' already expired at '{1}'.</value>
   </data>
-  <data name="SessionCodeNotValidException_NotPresent" xml:space="preserve">
+    <data name="SessionCodeNotValidException_NotPresent" xml:space="preserve">
     <value>Session code '{0}' is not present in the HEAppE.</value>
   </data>
-  <data name="SftpClientArgumentException_FactoryManagerTypeNotExists" xml:space="preserve">
+    <data name="SftpClientArgumentException_FactoryManagerTypeNotExists" xml:space="preserve">
     <value>File system manager factory with type '{0}' does not exist.</value>
   </data>
-  <data name="SftpClientArgumentException_NullArgument" xml:space="preserve">
+    <data name="SftpClientArgumentException_NullArgument" xml:space="preserve">
     <value>Argument '{0}' cannot be null or empty.</value>
   </data>
-  <data name="SftpClientException_NoAuthenticationSftpClientMethod" xml:space="preserve">
+    <data name="SftpClientException_NoAuthenticationSftpClientMethod" xml:space="preserve">
     <value>NoAuthenticationSftpClient does not implement '{0}' method.</value>
   </data>
-  <data name="SFTPCommandException_NotCorrespondingPasswordForPrivateKey" xml:space="preserve">
+    <data name="SFTPCommandException_NotCorrespondingPasswordForPrivateKey" xml:space="preserve">
     <value>Wrong password for the private key that is used for the connection to '{0}'.</value>
   </data>
-  <data name="SlurmException_ClusterUsageException" xml:space="preserve">
+    <data name="SlurmException_ClusterUsageException" xml:space="preserve">
     <value>Exception thrown when retrieving usage of ClusterNode: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for queue usage: '{3}'.</value>
   </data>
-  <data name="SlurmException_GetActualTasksInfo" xml:space="preserve">
+    <data name="SlurmException_GetActualTasksInfo" xml:space="preserve">
     <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
-  <data name="SlurmException_GetAllocatedNodesException" xml:space="preserve">
+    <data name="SlurmException_GetAllocatedNodesException" xml:space="preserve">
     <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
   </data>
-  <data name="SlurmException_SubmitJobException" xml:space="preserve">
+    <data name="SlurmException_SubmitJobException" xml:space="preserve">
     <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'. Command line for job submission: '{4}'.</value>
   </data>
-  <data name="SlurmException_UnableToParseNodeUsage" xml:space="preserve">
+    <data name="SlurmException_UnableToParseNodeUsage" xml:space="preserve">
     <value>Unable to parse cluster node usage from the scheduler.</value>
   </data>
-  <data name="SlurmException_UnableToParseResponse" xml:space="preserve">
+    <data name="SlurmException_UnableToParseResponse" xml:space="preserve">
     <value>Unable to parse response from the scheduler.</value>
   </data>
-  <data name="SshClientArgumentException_AuthenticationTypeNotAllowed" xml:space="preserve">
+    <data name="SshClientArgumentException_AuthenticationTypeNotAllowed" xml:space="preserve">
     <value>Selected cluster authentication type is not allowed.</value>
   </data>
-  <data name="SshClientArgumentException_NullArgument" xml:space="preserve">
+    <data name="SshClientArgumentException_NullArgument" xml:space="preserve">
     <value>Argument '{0}' cannot be null or empty.</value>
   </data>
-  <data name="SshCommandException_CommandException" xml:space="preserve">
+    <data name="SshCommandException_CommandException" xml:space="preserve">
     <value>SSH command error: '{0}' Error code: '{1}' SSH command: '{2}'.</value>
   </data>
-  <data name="SshCommandException_NoIdentities" xml:space="preserve">
+    <data name="SshCommandException_NoIdentities" xml:space="preserve">
     <value>SSH-agent has no identities added.</value>
   </data>
-  <data name="SshCommandException_NotCorrespondingPasswordForPrivateKey" xml:space="preserve">
+    <data name="SshCommandException_NotCorrespondingPasswordForPrivateKey" xml:space="preserve">
     <value>Wrong password for the private key that is used for the connection to '{0}'.</value>
   </data>
-  <data name="UnableToCreateConnectionException_NoActiveConnection" xml:space="preserve">
+    <data name="UnableToCreateConnectionException_NoActiveConnection" xml:space="preserve">
     <value>TaskId '{0}' with node IP address '{1}' does not have an active connection.</value>
   </data>
-  <data name="UnableToCreateConnectionException_NotRunningTask" xml:space="preserve">
+    <data name="UnableToCreateConnectionException_NotRunningTask" xml:space="preserve">
     <value>TaskId '{0}' is not a currently running task.</value>
   </data>
-  <data name="UnableToCreateConnectionException_PortAlreadyInUse" xml:space="preserve">
+    <data name="UnableToCreateConnectionException_PortAlreadyInUse" xml:space="preserve">
     <value>TaskId '{0}' with remote node IP address '{1}' already has SSH tunnel for port '{2}'.</value>
   </data>
-  <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
+    <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
     <value>Response code for HttpGet is not 200. Check your application.</value>
   </data>
-  <data name="UnableToCreateTunnelException_ExceptionOccurs" xml:space="preserve">
+    <data name="UnableToCreateTunnelException_ExceptionOccurs" xml:space="preserve">
     <value>Unable to create SSH tunnel.</value>
   </data>
-  <data name="UnableToCreateTunnelException_NoActiveTunnel" xml:space="preserve">
+    <data name="UnableToCreateTunnelException_NoActiveTunnel" xml:space="preserve">
     <value>Task '{0}' does not have an active SSH tunnel.</value>
   </data>
-  <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
+    <data name="UnableToCreateTunnelException_NoFreeLocalPortForSsh" xml:space="preserve">
     <value>There is no free local port available for creation of SSH tunnel.</value>
   </data>
-  <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
+    <data name="InputValidationException_SshKeyAlreadyExists" xml:space="preserve">
     <value>The specified username '{0}' was already used for this project SSH key.</value>
   </data>
-  <data name="ClusterAuthenticationException_NotExistingPrivateKeyFile" xml:space="preserve">
+    <data name="ClusterAuthenticationException_NotExistingPrivateKeyFile" xml:space="preserve">
     <value>Private key file located at '{0}' does not exist.</value>
   </data>
-  <data name="DbContextException_CredentialsProxyMismatch" xml:space="preserve">
+    <data name="DbContextException_CredentialsProxyMismatch" xml:space="preserve">
     <value>ClusterAuthenticationCredentialId '{0}' has ClusterProjectCredentials with different ProxyConnection.</value>
   </data>
-  <data name="DbContextException_MaxPICount" xml:space="preserve">
+    <data name="DbContextException_MaxPICount" xml:space="preserve">
     <value>ProjectId '{0}' has more than one PI.</value>
   </data>
-  <data name="DbContextException_MigrationCountMismatch" xml:space="preserve">
+    <data name="DbContextException_MigrationCountMismatch" xml:space="preserve">
     <value>Application and database migrations counts are not the same. Please update the database.</value>
   </data>
-  <data name="DbContextException_MigrationError" xml:space="preserve">
+    <data name="DbContextException_MigrationError" xml:space="preserve">
     <value>Error occured in database migrations.</value>
   </data>
-  <data name="DbContextException_MigrationMismatch" xml:space="preserve">
+    <data name="DbContextException_MigrationMismatch" xml:space="preserve">
     <value>Application and database migrations are not the same. Please update the database to the new version.</value>
   </data>
-  <data name="DbContextException_NotExistingClusterProjectReference" xml:space="preserve">
+    <data name="DbContextException_NotExistingClusterProjectReference" xml:space="preserve">
     <value>CommandTemplateId '{0}' is referenced to ProjectId '{1}' but in HEAppE does not exist ClusterProject reference.</value>
   </data>
-  <data name="DbContextException_NotSupportedSeedEntity" xml:space="preserve">
+    <data name="DbContextException_NotSupportedSeedEntity" xml:space="preserve">
     <value>Database seed entity '{0}' is not supported.</value>
   </data>
-  <data name="InputValidationException_NotExistingSubmittedJobInfo" xml:space="preserve">
+    <data name="InputValidationException_NotExistingSubmittedJobInfo" xml:space="preserve">
     <value>SubmittedJobInfoId '{0}' was not found.</value>
   </data>
-  <data name="InternalException" xml:space="preserve">
+    <data name="InternalException" xml:space="preserve">
     <value>Problem occured! Contact the administrators.</value>
   </data>
-  <data name="InputValidationException_EnumValueMustBeInInterval" xml:space="preserve">
+    <data name="InputValidationException_EnumValueMustBeInInterval" xml:space="preserve">
     <value>'{0}' must have these values '{1}'.</value>
   </data>
-  <data name="InputValidationException_EnumValueMustBeSet" xml:space="preserve">
+    <data name="InputValidationException_EnumValueMustBeSet" xml:space="preserve">
     <value>The '{0}' must be set.</value>
   </data>
-  <data name="SftpClientException_NotSupportedAuthentication" xml:space="preserve">
+    <data name="SftpClientException_NotSupportedAuthentication" xml:space="preserve">
     <value>'0' method is not implemented.</value>
   </data>
-  <data name="SshClientArgumentException_KeyGenerationException" xml:space="preserve">
+    <data name="SshClientArgumentException_KeyGenerationException" xml:space="preserve">
     <value>'{0}' SSH key cannot be generated. The value should be {1}.</value>
   </data>
-  <data name="InvalidRequestException_CommandTemplateNotFromGeneric" xml:space="preserve">
+    <data name="InvalidRequestException_CommandTemplateNotFromGeneric" xml:space="preserve">
     <value>The specified Command Template was not created from Generic Command Template. Unable to use this endpoint.</value>
   </data>
-  <data name="InvalidRequestException_CommandTemplateNotStatic" xml:space="preserve">
+    <data name="InvalidRequestException_CommandTemplateNotStatic" xml:space="preserve">
     <value>The specified Command Template is not static Command Template. Unable to use this endpoint.</value>
   </data>
-  <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
+    <data name="InvalidRequestException_CannotCancelJob" xml:space="preserve">
     <value>Cannot cancel job '{0}', this job is in state '{1}'.</value>
   </data>
-  <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
+    <data name="RequestedObjectDoesNotExistException_ProxyConnectionNotFound" xml:space="preserve">
+    <value>The specified proxy connection id '{0}' is not defined in the HEAppE.</value>
+  </data>
+    <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeAggregationNotFound" xml:space="preserve">
+    <value>The specified cluster node type aggregation id '{0}' is not defined in the HEAppE.</value>
+  </data>
+    <data name="RequestedObjectDoesNotExistException_FileTransferMethodNotFound" xml:space="preserve">
+    <value>The specified file transfer method id '{0}' is not defined in the HEAppE.</value>
+  </data>
+    <data name="RequestedObjectDoesNotExistException_ClusterProxyConnectionNotExists" xml:space="preserve">
+    <value>Requested cluster proxy connection with Id '{0}' does not exist in the HEAppE.</value>
+  </data>
+    <data name="InvalidRequestException_ClusterNodeTypeAggregationAccountingAlreadyExists" xml:space="preserve">
+    <value>The specified cluster node type aggregation accounting with clusterNodeTypeAggregationId '{0}' and  accountingId '{1}' already exists in the HEAppE.</value>
+  </data>
+    <data name="RequestedObjectDoesNotExistException_AccountingNotFound" xml:space="preserve">
+    <value>The specified accounting with Id '{0}' is not defined in the HEAppE.</value>
+  </data>
+    <data name="RequestedObjectDoesNotExistException_ClusterNodeTypeAggregationAccountingNotFound" xml:space="preserve">
+    <value>The specified cluster node type aggregation accounting with clusterNodeTypeAggregationId '{0}' and  accountingId '{1}' is not defined in the HEAppE.</value>
+  </data>
+    <data name="InvalidRequestException_ProjectClusterNodeTypeAggregationAlreadyExists" xml:space="preserve">
+    <value>Project cluster node type aggregation with ProjectId '{0}' and ClusterNodeTypeAggregationId '{1}' already exists HEAppE.</value>
+  </data>
+    <data name="RequestedObjectDoesNotExistException_ProjectClusterNodeTypeAggregationNotFound" xml:space="preserve">
+    <value>Requested combination for ProjectId '{0}' with ClusterNodeTypeAggregationId '{1}' has no reference in the HEAppE.</value>
+  </data>
+    <data name="RequestedObjectDoesNotExistException_CommandTemplateParameterNotFound" xml:space="preserve">
+    <value>The specified command template parameter with id '{0}' is not defined in the HEAppE.</value>
+  </data>
+    <data name="InputValidationException_SubProjectIdentifierAlreadyExists" xml:space="preserve">
     <value>Specified SubProject identifier already exists.</value>
   </data>
+    <data name="SecureVaultException_ConnectionFailed" xml:space="preserve">
+      <value>Secure Vault connection failed.</value>
+    </data>
+    <data name="InvalidRequestException_CannotSubmitJobWithDisabledCommandTemplate" xml:space="preserve">
+      <value>Cannot submit job with disabled command template in task.</value>
+    </data>
+    <data name="InputValidationException_SubProjectDeletedOrEnded" xml:space="preserve">
+      <value>Specified SubProject is deleted or not valid.</value>
+    </data>
 </root>

@@ -1,7 +1,6 @@
-﻿namespace HEAppE.DomainObjects.Logging
+﻿namespace HEAppE.DomainObjects.Logging;
+
+public interface ILogUserIdentification
 {
-    public interface ILogUserIdentification
-    {
-        string GetLogIdentification();
-    }
+    string GetLogIdentification();
 }

@@ -1,14 +1,18 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
+﻿using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.UserAndLimitationManagement
+namespace HEAppE.RestApiModels.UserAndLimitationManagement;
+
+/// <summary>
+/// Model for retrieving projects for current user
+/// </summary>
+[DataContract(Name = "GetProjectsForCurrentUserModel")]
+[Description("Model for retrieving projects for current user")]
+public class GetProjectsForCurrentUserModel : SessionCodeModel
 {
-    [DataContract(Name = "GetProjectsForCurrentUserModel")]
-    public class GetProjectsForCurrentUserModel : SessionCodeModel
+    public override string ToString()
     {
-        public override string ToString()
-        {
-            return $"GetProjectsForCurrentUserModel({base.ToString()})";
-        }
+        return $"GetProjectsForCurrentUserModel({base.ToString()})";
     }
 }

@@ -5,6 +5,7 @@ include:
 variables:
   HEAPPE_IMAGE_NAME: heappe
   SSHAGENT_IMAGE_NAME: sshagent
+  
 
 services:
   - docker:dind
@@ -95,6 +96,21 @@ sshagent_build:
 
 semgrep-sast:
   stage: test
+  variables:
+    SAST_EXIT_CODES: "1"  # Nastavení, které způsobí selhání jobu při zjištění zranitelností
+  before_script:
+    # Instalace jq
+    - apk add jq
+  script:
+    - /analyzer run
+    # Kontrola, zda jsou v reportu nějaké zranitelnosti
+    - |
+      if [ $(jq '.vulnerabilities | length' gl-sast-report.json) -gt 0 ]; then
+        echo "Vulnerabilities found, failing the job."
+        exit 1
+      else
+        echo "No vulnerabilities found."
+      fi
   artifacts:
     paths:
       - gl-sast-report.json

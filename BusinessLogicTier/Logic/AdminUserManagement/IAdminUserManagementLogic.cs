@@ -1,4 +1,5 @@
-﻿namespace HEAppE.BusinessLogicTier.Logic.AdminUserManagement
+﻿namespace HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
+
+public interface IAdminUserManagementLogic
 {
-    public interface IAdminUserManagementLogic { }
 }

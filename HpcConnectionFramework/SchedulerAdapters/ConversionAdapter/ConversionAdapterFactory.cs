@@ -1,21 +1,20 @@
-﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter
+﻿namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
+
+/// <summary>
+///     Scheduler conversion adapter factory
+/// </summary>
+public abstract class ConversionAdapterFactory
 {
     /// <summary>
-    /// Scheduler conversion adapter factory
+    ///     Create job adapter
     /// </summary>
-    public abstract class ConversionAdapterFactory
-    {
-        /// <summary>
-        /// Create job adapter
-        /// </summary>
-        /// <returns></returns>
-        public abstract ISchedulerJobAdapter CreateJobAdapter();
+    /// <returns></returns>
+    public abstract ISchedulerJobAdapter CreateJobAdapter();
 
-        /// <summary>
-        /// Create job task adapter
-        /// </summary>
-        /// <param name="taskSource">Task source</param>
-        /// <returns></returns>
-        public abstract ISchedulerTaskAdapter CreateTaskAdapter(object taskSource);
-    }
+    /// <summary>
+    ///     Create job task adapter
+    /// </summary>
+    /// <param name="taskSource">Task source</param>
+    /// <returns></returns>
+    public abstract ISchedulerTaskAdapter CreateTaskAdapter(object taskSource);
 }

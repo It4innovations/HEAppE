@@ -1,14 +1,26 @@
-﻿
+﻿using System.ComponentModel;
 using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
+namespace HEAppE.ExtModels.UserAndLimitationManagement.Models;
+
+/// <summary>
+/// OpenStack application credentials ext
+/// </summary>
+[DataContract(Name = "OpenStackApplicationCredentialsExt")]
+[Description("OpenStack application credentials ext")]
+public class OpenStackApplicationCredentialsExt
 {
-    [DataContract(Name = "OpenStackApplicationCredentialsExt")]
-    public class OpenStackApplicationCredentialsExt
-    {
-        [DataMember(Name = "ApplicationCredentialsId")]
-        public string ApplicationCredentialsId { get; set; }
-        [DataMember(Name = "ApplicationCredentialsSecret")]
-        public string ApplicationCredentialsSecret { get; set; }
-    }
+    /// <summary>
+    /// Application credentials id
+    /// </summary>
+    [DataMember(Name = "ApplicationCredentialsId")]
+    [Description("Application credentials id")]
+    public string ApplicationCredentialsId { get; set; }
+
+    /// <summary>
+    /// Application credentials secret
+    /// </summary>
+    [DataMember(Name = "ApplicationCredentialsSecret")]
+    [Description("Application credentials secret")]
+    public string ApplicationCredentialsSecret { get; set; }
 }

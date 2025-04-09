@@ -1,10 +1,9 @@
 ﻿using HEAppE.DomainObjects.JobManagement.JobInformation;
 
-namespace HEAppE.DomainObjects.JobReporting
+namespace HEAppE.DomainObjects.JobReporting;
+
+public class TaskReport
 {
-    public class TaskReport
-    {
-        public SubmittedTaskInfo SubmittedTaskInfo { get; set; }
-        public double Usage { get; set; }
-    }
+    public SubmittedTaskInfo SubmittedTaskInfo { get; set; }
+    public double Usage { get; set; }
 }

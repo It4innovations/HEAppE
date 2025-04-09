@@ -1,8 +1,10 @@
 ﻿using HEAppE.Exceptions.AbstractTypes;
 
-namespace HEAppE.Exceptions.External
+namespace HEAppE.Exceptions.External;
+
+public class AdaptorUserNotReferencedForProjectException : ExternalException
 {
-    public class AdaptorUserNotReferencedForProjectException : ExternalException {
-		public AdaptorUserNotReferencedForProjectException(string message) : base(message) {}
-	}
+    public AdaptorUserNotReferencedForProjectException(string message) : base(message)
+    {
+    }
 }

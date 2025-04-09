@@ -1,19 +1,17 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
+using Newtonsoft.Json;
 
-namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication
+namespace HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
+
+public class User : Identifiable
 {
-    public class User : Identifiable
-    {
-        #region Properties
-        [JsonProperty("domain")]
-        public Domain Domain { get; set; }
+    #region Properties
 
-        [JsonProperty("password")]
-        public string Password { get; set; }
+    [JsonProperty("domain")] public Domain Domain { get; set; }
 
-        [JsonProperty("password_expires_at")]
-        public DateTime? PasswordExpiresAt { get; set; }
-        #endregion
-    }
+    [JsonProperty("password")] public string Password { get; set; }
+
+    [JsonProperty("password_expires_at")] public DateTime? PasswordExpiresAt { get; set; }
+
+    #endregion
 }

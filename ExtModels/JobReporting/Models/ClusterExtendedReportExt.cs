@@ -1,21 +1,49 @@
 ﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.JobReporting.Models
+namespace HEAppE.ExtModels.JobReporting.Models;
+
+/// <summary>
+/// Cluster extended report ext
+/// </summary>
+[DataContract(Name = "ClusterExtendedReportExt")]
+[Description("Cluster extended report ext")]
+public class ClusterExtendedReportExt
 {
-    [DataContract(Name = "ClusterExtendedReportExt")]
-    public class ClusterExtendedReportExt
-    {
-        [DataMember]
-        public long Id { get; set; }
-        [DataMember]
-        public string Name { get; set; }
-        [Required]
-        public string Description { get; set; }
-        [DataMember]
-        public double? TotalUsage { get; set; }
-        [DataMember]
-        public List<ClusterNodeExtendedTypeReportExt> ClusterNodeTypes { get; set; }
-    }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember]
+    [Description("Id")]
+    public long Id { get; set; }
+
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember]
+    [Description("Name")]
+    public string Name { get; set; }
+
+    /// <summary>
+    /// Description
+    /// </summary>
+    [Required]
+    [Description("Description")]
+    public string Description { get; set; }
+
+    /// <summary>
+    /// Total usage
+    /// </summary>
+    [DataMember]
+    [Description("Total usage")]
+    public double? TotalUsage { get; set; }
+
+    /// <summary>
+    /// List of cluster node extended type reports
+    /// </summary>
+    [DataMember]
+    [Description("List of cluster node extended type reports")]
+    public List<ClusterNodeExtendedTypeReportExt> ClusterNodeTypes { get; set; }
 }

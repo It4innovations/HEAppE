@@ -2,22 +2,38 @@
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
-
 using log4net;
 
 namespace HEAppE.DataAccessTier.Vault;
 
 public class VaultConnector : IVaultConnector
 {
-    private const string _vaultBaseAddress = "http://vaultagent:8100";
-    private const string _clusterAuthenticationCredentialsPath = "v1/HEAppE/data/ClusterAuthenticationCredentials";
+    private string _vaultBaseAddress = VaultConnectorSettings.VaultBaseAddress;
+    private string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
 
     protected readonly ILog _log = LogManager.GetLogger(typeof(VaultConnector));
 
     public void DeleteClusterAuthenticationCredentials(long id)
     {
-        throw new System.NotImplementedException();
+        using var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(_vaultBaseAddress)
+        };
+
+        var path = $"{_clusterAuthenticationCredentialsPath}/{id}";
+        var messageTask = httpClient.DeleteAsync(path);
+        messageTask.Wait(10000);
+        var result = messageTask.Result;
+        if (result.IsSuccessStatusCode)
+        {
+            _log.Debug($"Deleted vault ClusterProjectCredential with ID: {id}");
+        }
+        else
+        {
+            _log.Warn($"Failed to delete vault ClusterProjectCredential with ID: {id}");
+        }
     }
 
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
@@ -55,15 +71,13 @@ public class VaultConnector : IVaultConnector
         var messageTask = httpClient.PostAsync(path, payload);
         messageTask.Wait(10000);
         var result = messageTask.Result;
-        if(result.IsSuccessStatusCode)
+        if (result.IsSuccessStatusCode)
         {
             _log.Debug($"Set vault ClusterProjectCredential with ID: {data.Id}");
             return true;
         }
-        else
-        {
-            _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
-            return false;
-        }
+
+        _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
+        return false;
     }
 }

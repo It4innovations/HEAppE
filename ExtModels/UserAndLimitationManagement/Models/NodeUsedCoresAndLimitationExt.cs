@@ -1,14 +1,23 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
+namespace HEAppE.ExtModels.UserAndLimitationManagement.Models;
+
+/// <summary>
+/// Used cores and limitation of node ext
+/// </summary>
+[DataContract(Name = "NodeUsedCoresAndLimitationExt")]
+[Description("Used cores and limitation of node ext")]
+public class NodeUsedCoresAndLimitationExt
 {
-    [DataContract(Name = "NodeUsedCoresAndLimitationExt")]
-    public class NodeUsedCoresAndLimitationExt
+    /// <summary>
+    /// Number of cores used
+    /// </summary>
+    [Description("Number of cores used")]
+    public int CoresUsed { get; set; } = 0;
+
+    public override string ToString()
     {
-        public int CoresUsed { get; set; } = 0;
-        public override string ToString()
-        {
-            return $"NodeUsedCoresAndLimitationExt: CoresUsed={CoresUsed}";
-        }
+        return $"NodeUsedCoresAndLimitationExt: CoresUsed={CoresUsed}";
     }
 }

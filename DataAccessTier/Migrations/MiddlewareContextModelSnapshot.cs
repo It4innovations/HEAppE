@@ -45,6 +45,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("MasterNodeName")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -146,6 +149,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("FileTransferMethodId")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<int?>("MaxNodesPerJob")
                         .HasColumnType("int");
 
@@ -217,6 +223,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("nvarchar(40)");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.Property<string>("Password")
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
@@ -270,6 +279,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<long>("ClusterId")
                         .HasColumnType("bigint");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<int?>("Port")
                         .HasColumnType("int");
@@ -399,6 +411,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("AccountingId")
                         .HasColumnType("bigint");
 
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
                     b.HasKey("ClusterNodeTypeAggregationId", "AccountingId");
 
                     b.HasIndex("AccountingId");
@@ -483,8 +498,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("CommandParameters")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -493,7 +508,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -505,6 +519,9 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<string>("ExtendedAllocationCommand")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("bit");
@@ -553,7 +570,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -572,7 +588,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Query")
-                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -1436,12 +1451,12 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<bool>("Deleted")
-                        .HasColumnType("bit");
-
                     b.Property<string>("Email")
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
 
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
