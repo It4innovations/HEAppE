@@ -17,5 +17,15 @@ public sealed class ClusterConnectionPoolConfiguration
     /// </summary>
     public int ConnectionPoolMaxUnusedInterval { get; set; } = 1800;
 
+    /// <summary>
+    ///     Connection retry attempts
+    /// </summary>
+    public int ConnectionRetryAttempts { get; set; } = 3;
+
+    /// <summary>
+    ///     Connection retry attempts (value in ms)
+    /// </summary>
+    public int ConnectionTimeout { get; set; } = 30000;
+
     #endregion
 }

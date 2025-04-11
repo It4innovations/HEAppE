@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -72,7 +73,9 @@ public abstract class FileSystemFactory
                 ConnectionPoolCleaningInterval,
                 ConnectionPoolMaxUnusedInterval,
                 CreateFileSystemConnector(configuration),
-                configuration.Cluster.Port);
+                configuration.Cluster.Port,
+                10,
+                TimeSpan.FromSeconds(30));
 
             _schedulerConnPoolSingletons.Add(configuration, connection);
         }

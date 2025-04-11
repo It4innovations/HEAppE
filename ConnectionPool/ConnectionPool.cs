@@ -15,7 +15,7 @@ public class ConnectionPool : IConnectionPool
     #region Constructors
 
     public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval,
-        int maxUnusedDuration, IPoolableAdapter adapter, int? port = null)
+        int maxUnusedDuration, IPoolableAdapter adapter, int? port, int? retryAttempts, TimeSpan? connectionTimeout)
     {
         log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _masterNodeName = masterNodeName;
@@ -33,6 +33,9 @@ public class ConnectionPool : IConnectionPool
             this.maxUnusedDuration = new TimeSpan(maxUnusedDuration * 10000000);
             // conversion from seconds to ticks (100-nanosecond units) 
         }
+
+        this.retryAttempts = retryAttempts;
+        this.connectionTimeout = connectionTimeout;
     }
 
     #endregion
@@ -78,8 +81,11 @@ public class ConnectionPool : IConnectionPool
     private readonly int minSize;
     private readonly Dictionary<long, LinkedList<ConnectionInfo>> pool;
     private readonly Timer poolCleanTimer;
-    private int actualSize;
+    private readonly int? retryAttempts;
+    private readonly TimeSpan? connectionTimeout;
 
+    private int actualSize;
+    
     #endregion
 
     #region IConnectionPool Members
@@ -104,7 +110,7 @@ public class ConnectionPool : IConnectionPool
                     if (actualSize < maxSize)
                     {
                         // If there is space free, create new connection
-                        connection = ExpandPoolAndGetConnection(credentials, cluster);
+                        connection = ExpandPoolAndGetConnection(credentials, cluster, retryAttempts, connectionTimeout);
                     }
                     else if (HasAnyFreeConnection())
                     {
@@ -114,7 +120,7 @@ public class ConnectionPool : IConnectionPool
                         // Drop it
                         RemoveConnectionFromPool(oldest);
                         // Expand pool with newly created one
-                        connection = ExpandPoolAndGetConnection(credentials, cluster);
+                        connection = ExpandPoolAndGetConnection(credentials, cluster, retryAttempts, connectionTimeout);
                     }
                     else
                     {
@@ -144,7 +150,7 @@ public class ConnectionPool : IConnectionPool
 
     #region Local Methods
 
-    private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster)
+    private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, int? retryAttempts, TimeSpan? connectionTimeout)
     {
         if (!cred.IsVaultDataLoaded)
         {
@@ -154,7 +160,7 @@ public class ConnectionPool : IConnectionPool
         }
 
         var connectionObject =
-            adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, cluster.Port);
+            adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, cluster.Port, retryAttempts, connectionTimeout);
         var connection = new ConnectionInfo
         {
             Connection = connectionObject,
@@ -165,9 +171,9 @@ public class ConnectionPool : IConnectionPool
         return connection;
     }
 
-    private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred, Cluster cluster)
+    private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred, Cluster cluster, int? retryAttempts, TimeSpan? connectionTimeout)
     {
-        var connection = InitializeConnection(cred, cluster);
+        var connection = InitializeConnection(cred, cluster, retryAttempts, connectionTimeout);
         actualSize++;
         if (poolCleanTimer != null && actualSize > minSize)
             poolCleanTimer.Start();

@@ -40,9 +40,9 @@ public class SftpFileSystemConnector : IPoolableAdapter
     /// <param name="port">Port</param>
     /// <returns></returns>
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, int? port)
+        ClusterProxyConnection proxy, int? port, int? retryAttempts, TimeSpan? connectionTimeout)
     {
-        return credentials.AuthenticationType switch
+        var sftpClient = (SftpClient)(credentials.AuthenticationType switch
         {
             ClusterAuthenticationCredentialsAuthType.Password
                 => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
@@ -87,7 +87,10 @@ public class SftpFileSystemConnector : IPoolableAdapter
 
             _ => throw new NotImplementedException(
                 "SFTP authentication credentials authentication type is not allowed!")
-        };
+        });
+        sftpClient.ConnectionInfo.RetryAttempts = retryAttempts ?? 10;
+        sftpClient.ConnectionInfo.Timeout = connectionTimeout ?? TimeSpan.FromSeconds(30);
+        return sftpClient;
     }
 
     /// <summary>
