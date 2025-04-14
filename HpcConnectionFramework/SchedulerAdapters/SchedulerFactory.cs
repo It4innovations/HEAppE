@@ -81,9 +81,7 @@ public abstract class SchedulerFactory
                 connectionPoolCleaningInterval,
                 connectionPoolMaxUnusedInterval,
                 CreateSchedulerConnector(clusterConf),
-                clusterConf.Port,
-                _connectionPoolSettings.ConnectionRetryAttempts,
-                TimeSpan.FromMilliseconds(_connectionPoolSettings.ConnectionTimeout));
+                clusterConf.Port);
         }
 
         return _schedulerConnectionPoolSingletons[endpoint];

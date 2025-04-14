@@ -73,9 +73,7 @@ public abstract class FileSystemFactory
                 ConnectionPoolCleaningInterval,
                 ConnectionPoolMaxUnusedInterval,
                 CreateFileSystemConnector(configuration),
-                configuration.Cluster.Port,
-                10,
-                TimeSpan.FromSeconds(30));
+                configuration.Cluster.Port);
 
             _schedulerConnPoolSingletons.Add(configuration, connection);
         }

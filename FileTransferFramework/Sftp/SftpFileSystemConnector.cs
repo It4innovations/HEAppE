@@ -4,6 +4,7 @@ using System.Text;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Exceptions.Internal;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
@@ -40,7 +41,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
     /// <param name="port">Port</param>
     /// <returns></returns>
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, int? port, int? retryAttempts, TimeSpan? connectionTimeout)
+        ClusterProxyConnection proxy, int? port)
     {
         var sftpClient = (SftpClient)(credentials.AuthenticationType switch
         {
@@ -88,8 +89,8 @@ public class SftpFileSystemConnector : IPoolableAdapter
             _ => throw new NotImplementedException(
                 "SFTP authentication credentials authentication type is not allowed!")
         });
-        sftpClient.ConnectionInfo.RetryAttempts = retryAttempts ?? 10;
-        sftpClient.ConnectionInfo.Timeout = connectionTimeout ?? TimeSpan.FromSeconds(30);
+        sftpClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
+        sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
         return sftpClient;
     }
 

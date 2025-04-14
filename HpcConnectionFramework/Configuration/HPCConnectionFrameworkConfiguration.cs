@@ -28,6 +28,11 @@ public sealed class HPCConnectionFrameworkConfiguration
     public static ClusterConnectionPoolConfiguration ClustersConnectionPoolSettings { get; } = new();
 
     /// <summary>
+    ///     Clusters connection Pool configuration
+    /// </summary>
+    public static SshClientConfiguration SshClientSettings { get; } = new();
+
+    /// <summary>
     ///     Clusters scripts configuration
     /// </summary>
     public static ScriptsConfiguration ScriptsSettings { get; } = new();
