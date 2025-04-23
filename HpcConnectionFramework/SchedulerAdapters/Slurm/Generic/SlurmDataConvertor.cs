@@ -98,7 +98,8 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic
                                                           .ToList(),
                 ErrorMessage = default,
                 AllParameters = obj.IsJobArrayJob ? obj.AggregateSchedulerResponseParameters : obj.SchedulerResponseParameters,
-                ParsedParameters = obj.ParsedParameters
+                ParsedParameters = obj.ParsedParameters,
+                Reason = obj.Reason
             };
         }
 

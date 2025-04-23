@@ -148,11 +148,21 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.DTO
         /// <summary>
         /// Job execution Reason
         /// </summary>
+        private string _reason;
+
+        /// <summary>
+        /// Job execution Reason
+        /// </summary>
         [Scheduler("Reason")]
-        public string ReasonMessage
+        public string Reason
         {
+            get
+            {
+                return _reason;
+            }
             set
             {
+                _reason = value;
                 if (!string.IsNullOrEmpty(value) && value.Contains("DependencyNeverSatisfied"))
                 {
                     IsDeadLock = true;

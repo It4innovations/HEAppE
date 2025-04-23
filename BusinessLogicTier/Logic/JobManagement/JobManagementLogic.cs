@@ -676,6 +676,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement
             dbTaskInfo.State = clusterTaskInfo.State;
             dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
             dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
+            dbTaskInfo.Reason = clusterTaskInfo.Reason;
             return dbTaskInfo;
         }
     }
