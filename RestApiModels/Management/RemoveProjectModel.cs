@@ -1,15 +1,20 @@
-﻿using HEAppE.ExtModels.JobReporting.Models;
-using HEAppE.RestApiModels.AbstractModels;
-using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Remove project model
+/// </summary>
+[DataContract(Name = "RemoveProjectModel")]
+[Description("Remove project model")]
+public class RemoveProjectModel : SessionCodeModel
 {
-    [DataContract(Name = "RemoveProjectModel")]
-    public class RemoveProjectModel : SessionCodeModel
-    {
-        [DataMember(Name = "Id", IsRequired = true)]
-        public long Id { get; set; }
-    }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember(Name = "Id", IsRequired = true)]
+    [Description("Id")]
+    public long Id { get; set; }
 }

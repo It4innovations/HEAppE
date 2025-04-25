@@ -1,25 +1,26 @@
-﻿namespace HEAppE.RestApi.Configuration
+﻿namespace HEAppE.RestApi.Configuration;
+
+/// <summary>
+///     Application API configuration
+/// </summary>
+public sealed class ApplicationAPIConfiguration
 {
+    #region Properties
+
     /// <summary>
-    /// Application API configuration
+    ///     Allowed hosts
     /// </summary>
-    public sealed class ApplicationAPIConfiguration
-    {
-        #region Properties
-        /// <summary>
-        /// Allowed hosts
-        /// </summary>
-        public static string[] AllowedHosts { get; set; }
+    public static string[] AllowedHosts { get; set; }
 
-        /// <summary>
-        /// Deployment settings
-        /// </summary>
-        public static DeploymentInformationsConfiguration DeploymentSettings { get; } = new DeploymentInformationsConfiguration();
+    /// <summary>
+    ///     Deployment settings
+    /// </summary>
+    public static DeploymentInformationsConfiguration DeploymentSettings { get; } = new();
 
-        /// <summary>
-        /// Swagger documentation settings
-        /// </summary>
-        public static SwaggerConfiguration SwaggerDocSettings { get; } = new SwaggerConfiguration();
-        #endregion
-    }
+    /// <summary>
+    ///     Swagger documentation settings
+    /// </summary>
+    public static SwaggerConfiguration SwaggerDocSettings { get; } = new();
+
+    #endregion
 }

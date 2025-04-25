@@ -1,17 +1,28 @@
 ﻿using System.Collections.Generic;
-using HEAppE.RestApiModels.AbstractModels;
-using System.ComponentModel.DataAnnotations;
+using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Create secure shell key model
+/// </summary>
+[DataContract(Name = "CreateSecureShellKeyModel")]
+[Description("Create secure shell key model")]
+public class CreateSecureShellKeyModel : SessionCodeModel
 {
-    [DataContract(Name = "CreateSecureShellKeyModel")]
-    public class CreateSecureShellKeyModel : SessionCodeModel
-    {
-        [DataMember(Name = "Credentials", IsRequired = true)]
-        public List<SshKeyUserCredentialsModel> Credentials { get; set; }
-        
-        [DataMember(Name = "ProjectId", IsRequired = true)]
-        public long ProjectId { get; set; }
-    }
+    /// <summary>
+    /// List of ssh key user credentials
+    /// </summary>
+    [DataMember(Name = "Credentials", IsRequired = true)]
+    [Description("List of ssh key user credentials")]
+    public List<SshKeyUserCredentialsModel> Credentials { get; set; }
+
+    /// <summary>
+    /// Project id
+    /// </summary>
+    [DataMember(Name = "ProjectId", IsRequired = true)]
+    [Description("Project id")]
+    public long ProjectId { get; set; }
 }

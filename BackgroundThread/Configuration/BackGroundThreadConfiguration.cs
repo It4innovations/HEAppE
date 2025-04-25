@@ -1,28 +1,27 @@
-﻿namespace HEAppE.BackgroundThread.Configuration
+﻿namespace HEAppE.BackgroundThread.Configuration;
+
+/// <summary>
+///     Background Thread configuration
+/// </summary>
+public sealed class BackGroundThreadConfiguration
 {
     /// <summary>
-    /// Background Thread configuration
+    ///     Get all jobs information check in seconds
     /// </summary>
-    public sealed class BackGroundThreadConfiguration
-    {
-        /// <summary>
-        /// Get all jobs information check in seconds
-        /// </summary>
-        public static int GetAllJobsInformationCheck { get; set; } = 30;
+    public static int GetAllJobsInformationCheck { get; set; } = 30;
 
-        /// <summary>
-        /// Close connection to finished jobs check in seconds
-        /// </summary>
-        public static int CloseConnectionToFinishedJobsCheck { get; set; } = 30;
+    /// <summary>
+    ///     Close connection to finished jobs check in seconds
+    /// </summary>
+    public static int CloseConnectionToFinishedJobsCheck { get; set; } = 30;
 
-        /// <summary>
-        /// Cluster account rotation job check in seconds
-        /// </summary>
-        public static int ClusterAccountRotationJobCheck { get; set; } = 30;
+    /// <summary>
+    ///     Cluster account rotation job check in seconds
+    /// </summary>
+    public static int ClusterAccountRotationJobCheck { get; set; } = 30;
 
-        /// <summary>
-        /// Remove unused temporary file transfer key in seconds
-        /// </summary>
-        public static int FileTransferKeyRemovalCheck { get; set; } = 10800;
-    }
+    /// <summary>
+    ///     Remove unused temporary file transfer key in seconds
+    /// </summary>
+    public static int FileTransferKeyRemovalCheck { get; set; } = 10800;
 }

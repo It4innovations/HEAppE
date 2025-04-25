@@ -1,23 +1,44 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
-using HEAppE.RestApiModels.AbstractModels;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Create file transfer method model
+/// </summary>
+[DataContract(Name = "CreateFileTransferMethodModel")]
+[Description("Create file transfer method model")]
+public class CreateFileTransferMethodModel : SessionCodeModel
 {
-    [DataContract(Name = "CreateFileTransferMethodModel")]
-    public class CreateFileTransferMethodModel : SessionCodeModel
-    {
-        [DataMember(Name = "ServerHostname", IsRequired = true), StringLength(50)]
-        public string ServerHostname { get; set; }
+    /// <summary>
+    /// Server host name
+    /// </summary>
+    [DataMember(Name = "ServerHostname", IsRequired = true)]
+    [StringLength(50)]
+    [Description("Server host name")]
+    public string ServerHostname { get; set; }
 
-        [DataMember(Name = "Protocol", IsRequired = true)]
-        public FileTransferProtocol Protocol { get; set; }
+    /// <summary>
+    /// Protocol
+    /// </summary>
+    [DataMember(Name = "Protocol", IsRequired = true)]
+    [Description("Protocol")]
+    public FileTransferProtocol Protocol { get; set; }
 
-        [DataMember(Name = "ClusterId", IsRequired = true)]
-        public long ClusterId { get; set; }
+    /// <summary>
+    /// Cluster id
+    /// </summary>
+    [DataMember(Name = "ClusterId", IsRequired = true)]
+    [Description("Cluster id")]
+    public long ClusterId { get; set; }
 
-        [DataMember(Name = "Port", IsRequired = false)]
-        public int? Port { get; set; }
-    }
+    /// <summary>
+    /// Port
+    /// </summary>
+    [DataMember(Name = "Port", IsRequired = false)]
+    [Description("Port")]
+    public int? Port { get; set; }
 }

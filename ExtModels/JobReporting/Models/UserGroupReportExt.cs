@@ -1,21 +1,54 @@
-﻿using System.Runtime.Serialization;
+﻿using System.ComponentModel;
+using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.JobReporting.Models
+namespace HEAppE.ExtModels.JobReporting.Models;
+
+/// <summary>
+/// User group report ext
+/// </summary>
+[DataContract(Name = "UserGroupReportExt")]
+[Description("User group report ext")]
+public class UserGroupReportExt
 {
-    [DataContract(Name = "UserGroupReportExt")]
-    public class UserGroupReportExt
-    {
-        [DataMember]
-        public long Id { get; set; }
-        [DataMember]
-        public string Name { get; set; }
-        [DataMember]
-        public string Description { get; set; }
-        [DataMember]
-        public double? TotalUsage { get; set; }
-        [DataMember]
-        public UsageTypeExt UsageType { get; set; }
-        [DataMember]
-        public ProjectReportExt Project { get; set; }
-    }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember]
+    [Description("Id")]
+    public long Id { get; set; }
+
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember]
+    [Description("Name")]
+    public string Name { get; set; }
+
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember]
+    [Description("Description")]
+    public string Description { get; set; }
+
+    /// <summary>
+    /// Total usage
+    /// </summary>
+    [DataMember]
+    [Description("Total usage")]
+    public double? TotalUsage { get; set; }
+
+    /// <summary>
+    /// Usage type
+    /// </summary>
+    [DataMember]
+    [Description("Usage type")]
+    public UsageTypeExt UsageType { get; set; }
+
+    /// <summary>
+    /// Project
+    /// </summary>
+    [DataMember]
+    [Description("Project")]
+    public ProjectReportExt Project { get; set; }
 }

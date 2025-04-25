@@ -1,15 +1,27 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
+﻿using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Remove project cluster node type aggregation model
+/// </summary>
+[DataContract(Name = "RemoveProjectClusterNodeTypeAggregationModel")]
+[Description("Remove project cluster node type aggregation model")]
+public class RemoveProjectClusterNodeTypeAggregationModel : SessionCodeModel
 {
-    [DataContract(Name = "RemoveProjectClusterNodeTypeAggregationModel")]
-    public class RemoveProjectClusterNodeTypeAggregationModel : SessionCodeModel
-    {
-        [DataMember(Name = "ProjectId", IsRequired = true)]
-        public long ProjectId { get; set; }
+    /// <summary>
+    /// Project id
+    /// </summary>
+    [DataMember(Name = "ProjectId", IsRequired = true)]
+    [Description("Project id")]
+    public long ProjectId { get; set; }
 
-        [DataMember(Name = "ClusterNodeTypeAggregationId", IsRequired = true)]
-        public long ClusterNodeTypeAggregationId { get; set; }
-    }
+    /// <summary>
+    /// Cluster node type aggregation id
+    /// </summary>
+    [DataMember(Name = "ClusterNodeTypeAggregationId", IsRequired = true)]
+    [Description("Cluster node type aggregation id")]
+    public long ClusterNodeTypeAggregationId { get; set; }
 }

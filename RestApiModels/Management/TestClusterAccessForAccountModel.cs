@@ -1,15 +1,27 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
+﻿using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Test cluster access for account model
+/// </summary>
+[DataContract(Name = "TestClusterAccessForAccountModel")]
+[Description("Test cluster access for account model")]
+public class TestClusterAccessForAccountModel : SessionCodeModel
 {
-    [DataContract(Name = "TestClusterAccessForAccountModel")]
-    public class TestClusterAccessForAccountModel : SessionCodeModel
-    {
-        [DataMember(Name = "Username", IsRequired = true)]
-        public string Username { get; set; }
+    /// <summary>
+    /// User name
+    /// </summary>
+    [DataMember(Name = "Username", IsRequired = true)]
+    [Description("User name")]
+    public string Username { get; set; }
 
-        [DataMember(Name = "ProjectId", IsRequired = true)]
-        public long ProjectId { get; set; }
-    }
+    /// <summary>
+    /// Project id
+    /// </summary>
+    [DataMember(Name = "ProjectId", IsRequired = true)]
+    [Description("Project id")]
+    public long ProjectId { get; set; }
 }

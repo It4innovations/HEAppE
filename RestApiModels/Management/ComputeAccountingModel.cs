@@ -1,18 +1,35 @@
 ﻿using System;
-using HEAppE.RestApiModels.AbstractModels;
+using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Compute accounting model
+/// </summary>
+[DataContract(Name = "ComputeAccountingModel")]
+[Description("Compute accounting model")]
+public class ComputeAccountingModel : SessionCodeModel
 {
-    [DataContract(Name = "ComputeAccountingModel")]
-    public class ComputeAccountingModel : SessionCodeModel
-    {
-        [DataMember(Name = "StartTime", IsRequired = true)]
-        public DateTime StartTime { get; set; }
-        [DataMember(Name = "EndTime", IsRequired = true)]
-        public DateTime EndTime { get; set; }
-        
-        [DataMember(Name = "ProjectId", IsRequired = true)]
-        public long ProjectId { get; set; }
-    }
+    /// <summary>
+    /// Start time
+    /// </summary>
+    [DataMember(Name = "StartTime", IsRequired = true)]
+    [Description("Start time")]
+    public DateTime StartTime { get; set; }
+
+    /// <summary>
+    /// End time
+    /// </summary>
+    [DataMember(Name = "EndTime", IsRequired = true)]
+    [Description("End time")]
+    public DateTime EndTime { get; set; }
+
+    /// <summary>
+    /// Project id
+    /// </summary>
+    [DataMember(Name = "ProjectId", IsRequired = true)]
+    [Description("Project id")]
+    public long ProjectId { get; set; }
 }

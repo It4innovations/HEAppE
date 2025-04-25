@@ -1,29 +1,52 @@
-﻿using HEAppE.ExtModels.DataTransfer.Models;
-using HEAppE.RestApiModels.AbstractModels;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using HEAppE.ExtModels.DataTransfer.Models;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.DataTransfer
+namespace HEAppE.RestApiModels.DataTransfer;
+
+/// <summary>
+/// Model for sending HTTP GET request to job node
+/// </summary>
+[DataContract(Name = "HttpGetToJobNodeModel")]
+[Description("Model for sending HTTP GET request to job node")]
+public class HttpGetToJobNodeModel : SubmittedJobInfoModel
 {
-    [DataContract(Name = "HttpGetToJobNodeModel")]
-    public class HttpGetToJobNodeModel : SubmittedJobInfoModel
+    /// <summary>
+    /// Http request
+    /// </summary>
+    [DataMember(Name = "HttpRequest")]
+    [Description("Http request")]
+    public string HttpRequest { get; set; }
+
+    /// <summary>
+    /// Http headers
+    /// </summary>
+    [DataMember(Name = "HttpHeaders")]
+    [Description("Http headers")]
+    public IEnumerable<HTTPHeaderExt> HttpHeaders { get; set; }
+
+    /// <summary>
+    /// Node ip address
+    /// </summary>
+    [DataMember(Name = "nodeIPAddress")]
+    [StringLength(50)]
+    [Description("Node ip address")]
+    public string NodeIPAddress { get; set; }
+
+    /// <summary>
+    /// Node port
+    /// </summary>
+    [DataMember(Name = "NodePort")]
+    [Required]
+    [Description("Node port")]
+    public int NodePort { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "HttpRequest")]
-        public string HttpRequest { get; set; }
-
-        [DataMember(Name = "HttpHeaders")]
-        public IEnumerable<HTTPHeaderExt> HttpHeaders { get; set; }
-
-        [DataMember(Name = "nodeIPAddress"), StringLength(50)]
-        public string NodeIPAddress { get; set; }
-
-        [DataMember(Name = "NodePort"), Required]
-        public int NodePort { get; set; }
-        public override string ToString()
-        {
-            return $"HttpGetToJobNodeModel({base.ToString()}; HttpRequest: {HttpRequest}; HttpHeaders: {String.Join("; ", HttpHeaders)}; NodeIPAddress: {NodeIPAddress}; NodePort: {NodePort})";
-        }
+        return
+            $"HttpGetToJobNodeModel({base.ToString()}; HttpRequest: {HttpRequest}; HttpHeaders: {string.Join("; ", HttpHeaders)}; NodeIPAddress: {NodeIPAddress}; NodePort: {NodePort})";
     }
 }

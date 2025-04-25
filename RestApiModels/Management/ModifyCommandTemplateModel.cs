@@ -1,39 +1,80 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Modify command template model 
+/// </summary>
+[DataContract(Name = "ModifyCommandTemplateModel")]
+[Description("Modify command template model")]
+public class ModifyCommandTemplateModel : SessionCodeModel
 {
-    [DataContract(Name = "ModifyCommandTemplateModel")]
-    public class ModifyCommandTemplateModel : SessionCodeModel
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember(Name = "Id", IsRequired = true)]
+    [Description("Id")]
+    public long Id { get; set; }
+
+    /// <summary>
+    /// Name
+    /// </summary>
+    [DataMember(Name = "Name", IsRequired = true)]
+    [StringLength(80)]
+    [Description("Name")]
+    public string Name { get; set; }
+
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember(Name = "Description", IsRequired = true)]
+    [StringLength(200)]
+    [Description("Description")]
+    public string Description { get; set; }
+
+    /// <summary>
+    /// Extended allocation command
+    /// </summary>
+    [DataMember(Name = "ExtendedAllocationCommand", IsRequired = false)]
+    [StringLength(100)]
+    [Description("Extended allocation command")]
+    public string ExtendedAllocationCommand { get; set; }
+
+    /// <summary>
+    /// Executable file
+    /// </summary>
+    [DataMember(Name = "ExecutableFile", IsRequired = true)]
+    [StringLength(255)]
+    [Description("Executable file")]
+    public string ExecutableFile { get; set; }
+
+    /// <summary>
+    /// Preparation script
+    /// </summary>
+    [DataMember(Name = "PreparationScript", IsRequired = false)]
+    [StringLength(500)]
+    [Description("Preparation script")]
+    public string PreparationScript { get; set; }
+
+    /// <summary>
+    /// Cluster node type id
+    /// </summary>
+    [DataMember(Name = "ClusterNodeTypeId", IsRequired = true)]
+    [Description("Cluster node type id")]
+    public long ClusterNodeTypeId { get; set; }
+
+    /// <summary>
+    /// Is enabled
+    /// </summary>
+    [DataMember(Name = "IsEnabled", IsRequired = true)]
+    [Description("Is enabled")]
+    public bool IsEnabled { get; set; }
+
+    public override string ToString()
     {
-        [DataMember(Name = "Id", IsRequired = true)]
-        public long Id { get; set; }
-        
-        [DataMember(Name = "Name", IsRequired = true), StringLength(80)]
-        public string Name { get; set; }
-        
-        [DataMember(Name = "Description", IsRequired = true), StringLength(200)]
-        public string Description { get; set; }
-        
-        [DataMember(Name = "ExtendedAllocationCommand", IsRequired = false), StringLength(100)]
-        public string ExtendedAllocationCommand { get; set; }
-
-        [DataMember(Name = "ExecutableFile", IsRequired = true), StringLength(255)]
-        public string ExecutableFile { get; set; }
-
-        [DataMember(Name = "PreparationScript", IsRequired = false), StringLength(500)]
-        public string PreparationScript { get; set; }
-        
-        [DataMember(Name = "ClusterNodeTypeId", IsRequired = true)]
-        public long ClusterNodeTypeId { get; set; }
-        
-        [DataMember(Name = "IsEnabled", IsRequired = true)]
-        public bool IsEnabled { get; set; }
-        
-        public override string ToString()
-        {
-            return $"ModifyCommandTemplateModel({base.ToString()}; Id: {Id}, Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; PreparationScript: {PreparationScript}, ClusterNodeTypeId: {ClusterNodeTypeId}, IsEnabled: {IsEnabled})";
-        }
+        return $"ModifyCommandTemplateModel({base.ToString()}; Id: {Id}, Name: {Name}; Description: {Description}; ExtendedAllocationCommand: {ExtendedAllocationCommand}; ExecutableFile: {ExecutableFile}; PreparationScript: {PreparationScript}, ClusterNodeTypeId: {ClusterNodeTypeId}, IsEnabled: {IsEnabled})";
     }
 }

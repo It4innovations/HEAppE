@@ -1,9 +1,7 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
 
-namespace HEAppE.DataAccessTier.IRepository.ClusterInformation
-{
-    public interface IClusterNodeTypeRequestedGroupRepository : IRepository<ClusterNodeTypeRequestedGroup>
-    {
+namespace HEAppE.DataAccessTier.IRepository.ClusterInformation;
 
-    }
+public interface IClusterNodeTypeRequestedGroupRepository : IRepository<ClusterNodeTypeRequestedGroup>
+{
 }

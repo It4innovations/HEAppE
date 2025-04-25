@@ -1,24 +1,42 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
+﻿using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
-namespace HEAppE.RestApiModels.Management
-{
-    [DataContract(Name = "CreateCommandInnerTemplateParameterModel")]
-    public class CreateCommandInnerTemplateParameterModel
-    {
-        [DataMember(Name = "Identifier", IsRequired = true), StringLength(20)]
-        public string Identifier { get; set; }
-        
-        [DataMember(Name = "Query", IsRequired = true), StringLength(200)]
-        public string Query { get; set; }
+namespace HEAppE.RestApiModels.Management;
 
-        [DataMember(Name = "Description", IsRequired = true), StringLength(200)]
-        public string Description { get; set; }
-        
-        public override string ToString()
-        {
-            return $"CreateCommandInnerTemplateParameterModel: Identifier={Identifier}, Query={Query}, Description={Description}";
-        }
+/// <summary>
+/// Create command inner template parameter model
+/// </summary>
+[DataContract(Name = "CreateCommandInnerTemplateParameterModel")]
+[Description("Create command inner template parameter model")]
+public class CreateCommandInnerTemplateParameterModel
+{
+    /// <summary>
+    /// Identifier
+    /// </summary>
+    [DataMember(Name = "Identifier", IsRequired = true)]
+    [StringLength(20)]
+    [Description("Identifier")]
+    public string Identifier { get; set; }
+
+    /// <summary>
+    /// Query
+    /// </summary>
+    [DataMember(Name = "Query", IsRequired = false)]
+    [StringLength(200)]
+    [Description("Query")]
+    public string Query { get; set; }
+
+    /// <summary>
+    /// Description
+    /// </summary>
+    [DataMember(Name = "Description", IsRequired = false)]
+    [StringLength(200)]
+    [Description("Description")]
+    public string Description { get; set; }
+
+    public override string ToString()
+    {
+        return $"CreateCommandInnerTemplateParameterModel: Identifier={Identifier}, Query={Query}, Description={Description}";
     }
 }

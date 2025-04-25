@@ -1,8 +1,7 @@
 ﻿using HEAppE.DomainObjects.JobManagement;
 
-namespace HEAppE.DataAccessTier.IRepository.JobManagement
+namespace HEAppE.DataAccessTier.IRepository.JobManagement;
+
+public interface IAccountingRepository : IRepository<Accounting>
 {
-    public interface IAccountingRepository : IRepository<Accounting>
-    {
-    }
 }

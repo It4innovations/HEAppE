@@ -1,11 +1,10 @@
-﻿using HEAppE.DomainObjects.FileTransfer;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.FileTransfer;
 
-namespace HEAppE.DataAccessTier.IRepository.FileTransfer
+namespace HEAppE.DataAccessTier.IRepository.FileTransfer;
+
+public interface IFileTransferTemporaryKeyRepository : IRepository<FileTransferTemporaryKey>
 {
-    public interface IFileTransferTemporaryKeyRepository : IRepository<FileTransferTemporaryKey>
-    {
-        IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKey();
-        bool ContainsActiveTemporaryKey(string publicKey);
-    }
+    IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKey();
+    bool ContainsActiveTemporaryKey(string publicKey);
 }

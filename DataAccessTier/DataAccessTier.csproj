@@ -1,43 +1,37 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
-  <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
-    <AssemblyName>DataAccessTier</AssemblyName>
-    <RootNamespace>HEAppE.DataAccessTier</RootNamespace>
-  </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Remove="Migrations\20200828083149_OpenStack.cs" />
-    <Compile Remove="Migrations\20200828083149_OpenStack.Designer.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <PackageReference Include="log4net" Version="2.0.17" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="7.0.19" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="7.0.19" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="7.0.19">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="7.0.19" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="7.0.19" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="7.0.19" />
-    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="7.0.19">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-    </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
-    <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
-    <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
-    <ProjectReference Include="..\Utils\Utils.csproj" />
-  </ItemGroup>
-
-
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <AssemblyName>DataAccessTier</AssemblyName>
+        <RootNamespace>HEAppE.DataAccessTier</RootNamespace>
+    </PropertyGroup>
     <ItemGroup>
-        <InternalsVisibleTo Include="DataAccessTier.Tests" />
-        <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+        <Compile Remove="Migrations\20200828083149_OpenStack.cs"/>
+        <Compile Remove="Migrations\20200828083149_OpenStack.Designer.cs"/>
+    </ItemGroup>
+    <ItemGroup>
+        <PackageReference Include="log4net" Version="3.0.3"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Proxies" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.0.0">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+    </ItemGroup>
+    <ItemGroup>
+        <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj"/>
+        <ProjectReference Include="..\DomainObjects\DomainObjects.csproj"/>
+        <ProjectReference Include="..\Exceptions\Exceptions.csproj"/>
+        <ProjectReference Include="..\Utils\Utils.csproj"/>
+    </ItemGroup>
+    <ItemGroup>
+        <InternalsVisibleTo Include="DataAccessTier.Tests"/>
+        <InternalsVisibleTo Include="DynamicProxyGenAssembly2"/>
     </ItemGroup>
 </Project>

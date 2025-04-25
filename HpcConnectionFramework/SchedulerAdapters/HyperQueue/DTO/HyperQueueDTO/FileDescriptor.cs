@@ -4,6 +4,5 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQu
 
 public class FileDescriptor
 {
-    [JsonProperty("File")]
-    public string File { get; set; }
+    [JsonProperty("File")] public string File { get; set; }
 }

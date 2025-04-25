@@ -7,104 +7,118 @@ using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.ServiceTier.FileTransfer;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HEAppE.DataStagingAPI.API
+namespace HEAppE.DataStagingAPI.API;
+
+/// <summary>
+///     Data Stagging Endpoint
+/// </summary>
+public class DataStagingEndpoint : IApiRoute
 {
-    /// <summary>
-    /// Data Stagging Endpoint
-    /// </summary>
-    public class DataStagingEndpoint : IApiRoute
+    public void Register(RouteGroupBuilder group)
     {
-        public void Register(RouteGroupBuilder group)
-        {
-            group = group.AddEndpointFilter<AuthorizationKeyFilter>()
-                            .MapGroup("DataStaging")
-                            .WithTags("DataStaging");
+        group = group.AddEndpointFilter<AuthorizationKeyFilter>()
+            .MapGroup("DataStaging")
+            .WithTags("DataStaging");
 
 
-            group.MapPost("GetFileTransferMethod", ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+        group.MapPost("GetFileTransferMethod",
+                ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+                {
+                    logger.LogDebug(
+                        """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
+                    return Results.Ok(
+                        new FileTransferService().TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
+                            model.SessionCode));
+                }).Produces<FileTransferMethodExt>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequestSizeLimit(98)
+            .WithOpenApi(generatedOperation =>
             {
-                logger.LogDebug("""Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
-                return Results.Ok(new FileTransferService().TrustfulRequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
-
-            }).Produces<FileTransferMethodExt>()
-              .ProducesValidationProblem(StatusCodes.Status400BadRequest)
-              .ProducesProblem(StatusCodes.Status401Unauthorized)
-              .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
-              .ProducesProblem(StatusCodes.Status429TooManyRequests)
-              .ProducesProblem(StatusCodes.Status500InternalServerError)
-              .RequestSizeLimit(98)
-              .WithOpenApi(generatedOperation =>
-              {
-                  generatedOperation.Summary = "Obtain data transfer information for job.";
-                  generatedOperation.Description = "Obtain credentials and information for ensuring job data transfer.";
-                  return generatedOperation;
-              });
+                generatedOperation.Summary = "Obtain data transfer information for job.";
+                generatedOperation.Description = "Obtain credentials and information for ensuring job data transfer.";
+                return generatedOperation;
+            });
 
 
-            group.MapPost("DownloadPartsOfJobFilesFromCluster", ([Validate] DownloadPartsOfJobFilesFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+        group.MapPost("DownloadPartsOfJobFilesFromCluster", ([Validate] DownloadPartsOfJobFilesFromClusterModel model,
+                [FromServices] ILogger<DataStagingEndpoint> logger) =>
             {
-                logger.LogDebug("""Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
-                return Results.Ok(new FileTransferService().DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId, model.TaskFileOffsets, model.SessionCode));
-
+                logger.LogDebug(
+                    """Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """,
+                    model);
+                return Results.Ok(new FileTransferService().DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
+                    model.TaskFileOffsets, model.SessionCode));
             }).Produces<JobFileContentExt>()
-              .ProducesValidationProblem(StatusCodes.Status400BadRequest)
-              .ProducesProblem(StatusCodes.Status401Unauthorized)
-              .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
-              .ProducesProblem(StatusCodes.Status429TooManyRequests)
-              .ProducesProblem(StatusCodes.Status500InternalServerError)
-              .RequestSizeLimit(480)
-              .WithOpenApi(generatedOperation =>
-              {
-                  generatedOperation.Summary = "Get specific part of FileType content.";
-                  generatedOperation.Description = "Get specific part of FileType content.<br>FileType: LogFile - 0, ProgressFile - 1, StandardErrorFile - 2, StandardOutputFile - 3.";
-                  return generatedOperation;
-              });
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequestSizeLimit(480)
+            .WithOpenApi(generatedOperation =>
+            {
+                generatedOperation.Summary = "Get specific part of FileType content.";
+                generatedOperation.Description =
+                    "Get specific part of FileType content.<br>FileType: LogFile - 0, ProgressFile - 1, StandardErrorFile - 2, StandardOutputFile - 3.";
+                return generatedOperation;
+            });
 
 
-            group.MapGet("ListChangedFilesForJob", ([FromQuery(Name = "SessionCode")] string sessionCode, [FromQuery(Name = "SubmittedJobInfoId")] long submittedJobInfoId, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator) =>
+        group.MapGet("ListChangedFilesForJob", ([FromQuery(Name = "SessionCode")] string sessionCode,
+                [FromQuery(Name = "SubmittedJobInfoId")] long submittedJobInfoId,
+                [FromServices] ILogger<DataStagingEndpoint> logger,
+                [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator) =>
             {
                 var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
                 validator.ValidateAndThrow(model);
 
-                logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """, model);
+                logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """,
+                    model);
                 return Results.Ok(new FileTransferService().ListChangedFilesForJob(submittedJobInfoId, sessionCode));
-
             }).Produces<IEnumerable<FileInformationExt>>()
-              .ProducesValidationProblem(StatusCodes.Status400BadRequest)
-              .ProducesProblem(StatusCodes.Status401Unauthorized)
-              .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
-              .ProducesProblem(StatusCodes.Status429TooManyRequests)
-              .ProducesProblem(StatusCodes.Status500InternalServerError)
-              .RequestSizeLimit(98)
-              .WithOpenApi(generatedOperation =>
-              {
-                  generatedOperation.Summary = "Get all changed files during job execution.";
-                  generatedOperation.Description = "Get all changed files during job execution with modification timestamp.";
-                  var parameter = generatedOperation.Parameters[0];
-                  parameter.Description = "SessionCode";
-                  var parameter2 = generatedOperation.Parameters[1];
-                  parameter2.Description = "SubmittedJobInfoId";
-                  return generatedOperation;
-              });
-
-            group.MapPost("DownloadFileFromCluster", ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequestSizeLimit(98)
+            .WithOpenApi(generatedOperation =>
             {
-                logger.LogDebug("""Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """, model);
-                return Results.Ok(new FileTransferService().DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath, model.SessionCode));
+                generatedOperation.Summary = "Get all changed files during job execution.";
+                generatedOperation.Description =
+                    "Get all changed files during job execution with modification timestamp.";
+                var parameter = generatedOperation.Parameters[0];
+                parameter.Description = "SessionCode";
+                var parameter2 = generatedOperation.Parameters[1];
+                parameter2.Description = "SubmittedJobInfoId";
+                return generatedOperation;
+            });
 
-            }).Produces<string>()
-              .ProducesValidationProblem(StatusCodes.Status400BadRequest)
-              .ProducesProblem(StatusCodes.Status401Unauthorized)
-              .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
-              .ProducesProblem(StatusCodes.Status429TooManyRequests)
-              .ProducesProblem(StatusCodes.Status500InternalServerError)
-              .RequestSizeLimit(378)
-              .WithOpenApi(generatedOperation =>
-              {
-                  generatedOperation.Summary = "Get content of file";
-                  generatedOperation.Description = "Get content of the specific file on HPC infrastructure. Content is encoded in BASE64 format.";
-                  return generatedOperation;
-              });
-        }
+        group.MapPost("DownloadFileFromCluster",
+                ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+                {
+                    logger.LogDebug(
+                        """Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """,
+                        model);
+                    return Results.Ok(new FileTransferService().DownloadFileFromCluster(model.SubmittedJobInfoId,
+                        model.RelativeFilePath, model.SessionCode));
+                }).Produces<string>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .RequestSizeLimit(378)
+            .WithOpenApi(generatedOperation =>
+            {
+                generatedOperation.Summary = "Get content of file";
+                generatedOperation.Description =
+                    "Get content of the specific file on HPC infrastructure. Content is encoded in BASE64 format.";
+                return generatedOperation;
+            });
     }
 }

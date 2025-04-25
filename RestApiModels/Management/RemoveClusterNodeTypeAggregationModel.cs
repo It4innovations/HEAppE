@@ -1,12 +1,20 @@
-﻿using HEAppE.RestApiModels.AbstractModels;
+﻿using System.ComponentModel;
 using System.Runtime.Serialization;
+using HEAppE.RestApiModels.AbstractModels;
 
-namespace HEAppE.RestApiModels.Management
+namespace HEAppE.RestApiModels.Management;
+
+/// <summary>
+/// Remove cluster node type aggregation model
+/// </summary>
+[DataContract(Name = "RemoveClusterNodeTypeAggregationModel")]
+[Description("Remove cluster node type aggregation model")]
+public class RemoveClusterNodeTypeAggregationModel : SessionCodeModel
 {
-    [DataContract(Name = "RemoveClusterNodeTypeAggregationModel")]
-    public class RemoveClusterNodeTypeAggregationModel : SessionCodeModel
-    {
-        [DataMember(Name = "Id", IsRequired = true)]
-        public long Id { get; set; }
-    }
+    /// <summary>
+    /// Id
+    /// </summary>
+    [DataMember(Name = "Id", IsRequired = true)]
+    [Description("Id")]
+    public long Id { get; set; }
 }

@@ -1,18 +1,17 @@
-﻿namespace HEAppE.DomainObjects.DataTransfer
+﻿namespace HEAppE.DomainObjects.DataTransfer;
+
+/// <summary>
+///     HTTP header
+/// </summary>
+public class HTTPHeader
 {
     /// <summary>
-    /// HTTP header
+    ///     Name
     /// </summary>
-    public class HTTPHeader
-    {
-        /// <summary>
-        /// Name
-        /// </summary>
-        public string Name { get; set; }
+    public string Name { get; set; }
 
-        /// <summary>
-        /// Value
-        /// </summary>
-        public string Value { get; set; }
-    }
+    /// <summary>
+    ///     Value
+    /// </summary>
+    public string Value { get; set; }
 }

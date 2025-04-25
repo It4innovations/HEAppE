@@ -1,8 +1,7 @@
 ﻿using HEAppE.DomainObjects.OpenStack;
 
-namespace HEAppE.DataAccessTier.IRepository.OpenStack
+namespace HEAppE.DataAccessTier.IRepository.OpenStack;
+
+public interface IOpenStackAuthenticationCredentialsRepository : IRepository<OpenStackAuthenticationCredential>
 {
-    public interface IOpenStackAuthenticationCredentialsRepository : IRepository<OpenStackAuthenticationCredential>
-    {
-    }
 }

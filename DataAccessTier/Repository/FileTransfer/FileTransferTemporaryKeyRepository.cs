@@ -1,29 +1,33 @@
-﻿using HEAppE.DataAccessTier.IRepository.FileTransfer;
-using HEAppE.DomainObjects.FileTransfer;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
+using HEAppE.DataAccessTier.IRepository.FileTransfer;
+using HEAppE.DomainObjects.FileTransfer;
 
-namespace HEAppE.DataAccessTier.Repository.FileTransfer
+namespace HEAppE.DataAccessTier.Repository.FileTransfer;
+
+internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransferTemporaryKey>,
+    IFileTransferTemporaryKeyRepository
 {
-    internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransferTemporaryKey>, IFileTransferTemporaryKeyRepository
+    #region Constructors
+
+    internal FileTransferTemporaryKeyRepository(MiddlewareContext context)
+        : base(context)
     {
-        #region Constructors
-        internal FileTransferTemporaryKeyRepository(MiddlewareContext context)
-            : base(context)
-        {
-
-        }
-        #endregion
-        #region Methods
-        public IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKey()
-        {
-            return GetAll().ToList();
-        }
-
-        public bool ContainsActiveTemporaryKey(string publicKey)
-        {
-            return GetAll().Any(w => w.PublicKey == publicKey);
-        }
-        #endregion
     }
+
+    #endregion
+
+    #region Methods
+
+    public IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKey()
+    {
+        return GetAll().ToList();
+    }
+
+    public bool ContainsActiveTemporaryKey(string publicKey)
+    {
+        return GetAll().Any(w => w.PublicKey == publicKey);
+    }
+
+    #endregion
 }

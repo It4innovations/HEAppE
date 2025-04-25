@@ -1,9 +1,8 @@
-﻿namespace HEAppE.DomainObjects.FileTransfer
+﻿namespace HEAppE.DomainObjects.FileTransfer;
+
+public class TaskFileOffset
 {
-    public class TaskFileOffset
-    {
-        public long SubmittedTaskInfoId { get; set; }
-        public SynchronizableFiles FileType { get; set; }
-        public long Offset { get; set; }
-    }
+    public long SubmittedTaskInfoId { get; set; }
+    public SynchronizableFiles FileType { get; set; }
+    public long Offset { get; set; }
 }

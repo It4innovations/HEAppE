@@ -1,10 +1,15 @@
-﻿namespace HEAppE.ExtModels.FileTransfer.Models
+﻿using System.ComponentModel;
+
+namespace HEAppE.ExtModels.FileTransfer.Models;
+
+/// <summary>
+/// Synchronizable files types
+/// </summary>
+[Description("Synchronizable files types")]
+public enum SynchronizableFilesExt
 {
-    public enum SynchronizableFilesExt
-    {
-        LogFile = 0,
-        ProgressFile = 1,
-        StandardErrorFile = 2,
-        StandardOutputFile = 3
-    }
+    LogFile = 0,
+    ProgressFile = 1,
+    StandardErrorFile = 2,
+    StandardOutputFile = 3
 }

@@ -1,10 +1,9 @@
-﻿namespace HEAppE.DomainObjects.FileTransfer
+﻿namespace HEAppE.DomainObjects.FileTransfer;
+
+public enum SynchronizableFiles
 {
-    public enum SynchronizableFiles
-    {
-        LogFile = 0,
-        ProgressFile = 1,
-        StandardErrorFile = 2,
-        StandardOutputFile = 3
-    }
+    LogFile = 0,
+    ProgressFile = 1,
+    StandardErrorFile = 2,
+    StandardOutputFile = 3
 }

@@ -1,9 +1,14 @@
-﻿namespace HEAppE.ExtModels.UserAndLimitationManagement.Models
+﻿using System.ComponentModel;
+
+namespace HEAppE.ExtModels.UserAndLimitationManagement.Models;
+
+/// <summary>
+/// Adaptor user types
+/// </summary>
+[Description("Adaptor user types")]
+public enum AdaptorUserTypeExt
 {
-    public enum AdaptorUserTypeExt
-    {
-        Default = 1,
-        OpenId = 2,
-        Lexis = 3
-    }
+    Default = 1,
+    OpenId = 2,
+    Lexis = 3
 }

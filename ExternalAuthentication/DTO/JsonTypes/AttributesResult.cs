@@ -1,26 +1,25 @@
-﻿using Newtonsoft.Json;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using Newtonsoft.Json;
 
-namespace HEAppE.ExternalAuthentication.DTO.JsonTypes
+namespace HEAppE.ExternalAuthentication.DTO.JsonTypes;
+
+public class AttributesResult
 {
-    public class AttributesResult
-    {
-        /// <summary>
-        /// Collection of projects which can be listed by the user.
-        /// </summary>
-        [JsonProperty("prj_list")]
-        public IEnumerable<AccessRightsResult> ProjectListRights { get; set; }
+    /// <summary>
+    ///     Collection of projects which can be listed by the user.
+    /// </summary>
+    [JsonProperty("prj_list")]
+    public IEnumerable<AccessRightsResult> ProjectListRights { get; set; }
 
-        /// <summary>
-        /// Collection of projects which can be read by the user.
-        /// </summary>
-        [JsonProperty("prj_read")]
-        public IEnumerable<AccessRightsResult> ProjectReadRights { get; set; }
+    /// <summary>
+    ///     Collection of projects which can be read by the user.
+    /// </summary>
+    [JsonProperty("prj_read")]
+    public IEnumerable<AccessRightsResult> ProjectReadRights { get; set; }
 
-        /// <summary>
-        /// Collection of projects which can be written to by the user.
-        /// </summary>
-        [JsonProperty("prj_write")]
-        public IEnumerable<AccessRightsResult> ProjectWriteRights { get; set; }
-    }
+    /// <summary>
+    ///     Collection of projects which can be written to by the user.
+    /// </summary>
+    [JsonProperty("prj_write")]
+    public IEnumerable<AccessRightsResult> ProjectWriteRights { get; set; }
 }

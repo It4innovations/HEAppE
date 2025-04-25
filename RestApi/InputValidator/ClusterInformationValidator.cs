@@ -1,56 +1,52 @@
 ﻿using HEAppE.RestApiModels.ClusterInformation;
 using HEAppE.Utils.Validation;
 
-namespace HEAppE.RestApi.InputValidator
+namespace HEAppE.RestApi.InputValidator;
+
+public class ClusterInformationValidator : AbstractValidator
 {
-    public class ClusterInformationValidator : AbstractValidator
+    public ClusterInformationValidator(object validationObj) : base(validationObj)
     {
-        public ClusterInformationValidator(object validationObj) : base(validationObj)
+    }
+
+    public override ValidationResult Validate()
+    {
+        var message = _validationObject switch
         {
-        }
+            CurrentClusterNodeUsageModel ext => ValidateCurrentClusterNodeUsageModel(ext),
+            GetCommandTemplateParametersNameModel ext => ValidateGetCommandTemplateParametersNameModele(ext),
+            ListAvailableClustersModel ext => ValidateListAvailableClustersModel(ext),
+            _ => string.Empty
+        };
 
-        public override ValidationResult Validate()
-        {
-            string message = _validationObject switch
-            {
-                CurrentClusterNodeUsageModel ext => ValidateCurrentClusterNodeUsageModel(ext),
-                GetCommandTemplateParametersNameModel ext => ValidateGetCommandTemplateParametersNameModele(ext),
-                _ => string.Empty
-            };
+        return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
 
-            return new ValidationResult(string.IsNullOrEmpty(message), message);
-        }
+    private string ValidateListAvailableClustersModel(ListAvailableClustersModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
+    }
 
-        private string ValidateCurrentClusterNodeUsageModel(CurrentClusterNodeUsageModel model)
-        {
-            ValidateId(model.ClusterNodeId, "ClusterNodeId");
-            ValidateId(model.ProjectId, "ProjectId");
-            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
-            if (!sessionCodeValidation.IsValid)
-            {
-                _messageBuilder.AppendLine(sessionCodeValidation.Message);
-            }
-            return _messageBuilder.ToString();
-        }
+    private string ValidateCurrentClusterNodeUsageModel(CurrentClusterNodeUsageModel model)
+    {
+        ValidateId(model.ClusterNodeId, "ClusterNodeId");
+        ValidateId(model.ProjectId, "ProjectId");
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
+    }
 
-        private string ValidateGetCommandTemplateParametersNameModele(GetCommandTemplateParametersNameModel model)
-        {
-            if (model.CommandTemplateId <= 0)
-            {
-                _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("CommandTemplateId"));
-            }
+    private string ValidateGetCommandTemplateParametersNameModele(GetCommandTemplateParametersNameModel model)
+    {
+        if (model.CommandTemplateId <= 0) _messageBuilder.AppendLine(MustBeGreaterThanZeroMessage("CommandTemplateId"));
 
-            if (ContainsIllegalCharactersForPath(model.UserScriptPath))
-            {
-                _messageBuilder.AppendLine("UserScriptPath contains illegal characters.");
-            }
+        if (ContainsIllegalCharactersForPath(model.UserScriptPath))
+            _messageBuilder.AppendLine("UserScriptPath contains illegal characters.");
 
-            ValidationResult sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
-            if (!sessionCodeValidation.IsValid)
-            {
-                _messageBuilder.AppendLine(sessionCodeValidation.Message);
-            }
-            return _messageBuilder.ToString();
-        }
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        return _messageBuilder.ToString();
     }
 }
