@@ -89,7 +89,7 @@ public class FileTransferLogic : IFileTransferLogic
                 _log.Info(
                     $"Removing file transfer key for user \"{tempKey.Key.ClusterUser.Username}\" in cluster \"{tempKey.Key.Cluster.Name}\"");
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, tempKey.Key.Project);
+                    .CreateScheduler(cluster, tempKey.Key.Project, adaptorUserId: null);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
                     tempKey.Key.ClusterUser, tempKey.Key.Cluster);
             }
@@ -198,7 +198,7 @@ public class FileTransferLogic : IFileTransferLogic
                 PublicKey = publicKey
             });
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project)
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
             .AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
 
         _unitOfWork.Save();
@@ -220,7 +220,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (temporaryKey is null) throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project)
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
             .RemoveDirectFileTransferAccessForUser(
                 new[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser,
                 jobInfo.Specification.Cluster);

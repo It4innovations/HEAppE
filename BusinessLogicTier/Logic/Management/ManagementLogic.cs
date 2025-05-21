@@ -60,7 +60,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="InputValidationException"></exception>
     public CommandTemplate CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
         long projectId, string description, string extendedAllocationCommand, string executableFile,
-        string preparationScript)
+        string preparationScript, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -80,9 +80,9 @@ public class ManagementLogic : IManagementLogic
         var cluster = commandTemplate.ClusterNodeType.Cluster;
         var serviceAccount =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                projectId);
+                projectId, adaptorUserId: adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project)
+            .CreateScheduler(cluster, project, adaptorUserId: adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
             .ToList();
 
@@ -217,7 +217,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     /// <exception cref="InputValidationException"></exception>
     public CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
-        string description, string extendedAllocationCommand, string executableFile, string preparationScript)
+        string description, string extendedAllocationCommand, string executableFile, string preparationScript, long? adaptorUserId)
     {
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??
                               throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
@@ -233,9 +233,9 @@ public class ManagementLogic : IManagementLogic
 
         var cluster = commandTemplate.ClusterNodeType.Cluster;
         var serviceAccount =
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId);
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, adaptorUserId: adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project)
+            .CreateScheduler(cluster, project, adaptorUserId: adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
             .ToList();
 
@@ -559,9 +559,9 @@ public class ManagementLogic : IManagementLogic
     /// </summary>
     /// <param name="projectId"></param>
     /// <returns></returns>
-    public List<SecureShellKey> GetSecureShellKeys(long projectId)
+    public List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId)
     {
-        return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
+        return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, adaptorUserId: adaptorUserId)
             .Where(x => !x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
@@ -575,7 +575,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="projectId"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId)
+    public List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project is null || project.EndDate < DateTime.UtcNow)
@@ -585,7 +585,7 @@ public class ManagementLogic : IManagementLogic
         {
             var existingCredentials =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId);
+                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, adaptorUserId: adaptorUserId);
             if (existingCredentials.Any())
             {
                 //get existing secure key
@@ -601,7 +601,7 @@ public class ManagementLogic : IManagementLogic
                 }
             }
 
-            secureShellKeys.Add(CreateSecureShellKey(username, password, project));
+            secureShellKeys.Add(CreateSecureShellKey(username, password, project, adaptorUserId));
         }
 
         return secureShellKeys;
@@ -770,12 +770,12 @@ public class ManagementLogic : IManagementLogic
     /// <param name="clusterProjectRootDirectory"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
+    public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, long? adaptorUserId)
     {
         clusterProjectRootDirectory = clusterProjectRootDirectory
             .Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
         var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAuthenticationCredentialsProject(projectId)
+            .GetAuthenticationCredentialsProject(projectId, adaptorUserId: adaptorUserId)
             .ToList();
         Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();
         if (!clusterAuthenticationCredentials.Any())
@@ -788,7 +788,7 @@ public class ManagementLogic : IManagementLogic
             var cluster = clusterProjectCredential.ClusterProject.Cluster;
             var project = clusterProjectCredential.ClusterProject.Project;
             var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: adaptorUserId);
             var isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath,
                 cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
             if (isInitialized)
@@ -848,7 +848,7 @@ public class ManagementLogic : IManagementLogic
             var cluster = clusterProjectCredential.ClusterProject.Cluster;
             var project = clusterProjectCredential.ClusterProject.Project;
 
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
             if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
                 noAccessClusterIds.Add(cluster.Id);
         }
@@ -1838,7 +1838,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
     }
 
-    private SecureShellKey CreateSecureShellKey(string username, string password, Project project)
+    private SecureShellKey CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
     {
         _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id)
@@ -1858,7 +1858,7 @@ public class ManagementLogic : IManagementLogic
         {
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id);
+                    clusterProject.ClusterId, project.Id, adaptorUserId: adaptorUserId);
 
             if (serviceAccount == null)
             {

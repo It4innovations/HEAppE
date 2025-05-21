@@ -73,7 +73,8 @@ public class ManagementService : IManagementService
                 AdaptorUserRoleType.Maintainer, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var commandTemplate = managementLogic.CreateCommandTemplateFromGeneric(genericCommandTemplateId, name,
-                projectId, description, extendedAllocationCommand, executableFile, preparationScript);
+                projectId, description, extendedAllocationCommand, executableFile, preparationScript,
+                adaptorUserId: loggedUser.Id);
             return commandTemplate.ConvertIntToExt();
         }
     }
@@ -117,7 +118,8 @@ public class ManagementService : IManagementService
             if (!commandTemplate.ProjectId.HasValue || commandTemplate.IsDeleted)
                 throw new InputValidationException("NotPermitted");
             var updatedCommandTemplate = managementLogic.ModifyCommandTemplateFromGeneric(commandTemplateId, name, projectId,
-                description, extendedAllocationCommand, executableFile, preparationScript);
+                description, extendedAllocationCommand, executableFile, preparationScript,
+                adaptorUserId: loggedUser.Id);
             return updatedCommandTemplate.ConvertIntToExt();
         }
     }
@@ -272,7 +274,8 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.GetSecureShellKeys(projectId).Select(x => x.ConvertIntToExt()).ToList();
+            return managementLogic.GetSecureShellKeys(projectId,
+                adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -285,8 +288,8 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.CreateSecureShellKey(credentials, projectId).Select(x => x.ConvertIntToExt())
-                .ToList();
+            return managementLogic.CreateSecureShellKey(credentials, projectId,
+                adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -327,8 +330,8 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory)
-                .Select(x => x.ConvertIntToExt()).ToList();
+            return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory,
+                adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 

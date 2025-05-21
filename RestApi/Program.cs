@@ -34,13 +34,32 @@ public class Program
                 .UseKestrel()
                 .UseStartup<Startup>();
         else
-            // Run w/o docker
+            // Run w/o docker - local development
             builder = WebHost.CreateDefaultBuilder()
                 .UseUrls("http://*:5000")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    config.AddJsonFile("P:\\source\\localHEAppE\\confs/appsettings.json", false, true);
-                    config.AddNotJson("P:\\source\\localHEAppE\\confs/seed.njson");
+                    var confsDirs = new string[] {
+                        Directory.GetCurrentDirectory(),
+                        "/opt/heappe/confs",
+                        "P:\\source\\localHEAppE\\confs"
+                    };
+                    bool configFound = false;
+                    foreach (var confDir in confsDirs)
+                    {
+                        var dirSep = Path.DirectorySeparatorChar;
+                        var appsettingsPath = $"{confDir}{dirSep}appsettings.json";
+                        var seedPath = $"{confDir}{dirSep}seed.njson";
+                        if (File.Exists(appsettingsPath) && File.Exists(seedPath))
+                        {
+                            config.AddJsonFile(appsettingsPath, false, true);
+                            config.AddNotJson(seedPath);
+                            configFound = true;
+                            break;
+                        }
+                    }
+                    if (!configFound)
+                        throw new Exception("Configuration files not found!");
                 })
                 .UseStartup<Startup>();
         return builder;

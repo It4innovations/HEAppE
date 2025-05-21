@@ -790,7 +790,6 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get all clusters
     /// </summary>
-    /// <param name="id"></param>
     /// <param name="sessionCode"></param>
     /// <returns></returns>
     [HttpGet("Clusters")]
@@ -1743,7 +1742,8 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get SSH keys for project
     /// </summary>
-    /// <param name="model"></param>
+    /// <param name="projectId"></param>
+    /// <param name="sessionCode"></param>
     /// <returns></returns>
     [HttpGet("SecureShellKeys")]
     [RequestSizeLimit(1000)]

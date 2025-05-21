@@ -65,10 +65,11 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             throw new InvalidRequestException("UserNoAccessToClusterNode", loggedUser, clusterNodeId);
         var serviceAccount =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                nodeType.ClusterId.Value, projectId);
+                nodeType.ClusterId.Value, projectId, adaptorUserId: loggedUser.Id);
         return serviceAccount is null
             ? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, nodeType.ClusterId.Value)
-            : SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster, project)
+            : SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType)
+                .CreateScheduler(nodeType.Cluster, project, adaptorUserId:loggedUser.Id)
                 .GetCurrentClusterNodeUsage(nodeType, serviceAccount);
     }
 
@@ -97,13 +98,13 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             var cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccountCredentials =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                    projectId);
+                    projectId, adaptorUserId: loggedUser.Id);
             if (serviceAccountCredentials is null)
                 throw new RequestedObjectDoesNotExistException("ServiceAccountCredentialsNotDefinedInCommandTemplate");
 
             var commandTemplateParameters = new List<string> { scriptPath };
             commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project)
+                .CreateScheduler(cluster, project, adaptorUserId: loggedUser.Id)
                 .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath).ToList());
             return commandTemplateParameters;
         }
@@ -121,11 +122,11 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         //return all non service account for specific cluster and project
         var credentials =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                clusterId, projectId);
+                clusterId, projectId, adaptorUserId: null);
         if (credentials == null || credentials?.Count() == 0)
             throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", clusterId, projectId);
         var serviceCredentials =
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId)
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, adaptorUserId: null)
             ?? throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNoServiceAccount", clusterId,
                 projectId);
 
