@@ -79,7 +79,8 @@ public class FileTransferLogic : IFileTransferLogic
             var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
                     new
                     {
-                        g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster,
+                        g.SubmittedJob.Specification.ClusterUser,
+                        g.SubmittedJob.Specification.Cluster,
                         g.SubmittedJob.Specification.Project
                     })
                 .ToList();
@@ -88,8 +89,10 @@ public class FileTransferLogic : IFileTransferLogic
             {
                 _log.Info(
                     $"Removing file transfer key for user \"{tempKey.Key.ClusterUser.Username}\" in cluster \"{tempKey.Key.Cluster.Name}\"");
+                // adaptorUserId: null // TODO: check the solution below
+                long? adaptorUserId = tempKey.Key.Project.IsOneToOneMapping ? tempKey.Key.ClusterUser.ClusterProjectCredentials.FirstOrDefault().AdaptorUser.Id : null;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, tempKey.Key.Project, adaptorUserId: null);
+                    .CreateScheduler(cluster, tempKey.Key.Project, adaptorUserId: adaptorUserId);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
                     tempKey.Key.ClusterUser, tempKey.Key.Cluster);
             }

@@ -313,7 +313,6 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             var cluster = jobGroup.Key.Cluster;
             var project = jobGroup.Key.Project;
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
             _logger.Info($"Updating current state of unfinished jobs for cluster {cluster.Name} and project {project.Name}");
             
             var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
@@ -330,12 +329,18 @@ internal class JobManagementLogic : IJobManagementLogic
 
                 if (tasksExceedWaitLimit.Any())
                 {
-                    scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.",
-                        userJobGroup.Key);
+                    // adaptorUserId: null // TODO: check the solution below
+                    SchedulerFactory
+                        .GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, project, adaptorUserId: userJobGroup.First().Submitter.Id)
+                        .CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     tasksExceedWaitLimit.ForEach(x=>_logger.Warn($"Job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
                 }
-                   
             }
+
+            var scheduler = SchedulerFactory
+                .GetInstance(cluster.SchedulerType)
+                .CreateScheduler(cluster, project, adaptorUserId: null);
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
                 actualUnfinishedSchedulerTasksInfo =
@@ -433,7 +438,7 @@ internal class JobManagementLogic : IJobManagementLogic
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-        specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId);
+        specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId, adaptorUserId: loggedUser.Id);
         specification.Submitter = loggedUser;
         specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
         specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);

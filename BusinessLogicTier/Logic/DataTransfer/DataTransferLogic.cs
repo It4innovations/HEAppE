@@ -156,7 +156,7 @@ public class DataTransferLogic : IDataTransferLogic
         _logger.Info($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
 
         var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
-            .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, adaptorUserId: null);
+            .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id);
         lock (_lockTunnelObj)
         {
             scheduler.RemoveTunnel(taskInfo);

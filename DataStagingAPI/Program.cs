@@ -28,6 +28,19 @@ if (Environment.GetEnvironmentVariable("ASPNETCORE_RUNTYPE_ENVIRONMENT") == "Doc
 else
 {
     builder.Logging.AddLog4Net("Logging/log4net.config");
+    if (!HEAppE.Utils.FileSystemUtils.AddConfigurationFiles(
+        confsDirs: [
+            Directory.GetCurrentDirectory(),
+            "/opt/heappe/confs",
+            "P:\\source\\localHEAppE\\confs"
+        ],
+        confFiles: [
+            "appsettings.json",
+            "appsettings-data.json",
+        ],
+        addJsonFile: confPath => builder.Configuration.AddJsonFile(confPath, false, false))
+    )
+        throw new Exception("Configuration files not found!");
 }
 
 //IPRateLimitation

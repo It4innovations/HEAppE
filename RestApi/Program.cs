@@ -7,6 +7,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
+using HEAppE.Utils;
 
 namespace HEAppE.RestApi;
 
@@ -39,8 +40,7 @@ public class Program
                 .UseUrls("http://*:5000")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    if (!AddConfigurationFiles(
-                        config,
+                    if (!FileSystemUtils.AddConfigurationFiles(
                         confsDirs: [
                             Directory.GetCurrentDirectory(),
                             "/opt/heappe/confs",
@@ -50,47 +50,14 @@ public class Program
                             "appsettings.json",
                             "seed.njson"
                         ],
-                        optional: false,
-                        reloadOnChange: false)
+                        addJsonFile: confPath => config.AddJsonFile(confPath, false, true),
+                        addNotJson: confPath => config.AddNotJson(confPath))
                     )
                         throw new Exception("Configuration files not found!");
                 })
                 .UseStartup<Startup>();
         return builder;
     }
-
-    private static bool AddConfigurationFiles(IConfigurationBuilder config, string[] confsDirs, string[] confFiles, bool optional, bool reloadOnChange)
-    {
-        foreach (var confDir in confsDirs)
-        {
-            bool configFound = true;
-            foreach (var confFile in confFiles)
-            {
-                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
-                if (!File.Exists(confPath))
-                {
-                    configFound = false;
-                    break;
-                }
-            }
-            if (!configFound)
-                continue;
-
-            foreach (var confFile in confFiles)
-            {
-                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
-                if (confPath.EndsWith(".json"))
-                    config.AddJsonFile(confPath, optional, reloadOnChange);
-                else if (confPath.EndsWith(".njson"))
-                    config.AddNotJson(confPath);
-            }
-
-            return true;
-        }
-
-        return false;
-    }
-
 }
 
 #region NJSON Parser Methods
