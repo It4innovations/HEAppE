@@ -197,9 +197,38 @@ public class DataTransferLogic : IDataTransferLogic
         var response = await basicRestClient.ExecuteAsync(request);
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            _logger.Info($"Response: \"{response.Content}\"");
-            throw new UnableToCreateConnectionException("ResponseNotOk");
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP GET failed for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ErrorMessage: {response.ErrorMessage}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            _logger.Info(logBuilder.ToString());
+
+            throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
         }
+        else
+        {
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP GET successful for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            _logger.Info(logBuilder.ToString());
+        }
+
         return response.Content;
     }
 
@@ -243,8 +272,36 @@ public class DataTransferLogic : IDataTransferLogic
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            _logger.Info($"Response: \"{response.Content}\"");
-            throw new UnableToCreateConnectionException("ResponseNotOk");
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP POST failed for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ErrorMessage: {response.ErrorMessage}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            _logger.Info(logBuilder.ToString());
+
+            throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
+        }
+        else
+        {
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP POST successful for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            _logger.Info(logBuilder.ToString());
         }
 
         return response.Content;
