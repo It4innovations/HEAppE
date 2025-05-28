@@ -203,8 +203,6 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"Content: {response.Content}");
             logBuilder.AppendLine($"ErrorMessage: {response.ErrorMessage}");
             logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
-            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
-            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
             logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
@@ -220,8 +218,6 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
             logBuilder.AppendLine($"Content: {response.Content}");
             logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
-            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
-            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
             logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
@@ -278,8 +274,6 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"Content: {response.Content}");
             logBuilder.AppendLine($"ErrorMessage: {response.ErrorMessage}");
             logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
-            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
-            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
             logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
@@ -295,8 +289,6 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
             logBuilder.AppendLine($"Content: {response.Content}");
             logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
-            logBuilder.AppendLine($"Headers: {string.Join(", ", response.Headers.Select(h => $"{h.Name}: {h.Value}"))}");
-            logBuilder.AppendLine($"Cookies: {string.Join(", ", response.Cookies.Select(c => $"{c.Name}={c.Value}"))}");
             logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
