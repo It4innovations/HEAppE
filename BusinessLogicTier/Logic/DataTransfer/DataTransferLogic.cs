@@ -178,7 +178,10 @@ public class DataTransferLogic : IDataTransferLogic
         if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
             throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
 
-        var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
+        var allocatedPort = getTunnelsInfos.LastOrDefault(f => f.RemotePort == nodePort).LocalPort.Value;
+        _logger.Info(
+            $"Allocated port for task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" is: \"{allocatedPort}\"");
+        
         var options = new RestClientOptions($"http://localhost:{allocatedPort}")
         {
             Encoding = Encoding.UTF8,
@@ -195,6 +198,38 @@ public class DataTransferLogic : IDataTransferLogic
         headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
 
         var response = await basicRestClient.ExecuteAsync(request);
+       
+        if((int)response.StatusCode == 0 && response.ErrorMessage.Contains("Connection refused"))
+        {
+            _logger.Error($"Connection refused for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            _logger.Info($"Attempting to recreate tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            //try to open the tunnel again
+            lock (_lockTunnelObj)
+            {
+                _logger.Info($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort);
+                _taskWithExistingTunnel.Add(submittedTaskInfoId);
+                _logger.Info($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            }
+            allocatedPort = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
+                .LastOrDefault(f => f.RemotePort == nodePort).LocalPort.Value;
+            _logger.Info($"New allocated port after tunnel recreation: {allocatedPort}");
+            options = new RestClientOptions($"http://localhost:{allocatedPort}")
+            {
+                Encoding = Encoding.UTF8,
+                CachePolicy = new CacheControlHeaderValue
+                {
+                    NoCache = true,
+                    NoStore = true
+                },
+                Timeout = TimeSpan.FromMilliseconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+            };
+            basicRestClient = new RestClient(options);
+            request = new RestRequest(httpRequest);
+            //retry the request
+            response = await basicRestClient.ExecuteAsync(request);
+        }
+        
         if (response.StatusCode != HttpStatusCode.OK)
         {
             var logBuilder = new StringBuilder();
