@@ -211,8 +211,14 @@ public class DataTransferLogic : IDataTransferLogic
                 _taskWithExistingTunnel.Add(submittedTaskInfoId);
                 _logger.Info($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
             }
-            allocatedPort = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
-                .LastOrDefault(f => f.RemotePort == nodePort).LocalPort.Value;
+            var tunnel = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
+                .LastOrDefault(f => f.RemotePort == nodePort);
+
+            if (tunnel == null || tunnel.LocalPort == null)
+            {
+                throw new InvalidOperationException($"No tunnel found for RemotePort={nodePort} on node {nodeIPAddress}.");
+            }
+            allocatedPort = tunnel.LocalPort.Value;
             _logger.Info($"New allocated port after tunnel recreation: {allocatedPort}");
             options = new RestClientOptions($"http://localhost:{allocatedPort}")
             {
