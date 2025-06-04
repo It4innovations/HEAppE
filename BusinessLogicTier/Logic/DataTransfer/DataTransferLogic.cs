@@ -207,6 +207,7 @@ public class DataTransferLogic : IDataTransferLogic
             lock (_lockTunnelObj)
             {
                 _logger.Info($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+                scheduler.RemoveTunnel(taskInfo);
                 scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort);
                 _taskWithExistingTunnel.Add(submittedTaskInfoId);
                 _logger.Info($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
