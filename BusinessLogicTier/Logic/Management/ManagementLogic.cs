@@ -309,7 +309,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
     public Project CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail,
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
         AdaptorUser loggedUser)
     {
         var existingProject = _unitOfWork.ProjectRepository.GetByAccountingString(accountingString);
@@ -322,7 +322,7 @@ public class ManagementLogic : IManagementLogic
                       };
 
         var project = InitializeProject(accountingString, usageType, name, description, startDate, endDate,
-            useAccountingStringForScheduler, contact);
+            useAccountingStringForScheduler, contact, isOneToOneMapping);
 
         // Create user groups for different purposes
         var defaultAdaptorUserGroup = CreateAdaptorUserGroup(project, name, description, string.Empty);
@@ -393,7 +393,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler)
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping)
     {
         var project = _unitOfWork.ProjectRepository.GetById(id)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -406,6 +406,7 @@ public class ManagementLogic : IManagementLogic
         project.ModifiedAt = DateTime.UtcNow;
         project.UseAccountingStringForScheduler =
             useAccountingStringForScheduler ?? project.UseAccountingStringForScheduler;
+        project.IsOneToOneMapping = isOneToOneMapping;
 
         _unitOfWork.ProjectRepository.Update(project);
         _unitOfWork.Save();
@@ -2141,7 +2142,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="contact"></param>
     /// <returns></returns>
     private static Project InitializeProject(string accountingString, UsageType usageType, string name,
-        string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, Contact contact)
+        string description, DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, Contact contact, bool isOneToOneMapping)
     {
         return new Project
         {
@@ -2161,7 +2162,8 @@ public class ManagementLogic : IManagementLogic
                     IsPI = true,
                     Contact = contact
                 }
-            }
+            },
+            IsOneToOneMapping = isOneToOneMapping
         };
     }
 

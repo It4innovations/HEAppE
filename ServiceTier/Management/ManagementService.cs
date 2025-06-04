@@ -169,10 +169,10 @@ public class ManagementService : IManagementService
     }
 
     public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, string sessionCode)
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping, string sessionCode)
     {
         _logger.Info(
-            $"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}");
+            $"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}, IsOneToOneMapping: {isOneToOneMapping}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
@@ -180,23 +180,23 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate,
-                endDate, useAccountingStringForScheduler, piEmail, loggedUser);
+                endDate, useAccountingStringForScheduler, piEmail, isOneToOneMapping, loggedUser);
             return project.ConvertIntToExt();
         }
     }
 
     public ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, string sessionCode)
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, string sessionCode)
     {
         _logger.Info(
-            $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}");
+            $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, IsOneToOneMapping: {isOneToOneMapping}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, id, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var project = managementLogic.ModifyProject(id, usageType, name, description, startDate, endDate,
-                useAccountingStringForScheduler);
+                useAccountingStringForScheduler, isOneToOneMapping);
             return project.ConvertIntToExt();
         }
     }

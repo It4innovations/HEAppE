@@ -516,9 +516,11 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var project = _managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType,
-            model.Name,
-            model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
+        var project = _managementService.CreateProject(model.AccountingString,
+            model.UsageType.HasValue ? model.UsageType.ConvertExtToInt() : UsageType.CoreHours, // TODO: check default for UsageType
+            model.Name, model.Description,
+            model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
+            model.PIEmail, model.IsOneToOneMapping ?? false,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
@@ -546,7 +548,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
-            model.SessionCode);
+            model.IsOneToOneMapping ?? false, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
     }

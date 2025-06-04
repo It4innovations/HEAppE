@@ -31,11 +31,11 @@ public interface IManagementLogic
     Project GetProjectById(long id);
 
     Project CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail,
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
         AdaptorUser loggedUser);
 
     Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler);
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping);
 
     void RemoveProject(long id);
     List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId);
