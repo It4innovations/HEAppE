@@ -169,7 +169,7 @@ public class DataTransferLogic : IDataTransferLogic
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
         _logger.Info(
-            $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\"");
+            $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
@@ -275,7 +275,7 @@ public class DataTransferLogic : IDataTransferLogic
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
         _logger.Info(
-            $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\" HTTP Payload: \"{httpPayload}\"");
+            $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\" HTTP Payload: \"{httpPayload}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
@@ -324,7 +324,8 @@ public class DataTransferLogic : IDataTransferLogic
             _logger.Info($"Content-type set to 'raw' for task ID: {submittedTaskInfoId}");
         }
         
-        request.AddHeader("contentLength", payload.Length);
+        //set content length
+        request.AddHeader("Content-Length", payload.Length.ToString());
 
         var response = await basicRestClient.ExecuteAsync(request);
 
@@ -342,6 +343,8 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"NodePort: {nodePort}");
             logBuilder.AppendLine($"HTTP Payload: {httpPayload}");
             logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Request Body: {Encoding.UTF8.GetString(payload)}");
+            logBuilder.AppendLine($"Content-Length: {payload.Length}");
             _logger.Info(logBuilder.ToString());
 
             throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
@@ -359,6 +362,8 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"NodePort: {nodePort}");
             logBuilder.AppendLine($"HTTP Payload: {httpPayload}");
             logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Request Body: {Encoding.UTF8.GetString(payload)}");
+            logBuilder.AppendLine($"Content-Length: {payload.Length}");
             _logger.Info(logBuilder.ToString());
         }
 
