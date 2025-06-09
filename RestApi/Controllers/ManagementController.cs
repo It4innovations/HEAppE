@@ -517,7 +517,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var project = _managementService.CreateProject(model.AccountingString,
-            model.UsageType.HasValue ? model.UsageType.ConvertExtToInt() : UsageType.CoreHours, // TODO: check default for UsageType
+            model.UsageType.HasValue ? model.UsageType.ConvertExtToInt() : UsageType.NodeHours,
             model.Name, model.Description,
             model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
             model.PIEmail, model.IsOneToOneMapping ?? false,

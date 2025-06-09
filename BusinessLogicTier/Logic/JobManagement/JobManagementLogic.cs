@@ -338,18 +338,23 @@ internal class JobManagementLogic : IJobManagementLogic
                 }
             }
 
-            var scheduler = SchedulerFactory
+            IRexScheduler scheduler = !project.IsOneToOneMapping ?
+                scheduler = SchedulerFactory
+                    .GetInstance(cluster.SchedulerType)
+                    .CreateScheduler(cluster, project, adaptorUserId: null) : null;
+
+            Func<long, IRexScheduler> schedulerProxy = (long adaptorUserId) => scheduler != null ? scheduler : SchedulerFactory
                 .GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, adaptorUserId: null);
+                .CreateScheduler(cluster, project, adaptorUserId: adaptorUserId);
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
                 actualUnfinishedSchedulerTasksInfo =
-                    GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks), true)
+                    GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, jobGroup.SelectMany(s => s.Tasks), true)
                         .ToList();
             else
                 userJobsGroup.ForEach(f =>
                     actualUnfinishedSchedulerTasksInfo.AddRange(
-                        GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks), false)));
+                        GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, f.SelectMany(s => s.Tasks), false)));
 
             var isNeedUpdateJobState = false;
             foreach (var submittedJob in jobGroup)
@@ -677,7 +682,7 @@ internal class JobManagementLogic : IJobManagementLogic
     }
 
     private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork,
-        IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount)
+        Func<long, IRexScheduler> scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount)
     {
         var unfinishedTasks = jobTasks
             .Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
@@ -690,7 +695,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 jobSpecification.ClusterId, jobSpecification.ProjectId, adaptorUserId: jobSpecification.Submitter.Id) // TODO: check correctness
             : jobSpecification.ClusterUser;
         _logger.Info($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
-        return scheduler.GetActualTasksInfo(unfinishedTasks, account);
+        return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account);
     }
 
     private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)
