@@ -298,13 +298,31 @@ public class DataTransferLogic : IDataTransferLogic
         var basicRestClient = new RestClient(options);
 
         var request = new RestRequest(httpRequest, Method.Post);
-        headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
 
+        headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
+        
         //Body part
         var payload = Encoding.UTF8.GetBytes(httpPayload);
-        request.AddHeader("content-type", "raw")
-            .AddHeader("contentLength", payload.Length)
-            .AddBody(payload);
+        //check if headers contain content type
+        if (!headers.Any(h => h.Name.ToLower() == "content-type"))
+        {
+            //if no content type is set, default to application/json
+            request.AddHeader("content-type", "raw");
+        }
+        
+        //if content type is set to json, send json body, else send raw body
+        if (headers.Any(h => h.Name.ToLower() == "content-type" && h.Value.ToLower() == "json"))
+        {
+            request.AddJsonBody(httpPayload);
+        }
+        else
+        {
+            //default to raw
+            request.AddBody(payload);
+        }
+        
+        request.AddHeader("contentLength", payload.Length);
+        
 
         var response = await basicRestClient.ExecuteAsync(request);
 
