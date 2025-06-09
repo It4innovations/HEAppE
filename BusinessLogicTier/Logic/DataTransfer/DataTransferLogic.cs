@@ -314,7 +314,7 @@ public class DataTransferLogic : IDataTransferLogic
         //if content type is set to json, send json body, else send raw body
         if (headers.Any(h => h.Name.ToLower() == "content-type" && h.Value.ToLower() == "json"))
         {
-            request.AddJsonBody(httpPayload);
+            request.AddStringBody(httpPayload, DataFormat.Json);
             _logger.Info($"Content-type set to 'json' for task ID: {submittedTaskInfoId}");
         }
         else
@@ -323,9 +323,6 @@ public class DataTransferLogic : IDataTransferLogic
             request.AddBody(payload);
             _logger.Info($"Content-type set to 'raw' for task ID: {submittedTaskInfoId}");
         }
-        
-        //set content length
-        request.AddHeader("Content-Length", payload.Length.ToString());
 
         var response = await basicRestClient.ExecuteAsync(request);
 
