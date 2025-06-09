@@ -312,16 +312,16 @@ public class DataTransferLogic : IDataTransferLogic
         }
         
         //if content type is set to json, send json body, else send raw body
-        if (headers.Any(h => h.Name.ToLower() == "content-type" && h.Value.ToLower() == "json"))
+        if (headers.Any(h => h.Name.ToLower() == "content-type" && h.Value.ToLower().Contains("json")))
         {
             request.AddStringBody(httpPayload, DataFormat.Json);
-            _logger.Info($"Content-type set to 'json' for task ID: {submittedTaskInfoId}");
+            _logger.Info($"Adding JSON body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
         }
         else
         {
             //default to raw
             request.AddBody(payload);
-            _logger.Info($"Content-type set to 'raw' for task ID: {submittedTaskInfoId}");
+            _logger.Info($"Adding raw body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
         }
 
         var response = await basicRestClient.ExecuteAsync(request);
