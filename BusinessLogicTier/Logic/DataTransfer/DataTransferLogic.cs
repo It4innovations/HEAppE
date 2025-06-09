@@ -308,21 +308,23 @@ public class DataTransferLogic : IDataTransferLogic
         {
             //if no content type is set, default to application/json
             request.AddHeader("content-type", "raw");
+            _logger.Info($"No content-type header found, defaulting to 'raw' for task ID: {submittedTaskInfoId}");
         }
         
         //if content type is set to json, send json body, else send raw body
         if (headers.Any(h => h.Name.ToLower() == "content-type" && h.Value.ToLower() == "json"))
         {
             request.AddJsonBody(httpPayload);
+            _logger.Info($"Content-type set to 'json' for task ID: {submittedTaskInfoId}");
         }
         else
         {
             //default to raw
             request.AddBody(payload);
+            _logger.Info($"Content-type set to 'raw' for task ID: {submittedTaskInfoId}");
         }
         
         request.AddHeader("contentLength", payload.Length);
-        
 
         var response = await basicRestClient.ExecuteAsync(request);
 
@@ -338,6 +340,8 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
             logBuilder.AppendLine($"NodePort: {nodePort}");
+            logBuilder.AppendLine($"HTTP Payload: {httpPayload}");
+            logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
             _logger.Info(logBuilder.ToString());
 
             throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
@@ -353,6 +357,8 @@ public class DataTransferLogic : IDataTransferLogic
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
             logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
             logBuilder.AppendLine($"NodePort: {nodePort}");
+            logBuilder.AppendLine($"HTTP Payload: {httpPayload}");
+            logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
             _logger.Info(logBuilder.ToString());
         }
 
