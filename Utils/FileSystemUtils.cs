@@ -145,4 +145,36 @@ public class FileSystemUtils
 
         return subdirExcludedFiles.ToArray();
     }
+
+    public static bool AddConfigurationFiles(string[] confsDirs, string[] confFiles, Action<string> addJsonFile = null, Action<string> addNotJson = null)
+    {
+        foreach (var confDir in confsDirs)
+        {
+            bool configFound = true;
+            foreach (var confFile in confFiles)
+            {
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                if (!File.Exists(confPath))
+                {
+                    configFound = false;
+                    break;
+                }
+            }
+            if (!configFound)
+                continue;
+
+            foreach (var confFile in confFiles)
+            {
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                if (confPath.EndsWith(".json"))
+                    addJsonFile?.Invoke(confPath);
+                else if (confPath.EndsWith(".njson"))
+                    addNotJson?.Invoke(confPath);
+            }
+
+            return true;
+        }
+
+        return false;
+    }
 }

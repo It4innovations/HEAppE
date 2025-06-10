@@ -4,6 +4,7 @@ using HEAppE.DataAccessTier;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    partial class MiddlewareContextModelSnapshot : ModelSnapshot
+    [Migration("20250520183921_Project")]
+    partial class Project
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -467,9 +470,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("ClusterAuthenticationCredentialsId")
                         .HasColumnType("bigint");
 
-                    b.Property<long?>("AdaptorUserId")
-                        .HasColumnType("bigint");
-
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
@@ -483,8 +483,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("ClusterProjectId", "ClusterAuthenticationCredentialsId");
-
-                    b.HasIndex("AdaptorUserId");
 
                     b.HasIndex("ClusterAuthenticationCredentialsId");
 
@@ -1736,10 +1734,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredential", b =>
                 {
-                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "AdaptorUser")
-                        .WithMany()
-                        .HasForeignKey("AdaptorUserId");
-
                     b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ClusterAuthenticationCredentials")
                         .WithMany("ClusterProjectCredentials")
                         .HasForeignKey("ClusterAuthenticationCredentialsId")
@@ -1751,8 +1745,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasForeignKey("ClusterProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("AdaptorUser");
 
                     b.Navigation("ClusterAuthenticationCredentials");
 
