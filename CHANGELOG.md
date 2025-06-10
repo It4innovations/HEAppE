@@ -9,13 +9,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## V5.1.0
 
 ### Changed
-
+- Enhanced logging in `DataTransfer` endpoints
 
 ### Added
-
+- Possibility to send `application/json` payload with `HttpPostToJobNode`
 
 ### Fixed
-- External UsageType model conversion to Internal UsageType model (enum)
+- `External UsageType` model conversion to `Internal UsageType` model (enum)
 
 ## V5.0.0
 
