@@ -63,8 +63,6 @@ public class ClusterAuthenticationCredentials : IdentifiableDbEntity, ISoftDelet
 
     [Required] public bool IsDeleted { get; set; } = false;
 
-    [Required] public bool IsInitialized { get; set; } = false;
-
     public virtual List<ClusterProjectCredential> ClusterProjectCredentials { get; set; } = new();
 
     #endregion

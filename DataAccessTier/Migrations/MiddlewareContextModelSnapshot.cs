@@ -102,9 +102,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool>("IsGenerated")
                         .HasColumnType("bit");
 
-                    b.Property<bool>("IsInitialized")
-                        .HasColumnType("bit");
-
                     b.Property<string>("PublicKey")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
