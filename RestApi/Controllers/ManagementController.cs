@@ -516,9 +516,11 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var project = _managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType,
-            model.Name,
-            model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
+        var project = _managementService.CreateProject(model.AccountingString,
+            model.UsageType.HasValue ? model.UsageType.ConvertExtToInt() : UsageType.NodeHours,
+            model.Name, model.Description,
+            model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
+            model.PIEmail,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
