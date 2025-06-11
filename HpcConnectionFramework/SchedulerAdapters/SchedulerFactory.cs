@@ -76,7 +76,7 @@ public abstract class SchedulerFactory
             {
                 connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Where(cpc => cpc.AdaptorUserId == adaptorUserId).Count();
                 if (connectionPoolMaxSize == 0)
-                    throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user."); // TODO: better exception
+                    throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
             }
 
             _schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(
