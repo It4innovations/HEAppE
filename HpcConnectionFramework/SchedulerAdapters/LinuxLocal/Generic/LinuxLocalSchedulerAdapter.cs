@@ -45,15 +45,16 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="cluster">Cluster</param>
     /// <param name="scheduledJobIds">Scheduled Job ID collection</param>
+    /// <param name="account">Username name</param>
     /// <returns></returns>
     private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<string> scheduledJobIds)
+        IEnumerable<string> scheduledJobIds, string account)
     {
         var submittedTaskInfos = new List<SubmittedTaskInfo>();
         var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct();
         foreach (var jobId in scheduledJobIdsList)
         {
-            var jobDirPath = Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobId)
+            var jobDirPath = Path.Combine(_scripts.InstanceIdentifierPath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, account, jobId)
                 .Replace('\\', '/');
             var cliCommand =
                 $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
@@ -155,7 +156,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
             $"{HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath}/run_background_command.sh {sshCommandBase64}");
 
-        return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" });
+        return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
     }
 
     /// <summary>
@@ -166,11 +167,12 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="submitedTasksInfo">Submitted tasks ids</param>
     /// <returns></returns>
     public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
             .Distinct();
-        return GetActualTasksInfo(connectorClient, cluster, localClusterJobIds);
+
+        return GetActualTasksInfo(connectorClient, cluster, localClusterJobIds,  key);
     }
 
     /// <summary>
@@ -360,11 +362,12 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
+    /// <param name="account">Cluster username</param>
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        string clusterProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            localBasepath, isServiceAccount);
+            localBasepath, account, isServiceAccount);
     }
 
     #endregion

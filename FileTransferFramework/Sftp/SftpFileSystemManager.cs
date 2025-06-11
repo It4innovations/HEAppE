@@ -86,7 +86,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
     {
         var jobClusterDirectoryPath =
-            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath);
+            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
         var connection =
             _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
         try

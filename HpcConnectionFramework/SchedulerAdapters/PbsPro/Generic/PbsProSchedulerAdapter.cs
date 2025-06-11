@@ -116,10 +116,11 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="cluster">Cluster</param>
     /// <param name="submitedTasksInfo">Submitted tasks id´s</param>
+    /// <param name="key"></param>
     /// <returns></returns>
     /// <exception cref="PbsException"></exception>
     public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var jobIdsWithJobArrayIndexes = Enumerable.Empty<string>();
         try
@@ -371,11 +372,12 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
+    /// <param name="account">Cluster username</param>
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        string clusterProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            localBasepath, isServiceAccount);
+            localBasepath, account, isServiceAccount);
     }
 
     #endregion

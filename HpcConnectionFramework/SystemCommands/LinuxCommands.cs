@@ -103,8 +103,9 @@ internal class LinuxCommands : ICommands
     /// <param name="hash">Hash</param>
     public void CopyJobDataFromTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash)
     {
-        var inputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}Temp/{hash}/.";
-        var outputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}";
+        string account = jobInfo.Specification.ClusterUser.Username;
+        var inputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}Temp/{hash}/.";
+        var outputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
             $"{_scripts.ScriptsBasePath}/{_commandScripts.CopyDataFromTempCmdScriptName} {inputDirectory} {outputDirectory}");
         _log.Info(
@@ -120,10 +121,11 @@ internal class LinuxCommands : ICommands
     public void CopyJobDataToTemp(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath, string hash,
         string path)
     {
+        string account = jobInfo.Specification.ClusterUser.Username;
         //if path is null or empty then all files and directories from ClusterLocalBasepath will be copied to hash directory
-        var inputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}/{path}";
+        var inputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}/{path}";
         inputDirectory += string.IsNullOrEmpty(path) ? "." : string.Empty;
-        var outputDirectory = $"{localBasePath}/{_scripts.SubExecutionsPath}Temp/{hash}";
+        var outputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}Temp/{hash}";
 
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
             $"{_scripts.ScriptsBasePath}/{_commandScripts.CopyDataToTempCmdScriptName} {inputDirectory} {outputDirectory}");
@@ -177,10 +179,12 @@ internal class LinuxCommands : ICommands
     public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode)
     {
+        string account = jobInfo.Specification.ClusterUser.Username;
+
         localBasePath = localBasePath.TrimEnd('/');
         var cmdBuilder =
             new StringBuilder(
-                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.SubExecutionsPath} {jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
         foreach (var task in jobInfo.Tasks)
         {
             var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
@@ -188,7 +192,7 @@ internal class LinuxCommands : ICommands
                 : string.Empty;
 
             cmdBuilder.Append(
-                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.SubExecutionsPath} {jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
         }
 
         _log.Info($"Create job directory command: \"{cmdBuilder}\"");
@@ -204,7 +208,7 @@ internal class LinuxCommands : ICommands
     /// <param name="jobInfo">Job information</param>
     public bool DeleteJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath)
     {
-        var shellCommand = $"rm -Rf {localBasePath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.Id}";
+        var shellCommand = $"rm -Rf {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{jobInfo.Specification.ClusterUser.Username}/{jobInfo.Specification.Id}";
         try
         {
             var sshCommand =
@@ -226,8 +230,9 @@ internal class LinuxCommands : ICommands
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
+    /// <param name="account">Cluster username</param>
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        string clusterProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         var cmdBuilder = new StringBuilder();
         var targetDirectory = Path.Combine(clusterProjectRootDirectory, _scripts.SubScriptsPath, ".key_scripts")
@@ -256,7 +261,7 @@ internal class LinuxCommands : ICommands
             // Scripts modifications
             cmdBuilder.Append($"chmod -R 755 {targetDirectory} && ");
             cmdBuilder.Append(
-                $"sed -i \"s|TODO|{localBasepath}/{_scripts.SubExecutionsPath}|g\" {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
+                $"sed -i \"s|TODO|{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}|g\" {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
         }
 
         cmdBuilder.Append($"ln -sf {targetDirectory} {_scripts.ScriptsBasePath}");

@@ -159,10 +159,11 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="cluster">Cluster</param>
     /// <param name="submitedTasksInfo">Submitted tasks ids</param>
+    /// <param name="key">Key</param>
     /// <returns></returns>
     /// <exception cref="Exception"></exception>
     public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var submitedTasksInfoList = submitedTasksInfo.ToList();
         try
@@ -394,11 +395,12 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
+    /// <param name="account">Cluster username</param>
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        string clusterProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            localBasepath, isServiceAccount);
+            localBasepath, account, isServiceAccount);
     }
 
     public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)

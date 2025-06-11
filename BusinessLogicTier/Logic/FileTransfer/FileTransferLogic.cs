@@ -117,7 +117,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath),
             Credentials = new FileTransferKeyCredentials
             {
                 Username = clusterUserAuthCredentials.Username,
@@ -151,7 +151,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath)
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath)
         };
 
         _log.Info($"Auth type: {jobInfo.Specification.ClusterUser.AuthenticationType}");
@@ -254,13 +254,13 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.JobLogArchiveSubPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath);
                 }
                 else
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.SubExecutionsPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
                 }
 
                 if (contents != null)

@@ -117,7 +117,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
     }
 
     public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var tasksInfo = new List<SubmittedTaskInfo>();
         foreach (var task in submitedTasksInfo)
@@ -220,10 +220,10 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
 
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
         string clusterProjectRootDirectory,
-        string localBasepath, bool isServiceAccount)
+        string localBasepath, string account, bool isServiceAccount)
     {
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            localBasepath, isServiceAccount);
+            localBasepath, account, isServiceAccount);
     }
     public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
     {
