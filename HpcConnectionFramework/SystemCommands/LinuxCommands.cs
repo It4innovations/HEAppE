@@ -184,7 +184,7 @@ internal class LinuxCommands : ICommands
         localBasePath = localBasePath.TrimEnd('/');
         var cmdBuilder =
             new StringBuilder(
-                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
         foreach (var task in jobInfo.Tasks)
         {
             var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
@@ -192,7 +192,7 @@ internal class LinuxCommands : ICommands
                 : string.Empty;
 
             cmdBuilder.Append(
-                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
         }
 
         _log.Info($"Create job directory command: \"{cmdBuilder}\"");
