@@ -233,7 +233,7 @@ internal class JobManagementValidator : AbstractValidator
 
         var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster,
             clusterPathToUserScript, task.JobSpecification.ProjectId,
-            adaptorUserId: task.JobSpecification.Submitter.Id // TODO: check correctness
+            adaptorUserId: task.JobSpecification.Submitter.Id
         );
 
         foreach (var parameter in scriptDefinedParametres)

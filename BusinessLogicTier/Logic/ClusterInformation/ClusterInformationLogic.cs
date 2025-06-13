@@ -115,7 +115,6 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId, long? adaptorUserId)
     {
-        // adaptorUserId: null // TODO: check this whole method!!!
         var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
         if (cluster == null)
             throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);

@@ -77,7 +77,7 @@ public class CreateProjectModel : SessionCodeModel
     /// <summary>
     /// Map user account to exact robot account
     /// </summary>
-    [DataMember(Name = "IsOneToOneMapping", IsRequired = false)] // TODO: IsRequired = true
+    [DataMember(Name = "IsOneToOneMapping", IsRequired = false)]
     [Description("Map user account to exact robot account")]
     public bool? IsOneToOneMapping { get; set; } = false;
 }

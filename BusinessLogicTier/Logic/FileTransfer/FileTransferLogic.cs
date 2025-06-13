@@ -89,7 +89,6 @@ public class FileTransferLogic : IFileTransferLogic
             {
                 _log.Info(
                     $"Removing file transfer key for user \"{tempKey.Key.ClusterUser.Username}\" in cluster \"{tempKey.Key.Cluster.Name}\"");
-                // adaptorUserId: null // TODO: check the solution below
                 long? adaptorUserId = tempKey.Key.Project.IsOneToOneMapping ? tempKey.Key.ClusterUser.ClusterProjectCredentials.FirstOrDefault().AdaptorUser.Id : null;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                     .CreateScheduler(cluster, tempKey.Key.Project, adaptorUserId: adaptorUserId);

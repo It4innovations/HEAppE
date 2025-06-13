@@ -329,7 +329,6 @@ internal class JobManagementLogic : IJobManagementLogic
 
                 if (tasksExceedWaitLimit.Any())
                 {
-                    // adaptorUserId: null // TODO: check the solution below
                     SchedulerFactory
                         .GetInstance(cluster.SchedulerType)
                         .CreateScheduler(cluster, project, adaptorUserId: userJobGroup.First().Submitter.Id)
@@ -341,7 +340,7 @@ internal class JobManagementLogic : IJobManagementLogic
             IRexScheduler scheduler = !project.IsOneToOneMapping ?
                 scheduler = SchedulerFactory
                     .GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, project, adaptorUserId: null) : null;
+                    .CreateScheduler(cluster, project, null) : null;
 
             Func<long, IRexScheduler> schedulerProxy = (long adaptorUserId) => scheduler != null ? scheduler : SchedulerFactory
                 .GetInstance(cluster.SchedulerType)
@@ -692,7 +691,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
         var account = useServiceAccount
             ? unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                jobSpecification.ClusterId, jobSpecification.ProjectId, adaptorUserId: jobSpecification.Submitter.Id) // TODO: check correctness
+                jobSpecification.ClusterId, jobSpecification.ProjectId, adaptorUserId: jobSpecification.Submitter.Id)
             : jobSpecification.ClusterUser;
         _logger.Info($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
         return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account);
