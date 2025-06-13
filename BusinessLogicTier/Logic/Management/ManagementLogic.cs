@@ -783,43 +783,50 @@ public class ManagementLogic : IManagementLogic
             throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
 
         foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
-        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x =>
-                     x.ClusterProject))
-        {
-            var cluster = clusterProjectCredential.ClusterProject.Cluster;
-            var project = clusterProjectCredential.ClusterProject.Project;
-            var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: adaptorUserId);
-            var isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath,
-                cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
-            if (isInitialized)
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x =>
+                         x.ClusterProject))
             {
-                if (!clusterInitReports.ContainsKey(cluster))
-                    clusterInitReports.Add(cluster, new ClusterInitReport
-                    {
-                        Cluster = cluster,
-                        NumberOfInitializedAccounts = 1
-                    });
-                else
-                    clusterInitReports[cluster].NumberOfInitializedAccounts++;
-                _logger.Info(
-                    $"Initialized cluster script directory for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
-            }
-            else
-            {
-                if (!clusterInitReports.ContainsKey(cluster))
-                    clusterInitReports.Add(cluster, new ClusterInitReport
-                    {
-                        Cluster = cluster,
-                        NumberOfNotInitializedAccounts = 1
-                    });
-                else
-                    clusterInitReports[cluster].NumberOfNotInitializedAccounts++;
-                _logger.Error(
-                    $"Initialization of cluster script directory failed for project {project.Id} on cluster {cluster.Id} with account {clusterProjectCredential.ClusterAuthenticationCredentials.Username}.");
-            }
-        }
+                var cluster = clusterProjectCredential.ClusterProject.Cluster;
+                var project = clusterProjectCredential.ClusterProject.Project;
+                var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: adaptorUserId);
+                var isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath,
+                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
 
+                if (clusterAuthCredentials.IsGenerated)
+                    clusterProjectCredential.IsInitialized = isInitialized;
+
+                if (isInitialized)
+                {
+                    if (!clusterInitReports.ContainsKey(cluster))
+                        clusterInitReports.Add(cluster, new ClusterInitReport
+                        {
+                            Cluster = cluster,
+                            NumberOfInitializedAccounts = 1
+                        });
+                    else
+                        clusterInitReports[cluster].NumberOfInitializedAccounts++;
+                    _logger.Info(
+                        $"Initialized cluster script directory for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
+                }
+                else
+                {
+                    if (!clusterInitReports.ContainsKey(cluster))
+                        clusterInitReports.Add(cluster, new ClusterInitReport
+                        {
+                            Cluster = cluster,
+                            NumberOfNotInitializedAccounts = 1
+                        });
+                    else
+                        clusterInitReports[cluster].NumberOfNotInitializedAccounts++;
+                    _logger.Error(
+                        $"Initialization of cluster script directory failed for project {project.Id} on cluster {cluster.Id} with account {clusterProjectCredential.ClusterAuthenticationCredentials.Username}.");
+                }
+            }
+
+        if (clusterInitReports.Count > 0)
+            _unitOfWork.Save();
+        
         return clusterInitReports.Values.ToList();
     }
 
