@@ -1,4 +1,7 @@
 using System;
+using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
 
 namespace HEAppE.RestApi.Logging;
 
@@ -22,23 +25,40 @@ public class LogRequestModelFilter : ActionFilterAttribute
         {
             var model = argument.Value;
             if (model == null) continue;
+            long userId = 0;
+            string userName = string.Empty;
+            
+            //get SessionCode property value from the model if available
+            var sessionCodeProperty = model.GetType().GetProperty("SessionCode");
+            if (sessionCodeProperty != null)
+            {
+                var sessionCode = sessionCodeProperty.GetValue(model)?.ToString();
+                if (!string.IsNullOrEmpty(sessionCode))
+                {
+                    (userId, userName) = GetUser(sessionCode);
+                }
+            }
             
             //anonymize model
             var modelType = model.GetType();
             if(modelType.Name.StartsWith("Authenticate"))
             {
                 //do not log sensitive models
-                _logger.LogInformation("Action: {Action}, Argument: {Name}, Payload: ***REDACTED***",
+                _logger.LogInformation("Action: {Action}, Argument: {Name}, UserId: {UserId}, UserName: {UserName}, Payload: Sensitive data not logged",
                     context.ActionDescriptor.DisplayName,
-                    argument.Key);
+                    argument.Key,
+                    userId,
+                    userName);
                 continue;
             }
             
             var clone = CloneAndRedact(model, modelType);
             var serialized = JsonSerializer.Serialize(clone);
-            _logger.LogInformation("Action: {Action}, Argument: {Name}, Payload: {Payload}",
+            _logger.LogInformation("Action: {Action}, Argument: {Name}, UserId: {UserId}, UserName: {UserName}, Payload: {Payload}",
                 context.ActionDescriptor.DisplayName,
                 argument.Key,
+                userId,
+                userName,
                 serialized);
         }
 
@@ -68,4 +88,20 @@ public class LogRequestModelFilter : ActionFilterAttribute
 
         return copy!;
     }
+    
+    private (long, string) GetUser(string sessionCode)
+    {
+        try
+        {
+            using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+            var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+            return (loggedUser.Id, loggedUser?.Username ?? "Unknown Username");
+        }catch (Exception ex)
+        {
+            return (-1, "Unknown Username");
+        }
+        
+    }
+    
 }
