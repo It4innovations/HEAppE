@@ -58,6 +58,8 @@ public abstract class SchedulerFactory
     /// <returns></returns>
     protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, long? adaptorUserId)
     {
+        if (!project.IsOneToOneMapping)
+            adaptorUserId = null;
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
             clusterConf.SchedulerType, adaptorUserId);
         if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
