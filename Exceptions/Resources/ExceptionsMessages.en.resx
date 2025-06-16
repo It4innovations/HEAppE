@@ -308,6 +308,12 @@
     <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
     <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the HEAppE.</value>
   </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterAuthenticationCredentialsNoServiceAccount" xml:space="preserve">
+    <value>Requested ClusterAuthenticationCredential for cluster Id '{0}' with Project Id '{1}' and AdaptorUser Id '{2}' has no Service Account Credentials in the HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_ClusterAuthenticationCredentialsNotFound" xml:space="preserve">
+    <value>Requested ClusterAuthenticationCredential for cluster Id '{0}' with Project Id '{1}' and AdaptorUser Id '{2}' has no reference in the HEAppE.</value>
+  </data>
     <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
     <value>The specified command template is not defined in the HEAppE.</value>
   </data>
