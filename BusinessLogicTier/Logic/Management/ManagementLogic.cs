@@ -1864,13 +1864,13 @@ public class ManagementLogic : IManagementLogic
             if (serviceAccount == null)
             {
                 serviceCredentials.ClusterProjectCredentials.Add(
-                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
+                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true, adaptorUserId));
                 _logger.Info(
                     $"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
             }
 
             nonServiceCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
+                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false, adaptorUserId));
             _logger.Info($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 
@@ -2225,7 +2225,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="isServiceAccount"></param>
     /// <returns></returns>
     private static ClusterProjectCredential CreateClusterProjectCredentials(ClusterProject clusterProject,
-        ClusterAuthenticationCredentials clusterAuthenticationCredentials, bool isServiceAccount)
+        ClusterAuthenticationCredentials clusterAuthenticationCredentials, bool isServiceAccount, long? adaptorUserId = null)
     {
         return new ClusterProjectCredential
         {
@@ -2233,7 +2233,8 @@ public class ManagementLogic : IManagementLogic
             ClusterAuthenticationCredentials = clusterAuthenticationCredentials,
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false,
-            IsServiceAccount = isServiceAccount
+            IsServiceAccount = isServiceAccount,
+            AdaptorUserId = adaptorUserId
         };
     }
 
