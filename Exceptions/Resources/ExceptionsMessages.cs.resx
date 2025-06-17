@@ -298,7 +298,7 @@
     <value>Požadovaná kombinace pro ClusterId '{0}' a ProjektId '{1}' nemá referenci v HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
-    <value>Specifikovaná CommandTemplate není definována v HEAppE.</value>
+    <value>Specifikovaná CommandTemplate s id '{0}' není definována v HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
     <value>Specifikovaná CommandTemplateId '{0}' není odkazována na ProjectId '{1}'.</value>
@@ -527,5 +527,23 @@
   </data>
   <data name="SshClientArgumentException_UnknownPrivateKeyException" xml:space="preserve">
     <value>Nepodařilo se načíst privátní klíč.</value>
+  </data>
+  <data name="SecureVaultException_ConnectionFailed" xml:space="preserve">
+    <value>Secure Vault connection failed.</value>
+  </data>
+  <data name="InvalidRequestException_CannotSubmitJobWithDisabledCommandTemplate" xml:space="preserve">
+    <value>Cannot submit job with disabled command template in task.</value>
+  </data>
+  <data name="InputValidationException_ProjectDeleted" xml:space="preserve">
+    <value>The specified project was deleted.</value>
+  </data>
+  <data name="InputValidationException_CommandTemplateParameterCannotBeRemoved" xml:space="preserve">
+    <value>Specifikovaný CommandTemplateParameter s Id '{0}' nemůže být odstraněn protože nemá referenci na Projekt.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateHasNoProjectAssigned" xml:space="preserve">
+    <value>Specifikovaná CommandTemplate s Id: '{0}' nemá odkaz na Project.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateParameterHasNoProjectAssigned" xml:space="preserve">
+    <value>Specifikovaný CommandTemplateParameter s Id '{0}' pro CommandTemplate s Id: '{1}' nemá odkaz na Project.</value>
   </data>
 </root>
