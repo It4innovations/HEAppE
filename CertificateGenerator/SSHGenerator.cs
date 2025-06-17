@@ -100,7 +100,7 @@ public class SSHGenerator
 
     public static SecureShellKey GetPublicKeyFromPrivateKey(ClusterAuthenticationCredentials existingKey)
     {
-        switch (CipherGeneratorConfiguration.Type)
+        switch (existingKey.CipherType)
         {
             case FileTransferCipherType.nistP256:
             case FileTransferCipherType.nistP521:
