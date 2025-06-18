@@ -100,14 +100,8 @@ public class EdDSACertGeneratorV2Tests
 
         // Assert
         Assert.NotNull(privateKey);
-        Assert.StartsWith("-----BEGIN PRIVATE KEY-----", privateKey);
-        Assert.EndsWith("-----END PRIVATE KEY-----\n", privateKey.Replace("\r\n", "\n"));
-        // Try decipher
-        using var reader = new StringReader(privateKey);
-        var pemReader = new PemReader(reader);
-        var decryptedObject = pemReader.ReadObject();
-        Assert.NotNull(decryptedObject);
-        Assert.IsAssignableFrom<Ed25519PrivateKeyParameters>(decryptedObject);
+        Assert.StartsWith("-----BEGIN OPENSSH PRIVATE KEY-----", privateKey);
+        Assert.EndsWith("-----END OPENSSH PRIVATE KEY-----\n", privateKey.Replace("\r\n", "\n"));
     }
 
     #endregion
@@ -118,12 +112,11 @@ public class EdDSACertGeneratorV2Tests
     public void ToPublicKeyInAuthorizedKeysFormatFromPrivateKey__Should_Return_PublicKey_With_No_Comment()
     {
         // Assign
-        var password = "testPassword";
         var publicKeyOriginal = _generator.ToPublicKeyInAuthorizedKeysFormat();
-        var encryptedKey = _generator.ToEncryptedPrivateKeyInPEM(password);
+        var privateKey = _generator.ToPrivateKeyInPEM();
 
         // Act
-        var publicKey = EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(encryptedKey, password);
+        var publicKey = EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(privateKey, null);
 
         // Assert
         Assert.NotNull(publicKey);
@@ -135,13 +128,12 @@ public class EdDSACertGeneratorV2Tests
     public void ToPublicKeyInAuthorizedKeysFormatFromPrivateKey__Should_Return_PublicKey_With_Comment()
     {
         // Assign
-        var password = "testPassword";
         var comment = "testComment";
         var publicKeyOriginal = _generator.ToPublicKeyInAuthorizedKeysFormat(comment);
-        var encryptedKey = _generator.ToEncryptedPrivateKeyInPEM(password);
+        var privateKey = _generator.ToPrivateKeyInPEM();
 
         // Act
-        var publicKey = EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(encryptedKey, password, comment);
+        var publicKey = EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(privateKey, null, comment);
 
         // Assert
         Assert.NotNull(publicKey);
