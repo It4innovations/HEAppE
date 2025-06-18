@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -342,7 +342,7 @@ public class ManagementController : BaseController<ManagementController>
     #region CommandTemplateParameter
 
     /// <summary>
-    ///     Get CommandTemplateParameter by id
+    ///     Get Command Template Parameter by id
     /// </summary>
     /// <param name="id"></param>
     /// <param name="sessionCode"></param>
@@ -364,7 +364,7 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
-    ///     Create Static Command Template
+    ///     Create a new Command Template Parameter
     /// </summary>
     /// <param name="model">CreateCommandTemplateModel</param>
     /// <returns></returns>
@@ -388,7 +388,7 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
-    ///     Modify Static Command Template
+    ///     Modify an existing Command Template Parameter
     /// </summary>
     /// <param name="model">ModifyCommandTemplateParameterModel</param>
     /// <returns></returns>
@@ -413,7 +413,7 @@ public class ManagementController : BaseController<ManagementController>
 
 
     /// <summary>
-    ///     Remove Static Command Template
+    ///     Remove an existing Command Template Parameter
     /// </summary>
     /// <param name="model">RemoveCommandTemplateParameterModel</param>
     /// <returns></returns>
@@ -516,9 +516,11 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var project = _managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType,
-            model.Name,
-            model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
+        var project = _managementService.CreateProject(model.AccountingString,
+            model.UsageType.HasValue ? model.UsageType.ConvertExtToInt() : UsageType.NodeHours,
+            model.Name, model.Description,
+            model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
+            model.PIEmail,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);

@@ -492,7 +492,7 @@ internal class MiddlewareContext : DbContext
                 UpdateEntityOrAddItem((T)(object)entity, item);
                 var entity_after_update = Set<T>().Find(identifiableItem.Id);
 
-                if (entity is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
+                if (entity_after_update is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
                     var vaultConnector = new VaultConnector();
                     var vaultData = vaultConnector

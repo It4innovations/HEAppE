@@ -423,8 +423,8 @@
     <data name="UnableToCreateConnectionException_PortAlreadyInUse" xml:space="preserve">
     <value>TaskId '{0}' with remote node IP address '{1}' already has SSH tunnel for port '{2}'.</value>
   </data>
-    <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
-    <value>Response code for HttpGet is not 200. Check your application.</value>
+  <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
+    <value>Response code for Http request is not 200. Check your application.</value>
   </data>
     <data name="UnableToCreateTunnelException_ExceptionOccurs" xml:space="preserve">
     <value>Unable to create SSH tunnel.</value>
