@@ -562,6 +562,22 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId)
     {
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        if (project is null || project.EndDate < DateTime.UtcNow)
+        {
+            _logger.Error($"Project with ID {projectId} not found or has already ended.");
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        }
+
+        if (project.IsOneToOneMapping)
+        {
+            _logger.Info($"Project with ID {projectId} is one-to-one mapping, returning only service account credentials for user {adaptorUserId}.");
+        }
+        else
+        {
+            _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
+        }
+        
         return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, adaptorUserId: adaptorUserId)
             .Where(x => !x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
