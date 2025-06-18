@@ -20,6 +20,7 @@ public sealed class CipherGeneratorConfiguration
             ("RSA", 4096) => FileTransferCipherType.RSA4096,
             ("ECDSA", 256) => FileTransferCipherType.nistP256,
             ("ECDSA", 521) => FileTransferCipherType.nistP521,
+            ("ED25519", 0) => FileTransferCipherType.Ed25519,
             _ => FileTransferCipherType.Unknown
         };
     }
