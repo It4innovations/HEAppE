@@ -4,16 +4,19 @@ using HEAppE.DataAccessTier;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HEAppE.DataAccessTier.Migrations
+namespace HEAppE.DataAccessTier.Mirgrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    partial class MiddlewareContextModelSnapshot : ModelSnapshot
+    [Migration("20241115210159_SubmittedTaskInfoReason")]
+    partial class SubmittedTaskInfoReason
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -498,8 +501,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("CommandParameters")
-                        .HasMaxLength(1000)
-                        .HasColumnType("nvarchar(1000)");
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
 
                     b.Property<DateTime?>("CreatedAt")
                         .HasColumnType("datetime2");
@@ -508,6 +511,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -570,6 +574,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Description")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
@@ -588,6 +593,7 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("Query")
+                        .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 

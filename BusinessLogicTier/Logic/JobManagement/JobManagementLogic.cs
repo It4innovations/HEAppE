@@ -723,6 +723,7 @@ internal class JobManagementLogic : IJobManagementLogic
         dbTaskInfo.State = clusterTaskInfo.State;
         dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
         dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
+        dbTaskInfo.Reason = clusterTaskInfo.Reason;
         return dbTaskInfo;
     }
 }

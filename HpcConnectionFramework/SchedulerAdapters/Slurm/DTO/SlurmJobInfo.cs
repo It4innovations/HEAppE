@@ -33,6 +33,11 @@ public class SlurmJobInfo : ISchedulerJobInfo
     ///     Job array id
     /// </summary>
     private string _arrayJobId;
+    
+    /// <summary>
+    /// Job execution Reason
+    /// </summary>
+    private string _reason;    
 
     #endregion
 
@@ -149,16 +154,19 @@ public class SlurmJobInfo : ISchedulerJobInfo
     ///     Determinates if job is deadlocked
     /// </summary>
     public bool IsDeadLock { get; private set; }
-
+    
     /// <summary>
     ///     Job execution Reason
     /// </summary>
     [Scheduler("Reason")]
-    public string ReasonMessage
+    public string Reason
     {
+        get => _reason;
         set
         {
-            if (!string.IsNullOrEmpty(value) && value.Contains("DependencyNeverSatisfied")) IsDeadLock = true;
+            _reason = value;
+            if (!string.IsNullOrEmpty(value) && value.Contains("DependencyNeverSatisfied"))
+                IsDeadLock = true;
         }
     }
 
