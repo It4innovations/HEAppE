@@ -90,8 +90,12 @@ public class SSHGenerator
             Username = username,
             Passphrase = passphrase,
             CipherType = CipherGeneratorConfiguration.Type,
-            PrivateKeyPEM = _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase),
-            PublicKeyPEM = _certGeneratorV2.ToPublicKeyInPEM(),
+            // private key for Ed25519 have to be in not encrypted OPENSSH format due to Renci.SSH missing support
+            PrivateKeyPEM = CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519 ? _certGeneratorV2.ToPrivateKeyInPEM()
+                : _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase),
+            // public key in PEM for Ed25519 is not generated (it could not be constructed from OPENSSH format)
+            PublicKeyPEM = CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519 ? null
+                : _certGeneratorV2.ToPublicKeyInPEM(),
             PublicKeyInAuthorizedKeysFormat = _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(username),
             PublicKeyFingerprint = _certGeneratorV2.GetPublicKeyFingerprint()
         };
@@ -119,8 +123,7 @@ public class SSHGenerator
                 {
                     Username = existingKey.Username,
                     CipherType = CipherGeneratorConfiguration.Type,
-                    PublicKeyPEM = GenericCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey,
-                        existingKey.PrivateKeyPassphrase),
+                    PublicKeyPEM = null,
                     PublicKeyInAuthorizedKeysFormat =
                         EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
