@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Possibility to send `application/json` payload with `HttpPostToJobNode`
 - Options `ConnectionRetryAttempts` and `ConnectionTimeout` for SSH client component are now configurable from `appsettings.json`
+- `Reason` attribute propagation from the HPC job (in the HEAppE Task)
 
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
