@@ -7,6 +7,7 @@ using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.Exceptions.Internal;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;
@@ -32,7 +33,7 @@ public class SshConnector : IPoolableAdapter
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
         ClusterProxyConnection proxy, int? port)
     {
-        return credentials.AuthenticationType switch
+        SshClient sshClient = (SshClient)(credentials.AuthenticationType switch
         {
             ClusterAuthenticationCredentialsAuthType.Password
                 => CreateConnectionObjectUsingPasswordAuthentication(masterNodeName, credentials.Username,
@@ -76,8 +77,14 @@ public class SshConnector : IPoolableAdapter
                 => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
-        };
+        });
+        sshClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
+        sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
+        return sshClient;
     }
+
+    private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings =
+        HPCConnectionFrameworkConfiguration.ClustersConnectionPoolSettings;
 
     /// <summary>
     ///     Connect client to server
