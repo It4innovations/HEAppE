@@ -3,15 +3,19 @@ using System.IO;
 using System.Security.Cryptography;
 using System.Text;
 using HEAppE.CertificateGenerator.Configuration;
+using HEAppE.CertificateGenerator.Generators.v2;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
+using Org.BouncyCastle.Crypto.Parameters;
+using Org.BouncyCastle.Crypto;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
+using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
@@ -264,7 +268,6 @@ public class SshConnector : IPoolableAdapter
         }
     }
 
-
     private static MemoryStream DecryptPksc8PrivateKey(string masterNodeName, string privateKeyFile,
         string privateKeyPassword)
     {
@@ -292,6 +295,14 @@ public class SshConnector : IPoolableAdapter
                 key.ImportFromEncryptedPem(encryptedPksc8Pk, privateKeyPassword);
                 var pk = key.ExportECPrivateKeyPem();
                 privateKeyMemoryStream = new MemoryStream(Encoding.UTF8.GetBytes(pk));
+            }
+                break;
+            case FileTransferCipherType.Ed25519:
+            {
+                var encryptedPksc8Pk = File.ReadAllText(privateKeyFile);
+                var keyPair = (AsymmetricCipherKeyPair)new PemReader(new StringReader(encryptedPksc8Pk), new PasswordFinder(privateKeyPassword)).ReadObject();
+                var pk = (Ed25519PrivateKeyParameters)keyPair.Private;
+                privateKeyMemoryStream = new MemoryStream(pk.GetEncoded());
             }
                 break;
             default:

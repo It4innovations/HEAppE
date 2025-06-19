@@ -525,6 +525,18 @@
   <data name="InputValidationException_ProjectDeleted" xml:space="preserve">
     <value>The specified project was deleted.</value>
   </data>
+  <data name="SshClientArgumentException_UnknownPrivateKeyException" xml:space="preserve">
+    <value>Nepodařilo se načíst privátní klíč.</value>
+  </data>
+  <data name="SecureVaultException_ConnectionFailed" xml:space="preserve">
+    <value>Secure Vault connection failed.</value>
+  </data>
+  <data name="InvalidRequestException_CannotSubmitJobWithDisabledCommandTemplate" xml:space="preserve">
+    <value>Cannot submit job with disabled command template in task.</value>
+  </data>
+  <data name="InputValidationException_ProjectDeleted" xml:space="preserve">
+    <value>The specified project was deleted.</value>
+  </data>
   <data name="InputValidationException_CommandTemplateParameterCannotBeRemoved" xml:space="preserve">
     <value>Specifikovaný CommandTemplateParameter s Id '{0}' nemůže být odstraněn protože nemá referenci na Projekt.</value>
   </data>

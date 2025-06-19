@@ -51,6 +51,8 @@ public static class ManagementConverts
                 return FileTransferCipherTypeExt.nistP256;
             case FileTransferCipherType.nistP521:
                 return FileTransferCipherTypeExt.nistP521;
+            case FileTransferCipherType.Ed25519:
+                return FileTransferCipherTypeExt.Ed25519;
             case FileTransferCipherType.Unknown:
                 return FileTransferCipherTypeExt.None;
             default:
