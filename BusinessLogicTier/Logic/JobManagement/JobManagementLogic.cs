@@ -221,14 +221,22 @@ internal class JobManagementLogic : IJobManagementLogic
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
         
-        var localBasePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'));
-        var jobLogArchivePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'));
+        var localBasePath = Path.Combine(
+                basePath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'),
+                jobInfo.Specification.ClusterUser.Username);
+        var jobLogArchivePath = Path.Combine(
+                basePath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'), 
+                jobInfo.Specification.ClusterUser.Username);
         
         var sourceDestinations = jobInfo.Specification.Tasks
             .SelectMany(x => new[]
             {
                 CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardOutputFile),
-                CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardErrorFile)
+                CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardErrorFile),
             });
         
         var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
