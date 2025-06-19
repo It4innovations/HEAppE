@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
 - Fixed wrong error messages for CommandTemplateParameters methods in ManagementService
+- Typo in TaskParallelizationParameters in the `HEAppE Task` specificaton in `CreateJob` endpoint
 
 ## V5.0.0
 
