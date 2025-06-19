@@ -114,7 +114,7 @@ public static class JobManagementConverts
                 .ToList(),
             CpuHyperThreading = taskSpecificationExt.CpuHyperThreading,
             JobSpecification = jobSpecification,
-            TaskParalizationSpecifications = taskSpecificationExt.TaskParalizationParameters?
+            TaskParalizationSpecifications = taskSpecificationExt.TaskParallelizationParameters?
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
             CommandParameterValues = taskSpecificationExt.TemplateParameterValues?
