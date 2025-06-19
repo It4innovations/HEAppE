@@ -17,6 +17,7 @@ using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
+using HEAppE.RestApi.Logging;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
@@ -103,6 +104,11 @@ public class Startup
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+        
+        services.AddControllers(options =>
+        {
+            options.Filters.Add<LogRequestModelFilter>();
+        });
 
         //UserOrgHttpClient
         //services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
