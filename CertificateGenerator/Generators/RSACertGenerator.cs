@@ -91,11 +91,11 @@ public class RSACertGenerator : GenericCertGenerator
     public override string ToPublicKey()
     {
         StringBuilder builder = new();
-        _ = builder.AppendLine("-----BEGIN PUBLIC KEY-----");
+        _ = builder.AppendLine("-----BEGIN RSA PUBLIC KEY-----");
         var publicKeyBytes = Convert.ToBase64String(((RSA)_key).ExportRSAPublicKey()).ToCharArray();
         for (var i = 0; i < publicKeyBytes.Length; i += 64)
             _ = builder.AppendLine(new string(publicKeyBytes, i, Math.Min(64, publicKeyBytes.Length - i)));
-        _ = builder.AppendLine("-----END PUBLIC KEY-----");
+        _ = builder.AppendLine("-----END RSA PUBLIC KEY-----");
         return builder.ToString();
     }
 

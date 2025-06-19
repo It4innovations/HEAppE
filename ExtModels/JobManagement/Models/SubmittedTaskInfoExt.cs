@@ -88,9 +88,13 @@ public class SubmittedTaskInfoExt
     [DataMember(Name = "CpuHyperThreading")]
     [Description("Cpu hyper threading")]
     public bool? CpuHyperThreading { get; set; }
+    
+    [DataMember(Name = "Reason")]
+    [Description("Reason (parsed from scheduler, e.g. SLURM)")]
+    public string Reason { get; set; }
 
     public override string ToString()
     {
-        return $"SubmittedTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; allocatedCoreIds={AllocatedCoreIds}; startTime={StartTime}; endTime={EndTime}; nodeType={NodeType}; errorMessage={ErrorMessage})";
+        return $"SubmittedTaskInfoExt(id={Id}; name={Name}; state={State}; priority={Priority}; allocatedTime={AllocatedTime}; allocatedCoreIds={AllocatedCoreIds}; startTime={StartTime}; endTime={EndTime}; nodeType={NodeType}; errorMessage={ErrorMessage}; Reason={Reason})";
     }
 }

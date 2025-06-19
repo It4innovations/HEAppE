@@ -169,7 +169,7 @@ public class DataTransferLogic : IDataTransferLogic
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
         _logger.Info(
-            $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\"");
+            $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
@@ -178,7 +178,10 @@ public class DataTransferLogic : IDataTransferLogic
         if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
             throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
 
-        var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
+        var allocatedPort = getTunnelsInfos.LastOrDefault(f => f.RemotePort == nodePort).LocalPort.Value;
+        _logger.Info(
+            $"Allocated port for task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" is: \"{allocatedPort}\"");
+        
         var options = new RestClientOptions($"http://localhost:{allocatedPort}")
         {
             Encoding = Encoding.UTF8,
@@ -195,11 +198,75 @@ public class DataTransferLogic : IDataTransferLogic
         headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
 
         var response = await basicRestClient.ExecuteAsync(request);
+       
+        if((int)response.StatusCode == 0 && response.ErrorMessage.Contains("Connection refused"))
+        {
+            _logger.Error($"Connection refused for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            _logger.Info($"Attempting to recreate tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            //try to open the tunnel again
+            lock (_lockTunnelObj)
+            {
+                _logger.Info($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+                scheduler.RemoveTunnel(taskInfo);
+                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort);
+                _taskWithExistingTunnel.Add(submittedTaskInfoId);
+                _logger.Info($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
+            }
+            var tunnel = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
+                .LastOrDefault(f => f.RemotePort == nodePort);
+
+            if (tunnel == null || tunnel.LocalPort == null)
+            {
+                throw new InvalidOperationException($"No tunnel found for RemotePort={nodePort} on node {nodeIPAddress}.");
+            }
+            allocatedPort = tunnel.LocalPort.Value;
+            _logger.Info($"New allocated port after tunnel recreation: {allocatedPort}");
+            options = new RestClientOptions($"http://localhost:{allocatedPort}")
+            {
+                Encoding = Encoding.UTF8,
+                CachePolicy = new CacheControlHeaderValue
+                {
+                    NoCache = true,
+                    NoStore = true
+                },
+                Timeout = TimeSpan.FromMilliseconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds * 1000)
+            };
+            basicRestClient = new RestClient(options);
+            request = new RestRequest(httpRequest);
+            //retry the request
+            response = await basicRestClient.ExecuteAsync(request);
+        }
+        
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            _logger.Info($"Response: \"{response.Content}\"");
-            throw new UnableToCreateConnectionException("ResponseNotOk");
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP GET failed for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ErrorMessage: {response.ErrorMessage}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            _logger.Info(logBuilder.ToString());
+
+            throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
         }
+        else
+        {
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP GET successful for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            _logger.Info(logBuilder.ToString());
+        }
+
         return response.Content;
     }
 
@@ -208,7 +275,7 @@ public class DataTransferLogic : IDataTransferLogic
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
         _logger.Info(
-            $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers)}\" HTTP Payload: \"{httpPayload}\"");
+            $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\" HTTP Payload: \"{httpPayload}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
@@ -231,20 +298,70 @@ public class DataTransferLogic : IDataTransferLogic
         var basicRestClient = new RestClient(options);
 
         var request = new RestRequest(httpRequest, Method.Post);
-        headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
 
+        headers.ToList().ForEach(f => request.AddHeader(f.Name, f.Value));
+        
         //Body part
         var payload = Encoding.UTF8.GetBytes(httpPayload);
-        request.AddHeader("content-type", "raw")
-            .AddHeader("contentLength", payload.Length)
-            .AddBody(payload);
+        //check if headers contain content type
+        if (!headers.Any(h => h.Name.ToLower() == "content-type"))
+        {
+            //if no content type is set, default to application/json
+            request.AddHeader("content-type", "raw");
+            _logger.Info($"No content-type header found, defaulting to 'raw' for task ID: {submittedTaskInfoId}");
+        }
+        
+        //if content type is set to json, send json body, else send raw body
+        if (headers.Any(h => h.Name.ToLower() == "content-type" && h.Value.ToLower().Contains("json")))
+        {
+            request.AddStringBody(httpPayload, DataFormat.Json);
+            _logger.Info($"Adding JSON body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
+        }
+        else
+        {
+            //default to raw
+            request.AddBody(payload);
+            _logger.Info($"Adding raw body for task ID: {submittedTaskInfoId}, Content-type: {string.Join(", ", headers.Where(h => h.Name.ToLower() == "content-type").Select(h => h.Value))}");
+        }
 
         var response = await basicRestClient.ExecuteAsync(request);
 
         if (response.StatusCode != HttpStatusCode.OK)
         {
-            _logger.Info($"Response: \"{response.Content}\"");
-            throw new UnableToCreateConnectionException("ResponseNotOk");
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP POST failed for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ErrorMessage: {response.ErrorMessage}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            logBuilder.AppendLine($"HTTP Payload: {httpPayload}");
+            logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Request Body: {Encoding.UTF8.GetString(payload)}");
+            logBuilder.AppendLine($"Content-Length: {payload.Length}");
+            _logger.Info(logBuilder.ToString());
+
+            throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
+        }
+        else
+        {
+            var logBuilder = new StringBuilder();
+            logBuilder.AppendLine($"HTTP POST successful for task ID: {submittedTaskInfoId}");
+            logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
+            logBuilder.AppendLine($"Content: {response.Content}");
+            logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
+            logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
+            logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
+            logBuilder.AppendLine($"NodeIPAddress: {nodeIPAddress}");
+            logBuilder.AppendLine($"NodePort: {nodePort}");
+            logBuilder.AppendLine($"HTTP Payload: {httpPayload}");
+            logBuilder.AppendLine($"HTTP Headers: {string.Join(", ", headers.Select(h => $"{h.Name}: {h.Value}"))}");
+            logBuilder.AppendLine($"Request Body: {Encoding.UTF8.GetString(payload)}");
+            logBuilder.AppendLine($"Content-Length: {payload.Length}");
+            _logger.Info(logBuilder.ToString());
         }
 
         return response.Content;

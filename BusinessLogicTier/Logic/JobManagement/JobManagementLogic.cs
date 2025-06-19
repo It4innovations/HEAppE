@@ -16,13 +16,11 @@ using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
-using HEAppE.FileTransferFramework.Sftp;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
 using log4net;
-using Renci.SshNet;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
@@ -733,6 +731,7 @@ internal class JobManagementLogic : IJobManagementLogic
         dbTaskInfo.State = clusterTaskInfo.State;
         dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
         dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
+        dbTaskInfo.Reason = clusterTaskInfo.Reason;
         return dbTaskInfo;
     }
 }

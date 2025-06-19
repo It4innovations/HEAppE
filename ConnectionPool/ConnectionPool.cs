@@ -15,7 +15,7 @@ public class ConnectionPool : IConnectionPool
     #region Constructors
 
     public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval,
-        int maxUnusedDuration, IPoolableAdapter adapter, int? port = null)
+        int maxUnusedDuration, IPoolableAdapter adapter, int? port)
     {
         log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _masterNodeName = masterNodeName;
@@ -79,7 +79,7 @@ public class ConnectionPool : IConnectionPool
     private readonly Dictionary<long, LinkedList<ConnectionInfo>> pool;
     private readonly Timer poolCleanTimer;
     private int actualSize;
-
+    
     #endregion
 
     #region IConnectionPool Members
