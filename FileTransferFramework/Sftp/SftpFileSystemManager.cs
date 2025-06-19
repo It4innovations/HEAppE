@@ -56,7 +56,6 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
             using (var stream = new MemoryStream())
             {
-                //var file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
                 var file = Path.Combine(basePath, _scripts.InstanceIdentifierPath, partPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username, relativeFilePath.TrimStart('/'));
                 client.DownloadFile(file, stream);
                 return stream.ToArray();
