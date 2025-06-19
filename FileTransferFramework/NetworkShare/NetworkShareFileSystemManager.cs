@@ -42,7 +42,7 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
     public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
     {
         var jobClusterDirectoryPath =
-            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath);
+            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
         UnsetReadOnlyForAllFiles(jobClusterDirectoryPath);
         Directory.Delete(jobClusterDirectoryPath, true);
     }

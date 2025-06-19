@@ -7,6 +7,7 @@ public sealed class ScriptsConfiguration
 {
     #region Instances
 
+    private string _instanceIdentifierPath = "Identifier";
     private string _subExecutionPath = "HEAppE/Executions";
     private string _jobLogArchiveSubPath = "HEAppE/JobLogs";
     private string _subScriptsPath = "HEAppE/Scripts";
@@ -25,6 +26,18 @@ public sealed class ScriptsConfiguration
     ///     .key_scripts HEAppE Scripts repository path
     /// </summary>
     public string KeyScriptsDirectoryInRepository { get; set; }
+
+    /// <summary>
+    ///     HEAppE Instance Identifier Path
+    /// </summary>
+    public string InstanceIdentifierPath
+    {
+        get => _instanceIdentifierPath;
+        set
+        {
+            if (!string.IsNullOrEmpty(value)) _instanceIdentifierPath = value.Replace("\\", "/").TrimStart('/').TrimEnd('/');
+        }
+    }
 
     /// <summary>
     ///     Sub Execution Path
