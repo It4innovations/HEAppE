@@ -17,7 +17,7 @@ public class FileSystemUtils
     {
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
             ?.LocalBasepath;
-        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}";
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
     }
