@@ -48,7 +48,7 @@ public interface IManagementLogic
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
-    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
+    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory);
     bool TestClusterAccessForAccount(long projectId, string username);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 

@@ -320,14 +320,14 @@ public class ManagementService : IManagementService
     }
 
     public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
-        string clusterProjectRootDirectory, string sessionCode)
+        bool overwriteExistingProjectRootDirectory, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory)
+            return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory)
                 .Select(x => x.ConvertIntToExt()).ToList();
         }
     }

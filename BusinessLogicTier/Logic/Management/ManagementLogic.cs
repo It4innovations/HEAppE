@@ -767,17 +767,16 @@ public class ManagementLogic : IManagementLogic
     ///     Initialize cluster script directory and create symbolic link for user
     /// </summary>
     /// <param name="projectId"></param>
-    /// <param name="clusterProjectRootDirectory"></param>
+    /// <param name="overwriteExistingProjectRootDirectory"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory)
+    public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory)
     {
-        clusterProjectRootDirectory = clusterProjectRootDirectory
-            .Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
         var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
             .GetAuthenticationCredentialsProject(projectId)
             .ToList();
         Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();
+
         if (!clusterAuthenticationCredentials.Any())
             throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
 
@@ -789,8 +788,8 @@ public class ManagementLogic : IManagementLogic
             var project = clusterProjectCredential.ClusterProject.Project;
             var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
-            var isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath,
-                cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
+            var isInitialized = scheduler.InitializeClusterScriptDirectory(project.AccountingString, overwriteExistingProjectRootDirectory,
+                localBasepath, cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
             if (isInitialized)
             {
                 if (!clusterInitReports.ContainsKey(cluster))

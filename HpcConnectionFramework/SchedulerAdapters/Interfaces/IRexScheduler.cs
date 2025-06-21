@@ -31,7 +31,7 @@ public interface IRexScheduler
     void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
 
     void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys,
-        ClusterAuthenticationCredentials credentials, Cluster cluster);
+        ClusterAuthenticationCredentials credentials, Cluster cluster, Project project);
 
     void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode);
 
@@ -47,8 +47,8 @@ public interface IRexScheduler
 
     IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost);
 
-    bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath, Cluster cluster,
-        ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount);
+    bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
+        Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount);
 
     bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials);
     bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);

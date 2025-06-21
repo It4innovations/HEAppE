@@ -528,4 +528,7 @@
   <data name="SshClientArgumentException_UnknownPrivateKeyException" xml:space="preserve">
     <value>Failed to read private key.</value>
   </data>
+  <data name="InputValidationException_GitCloneCommandError" xml:space="preserve">
+    <value>Exception thrown when cloning git repository.</value>
+  </data>
 </root>

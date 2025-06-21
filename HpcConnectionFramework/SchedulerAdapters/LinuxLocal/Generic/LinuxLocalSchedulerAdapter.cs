@@ -139,7 +139,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         var sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
         command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{_scripts.ScriptsBasePath}/{_commandScripts.ExecuteCmdScriptName} {sshCommandBase64}");
+            $"{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {sshCommandBase64}");
 
         shellCommandSb.Clear();
         var localBasePath = jobSpecification.Cluster.ClusterProjects
@@ -157,7 +157,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
         command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath}/run_background_command.sh {sshCommandBase64}");
+            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh")} {sshCommandBase64}");
 
         return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
     }
@@ -272,9 +272,10 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
+    ///  <param name="projectAccountingString">Project accounting string</param>
+    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
-        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys);
+        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys, projectAccountingString);
     }
 
     /// <summary>
@@ -363,14 +364,15 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="schedulerConnectionConnection">Connector</param>
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+    /// <param name="overwriteExistingProjectRootDirectory">Cluster project root path</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            localBasepath, account, isServiceAccount);
+            overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
     }
 
     #endregion
