@@ -34,11 +34,11 @@ public interface IManagementService
     ProjectExt GetProjectById(long id, string sessionCode);
 
     ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail,
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
         string sessionCode);
 
     ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, string sessionCode);
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, string sessionCode);
 
     void RemoveProject(long id, string sessionCode);
 

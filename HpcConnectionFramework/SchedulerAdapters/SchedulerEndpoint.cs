@@ -30,6 +30,11 @@ internal struct SchedulerEndpoint
     /// </summary>
     public SchedulerType SchedulerType { get; }
 
+    /// <summary>
+    ///     Adaptor ID
+    /// </summary>
+    public long? AdaptorUserId { get; }
+
     #endregion
 
     #region Constructors,
@@ -42,12 +47,13 @@ internal struct SchedulerEndpoint
     /// <param name="projectModifiedAt"></param>
     /// <param name="schedulerType">Scheduler type</param>
     public SchedulerEndpoint(string masterNodeName, long projectId, DateTime? projectModifiedAt,
-        SchedulerType schedulerType)
+        SchedulerType schedulerType, long? adaptorUserId)
     {
         MasterNodeName = masterNodeName;
         SchedulerType = schedulerType;
         ProjectModifiedAt = projectModifiedAt;
         ProjectId = projectId;
+        AdaptorUserId = adaptorUserId;
     }
 
     #endregion
@@ -65,7 +71,8 @@ internal struct SchedulerEndpoint
                MasterNodeName.Equals(endpoint.MasterNodeName) &&
                ProjectId.Equals(endpoint.ProjectId) &&
                ProjectModifiedAt.Equals(endpoint.ProjectModifiedAt) &&
-               SchedulerType.Equals(endpoint.SchedulerType);
+               SchedulerType.Equals(endpoint.SchedulerType) &&
+               AdaptorUserId.Equals(endpoint.AdaptorUserId);
     }
 
     /// <summary>
@@ -74,7 +81,7 @@ internal struct SchedulerEndpoint
     /// <returns></returns>
     public override int GetHashCode()
     {
-        return HashCode.Combine(MasterNodeName, ProjectId, ProjectModifiedAt, SchedulerType);
+        return HashCode.Combine(MasterNodeName, ProjectId, ProjectModifiedAt, SchedulerType, AdaptorUserId);
     }
 
     #endregion

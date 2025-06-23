@@ -70,6 +70,14 @@ public class ProjectExt
     [Description("Use accounting string for scheduler")]
     public bool UseAccountingStringForScheduler { get; set; }
 
+
+    /// <summary>
+    /// Map user account to exact robot account
+    /// </summary>
+    [DataMember(Name = "IsOneToOneMapping")]
+    [Description("Map user account to exact robot account")]
+    public bool IsOneToOneMapping { get; set; }
+
     /// <summary>
     /// Array of command templates
     /// </summary>
