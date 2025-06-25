@@ -1910,7 +1910,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         List<ClusterInitReportExt> report = _managementService.InitializeClusterScriptDirectory(model.ProjectId,
-            model.ClusterProjectRootDirectory, model.SessionCode);
+            model.ClusterProjectRootDirectory, model.SessionCode, model.Username);
         
         if(report.Any(x=> !x.IsClusterInitialized))
             return BadRequest(report);

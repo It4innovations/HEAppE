@@ -591,7 +591,8 @@ public class ManagementLogic : IManagementLogic
             {
                 //get existing secure key
                 var existingKey = existingCredentials.FirstOrDefault();
-                if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKey)) continue;
+                if (existingKey != null && string.IsNullOrEmpty(existingKey.PrivateKey))
+                    continue;
 
                 if (existingKey != null)
                 {
@@ -771,7 +772,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="clusterProjectRootDirectory"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, long? adaptorUserId)
+    public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, long? adaptorUserId, string username)
     {
         clusterProjectRootDirectory = clusterProjectRootDirectory
             .Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
@@ -782,9 +783,11 @@ public class ManagementLogic : IManagementLogic
         if (!clusterAuthenticationCredentials.Any())
             throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
 
-        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
-            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x =>
-                         x.ClusterProject))
+        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.OrderBy(x => x.Username))
+        {
+            if (!string.IsNullOrEmpty(username) && clusterAuthCredentials.Username != username)
+                continue;
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.OrderByDescending(x => x.IsServiceAccount) /*.DistinctBy(x =>x.ClusterProject)*/)
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
                 var project = clusterProjectCredential.ClusterProject.Project;
@@ -823,9 +826,10 @@ public class ManagementLogic : IManagementLogic
                         $"Initialization of cluster script directory failed for project {project.Id} on cluster {cluster.Id} with account {clusterProjectCredential.ClusterAuthenticationCredentials.Username}.");
                 }
             }
+        }
 
         if (clusterInitReports.Count > 0)
-            _unitOfWork.Save();
+                _unitOfWork.Save();
         
         return clusterInitReports.Values.ToList();
     }
@@ -1871,13 +1875,13 @@ public class ManagementLogic : IManagementLogic
             if (serviceAccount == null)
             {
                 serviceCredentials.ClusterProjectCredentials.Add(
-                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
+                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true, false));
                 _logger.Info(
                     $"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
             }
 
             nonServiceCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
+                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false, false));
             _logger.Info($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 
@@ -2232,7 +2236,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="isServiceAccount"></param>
     /// <returns></returns>
     private static ClusterProjectCredential CreateClusterProjectCredentials(ClusterProject clusterProject,
-        ClusterAuthenticationCredentials clusterAuthenticationCredentials, bool isServiceAccount)
+        ClusterAuthenticationCredentials clusterAuthenticationCredentials, bool isServiceAccount, bool? isInitialized)
     {
         return new ClusterProjectCredential
         {
@@ -2240,7 +2244,8 @@ public class ManagementLogic : IManagementLogic
             ClusterAuthenticationCredentials = clusterAuthenticationCredentials,
             CreatedAt = DateTime.UtcNow,
             IsDeleted = false,
-            IsServiceAccount = isServiceAccount
+            IsServiceAccount = isServiceAccount,
+            IsInitialized = isInitialized
         };
     }
 

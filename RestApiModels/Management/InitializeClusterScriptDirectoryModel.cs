@@ -24,4 +24,11 @@ public class InitializeClusterScriptDirectoryModel : SessionCodeModel
     [DataMember(Name = "ClusterProjectRootDirectory", IsRequired = true)]
     [Description("Cluster project root directory")]
     public string ClusterProjectRootDirectory { get; set; }
+
+    /// <summary>
+    /// Username filter
+    /// </summary>
+    [DataMember(Name = "Username", IsRequired = false)]
+    [Description("Username")]
+    public string Username { get; set; }
 }

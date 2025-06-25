@@ -58,6 +58,8 @@ public abstract class SchedulerFactory
     /// <returns></returns>
     protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, long? adaptorUserId)
     {
+        if (!project.IsOneToOneMapping)
+            adaptorUserId = null;
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
             clusterConf.SchedulerType, adaptorUserId);
         if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
@@ -74,9 +76,9 @@ public abstract class SchedulerFactory
             var connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Count;
             if (adaptorUserId != null)
             {
-                connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Where(cpc => cpc.AdaptorUserId == adaptorUserId).Count();
+                connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Where(cpc => adaptorUserId.HasValue ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null).Count();
                 if (connectionPoolMaxSize == 0)
-                    throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user."); // TODO: better exception
+                    throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
             }
 
             _schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(

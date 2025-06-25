@@ -323,7 +323,7 @@ public class ManagementService : IManagementService
     }
 
     public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
-        string clusterProjectRootDirectory, string sessionCode)
+        string clusterProjectRootDirectory, string sessionCode, string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -331,7 +331,7 @@ public class ManagementService : IManagementService
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory,
-                adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
+                adaptorUserId: loggedUser.Id, username: username).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
