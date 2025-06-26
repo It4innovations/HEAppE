@@ -84,8 +84,9 @@ public interface ICommands
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
+    /// <param name="account">Cluster username</param>
     bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
-        string localBasepath, bool isServiceAccount);
+        string localBasepath, string account, bool isServiceAccount);
 
     bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
 }

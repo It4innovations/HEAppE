@@ -39,6 +39,7 @@ public class SSHGenerator
             FileTransferCipherType.RSA4096 => new RSACertGenerator(4096),
             FileTransferCipherType.nistP256 => new ECDsaCertGenerator("nistP256"),
             FileTransferCipherType.nistP521 => new ECDsaCertGenerator("nistP521"),
+            FileTransferCipherType.Ed25519 => new EdDSACertGenerator(),
             _ => new RSACertGenerator(4096)
         };
 
@@ -48,6 +49,7 @@ public class SSHGenerator
             FileTransferCipherType.RSA4096 => new RSACertGeneratorV2(4096),
             FileTransferCipherType.nistP256 => new ECDsaCertGeneratorV2(256),
             FileTransferCipherType.nistP521 => new ECDsaCertGeneratorV2(521),
+            FileTransferCipherType.Ed25519 => new EdDSACertGeneratorV2(),
             _ => new RSACertGeneratorV2(4096)
         };
     }
@@ -88,8 +90,12 @@ public class SSHGenerator
             Username = username,
             Passphrase = passphrase,
             CipherType = CipherGeneratorConfiguration.Type,
-            PrivateKeyPEM = _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase),
-            PublicKeyPEM = _certGeneratorV2.ToPublicKeyInPEM(),
+            // private key for Ed25519 have to be in not encrypted OPENSSH format due to Renci.SSH missing support
+            PrivateKeyPEM = CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519 ? _certGeneratorV2.ToPrivateKeyInPEM()
+                : _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase),
+            // public key in PEM for Ed25519 is not generated (it could not be constructed from OPENSSH format)
+            PublicKeyPEM = CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519 ? null
+                : _certGeneratorV2.ToPublicKeyInPEM(),
             PublicKeyInAuthorizedKeysFormat = _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(username),
             PublicKeyFingerprint = _certGeneratorV2.GetPublicKeyFingerprint()
         };
@@ -98,7 +104,7 @@ public class SSHGenerator
 
     public static SecureShellKey GetPublicKeyFromPrivateKey(ClusterAuthenticationCredentials existingKey)
     {
-        switch (CipherGeneratorConfiguration.Type)
+        switch (existingKey.CipherType)
         {
             case FileTransferCipherType.nistP256:
             case FileTransferCipherType.nistP521:
@@ -110,6 +116,16 @@ public class SSHGenerator
                         existingKey.PrivateKeyPassphrase),
                     PublicKeyInAuthorizedKeysFormat =
                         ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
+                            existingKey.PrivateKeyPassphrase, existingKey.Username)
+                };
+            case FileTransferCipherType.Ed25519:
+                return new SecureShellKey
+                {
+                    Username = existingKey.Username,
+                    CipherType = CipherGeneratorConfiguration.Type,
+                    PublicKeyPEM = null,
+                    PublicKeyInAuthorizedKeysFormat =
+                        EdDSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
             case FileTransferCipherType.RSA3072:
@@ -125,9 +141,7 @@ public class SSHGenerator
                         RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
-        }
-
-        ;
+        };
     }
 
     /// <summary>

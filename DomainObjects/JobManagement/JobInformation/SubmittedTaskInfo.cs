@@ -38,6 +38,9 @@ public class SubmittedTaskInfo : IdentifiableDbEntity
     public virtual ClusterNodeType NodeType { get; set; }
 
     [StringLength(500)] public string ErrorMessage { get; set; }
+    
+    [StringLength(255)]
+    public string Reason { get; set; }
 
     [Column(TypeName = "text")] public string AllParameters { get; set; }
 

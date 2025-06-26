@@ -190,6 +190,7 @@ public static class ClusterInformationConverts
             ExtendedAllocationCommand = commandTemplate.ExtendedAllocationCommand,
             IsGeneric = commandTemplate.IsGeneric,
             IsEnabled = commandTemplate.IsEnabled,
+            CreatedFromGenericTemplateId = commandTemplate.CreatedFromId,
             TemplateParameters = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
                 .Select(s => s.ConvertIntToExt())
                 .ToArray()
@@ -213,6 +214,7 @@ public static class ClusterInformationConverts
             ProjectId = commandTemplate.ProjectId.HasValue ? commandTemplate.ProjectId.Value : 0,
             ClusterNodeTypeId =
                 commandTemplate.ClusterNodeTypeId.HasValue ? commandTemplate.ClusterNodeTypeId.Value : 0,
+            CreatedFromGenericTemplateId = commandTemplate.CreatedFromId,
             TemplateParameters = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
                 .Select(s => s.ConvertIntToExtendedExt())
                 .ToArray()

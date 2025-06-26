@@ -52,6 +52,13 @@ public class CommandTemplateExt
     [DataMember(Name = "IsEnabled")]
     [Description("Is enabled")]
     public bool IsEnabled { get; set; }
+    
+    /// <summary>
+    /// Created from generic template id
+    /// </summary>
+    [DataMember(Name = "CreatedFromGenericTemplateId")]
+    [Description("Created from generic template id")]
+    public long? CreatedFromGenericTemplateId { get; set; }
 
     /// <summary>
     /// Array of command template parameters
@@ -63,6 +70,6 @@ public class CommandTemplateExt
     public override string ToString()
     {
         return
-            $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; isEnabled={IsEnabled}; templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
+            $"CommandTemplateExt(id={Id}; name={Name}; description={Description}; extendedAllocationCommand={ExtendedAllocationCommand}; isGeneric={IsGeneric}; isEnabled={IsEnabled}; createdFromGenericTemplateId={CreatedFromGenericTemplateId}; templateParameters={string.Join(";", TemplateParameters.Select(x => x.ToString()))})";
     }
 }

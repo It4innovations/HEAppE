@@ -130,7 +130,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
-                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
 
             if (commandTemplate.ProjectId == null)
                 throw new InputValidationException("The specified command template cannot be removed!");
@@ -368,7 +368,15 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId)
-                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", modelCommandTemplateId);
+
+            //command template has no project assigned
+            if (!commandTemplate.ProjectId.HasValue)
+            {
+                _logger.Warn($"Method: CreateCommandTemplateParameter: Command Template with Id: {modelCommandTemplateId} has no reference to Project.");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateHasNoProjectAssigned", modelCommandTemplateId);
+            }
+
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
@@ -382,17 +390,19 @@ public class ManagementService : IManagementService
         string modelQuery,
         string modelDescription, string modelSessionCode)
     {
-        _logger.Info(
-            $"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
+        _logger.Info($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
                                                "CommandTemplateParameterNotFound", id);
 
-            //command template not found or not enabled
+            //command template has no project assigned
             if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
-                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            {
+                _logger.Warn($"Method: ModifyCommandTemplateParameter: Command Template Parameter with Id: {id} for Command Template with Id: {commandTemplateParameter.CommandTemplateId} has no reference to Project.");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterHasNoProjectAssigned", id, commandTemplateParameter.CommandTemplateId);
+            }
 
             if (commandTemplateParameter.CommandTemplate.IsDeleted) throw new InputValidationException("NotPermitted");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
@@ -414,14 +424,14 @@ public class ManagementService : IManagementService
                                                "CommandTemplateParameterNotFound", id);
 
             if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
-                throw new InputValidationException("The specified command template parameter cannot be removed!");
+                throw new InputValidationException("CommandTemplateParameterCannotBeRemoved", id);
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value,
                 true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveCommandTemplateParameter(id);
-            return $"CommandTemplateParameter id {id} was removed";
+            return $"CommandTemplateParameter with Id: '{id}' was removed";
         }
     }
 
@@ -441,8 +451,8 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
-                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            if (commandTemplate.IsDeleted) throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
+            if (commandTemplate.IsDeleted) throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
             if (!commandTemplate.ProjectId.HasValue)
             {
                 (var loggedUser, _) =

@@ -88,8 +88,17 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
         try
         {
-            var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, cluster, submitedTasksInfo);
-            return tasks;
+            var allTasks = new List<SubmittedTaskInfo>();
+            var groupedTasksByUser = submitedTasksInfo
+                .GroupBy(t => t.Specification.JobSpecification.ClusterUser.Username);
+
+            foreach (var groupedTasksByUsername in groupedTasksByUser)
+            {
+                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, cluster, groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
+                allTasks.AddRange(tasks);
+            }
+
+            return allTasks;
         }
         finally
         {
@@ -360,7 +369,7 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
             return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection,
-                clusterProjectRootDirectory, localBasepath, isServiceAccount);
+                clusterProjectRootDirectory, localBasepath, clusterAuthCredentials.Username, isServiceAccount);
         }
         catch (Exception ex)
         {

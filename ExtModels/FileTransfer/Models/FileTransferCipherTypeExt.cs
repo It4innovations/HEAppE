@@ -8,10 +8,10 @@ namespace HEAppE.ExtModels.FileTransfer.Models;
 [Description("File tansfer cipher types")]
 public enum FileTransferCipherTypeExt
 {
-    None = 0,
-    RSA3072 = 1,
-    RSA4096 = 2,
-    nistP256 = 3,
-    nistP521 = 4,
-    Ed25519 = 5
+    None = 1,
+    RSA3072 = 2,
+    RSA4096 = 3,
+    nistP256 = 4,
+    nistP521 = 5,
+    Ed25519 = 6
 }

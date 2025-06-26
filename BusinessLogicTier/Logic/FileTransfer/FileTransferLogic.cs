@@ -119,7 +119,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath),
             Credentials = new FileTransferKeyCredentials
             {
                 Username = clusterUserAuthCredentials.Username,
@@ -153,7 +153,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath)
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath)
         };
 
         _log.Info($"Auth type: {jobInfo.Specification.ClusterUser.AuthenticationType}");
@@ -256,13 +256,13 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.JobLogArchiveSubPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath);
                 }
                 else
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.SubExecutionsPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
                 }
 
                 if (contents != null)
@@ -411,7 +411,7 @@ public class FileTransferLogic : IFileTransferLogic
                 
                 var basePath = jobInfo.Specification.Cluster.ClusterProjects
                     .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
-                var localBasePath = Path.Combine(basePath, _scripts.JobLogArchiveSubPath.TrimStart('/'));
+                var localBasePath = Path.Combine(basePath, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username);
  
                 if (relativeFilePath.StartsWith(start1))
                 {

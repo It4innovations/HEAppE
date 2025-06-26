@@ -48,7 +48,9 @@ internal class MiddlewareContext : DbContext
                             {
                                 var lastAppliedMigration = Database.GetAppliedMigrations().LastOrDefault();
                                 var lastDefinedMigration = Database.GetMigrations().LastOrDefault();
-
+                                _log.Info(
+                                    $"Last applied migration: {lastAppliedMigration}, last defined migration: {lastDefinedMigration}");
+                                
                                 if (lastAppliedMigration is null)
                                 {
                                     _log.Info("Starting migration into the new database.");
@@ -490,7 +492,7 @@ internal class MiddlewareContext : DbContext
                 UpdateEntityOrAddItem((T)(object)entity, item);
                 var entity_after_update = Set<T>().Find(identifiableItem.Id);
 
-                if (entity is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
+                if (entity_after_update is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
                     var vaultConnector = new VaultConnector();
                     var vaultData = vaultConnector

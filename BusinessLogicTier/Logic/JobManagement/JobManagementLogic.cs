@@ -16,13 +16,11 @@ using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
-using HEAppE.FileTransferFramework.Sftp;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
 using log4net;
-using Renci.SshNet;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
@@ -221,14 +219,22 @@ internal class JobManagementLogic : IJobManagementLogic
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
         
-        var localBasePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'));
-        var jobLogArchivePath = Path.Combine(basePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'));
+        var localBasePath = Path.Combine(
+                basePath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'),
+                jobInfo.Specification.ClusterUser.Username);
+        var jobLogArchivePath = Path.Combine(
+                basePath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'), 
+                jobInfo.Specification.ClusterUser.Username);
         
         var sourceDestinations = jobInfo.Specification.Tasks
             .SelectMany(x => new[]
             {
                 CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardOutputFile),
-                CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardErrorFile)
+                CreatePathTuple(localBasePath, jobLogArchivePath, x, x.StandardErrorFile),
             });
         
         var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
@@ -734,6 +740,7 @@ internal class JobManagementLogic : IJobManagementLogic
         dbTaskInfo.State = clusterTaskInfo.State;
         dbTaskInfo.AllParameters = clusterTaskInfo.AllParameters;
         dbTaskInfo.ErrorMessage = clusterTaskInfo.ErrorMessage;
+        dbTaskInfo.Reason = clusterTaskInfo.Reason;
         return dbTaskInfo;
     }
 }

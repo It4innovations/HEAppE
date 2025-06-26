@@ -31,6 +31,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         foreach (var item in credentials)
         {
+            if(item == null) continue;
             _log.Debug($"Importing VaultInfo for id:{item.Id}");
             var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
             item.ImportVaultData(vaultData);
