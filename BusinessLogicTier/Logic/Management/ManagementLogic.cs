@@ -773,24 +773,38 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory, long? adaptorUserId, string username)
-    {
+    {        
         clusterProjectRootDirectory = clusterProjectRootDirectory
             .Replace(_scripts.SubScriptsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
-        var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAuthenticationCredentialsProject(projectId, adaptorUserId: adaptorUserId)
-            .ToList();
+
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        var isOneToOneMapping = project.IsOneToOneMapping;
+
+        List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = [];
+        if (isOneToOneMapping)
+        {
+            foreach (var cp in project.ClusterProjects)
+                foreach (var cpc in cp.ClusterProjectCredentials)
+                    clusterAuthenticationCredentials.AddRange(
+                        _unitOfWork.ClusterAuthenticationCredentialsRepository
+                            .GetAuthenticationCredentialsProject(projectId, adaptorUserId: cpc.AdaptorUserId));
+        }
+        else
+        {
+            clusterAuthenticationCredentials.AddRange(
+                _unitOfWork.ClusterAuthenticationCredentialsRepository
+                    .GetAuthenticationCredentialsProject(projectId, null));
+        }
+
         Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();
         if (!clusterAuthenticationCredentials.Any())
             throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
 
-        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.OrderBy(x => x.Username))
+        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.Where(x => string.IsNullOrEmpty(username) || x.Username == username).OrderBy(x => x.Username))
         {
-            if (!string.IsNullOrEmpty(username) && clusterAuthCredentials.Username != username)
-                continue;
-            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.OrderByDescending(x => x.IsServiceAccount) /*.DistinctBy(x =>x.ClusterProject)*/)
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.OrderByDescending(x => x.IsServiceAccount))
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
-                var project = clusterProjectCredential.ClusterProject.Project;
                 var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: adaptorUserId);
                 var isInitialized = scheduler.InitializeClusterScriptDirectory(clusterProjectRootDirectory, localBasepath,
