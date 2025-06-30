@@ -67,6 +67,11 @@ public class LogRequestModelFilter : ActionFilterAttribute
 
     private object CloneAndRedact(object model, Type type)
     {
+        ///if model is string then check if is guid
+        if (model is string strModel && Guid.TryParse(strModel, out _))
+        {
+            return "***REDACTED***";
+        }
         var copy = Activator.CreateInstance(type);
         foreach (var prop in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
         {
