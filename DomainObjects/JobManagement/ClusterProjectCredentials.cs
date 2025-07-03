@@ -32,6 +32,6 @@ public class ClusterProjectCredential : ISoftDeletableEntity
     public override string ToString()
     {
         return
-            $"""ClusterProjectCredentials: ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, IsServiceAccount={IsServiceAccount}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}, AdaptorUserId={AdaptorUserId}, IsInitialized={IsInitialized}" """;
+            $"""ClusterProjectCredentials: ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, IsServiceAccount={IsServiceAccount}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}, AdaptorUserId={AdaptorUserId}, IsInitialized={IsInitialized}""";
     }
 }
