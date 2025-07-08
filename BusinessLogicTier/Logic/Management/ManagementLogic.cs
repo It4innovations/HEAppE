@@ -80,7 +80,7 @@ public class ManagementLogic : IManagementLogic
         var cluster = commandTemplate.ClusterNodeType.Cluster;
         var serviceAccount =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                projectId, adaptorUserId: adaptorUserId);
+                projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, adaptorUserId: adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
@@ -233,7 +233,7 @@ public class ManagementLogic : IManagementLogic
 
         var cluster = commandTemplate.ClusterNodeType.Cluster;
         var serviceAccount =
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, adaptorUserId: adaptorUserId);
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, adaptorUserId: adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
@@ -562,7 +562,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId)
     {
-        return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, adaptorUserId: adaptorUserId)
+        return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId)
             .Where(x => !x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
@@ -586,7 +586,7 @@ public class ManagementLogic : IManagementLogic
         {
             var existingCredentials =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, adaptorUserId: adaptorUserId);
+                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId);
             if (existingCredentials.Any())
             {
                 //get existing secure key
@@ -787,13 +787,13 @@ public class ManagementLogic : IManagementLogic
                 foreach (var cpc in cp.ClusterProjectCredentials)
                     clusterAuthenticationCredentials.AddRange(
                         _unitOfWork.ClusterAuthenticationCredentialsRepository
-                            .GetAuthenticationCredentialsProject(projectId, adaptorUserId: cpc.AdaptorUserId));
+                            .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: cpc.AdaptorUserId));
         }
         else
         {
             clusterAuthenticationCredentials.AddRange(
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsProject(projectId, null));
+                    .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: null));
         }
 
         Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();
@@ -1884,7 +1884,7 @@ public class ManagementLogic : IManagementLogic
         {
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id, adaptorUserId: adaptorUserId);
+                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId);
 
             if (serviceAccount == null)
             {

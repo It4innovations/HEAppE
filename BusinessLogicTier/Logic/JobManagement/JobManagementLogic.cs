@@ -157,7 +157,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var cluster = jobInfo.Specification.Cluster;
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, adaptorUserId: loggedUser.Id);
+                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
             var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, serviceAccount)
                 .ToList();
 
@@ -448,7 +448,7 @@ internal class JobManagementLogic : IJobManagementLogic
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-        specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId, adaptorUserId: loggedUser.Id);
+        specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
         specification.Submitter = loggedUser;
         specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
         specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
@@ -697,7 +697,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
         var account = useServiceAccount
             ? unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                jobSpecification.ClusterId, jobSpecification.ProjectId, adaptorUserId: jobSpecification.Submitter.Id)
+                jobSpecification.ClusterId, jobSpecification.ProjectId, requireIsInitialized: true, adaptorUserId: jobSpecification.Submitter.Id)
             : jobSpecification.ClusterUser;
         _logger.Info($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
         return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account);
