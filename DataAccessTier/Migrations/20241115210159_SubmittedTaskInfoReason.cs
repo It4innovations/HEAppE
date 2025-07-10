@@ -2,7 +2,7 @@
 
 #nullable disable
 
-namespace HEAppE.DataAccessTier.Mirgrations
+namespace HEAppE.DataAccessTier.Migrations
 {
     /// <inheritdoc />
     public partial class SubmittedTaskInfoReason : Migration
