@@ -14,7 +14,8 @@ namespace HEAppE.DataAccessTier.Migrations
                 name: "IsInitialized",
                 table: "ClusterProjectCredentials",
                 type: "bit",
-                nullable: true);
+                nullable: false,
+                defaultValue: false);
         }
 
         /// <inheritdoc />

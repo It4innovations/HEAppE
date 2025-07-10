@@ -27,7 +27,7 @@ public class ClusterProjectCredential : ISoftDeletableEntity
 
     public virtual AdaptorUser AdaptorUser { get; set; }
 
-    public bool? IsInitialized { get; set; }
+    public bool IsInitialized { get; set; }
 
     public override string ToString()
     {

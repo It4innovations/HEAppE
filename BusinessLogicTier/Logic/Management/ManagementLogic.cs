@@ -2250,7 +2250,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="isServiceAccount"></param>
     /// <returns></returns>
     private static ClusterProjectCredential CreateClusterProjectCredentials(ClusterProject clusterProject,
-        ClusterAuthenticationCredentials clusterAuthenticationCredentials, bool isServiceAccount, bool? isInitialized)
+        ClusterAuthenticationCredentials clusterAuthenticationCredentials, bool isServiceAccount, bool isInitialized)
     {
         return new ClusterProjectCredential
         {
