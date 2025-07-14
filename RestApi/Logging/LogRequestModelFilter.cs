@@ -39,12 +39,18 @@ public class LogRequestModelFilter : ActionFilterAttribute
                 }
             }
             
+            if (sessionCodeProperty == null && Guid.TryParse(model.ToString(), out Guid parsedGuid))
+            {
+                //if model is a guid then check if it is a session code
+                (userId, userName) = GetUser(parsedGuid.ToString());
+            }
+            
             //anonymize model
             var modelType = model.GetType();
             if(modelType.Name.StartsWith("Authenticate"))
             {
                 //do not log sensitive models
-                _logger.LogInformation("Action: {Action}, Argument: {Name}, UserId: {UserId}, UserName: {UserName}, Payload: Sensitive data not logged",
+                _logger.LogInformation("Action: {Action}, Argument: {Name}, UserId: {UserId}, UserName: {UserName}, Payload: ***REDACTED***",
                     context.ActionDescriptor.DisplayName,
                     argument.Key,
                     userId,
