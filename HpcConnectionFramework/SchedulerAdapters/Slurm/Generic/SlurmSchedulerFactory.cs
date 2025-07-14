@@ -24,7 +24,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singeltons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?), IRexScheduler> _schedulerSingletons = new();
+    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Convertor
@@ -47,13 +47,13 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <param name="jobInfoProject"></param>
     /// <param name="project"></param>
     /// <returns></returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, long? adaptorUserId)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt);
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project),
+                GetSchedulerConnectionPool(configuration, project, adaptorUserId: adaptorUserId),
                 CreateSchedulerAdapter()
             );
         return _schedulerSingletons[uniqueIdentifier];

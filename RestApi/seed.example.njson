@@ -126,7 +126,8 @@
             "CreatedAt":"{CreatedAt}",
             "ModifiedAt":null,
             "IsDeleted":false,
-            "UseAccountingStringForScheduler":true
+            "UseAccountingStringForScheduler":true,
+            "IsOneToOneMapping":false
          }
       ],
       "Contacts":[
@@ -164,7 +165,8 @@
             "IsServiceAccount":true,
             "CreatedAt":"{CreatedAt}",
             "ModifiedAt":null,
-            "IsDeleted":false
+            "IsDeleted":false,
+            "AdaptorUserId":null
          },
          {
             "ClusterProjectId":1,
@@ -172,7 +174,8 @@
             "IsServiceAccount":false,
             "CreatedAt":"{CreatedAt}",
             "ModifiedAt":null,
-            "IsDeleted":false
+            "IsDeleted":false,
+            "AdaptorUserId":null
          }
       ],
       "SubProjects":[

@@ -520,7 +520,7 @@ public class ManagementController : BaseController<ManagementController>
             model.UsageType.HasValue ? model.UsageType.ConvertExtToInt() : UsageType.NodeHours,
             model.Name, model.Description,
             model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
-            model.PIEmail,
+            model.PIEmail, model.IsOneToOneMapping ?? false,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
@@ -548,7 +548,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
-            model.SessionCode);
+            model.IsOneToOneMapping ?? false, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
     }
@@ -792,7 +792,6 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get all clusters
     /// </summary>
-    /// <param name="id"></param>
     /// <param name="sessionCode"></param>
     /// <returns></returns>
     [HttpGet("Clusters")]
@@ -1745,7 +1744,8 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get SSH keys for project
     /// </summary>
-    /// <param name="model"></param>
+    /// <param name="projectId"></param>
+    /// <param name="sessionCode"></param>
     /// <returns></returns>
     [HttpGet("SecureShellKeys")]
     [RequestSizeLimit(1000)]
@@ -1910,7 +1910,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         List<ClusterInitReportExt> report = _managementService.InitializeClusterScriptDirectory(model.ProjectId,
-            model.ClusterProjectRootDirectory, model.SessionCode);
+            model.OverwriteExistingProjectRootDirectory, model.SessionCode);
         
         if(report.Any(x=> !x.IsClusterInitialized))
             return BadRequest(report);

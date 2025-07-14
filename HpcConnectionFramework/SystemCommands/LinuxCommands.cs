@@ -1,15 +1,15 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using log4net;
 using Renci.SshNet;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace HEAppE.HpcConnectionFramework.SystemCommands;
 
@@ -27,15 +27,6 @@ internal class LinuxCommands : ICommands
     {
         _log = LogManager.GetLogger(typeof(LinuxCommands));
     }
-
-    #endregion
-
-    #region Properties
-
-    /// <summary>
-    ///     Execute command script path
-    /// </summary>
-    public string ExecuteCmdScriptPath => $"{_scripts.ScriptsBasePath}/{_commandScripts.ExecuteCmdScriptName}";
 
     #endregion
 
@@ -107,7 +98,7 @@ internal class LinuxCommands : ICommands
         var inputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}Temp/{hash}/.";
         var outputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}/{jobInfo.Specification.Id}";
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{_scripts.ScriptsBasePath}/{_commandScripts.CopyDataFromTempCmdScriptName} {inputDirectory} {outputDirectory}");
+            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataFromTempCmdScriptName)} {inputDirectory} {outputDirectory}");
         _log.Info(
             $"Temp data \"{hash}\" were copied to job directory \"{jobInfo.Specification.Id}\", result: \"{sshCommand.Result}\"");
     }
@@ -128,7 +119,7 @@ internal class LinuxCommands : ICommands
         var outputDirectory = $"{localBasePath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}Temp/{hash}";
 
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{_scripts.ScriptsBasePath}/{_commandScripts.CopyDataToTempCmdScriptName} {inputDirectory} {outputDirectory}");
+            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CopyDataToTempCmdScriptName)} {inputDirectory} {outputDirectory}");
         _log.Info(
             $"Job data \"{jobInfo.Specification.Id}/{path}\" were copied to temp directory \"{hash}\", result: \"{sshCommand.Result}\"");
     }
@@ -144,7 +135,7 @@ internal class LinuxCommands : ICommands
     {
         publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{_scripts.ScriptsBasePath}/{_commandScripts.AddFiletransferKeyCmdScriptName} {publicKey} {jobInfo.Specification.Id}");
+            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id}");
         _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
     }
 
@@ -153,14 +144,14 @@ internal class LinuxCommands : ICommands
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
+    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
         var cmdBuilder = new StringBuilder();
         foreach (var publicKey in publicKeys)
         {
             var base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
             cmdBuilder.Append(
-                $"{_scripts.ScriptsBasePath}/{_commandScripts.RemoveFiletransferKeyCmdScriptName} {base64PublicKey};");
+                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(projectAccountingString, _commandScripts.RemoveFiletransferKeyCmdScriptName)} {base64PublicKey};");
         }
 
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
@@ -184,7 +175,7 @@ internal class LinuxCommands : ICommands
         localBasePath = localBasePath.TrimEnd('/');
         var cmdBuilder =
             new StringBuilder(
-                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id} {(sharedAccountsPoolMode ? "true" : "false")};");
         foreach (var task in jobInfo.Tasks)
         {
             var subdirectoryPath = !string.IsNullOrEmpty(task.Specification.ClusterTaskSubdirectory)
@@ -192,7 +183,7 @@ internal class LinuxCommands : ICommands
                 : string.Empty;
 
             cmdBuilder.Append(
-                $"{_scripts.ScriptsBasePath}/{_commandScripts.CreateJobDirectoryCmdScriptName} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
+                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.CreateJobDirectoryCmdScriptName)} {localBasePath} {_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath} {account}/{jobInfo.Specification.Id}/{task.Specification.Id}{subdirectoryPath} {(sharedAccountsPoolMode ? "true" : "false")};");
         }
 
         _log.Info($"Create job directory command: \"{cmdBuilder}\"");
@@ -228,43 +219,69 @@ internal class LinuxCommands : ICommands
     /// </summary>
     /// <param name="schedulerConnectionConnection">Connector</param>
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+    /// <param name="overwriteExistingProjectRootDirectory">Overwrite existin project root directory</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
-        var cmdBuilder = new StringBuilder();
-        var targetDirectory = Path.Combine(clusterProjectRootDirectory, _scripts.SubScriptsPath, ".key_scripts")
+        if (!isServiceAccount)
+            return true;
+
+        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}")
             .Replace('\\', '/');
-        cmdBuilder.Append($"rm -rf {_scripts.ScriptsBasePath} && ");
-        if (isServiceAccount)
+
+        // Do not overwrite existing folder if overwriting is disabled
+        if (!overwriteExistingProjectRootDirectory)
         {
-            cmdBuilder.Append($"mkdir -p {clusterProjectRootDirectory} && ");
-            cmdBuilder.Append($"cd {clusterProjectRootDirectory} && ");
-            cmdBuilder.Append($"rm -rf {Path.Combine(_scripts.SubScriptsPath, ".key_scripts").Replace('\\', '/')} && ");
+            // test if root cluster project directory already exists
+            var rootDirExistsCmd = $"if [ -d {rootDir} ]; then echo EXISTS; fi";
+            var rootDirExistsResult = SshCommandUtils
+                .RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), rootDirExistsCmd)
+                .Result
+                .Trim();
 
-
-            cmdBuilder.Append($"mkdir -p {targetDirectory} && ");
-
-            var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings
-                .KeyScriptsDirectoryInRepository
-                .Split(new[] { Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar },
-                    StringSplitOptions.RemoveEmptyEntries);
-
-            cmdBuilder.Append(
-                $"git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} > /dev/null && ");
-            cmdBuilder.Append(
-                $"mv {HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/')} {_scripts.SubScriptsPath} && ");
-            cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
-
-            // Scripts modifications
-            cmdBuilder.Append($"chmod -R 755 {targetDirectory} && ");
-            cmdBuilder.Append(
-                $"sed -i \"s|TODO|{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}|g\" {Path.Combine(targetDirectory, "remote-cmd3.sh").Replace('\\', '/')} && ");
+            if (rootDirExistsResult == "EXISTS")
+            {
+                _log.Info($"Skipping initialization for cluster project root directory: '{clusterProjectRootDirectory}', directory already exists and overwriteExistingProjectRootDirectory = false");
+                return true;
+            }
         }
 
-        cmdBuilder.Append($"ln -sf {targetDirectory} {_scripts.ScriptsBasePath}");
+        var cmdBuilder = new StringBuilder();
+        var keyScriptsDir = Path.Combine(rootDir, ".key_scripts")
+            .Replace('\\', '/');
+        var sshDir = Path.Combine(rootDir, ".ssh")
+            .Replace('\\', '/');
+
+        // Create directories
+        cmdBuilder.Append($"rm -rf {rootDir} && ");
+        cmdBuilder.Append($"mkdir -p {sshDir} && ");
+        cmdBuilder.Append($"cd {rootDir} && ");
+
+        // Clone git repository with key scripts
+        var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings
+            .KeyScriptsDirectoryInRepository
+            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
+                StringSplitOptions.RemoveEmptyEntries);
+        var gitCloneLogic = $@"
+            error=$(git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} 2>&1); 
+            code=$?; 
+            if [ $code -ne 0 ]; then 
+              echo ""GIT CLONE ERROR: $error"" >&2; 
+              exit $code; 
+            fi
+        ";
+        cmdBuilder.Append($"{gitCloneLogic.Replace("\r\n", " ").Trim()} && ");
+        cmdBuilder.Append(
+            $"mv {HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/')} .key_scripts && ");
+        cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
+
+        // Scripts modifications
+        cmdBuilder.Append($"chmod -R 755 {keyScriptsDir} && ");
+        cmdBuilder.Append(
+            $"sed -i \"s|TODO|{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}|g\" {Path.Combine(keyScriptsDir, "remote-cmd3.sh").Replace('\\', '/')}");
 
         try
         {

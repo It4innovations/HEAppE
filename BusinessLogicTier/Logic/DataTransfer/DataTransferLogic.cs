@@ -91,7 +91,7 @@ public class DataTransferLogic : IDataTransferLogic
             {
                 var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, taskInfo.Project);
+                    .CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id);
 
                 var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
                 if (getTunnelsInfos.Any(f => f.RemotePort == nodePort))
@@ -132,7 +132,7 @@ public class DataTransferLogic : IDataTransferLogic
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         lock (_lockTunnelObj)
         {
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project)
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id)
                 .RemoveTunnel(taskInfo);
             _taskWithExistingTunnel.Remove(taskInfo.Id);
         }
@@ -156,7 +156,7 @@ public class DataTransferLogic : IDataTransferLogic
         _logger.Info($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
 
         var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
-            .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project);
+            .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id);
         lock (_lockTunnelObj)
         {
             scheduler.RemoveTunnel(taskInfo);
@@ -172,7 +172,7 @@ public class DataTransferLogic : IDataTransferLogic
             $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
+        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id);
         var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
 
         if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
@@ -278,7 +278,7 @@ public class DataTransferLogic : IDataTransferLogic
             $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\" HTTP Payload: \"{httpPayload}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
+        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id);
         var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
 
         if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))

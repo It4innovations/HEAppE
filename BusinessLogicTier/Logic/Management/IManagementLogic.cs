@@ -17,29 +17,29 @@ public interface IManagementLogic
         long modelProjectId, long modelClusterNodeTypeId);
 
     CommandTemplate CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
-        string description, string code, string executableFile, string preparationScript);
+        string description, string code, string executableFile, string preparationScript, long? adaptorUserId);
 
     CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription,
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelClusterNodeTypeId, bool modelIsEnabled);
 
     CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
-        string description, string code, string executableFile, string preparationScript);
+        string description, string code, string executableFile, string preparationScript, long? adaptorUserId);
 
     void RemoveCommandTemplate(long commandTemplateId);
     Project GetProjectByAccountingString(string accountingString);
     Project GetProjectById(long id);
 
     Project CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail,
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
         AdaptorUser loggedUser);
 
     Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler);
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping);
 
     void RemoveProject(long id);
-    List<SecureShellKey> GetSecureShellKeys(long projectId);
-    List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId);
+    List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId);
+    List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId);
     SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);
     void RemoveSecureShellKey(string publicKey, long projectId);
     SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId);
@@ -48,7 +48,7 @@ public interface IManagementLogic
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
-    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
+    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory, long? adaptorUserId);
     bool TestClusterAccessForAccount(long projectId, string username);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 

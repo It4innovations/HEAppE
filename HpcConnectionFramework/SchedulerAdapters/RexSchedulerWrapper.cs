@@ -210,12 +210,12 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="publicKeys">Public keys</param>
     /// <param name="credentials">Credentials</param>
     public void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys,
-        ClusterAuthenticationCredentials credentials, Cluster cluster)
+        ClusterAuthenticationCredentials credentials, Cluster cluster, Project project)
     {
         var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
         try
         {
-            _adapter.RemoveDirectFileTransferAccessForUser(schedulerConnection.Connection, publicKeys);
+            _adapter.RemoveDirectFileTransferAccessForUser(schedulerConnection.Connection, publicKeys, project.AccountingString);
         }
         finally
         {
@@ -358,10 +358,11 @@ public class RexSchedulerWrapper : IRexScheduler
     ///     Initialize Cluster Script Directory
     /// </summary>
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+    /// <param name="overwriteExistingProjectRootDirectory">Overwrite existing scripts directory</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="clusterAuthCredentials">Credentials</param>
     /// <param name="isServiceAccount">Is servis account</param>
-    public bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, string localBasepath,
+    public bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
         Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
     {
         ConnectionInfo schedulerConnection = null;
@@ -369,7 +370,7 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
             return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection,
-                clusterProjectRootDirectory, localBasepath, clusterAuthCredentials.Username, isServiceAccount);
+                clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath, clusterAuthCredentials.Username, isServiceAccount);
         }
         catch (Exception ex)
         {

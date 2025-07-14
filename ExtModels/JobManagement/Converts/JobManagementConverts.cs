@@ -245,6 +245,7 @@ public static class JobManagementConverts
             EndDate = project.EndDate,
             UsageType = project.UsageType.ConvertIntToExt(),
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
+            IsOneToOneMapping = project.IsOneToOneMapping,
             CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
         };
         return convert;

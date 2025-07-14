@@ -65,10 +65,11 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             throw new InvalidRequestException("UserNoAccessToClusterNode", loggedUser, clusterNodeId);
         var serviceAccount =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                nodeType.ClusterId.Value, projectId);
+                nodeType.ClusterId.Value, projectId, adaptorUserId: loggedUser.Id);
         return serviceAccount is null
             ? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, nodeType.ClusterId.Value)
-            : SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType).CreateScheduler(nodeType.Cluster, project)
+            : SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType)
+                .CreateScheduler(nodeType.Cluster, project, adaptorUserId:loggedUser.Id)
                 .GetCurrentClusterNodeUsage(nodeType, serviceAccount);
     }
 
@@ -97,13 +98,13 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             var cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccountCredentials =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                    projectId);
+                    projectId, adaptorUserId: loggedUser.Id);
             if (serviceAccountCredentials is null)
                 throw new RequestedObjectDoesNotExistException("ServiceAccountCredentialsNotDefinedInCommandTemplate");
 
             var commandTemplateParameters = new List<string> { scriptPath };
             commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project)
+                .CreateScheduler(cluster, project, adaptorUserId: loggedUser.Id)
                 .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath).ToList());
             return commandTemplateParameters;
         }
@@ -112,22 +113,29 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             .ToList();
     }
 
-    public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId)
+    public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId, long? adaptorUserId)
     {
         var cluster = _unitOfWork.ClusterRepository.GetById(clusterId);
+        if (cluster == null)
+            throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
 
-        if (cluster == null) throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        if (project == null)
+            throw new RequestedObjectDoesNotExistException("ProjectNotExists", projectId);
+        
+        if (project.IsOneToOneMapping)
+            return GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, adaptorUserId.Value);
 
         //return all non service account for specific cluster and project
         var credentials =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                clusterId, projectId);
+                clusterId, projectId, null);
         if (credentials == null || credentials?.Count() == 0)
             throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", clusterId, projectId);
+
         var serviceCredentials =
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId)
-            ?? throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNoServiceAccount", clusterId,
-                projectId);
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, null)
+            ?? throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNoServiceAccount", clusterId, projectId);
 
         var firstCredentials = credentials.FirstOrDefault();
 
@@ -149,6 +157,45 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
         ClusterUserCache.SetLastUserId(cluster, serviceCredentials, creds.Id);
         _log.DebugFormat("Using cluster account: {0}", creds.Username);
+        return creds;
+    }
+
+    private ClusterAuthenticationCredentials GetNextAvailableUserCredentialsByAdaptorUser(long clusterId, long projectId, long adaptorUserId)
+    {
+        //return all non service account for specific cluster and project
+        var credentials =
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
+                clusterId, projectId, adaptorUserId: adaptorUserId);
+        if (credentials == null || credentials?.Count() == 0)
+        {
+            _log.ErrorFormat("No credentials found for cluster {0} and project {1} for user {2}", clusterId, projectId, adaptorUserId);
+            _log.ErrorFormat("Credentials: {0}", string.Join(", ", credentials?.Select(c => c.Username) ?? Enumerable.Empty<string>()));
+            throw new RequestedObjectDoesNotExistException("ClusterAuthenticationCredentialsNotFound", clusterId, projectId, adaptorUserId);
+        }
+
+        var serviceCredentials =
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, adaptorUserId: adaptorUserId)
+            ?? throw new RequestedObjectDoesNotExistException("ClusterAuthenticationCredentialsNoServiceAccount", clusterId, projectId, adaptorUserId);
+            
+        var firstCredentials = credentials.FirstOrDefault();
+        var lastUsedId = AdaptorUserProjectClusterUserCache.GetLastUserId(adaptorUserId, projectId, clusterId);
+        if (lastUsedId is null)
+        {
+            // No user has been used from this cluster
+            // return first usable account
+            AdaptorUserProjectClusterUserCache.SetLastUserId(adaptorUserId, projectId, clusterId, serviceCredentials.Id, firstCredentials.Id);
+            _log.InfoFormat("Using initial cluster account: {0}", firstCredentials.Username);
+            return firstCredentials;
+        }
+
+        // Return first user with Id higher than the last one
+        var creds = (from account in credentials where account.Id > lastUsedId select account).FirstOrDefault();
+        // No credentials with Id higher than last used found
+        // use first usable account
+        creds ??= firstCredentials;
+
+        AdaptorUserProjectClusterUserCache.SetLastUserId(adaptorUserId, projectId, clusterId, serviceCredentials.Id, creds.Id);
+        _log.InfoFormat("Using cluster account: {0}", creds.Username);
         return creds;
     }
 

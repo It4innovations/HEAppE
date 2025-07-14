@@ -56,10 +56,12 @@ public abstract class SchedulerFactory
     /// <param name="clusterConf">Cluster configuration</param>
     /// <param name="project">Project</param>
     /// <returns></returns>
-    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project)
+    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, long? adaptorUserId)
     {
+        if (!project.IsOneToOneMapping)
+            adaptorUserId = null;
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
-            clusterConf.SchedulerType);
+            clusterConf.SchedulerType, adaptorUserId);
         if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
         {
             var connectionPoolCleaningInterval = _connectionPoolSettings.ConnectionPoolCleaningInterval;
@@ -72,6 +74,12 @@ public abstract class SchedulerFactory
 
             var connectionPoolMinSize = 0;
             var connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Count;
+            if (adaptorUserId != null)
+            {
+                connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Where(cpc => cpc.AdaptorUserId == adaptorUserId).Count();
+                if (connectionPoolMaxSize == 0)
+                    throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
+            }
 
             _schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(
                 clusterConf.MasterNodeName,
@@ -107,7 +115,7 @@ public abstract class SchedulerFactory
     /// <param name="configuration">Cluster configuration</param>
     /// <param name="jobInfoProject"></param>
     /// <returns></returns>
-    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project);
+    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, long? adaptorUserId);
 
     /// <summary>
     ///     Create scheduler adapter

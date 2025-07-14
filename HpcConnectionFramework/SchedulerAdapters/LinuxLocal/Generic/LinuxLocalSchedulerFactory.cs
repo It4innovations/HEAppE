@@ -23,7 +23,7 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Scheduler singletons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?), IRexScheduler> _linuxSchedulerSingletons = new();
+    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _linuxSchedulerSingletons = new();
 
     /// <summary>
     ///     Convertor singletons
@@ -45,13 +45,13 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// <param name="configuration">Cluster</param>
     /// <param name="jobInfoProject"></param>
     /// <returns></returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, long? adaptorUserId)
     {
-        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt);
+        var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_linuxSchedulerSingletons.ContainsKey(uniqueIdentifier))
             _linuxSchedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project),
+                GetSchedulerConnectionPool(configuration, project, adaptorUserId: adaptorUserId),
                 CreateSchedulerAdapter()
             );
         return _linuxSchedulerSingletons[uniqueIdentifier];

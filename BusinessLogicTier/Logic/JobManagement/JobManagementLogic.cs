@@ -92,8 +92,8 @@ internal class JobManagementLogic : IJobManagementLogic
 
             //Create job directory
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(specification.Cluster, jobInfo.Project).CreateJobDirectory(jobInfo,
-                    clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode);
+                .CreateScheduler(specification.Cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
+                .CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode);
             return jobInfo;
         }
     }
@@ -126,7 +126,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
             jobInfo.SubmitTime = DateTime.UtcNow;
             var submittedTasks = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project)
+                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
                 .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser);
 
 
@@ -150,14 +150,14 @@ internal class JobManagementLogic : IJobManagementLogic
                 .ToList();
 
             var scheduler = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project);
+                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, adaptorUserId: loggedUser.Id);
             scheduler.CancelJob(submittedTask, "Job cancelled manually by the client.",
                 jobInfo.Specification.ClusterUser);
 
             var cluster = jobInfo.Specification.Cluster;
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId);
+                    jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, adaptorUserId: loggedUser.Id);
             var actualUnfinishedSchedulerTasksInfo = scheduler.GetActualTasksInfo(submittedTask, serviceAccount)
                 .ToList();
 
@@ -195,7 +195,7 @@ internal class JobManagementLogic : IJobManagementLogic
             or >= JobState.Finished and not JobState.WaitingForServiceAccount and not JobState.Deleted)
         {
             var isDeleted = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project)
+                .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
                 .DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath);
             if (isDeleted)
             {
@@ -238,7 +238,7 @@ internal class JobManagementLogic : IJobManagementLogic
             });
         
         var isArchived = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType).
-            CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project).
+            CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, adaptorUserId: loggedUser.Id).
             MoveJobFiles(jobInfo, sourceDestinations);
         return isArchived;
     }
@@ -319,7 +319,6 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             var cluster = jobGroup.Key.Cluster;
             var project = jobGroup.Key.Project;
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project);
             _logger.Info($"Updating current state of unfinished jobs for cluster {cluster.Name} and project {project.Name}");
             
             var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
@@ -336,21 +335,31 @@ internal class JobManagementLogic : IJobManagementLogic
 
                 if (tasksExceedWaitLimit.Any())
                 {
-                    scheduler.CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.",
-                        userJobGroup.Key);
+                    SchedulerFactory
+                        .GetInstance(cluster.SchedulerType)
+                        .CreateScheduler(cluster, project, adaptorUserId: userJobGroup.First().Submitter.Id)
+                        .CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key);
                     tasksExceedWaitLimit.ForEach(x=>_logger.Warn($"Job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
                 }
-                   
             }
+
+            IRexScheduler scheduler = !project.IsOneToOneMapping ?
+                scheduler = SchedulerFactory
+                    .GetInstance(cluster.SchedulerType)
+                    .CreateScheduler(cluster, project, null) : null;
+
+            Func<long, IRexScheduler> schedulerProxy = (long adaptorUserId) => scheduler != null ? scheduler : SchedulerFactory
+                .GetInstance(cluster.SchedulerType)
+                .CreateScheduler(cluster, project, adaptorUserId: adaptorUserId);
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
                 actualUnfinishedSchedulerTasksInfo =
-                    GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, jobGroup.SelectMany(s => s.Tasks), true)
+                    GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, jobGroup.SelectMany(s => s.Tasks), true)
                         .ToList();
             else
                 userJobsGroup.ForEach(f =>
                     actualUnfinishedSchedulerTasksInfo.AddRange(
-                        GetActualTasksStateInHPCScheduler(_unitOfWork, scheduler, f.SelectMany(s => s.Tasks), false)));
+                        GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, f.SelectMany(s => s.Tasks), false)));
 
             var isNeedUpdateJobState = false;
             foreach (var submittedJob in jobGroup)
@@ -397,7 +406,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ?? throw new InvalidRequestException("NotExistingProject");
 
         SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
             .CopyJobDataToTemp(jobInfo, clusterProject.LocalBasepath, hash, path);
     }
 
@@ -413,7 +422,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ?? throw new InvalidRequestException("NotExistingProject");
 
         SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
-            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project)
+            .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
             .CopyJobDataFromTemp(jobInfo, clusterProject.LocalBasepath, hash);
     }
 
@@ -424,7 +433,7 @@ internal class JobManagementLogic : IJobManagementLogic
             throw new InputValidationException("IPAddressesProvidedOnlyForRunningTask");
 
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
-        var stringIPs = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project)
+        var stringIPs = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id)
             .GetAllocatedNodes(taskInfo);
         return stringIPs;
     }
@@ -439,7 +448,7 @@ internal class JobManagementLogic : IJobManagementLogic
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-        specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId);
+        specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId, adaptorUserId: loggedUser.Id);
         specification.Submitter = loggedUser;
         specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
         specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
@@ -678,7 +687,7 @@ internal class JobManagementLogic : IJobManagementLogic
     }
 
     private static IEnumerable<SubmittedTaskInfo> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork,
-        IRexScheduler scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount)
+        Func<long, IRexScheduler> scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount)
     {
         var unfinishedTasks = jobTasks
             .Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
@@ -688,10 +697,10 @@ internal class JobManagementLogic : IJobManagementLogic
 
         var account = useServiceAccount
             ? unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                jobSpecification.ClusterId, jobSpecification.ProjectId)
+                jobSpecification.ClusterId, jobSpecification.ProjectId, adaptorUserId: jobSpecification.Submitter.Id)
             : jobSpecification.ClusterUser;
         _logger.Info($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
-        return scheduler.GetActualTasksInfo(unfinishedTasks, account);
+        return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account);
     }
 
     private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)
