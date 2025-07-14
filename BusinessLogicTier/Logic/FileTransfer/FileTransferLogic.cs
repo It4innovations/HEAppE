@@ -93,7 +93,7 @@ public class FileTransferLogic : IFileTransferLogic
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                     .CreateScheduler(cluster, tempKey.Key.Project, adaptorUserId: adaptorUserId);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
-                    tempKey.Key.ClusterUser, tempKey.Key.Cluster);
+                    tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project);
             }
 
             activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
@@ -225,7 +225,7 @@ public class FileTransferLogic : IFileTransferLogic
         SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
             .RemoveDirectFileTransferAccessForUser(
                 new[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser,
-                jobInfo.Specification.Cluster);
+                jobInfo.Specification.Cluster, jobInfo.Project);
 
         temporaryKey.IsDeleted = true;
         _unitOfWork.Save();

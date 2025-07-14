@@ -91,7 +91,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForClusterAndProject(
-        long clusterId, long projectId,  bool requireIsInitialized, long? adaptorUserId)
+        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =

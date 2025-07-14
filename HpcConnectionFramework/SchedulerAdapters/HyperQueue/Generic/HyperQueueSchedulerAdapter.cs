@@ -6,6 +6,7 @@ using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -67,7 +68,7 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "hq submit");
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
         var sshCommandBase64 =
-            $"{_commands.InterpreterCommand} '{_commands.ExecuteCmdScriptPath} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+            $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
         try
         {
@@ -176,9 +177,9 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         _commands.AllowDirectFileTransferAccessForUserToJob(connectorClient, publicKey, jobInfo);
     }
 
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
+    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
-        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys);
+        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys, projectAccountingString);
     }
 
     public void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
@@ -219,11 +220,11 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
     }
 
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory,
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory,
         string localBasepath, string account, bool isServiceAccount)
     {
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            localBasepath, account, isServiceAccount);
+            overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
     }
     public bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
     {
