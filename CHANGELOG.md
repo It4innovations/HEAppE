@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced logging in `DataTransfer` endpoints
 - Redefined `Job Execution` and `Job Log Archive path` (dedicated to specific HEAppE instance and cluster user)
 - Redefined path to `cluster scripts` and setup for each `ClusterAuthenticationCredential` and `Project`
+- Response structure of the `TestClusterAccessForAccount` (added info/check about specific access to the cluster)
 
 ### Added
 - 1:1 user mapping to SSH key at `Project` level
