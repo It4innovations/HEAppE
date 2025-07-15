@@ -65,7 +65,8 @@ public interface IManagementService
     List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,
         string sessionCode);
 
-    bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username);
+    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
+        string username);
 
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
 

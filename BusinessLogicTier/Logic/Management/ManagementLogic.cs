@@ -849,18 +849,18 @@ public class ManagementLogic : IManagementLogic
     }
 
     /// <summary>
-    ///     Test cluster access for robot account
+    /// Test cluster access for a specific account in a project.
     /// </summary>
     /// <param name="projectId"></param>
     /// <param name="username"></param>
     /// <returns></returns>
-    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public bool TestClusterAccessForAccount(long projectId, string username)
+    /// <exception cref="InvalidRequestException"></exception>
+    public List<ClusterAccessReport> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId)
     {
+        List<ClusterAccessReport> clusterAccountAccess = new();
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
             ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
-            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w =>
-                w.Username == username &&
+            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, adaptorUserId).Where(w =>
                 w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
@@ -876,10 +876,21 @@ public class ManagementLogic : IManagementLogic
 
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
             if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
+            {
+                _logger.Info(
+                    $"Test cluster access failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
                 noAccessClusterIds.Add(cluster.Id);
+                clusterAccountAccess.Add(new ClusterAccessReport(){Cluster = cluster, IsClusterAccessible = false});
+            }
+            else
+            {
+                _logger.Info(
+                    $"Test cluster access succeeded for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
+                clusterAccountAccess.Add(new ClusterAccessReport(){Cluster = cluster, IsClusterAccessible = true});
+            }
         }
-
-        return !noAccessClusterIds.Any();
+        _logger.Info($"Tested cluster access for project {projectId} with username {username} with results: {string.Join(", ", clusterAccountAccess.Select(x => $"{x.Cluster.Name}: {x.IsClusterAccessible}"))}");
+        return clusterAccountAccess;
     }
     
     

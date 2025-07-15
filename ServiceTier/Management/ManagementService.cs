@@ -352,14 +352,16 @@ public class ManagementService : IManagementService
         }
     }
 
-    public bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username)
+    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.ManagementAdmin, modelProjectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.TestClusterAccessForAccount(modelProjectId, username);
+            return managementLogic.TestClusterAccessForAccount(modelProjectId, username, loggedUser.Id)
+                .Select(x => x.ConvertIntToExt())
+                .ToList();
         }
     }
 

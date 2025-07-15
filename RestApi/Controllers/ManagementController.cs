@@ -1937,14 +1937,21 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var testClusterAccess =
+        List<ClusterAccessReportExt> report =
             _managementService.TestClusterAccessForAccount(model.ProjectId, model.SessionCode, null);
-        var message = testClusterAccess
-            ? "All clusters assigned to project are accessible with selected account."
-            : "Some of the clusters are not accessible with selected account";
 
-        _logger.LogInformation(message);
-        return testClusterAccess ? Ok(message) : BadRequest(message);
+        if(report.Any(x=> !x.IsClusterAccessible))
+        {
+            var message = "Some of the clusters are not accessible with selected account";
+            _logger.LogWarning(message);
+            return BadRequest(message);
+        }
+        else
+        {
+            var message = "All clusters assigned to project are accessible with selected account.";
+            _logger.LogInformation(message);
+            return Ok(message);
+        }
     }
 
     /// <summary>
@@ -1956,7 +1963,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpGet("TestClusterAccessForAccount")]
     [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<ClusterAccessReportExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -1974,13 +1981,11 @@ public class ManagementController : BaseController<ManagementController>
         }).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var testClusterAccess = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username);
-        var message = testClusterAccess
-            ? "All clusters assigned to project are accessible with selected account."
-            : "Some of the clusters are not accessible with selected account";
-
-        _logger.LogInformation(message);
-        return testClusterAccess ? Ok(message) : BadRequest(message);
+        List<ClusterAccessReportExt> report = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username);
+        
+        if(report.Any(x=> !x.IsClusterAccessible))
+            return BadRequest(report);
+        return Ok(report);
     }
 
     /// <summary>

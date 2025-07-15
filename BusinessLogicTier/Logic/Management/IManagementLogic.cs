@@ -49,7 +49,7 @@ public interface IManagementLogic
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
     List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory, long? adaptorUserId);
-    bool TestClusterAccessForAccount(long projectId, string username);
+    public List<ClusterAccessReport> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
     CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
