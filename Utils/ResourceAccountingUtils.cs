@@ -11,6 +11,12 @@ public class ResourceAccountingUtils
 {
     public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
     {
+        if(submittedTaskInfo.Id == 0)
+        {
+            logger.Info($"Skipping accounting for dbTaskInfo: {dbTaskInfo.Id} as it hasn't been submitted yet.");
+            return;
+        }
+        
         logger.Info(
             $"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
 

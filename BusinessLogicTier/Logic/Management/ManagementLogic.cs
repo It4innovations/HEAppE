@@ -547,8 +547,17 @@ public class ManagementLogic : IManagementLogic
             x.ModifiedAt = modified;
             x.ClusterAuthenticationCredentials.IsDeleted = true;
         });
-        clusterProject.Project.ModifiedAt = modified;
-        _unitOfWork.ProjectRepository.Update(clusterProject.Project);
+
+        if(clusterProject.Project is null)
+        {
+            _logger.Info($"Project with ID '{projectId}' not found for Cluster ID '{clusterId}' while deleting ProjectAssignmentToCluster reference.");
+        }
+        else
+        {
+            clusterProject.Project.ModifiedAt = modified;
+            _unitOfWork.ProjectRepository.Update(clusterProject.Project);
+        }
+        
         _unitOfWork.ClusterProjectRepository.Update(clusterProject);
         _unitOfWork.Save();
 
