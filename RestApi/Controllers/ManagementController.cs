@@ -1021,6 +1021,27 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("ClusterProxyConnection was deleted.");
     }
+    
+    /// <summary>
+    ///     Get ClusterProxyConnections 
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpGet("ClusterProxyConnections")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ClusterProxyConnectionExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetClusterProxyConnections(string sessionCode)
+    {
+        _logger.LogDebug(
+            $"Endpoint: \"Management\" Method: \"GetClusterProxyConnections\" Parameters: SessionCode: \"{sessionCode}\"");
+
+        var clusterProxyConnection = _managementService.GetClusterProxyConnections(sessionCode);
+        return Ok(clusterProxyConnection);
+    }
 
     #endregion
 

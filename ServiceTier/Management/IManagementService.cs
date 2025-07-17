@@ -117,6 +117,7 @@ public interface IManagementService
 
     void RemoveClusterNodeType(long id, string sessionCode);
     ClusterProxyConnectionExt GetClusterProxyConnectionById(long clusterProxyConnectionId, string sessionCode);
+    List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode);
 
     ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username, string password,
         ProxyType type, string sessionCode);

@@ -1333,6 +1333,18 @@ public class ManagementLogic : IManagementLogic
         return clusterProxyConnection ??
                throw new RequestedObjectDoesNotExistException("ClusterProxyConnectionNotExists", id);
     }
+    
+    /// <summary>
+    ///     Get ClusterProxyConnections 
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+    public List<ClusterProxyConnection> GetClusterProxyConnections()
+    {
+        var clusterProxyConnection = _unitOfWork.ClusterProxyConnectionRepository.GetAll();
+
+        return clusterProxyConnection.ToList();
+    }
 
     /// <summary>
     ///     Create ClusterProxyConnection

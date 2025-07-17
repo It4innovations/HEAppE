@@ -744,6 +744,21 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterProxyConnection = managementLogic.GetClusterProxyConnections();
+            return clusterProxyConnection
+                .Select(x=> x.ConvertIntToExt())
+                .ToList();
+        }
+    }
+
     public ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username,
         string password, ProxyType type, string sessionCode)
     {
