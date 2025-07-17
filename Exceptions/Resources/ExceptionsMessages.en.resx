@@ -537,4 +537,7 @@
   <data name="InputValidationException_GitCloneCommandError" xml:space="preserve">
     <value>Exception thrown when cloning git repository.</value>
   </data>
+  <data name="NotAllowedException_ClusterAccountNotInitialized" xml:space="preserve">
+    <value>No initialized credentials found for project `{0}`. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.</value>
+  </data>
 </root>

@@ -160,6 +160,11 @@ public class ExceptionMiddleware
                 problem.Title = "Problem";
                 problem.Detail = _exceptionsLocalizer["InternalException"];
                 break;
+            case NotAllowedException:
+                problem.Title = "Not Allowed";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status403Forbidden;
+                break;
             case ExternalException:
                 problem.Title = "External Problem";
                 problem.Detail = GetExceptionMessage(exception);

@@ -540,4 +540,7 @@
   <data name="InputValidationException_GitCloneCommandError" xml:space="preserve">
     <value>Výjimka vyvolána při klonování git repositáře.</value>
   </data>
+  <data name="NotAllowedException_ClusterAccountNotInitialized" xml:space="preserve">
+    <value />
+  </data>
 </root>
