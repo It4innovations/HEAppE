@@ -1,7 +1,7 @@
-﻿using System;
-using HEAppE.Exceptions.External;
+﻿using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using log4net;
+using System;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
@@ -53,6 +53,12 @@ internal static class SshCommandUtils
             {
                 _log.Warn($"SSH command error (No such file or directory). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");
                 throw new InputValidationException("NoFileOrDirectory");
+            }
+
+            if (sshCommand.Error.Contains("GIT CLONE ERROR"))
+            {
+                _log.Warn($"SSH command error (git clone). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");
+                throw new InputValidationException("GitCloneCommandError");
             }
 
             _log.Error($"SSH command failed. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");

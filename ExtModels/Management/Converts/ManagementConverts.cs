@@ -81,6 +81,16 @@ public static class ManagementConverts
         };
         return convert;
     }
+    
+    public static ClusterAccessReportExt ConvertIntToExt(this ClusterAccessReport report)
+    {
+        var convert = new ClusterAccessReportExt
+        {
+            ClusterName = report.Cluster.Name,
+            IsClusterAccessible = report.IsClusterAccessible
+        };
+        return convert;
+    }
 
     public static ClusterProjectExt ConvertIntToExt(this ClusterProject cp)
     {

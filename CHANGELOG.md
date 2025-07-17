@@ -11,8 +11,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Enhanced logging in `DataTransfer` endpoints
 - Redefined `Job Execution` and `Job Log Archive path` (dedicated to specific HEAppE instance and cluster user)
+- Redefined path to `cluster scripts` and setup for each `ClusterAuthenticationCredential` and `Project`
+- Response structure of the `TestClusterAccessForAccount` (added info/check about specific access to the cluster)
 
 ### Added
+- 1:1 user mapping to SSH key at `Project` level
 - Possibility to send `application/json` payload with `HttpPostToJobNode`
 - Support for the `EdDSA - ED25519` SSH key pair generation
 - Options `ConnectionRetryAttempts` and `ConnectionTimeout` for SSH client component are now configurable from `appsettings.json`

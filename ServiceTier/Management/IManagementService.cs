@@ -62,10 +62,11 @@ public interface IManagementService
 
     void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
-    List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory,
+    List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,
         string sessionCode, string username);
 
-    bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username);
+    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
+        string username);
 
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
 
