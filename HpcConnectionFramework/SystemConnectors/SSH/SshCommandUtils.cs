@@ -1,7 +1,7 @@
-﻿using HEAppE.Exceptions.External;
+﻿using System;
+using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using log4net;
-using System;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
