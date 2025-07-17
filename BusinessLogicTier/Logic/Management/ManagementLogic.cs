@@ -884,9 +884,10 @@ public class ManagementLogic : IManagementLogic
         List<ClusterAccessReport> clusterAccountAccess = new();
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
             ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
-            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, adaptorUserId).Where(w =>
-                w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
-                w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId)
+                .Where(w =>
+                    w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
+                    w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
         if (!clusterAuthenticationCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
 
@@ -1919,18 +1920,18 @@ public class ManagementLogic : IManagementLogic
         {
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id);
+                    clusterProject.ClusterId, project.Id, false, adaptorUserId);
 
             if (serviceAccount == null)
             {
                 serviceCredentials.ClusterProjectCredentials.Add(
-                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true));
+                    CreateClusterProjectCredentials(clusterProject, serviceCredentials, true, false, adaptorUserId));
                 _logger.Info(
                     $"Service account not found or deleted. Creating new service account for project {project.Id} on cluster {clusterProject.ClusterId}.");
             }
 
             nonServiceCredentials.ClusterProjectCredentials.Add(
-                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false));
+                CreateClusterProjectCredentials(clusterProject, nonServiceCredentials, false, false, adaptorUserId));
             _logger.Info($"Creating new SSH key for project {project.Id} on cluster {clusterProject.ClusterId}.");
         }
 

@@ -347,7 +347,7 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory, adaptorUserId: loggedUser.Id)
+            return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory, adaptorUserId: loggedUser.Id, username)
                 .Select(x => x.ConvertIntToExt()).ToList();
         }
     }
