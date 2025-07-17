@@ -825,8 +825,7 @@ public class ManagementLogic : IManagementLogic
                     project.AccountingString, overwriteExistingProjectRootDirectory, localBasepath,
                     cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
 
-                if (clusterAuthCredentials.IsGenerated)
-                    clusterProjectCredential.IsInitialized = isInitialized;
+                clusterProjectCredential.IsInitialized = isInitialized;
 
                 if (isInitialized)
                 {
