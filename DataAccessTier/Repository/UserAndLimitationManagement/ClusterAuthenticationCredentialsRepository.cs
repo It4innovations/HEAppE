@@ -91,44 +91,44 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForClusterAndProject(
-        long clusterId, long projectId, long? adaptorUserId)
+        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
             _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
         
-        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null));
+        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized));
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).ToList();
         return WithVaultData(credentials);
     }
 
     public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForUsernameAndProject(
-        string username, long projectId, long? adaptorUserId)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
-        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cpc =>
-            cpc.Username == username &&
-            cpc.ClusterProjectCredentials.Any(c => c.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? c.AdaptorUserId == adaptorUserId : c.AdaptorUserId == null)));
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
+            cac.Username == username &&
+            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
         return WithVaultData(credentials).ToList();
     }
 
-    public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId, long? adaptorUserId)
+    public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
-        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cpc =>
-            cpc.ClusterProjectCredentials.Any(c => c.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? c.AdaptorUserId == adaptorUserId : c.AdaptorUserId == null)));
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
+            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
 
         return WithVaultData(credentials);
     }
 
-    public ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, long? adaptorUserId)
+    public ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
             _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
-        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null));
+        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized));
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials);
         var cred = credentials?.FirstOrDefault();
         return WithVaultData(cred);

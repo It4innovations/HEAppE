@@ -9,7 +9,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
 
-namespace HEAppE.DataAccessTier.Mirgrations
+namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
     [Migration("20241115210159_SubmittedTaskInfoReason")]

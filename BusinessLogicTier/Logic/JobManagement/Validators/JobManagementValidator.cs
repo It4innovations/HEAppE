@@ -250,7 +250,7 @@ internal class JobManagementValidator : AbstractValidator
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                    projectId, adaptorUserId);
+                    projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
             return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId)
                 .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
         }

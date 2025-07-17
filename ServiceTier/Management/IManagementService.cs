@@ -62,8 +62,8 @@ public interface IManagementService
 
     void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
-    List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,
-        string sessionCode);
+    public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
+        bool overwriteExistingProjectRootDirectory, string sessionCode, string username);
 
     public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
         string username);
