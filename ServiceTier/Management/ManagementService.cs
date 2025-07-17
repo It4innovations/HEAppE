@@ -305,8 +305,8 @@ public class ManagementService : IManagementService
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.CreateSecureShellKey(credentials, projectId, project.IsOneToOneMapping ? loggedUser.Id : null)
-                .Select(x => x.ConvertIntToExt()).ToList();
+            return managementLogic.CreateSecureShellKey(credentials, projectId,
+                project.IsOneToOneMapping ? loggedUser.Id : null).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -340,15 +340,15 @@ public class ManagementService : IManagementService
     }
 
     public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
-        bool overwriteExistingProjectRootDirectory, string sessionCode)
+        bool overwriteExistingProjectRootDirectory, string sessionCode, string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory, adaptorUserId: loggedUser.Id)
-                .Select(x => x.ConvertIntToExt()).ToList();
+            return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory,
+                adaptorUserId: loggedUser.Id, username: username).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -741,6 +741,21 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var clusterProxyConnection = managementLogic.GetClusterProxyConnectionById(clusterProxyConnectionId);
             return clusterProxyConnection.ConvertIntToExt();
+        }
+    }
+
+    public List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterProxyConnection = managementLogic.GetClusterProxyConnections();
+            return clusterProxyConnection
+                .Select(x=> x.ConvertIntToExt())
+                .ToList();
         }
     }
 

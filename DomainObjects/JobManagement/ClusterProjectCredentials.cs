@@ -27,9 +27,11 @@ public class ClusterProjectCredential : ISoftDeletableEntity
 
     public virtual AdaptorUser AdaptorUser { get; set; }
 
+    public bool IsInitialized { get; set; }
+
     public override string ToString()
     {
         return
-            $"""ClusterProjectCredentials: ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, IsServiceAccount={IsServiceAccount}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}, AdaptorUserId={AdaptorUserId}" """;
+            $"""ClusterProjectCredentials: ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, IsServiceAccount={IsServiceAccount}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}, AdaptorUserId={AdaptorUserId}, IsInitialized={IsInitialized}""";
     }
 }

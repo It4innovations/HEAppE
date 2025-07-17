@@ -21,7 +21,14 @@ public class InitializeClusterScriptDirectoryModel : SessionCodeModel
     /// <summary>
     /// Overwrite existing cluster project root directory
     /// </summary>
-    [DataMember(Name = "overwriteExistingProjectRootDirectory")]
+    [DataMember(Name = "OverwriteExistingProjectRootDirectory")]
     [Description("Overwrite existing cluster project root directory")]
     public bool OverwriteExistingProjectRootDirectory { get; set; } = false;
+
+    /// <summary>
+    /// Username filter
+    /// </summary>
+    [DataMember(Name = "Username", IsRequired = false)]
+    [Description("Username")]
+    public string Username { get; set; }
 }

@@ -13,7 +13,7 @@ public interface IClusterInformationLogic
     IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId, string userScriptPath,
         AdaptorUser loggedUser);
 
-    ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId, long? adaptorUserId);
+    ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId);
     ClusterNodeType GetClusterNodeTypeById(long clusterNodeTypeId);
     Cluster GetClusterById(long clusterId);
     IEnumerable<ClusterNodeType> ListClusterNodeTypes();

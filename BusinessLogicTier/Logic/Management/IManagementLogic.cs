@@ -48,7 +48,10 @@ public interface IManagementLogic
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
-    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory, long? adaptorUserId);
+
+    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,
+        long? adaptorUserId, string username);
+    
     public List<ClusterAccessReport> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
@@ -94,6 +97,7 @@ public interface IManagementLogic
 
     void RemoveClusterNodeType(long id);
     ClusterProxyConnection GetClusterProxyConnectionById(long id);
+    List<ClusterProxyConnection> GetClusterProxyConnections();
 
     ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password,
         ProxyType type);
