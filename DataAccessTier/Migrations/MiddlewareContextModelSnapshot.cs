@@ -476,7 +476,7 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<bool?>("IsInitialized")
+                    b.Property<bool>("IsInitialized")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsServiceAccount")
