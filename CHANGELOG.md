@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced logging in `DataTransfer` endpoints
 - Redefined `Job Execution` and `Job Log Archive path` (dedicated to specific HEAppE instance and cluster user)
 - Redefined path to `cluster scripts` and setup for each `ClusterAuthenticationCredential` and `Project`
+- `Management/InitializeClusterScriptDirectory` body and business logic
 - Response structure of the `TestClusterAccessForAccount` (added info/check about specific access to the cluster)
 
 ### Added
@@ -21,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Options `ConnectionRetryAttempts` and `ConnectionTimeout` for SSH client component are now configurable from `appsettings.json`
 - API HTTP Request logging with payload (redacted output on `Sensitive data`)
 - `Reason` attribute propagation from the HPC job (in the HEAppE Task)
+- `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
 
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
