@@ -29,6 +29,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 
 namespace HEAppE.RestApi;
@@ -163,7 +164,9 @@ public class Startup
                 gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
                 {
                     Version = SwaggerConfiguration.Version,
-                    Title = SwaggerConfiguration.DetailedJobReportingTitle,
+                    Title = string.IsNullOrEmpty(SwaggerConfiguration.DetailedJobReportingTitle)?
+                        "Detailed Job Reporting API" :
+                        SwaggerConfiguration.DetailedJobReportingTitle,
                     Description = SwaggerConfiguration.Description,
                     TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
                     License = new OpenApiLicense
@@ -282,7 +285,7 @@ public class Startup
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
             // TODO - delete this after sphinx OpenApi package be able to use V3 version of OpenApi documentation
             // now we need to serialize it as V2 see - https://github.com/sphinx-contrib/openapi/issues/107
-            swagger.SerializeAsV2 = true;
+            swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
         });
 
         app.UseSwaggerUI(swaggerUI =>
