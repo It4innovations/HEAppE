@@ -8,6 +8,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -34,11 +35,12 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, IJwtTokenIntrospectionService introspectionService)
     {
         _unitOfWork = unitOfWork;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
+        _introspectionService = introspectionService;
     }
 
     #endregion
@@ -56,6 +58,8 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
     private readonly ILog _log;
 
     private readonly HttpClient _userOrgHttpClient;
+    
+    private readonly IJwtTokenIntrospectionService _introspectionService;
 
     /// <summary>
     ///     Lock for creating user
@@ -66,7 +70,7 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
     ///     Session code expiration in seconds
     /// </summary>
     private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
-
+    
     #endregion
 
     #region Methods
@@ -324,6 +328,10 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
     {
         try
         {
+            var introspectionResult = await _introspectionService.IntrospectTokenAsync(lexisCredentials.OpenIdLexisAccessToken);
+
+            Console.WriteLine(introspectionResult);
+            
             var requestUri =
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
             _userOrgHttpClient.DefaultRequestHeaders.Clear();

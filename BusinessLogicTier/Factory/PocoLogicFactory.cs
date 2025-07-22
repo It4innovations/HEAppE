@@ -1,4 +1,5 @@
 ﻿using System.Net.Http;
+using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
@@ -50,7 +51,9 @@ public class PocoLogicFactory : LogicFactory
     {
         using var scope = ServiceProvider.CreateScope();
         var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-        var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac);
+        
+        var jwtIntrospectionService = scope.ServiceProvider.GetRequiredService<IJwtTokenIntrospectionService>();
+        var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac, jwtIntrospectionService);
 
         return rtn;
     }

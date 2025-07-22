@@ -2,8 +2,10 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net.Http;
 using System.Reflection;
 using AspNetCoreRateLimit;
+using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -31,6 +33,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
 
 namespace HEAppE.RestApi;
 
@@ -119,7 +122,10 @@ public class Startup
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
         });
+        
+        services.AddSingleton<IJwtTokenIntrospectionService, JwtTokenIntrospectionService>();
 
+        
         //CORS
         services.AddCors(options =>
         {

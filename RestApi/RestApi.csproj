@@ -35,6 +35,7 @@
         <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
     </ItemGroup>
     <ItemGroup>
+        <ProjectReference Include="..\Authentication\Authentication.csproj" />
         <ProjectReference Include="..\BackgroundThread\BackgroundThread.csproj"/>
         <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj"/>
         <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj"/>
@@ -50,5 +51,8 @@
         <Content Update="Logging\log4net.config">
             <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
         </Content>
+    </ItemGroup>
+    <ItemGroup>
+      <Folder Include="Authentication\" />
     </ItemGroup>
 </Project>

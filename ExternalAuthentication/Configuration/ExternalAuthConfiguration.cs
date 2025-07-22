@@ -58,6 +58,8 @@ public class ExternalAuthConfiguration
     ///     User prefix in HEAppE DB
     /// </summary>
     public static string HEAppEUserPrefix { get; set; }
+    
+    public static JwtTokenIntrospectionConfiguration JwtTokenIntrospectionConfiguration { get; set; } = new();
 
     public static LexisAuthenticationConfiguration LexisAuthenticationConfiguration { get; set; } = new();
 

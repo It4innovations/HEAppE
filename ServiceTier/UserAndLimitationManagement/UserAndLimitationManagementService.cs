@@ -23,6 +23,7 @@ namespace HEAppE.ServiceTier.UserAndLimitationManagement;
 
 public class UserAndLimitationManagementService : IUserAndLimitationManagementService
 {
+    
     public UserAndLimitationManagementService(IMemoryCache memoryCache)
     {
         _cacheProvider = memoryCache;

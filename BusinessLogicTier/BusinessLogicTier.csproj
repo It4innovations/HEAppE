@@ -13,6 +13,7 @@
         <PackageReference Include="SshNet.Security.Cryptography" Version="1.3.0" />
     </ItemGroup>
     <ItemGroup>
+        <ProjectReference Include="..\Authentication\Authentication.csproj" />
         <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
         <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
         <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
