@@ -30,7 +30,10 @@ public interface IManagementService
 
     void RemoveCommandTemplate(long commandTemplateId, string sessionCode);
 
+    List<ProjectExt> ListProjects(string sessionCode);
+
     ProjectExt GetProjectByAccountingString(string accountingString, string sessionCode);
+
     ProjectExt GetProjectById(long id, string sessionCode);
 
     ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
@@ -103,6 +106,9 @@ public interface IManagementService
         string sessionCode);
 
     void RemoveCluster(long id, string sessionCode);
+
+    List<ClusterNodeTypeExt> ListClusterNodeTypes(string sessionCode);
+
     ClusterNodeTypeExt GetClusterNodeTypeById(long clusterId, string sessionCode);
 
     ClusterNodeTypeExt CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode,
@@ -126,6 +132,9 @@ public interface IManagementService
         string password, ProxyType type, string sessionCode);
 
     void RemoveClusterProxyConnection(long id, string sessionCode);
+
+    List<FileTransferMethodNoCredentialsExt> ListFileTransferMethods(string sessionCode);
+
     FileTransferMethodNoCredentialsExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode);
 
     FileTransferMethodNoCredentialsExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId,
@@ -148,6 +157,8 @@ public interface IManagementService
 
     void RemoveClusterNodeTypeAggregation(long id, string sessionCode);
 
+    List<ClusterNodeTypeAggregationAccountingExt> ListClusterNodeTypeAggregationAccountings(string sessionCode);
+
     ClusterNodeTypeAggregationAccountingExt GetClusterNodeTypeAggregationAccountingById(
         long clusterNodeTypeAggregationId, long accountingId, string sessionCode);
 
@@ -157,7 +168,10 @@ public interface IManagementService
     void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId,
         string sessionCode);
 
+    List<AccountingExt> ListAccountings(string sessionCode);
+
     AccountingExt GetAccountingById(long id, string sessionCode);
+
     AccountingExt CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo, string sessionCode);
 
     AccountingExt ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo,

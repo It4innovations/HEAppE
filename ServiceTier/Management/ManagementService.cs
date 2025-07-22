@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -21,6 +16,11 @@ using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -140,6 +140,19 @@ public class ManagementService : IManagementService
                 AdaptorUserRoleType.Maintainer, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveCommandTemplate(commandTemplateId);
+        }
+    }
+
+    public List<ProjectExt> ListProjects(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var projects = managementLogic.ListProjects();
+            return projects.Select(p => p.ConvertIntToExt()).ToList();
         }
     }
 
@@ -670,6 +683,19 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ClusterNodeTypeExt> ListClusterNodeTypes(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, var projects) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterNodeTypes = managementLogic.ListClusterNodeTypes();
+            return clusterNodeTypes.Select(n => n.ConvertIntToExt()).ToList();
+        }
+    }
+
     public ClusterNodeTypeExt GetClusterNodeTypeById(long clusterId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -801,6 +827,19 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<FileTransferMethodNoCredentialsExt> ListFileTransferMethods(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var fileTransferMethods = managementLogic.ListFileTransferMethods();
+            return fileTransferMethods.Select(f => f.ConvertIntToNoCredentialsExt()).ToList();
+        }
+    }
+
     public FileTransferMethodNoCredentialsExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -928,6 +967,20 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ClusterNodeTypeAggregationAccountingExt> ListClusterNodeTypeAggregationAccountings(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterNodeTypeAggregationAccountings =
+                managementLogic.ListClusterNodeTypeAggregationAccountings();
+            return clusterNodeTypeAggregationAccountings.Select(a => a.ConvertIntToExt()).ToList();
+        }
+    }
+
     public ClusterNodeTypeAggregationAccountingExt GetClusterNodeTypeAggregationAccountingById(
         long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
     {
@@ -968,6 +1021,19 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveClusterNodeTypeAggregationAccounting(clusterNodeTypeAggregationId, accountingId);
+        }
+    }
+
+    public List<AccountingExt> ListAccountings(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var accountings = managementLogic.ListAccountings();
+            return accountings.Select(a => a.ConvertIntToExt()).ToList();
         }
     }
 

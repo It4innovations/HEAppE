@@ -1,6 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -21,6 +18,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -475,6 +475,29 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
+    ///     List Projects
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("Projects")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ProjectExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListProjects(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Projects\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListProjects(sessionCode));
+    }
+
+    /// <summary>
     ///     Get Project by id
     /// </summary>
     /// <param name="id"></param>
@@ -815,6 +838,29 @@ public class ManagementController : BaseController<ManagementController>
     #region ClusterNodeType
 
     /// <summary>
+    ///     List ClusterNodeTypes
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("ClusterNodeTypes")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ClusterNodeTypeExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListClusterNodeTypes(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterNodeTypes\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListClusterNodeTypes(sessionCode));
+    }
+
+    /// <summary>
     ///     Get ClusterNodeType by id
     /// </summary>
     /// <param name="id"></param>
@@ -1048,6 +1094,29 @@ public class ManagementController : BaseController<ManagementController>
     #region FileTransferMethod
 
     /// <summary>
+    ///     List FileTransferMethods
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("FileTransferMethods")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<FileTransferMethodNoCredentialsExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListFileTransferMethods(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"FileTransferMethods\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListFileTransferMethods(sessionCode));
+    }
+
+    /// <summary>
     ///     Get FileTransferMethod by id
     /// </summary>
     /// <param name="id"></param>
@@ -1277,6 +1346,29 @@ public class ManagementController : BaseController<ManagementController>
     #region ClusterNodeTypeAggregationAccounting
 
     /// <summary>
+    ///     List ClusterNodeTypeAggregationAccountings
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("ClusterNodeTypeAggregationAccountings")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ClusterNodeTypeAggregationAccountingExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListClusterNodeTypeAggregationAccountings(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterNodeTypeAggregationAccountings\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListClusterNodeTypeAggregationAccountings(sessionCode));
+    }
+
+    /// <summary>
     ///     Get ClusterNodeTypeAggregationAccounting by id
     /// </summary>
     /// <param name="clusterNodeTypeAggregationId"></param>
@@ -1360,6 +1452,29 @@ public class ManagementController : BaseController<ManagementController>
     #endregion
 
     #region Accounting
+
+    /// <summary>
+    ///     List Accountings
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("Accountings")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<AccountingExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListAccountings(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Accountings\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListAccountings(sessionCode));
+    }
 
     /// <summary>
     ///     Get Accounting by id

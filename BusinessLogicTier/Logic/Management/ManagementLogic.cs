@@ -279,6 +279,21 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
     }
 
+    /// <summary>
+    ///     Get all Projects
+    /// </summary>
+    /// <returns></returns>
+    public List<Project> ListProjects()
+    {
+        return _unitOfWork.ProjectRepository.GetAll().ToList();
+    }
+
+    /// <summary>
+    ///     Get Project by accounting string
+    /// </summary>
+    /// <param name="accountingString"></param>
+    /// <returns></returns>
+    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public Project GetProjectByAccountingString(string accountingString)
     {
         return _unitOfWork.ProjectRepository.GetByAccountingString(accountingString) ??
@@ -1185,6 +1200,15 @@ public class ManagementLogic : IManagementLogic
     }
 
     /// <summary>
+    ///     Get all ClusterNodeTypes
+    /// </summary>
+    /// <returns></returns>
+    public List<ClusterNodeType> ListClusterNodeTypes()
+    {
+        return _unitOfWork.ClusterNodeTypeRepository.GetAll().ToList();
+    }
+
+    /// <summary>
     ///     Get ClusterNodeType by id
     /// </summary>
     /// <param name="id"></param>
@@ -1427,6 +1451,15 @@ public class ManagementLogic : IManagementLogic
     }
 
     /// <summary>
+    ///     Get all FileTransferMethods
+    /// </summary>
+    /// <returns></returns>
+    public List<FileTransferMethod> ListFileTransferMethods()
+    {
+        return _unitOfWork.FileTransferMethodRepository.GetAll().ToList();
+    }
+
+    /// <summary>
     ///     Get FileTransferMethod by id
     /// </summary>
     /// <param name="id"></param>
@@ -1636,6 +1669,16 @@ public class ManagementLogic : IManagementLogic
     }
 
     /// <summary>
+    ///     Get all ClusterNodeTypeAggregationAccountings
+    /// </summary>
+    /// <returns></returns>
+    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+    public List<ClusterNodeTypeAggregationAccounting> ListClusterNodeTypeAggregationAccountings()
+    {
+        return _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.GetAll().ToList();
+    }
+
+    /// <summary>
     ///     Get ClusterNodeTypeAggregationAccounting by clusterNodeTypeAggregationId and accountingId
     /// </summary>
     /// <param name="clusterNodeTypeAggregationId"></param>
@@ -1717,6 +1760,15 @@ public class ManagementLogic : IManagementLogic
         clusterNodeTypeAggregationAccounting.IsDeleted = true;
         _unitOfWork.ClusterNodeTypeAggregationAccountingRepository.Update(clusterNodeTypeAggregationAccounting);
         _unitOfWork.Save();
+    }
+
+    /// <summary>
+    ///     List all Accountings
+    /// </summary>
+    /// <returns></returns>
+    public List<Accounting> ListAccountings()
+    {
+        return _unitOfWork.AccountingRepository.GetAll().ToList();
     }
 
     /// <summary>

@@ -27,7 +27,11 @@ public interface IManagementLogic
         string description, string code, string executableFile, string preparationScript, long? adaptorUserId);
 
     void RemoveCommandTemplate(long commandTemplateId);
+
+    List<Project> ListProjects();
+
     Project GetProjectByAccountingString(string accountingString);
+
     Project GetProjectById(long id);
 
     Project CreateProject(string accountingString, UsageType usageType, string name, string description,
@@ -85,6 +89,9 @@ public interface IManagementLogic
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
 
     void RemoveCluster(long id);
+
+    List<ClusterNodeType> ListClusterNodeTypes();
+
     ClusterNodeType GetClusterNodeTypeById(long id);
 
     ClusterNodeType CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode,
@@ -106,6 +113,9 @@ public interface IManagementLogic
         string password, ProxyType type);
 
     void RemoveClusterProxyConnection(long id);
+
+    List<FileTransferMethod> ListFileTransferMethods();
+
     FileTransferMethod GetFileTransferMethodById(long id);
 
     FileTransferMethod CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId,
@@ -126,6 +136,8 @@ public interface IManagementLogic
 
     void RemoveClusterNodeTypeAggregation(long id);
 
+    List<ClusterNodeTypeAggregationAccounting> ListClusterNodeTypeAggregationAccountings();
+
     ClusterNodeTypeAggregationAccounting GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId,
         long accountingId);
 
@@ -133,9 +145,15 @@ public interface IManagementLogic
         long accountingId);
 
     void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId);
+
+    List<Accounting> ListAccountings();
+
     Accounting GetAccountingById(long id);
+
     Accounting CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo);
+
     Accounting ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo);
+
     void RemoveAccounting(long id);
 
     ProjectClusterNodeTypeAggregation GetProjectClusterNodeTypeAggregationById(long projectId,
