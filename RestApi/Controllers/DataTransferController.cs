@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+using System.Threading.Tasks;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApi.InputValidator;
@@ -64,7 +64,7 @@ public class DataTransferController : BaseController<DataTransferController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(
-            _service.RequestDataTransfer(model.IpAddress, model.Port, model.SubmittedJobInfoId, model.SessionCode));
+            _service.RequestDataTransfer(model.IpAddress, model.Port, model.SubmittedTaskInfoId, model.SessionCode));
     }
 
     /// <summary>
