@@ -20,6 +20,8 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
     public JwtTokenIntrospectionService(
         ILogger<JwtTokenIntrospectionService> logger)
     {
+        logger.LogInformation("Initializing JwtTokenIntrospectionService with Authority: {Authority}",
+            JwtTokenIntrospectionConfiguration.Authority);
         _httpClient = new HttpClient()
         {
             BaseAddress = new Uri(JwtTokenIntrospectionConfiguration.Authority)
@@ -31,6 +33,11 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
 
     public async Task<TokenIntrospectionResult> IntrospectTokenAsync(string token)
     {
+        if(!JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            _logger.LogWarning("JWT token introspection is disabled. Returning inactive result.");
+            return new TokenIntrospectionResult { Active = false };
+        }
         try
         {
             // Get introspection endpoint if not cached
@@ -39,8 +46,11 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
                 _introspectionEndpoint = await GetIntrospectionEndpointAsync();
                 if (string.IsNullOrEmpty(_introspectionEndpoint))
                 {
+                    _logger.LogError("Introspection endpoint is not configured or could not be retrieved.");
                     return new TokenIntrospectionResult { Active = false };
                 }
+
+                _logger.LogInformation("Using introspection endpoint: {IntrospectionEndpoint}", _introspectionEndpoint);
             }
 
             // Prepare introspection request
@@ -65,6 +75,7 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
 
             if (response.IsSuccessStatusCode)
             {
+                _logger.LogInformation("Token introspection successful");
                 var content = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<TokenIntrospectionResult>(content, new JsonSerializerOptions
                 {
@@ -86,13 +97,11 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
 
     private async Task<string?> GetIntrospectionEndpointAsync()
     {
+        _logger.LogInformation("Fetching introspection endpoint from well-known configuration");
         try
         {
             var wellKnownUrl =
                 $"{JwtTokenIntrospectionConfiguration.Authority.TrimEnd('/')}/.well-known/openid-configuration";
-
-            // Ensure BaseAddress is not set to full URL, or set no BaseAddress at all if only requesting full URL.
-            // Just do a direct GET here.
 
             WellKnownResponse? response = await _httpClient.GetFromJsonAsync<WellKnownResponse>(wellKnownUrl);
 
@@ -101,7 +110,6 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
                 _logger.LogError("Failed to deserialize well-known configuration from: {Url}", wellKnownUrl);
                 return null;
             }
-
             return response.IntrospectionEndpoint;
         }
         catch (Exception ex)

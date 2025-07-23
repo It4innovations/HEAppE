@@ -328,10 +328,27 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
     {
         try
         {
-            var introspectionResult = await _introspectionService.IntrospectTokenAsync(lexisCredentials.OpenIdLexisAccessToken);
-
-            Console.WriteLine(introspectionResult);
-            
+            _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
+            if (!JwtTokenIntrospectionConfiguration.IsEnabled)
+            {
+                //skipping introspection if it is not enabled
+                _log.Warn("LEXIS AAI: JWT token introspection is disabled. Skipping introspection.");
+            }
+            else
+            {
+                // Introspect the token to validate it
+                var introspectionResult = await _introspectionService.IntrospectTokenAsync(lexisCredentials.OpenIdLexisAccessToken);
+                if (!introspectionResult.IsValid)
+                {
+                    _log.Info($"LEXIS AAI: Token introspection failed for user \"{lexisCredentials.Username}\". Token is invalid.");
+                    throw new AuthenticationTypeException("IntrospectionTokenNotValid");
+                }
+                else
+                {
+                    _log.Info($"LEXIS AAI: Token introspection successful for user \"{lexisCredentials.Username}\". Token is valid.");
+                }
+            }
+            // If introspection is successful, proceed to get user info
             var requestUri =
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
             _userOrgHttpClient.DefaultRequestHeaders.Clear();

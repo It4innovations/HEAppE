@@ -540,4 +540,7 @@
   <data name="NotAllowedException_ClusterAccountNotInitialized" xml:space="preserve">
     <value>No initialized credentials found for project `{0}`. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.</value>
   </data>
+  <data name="AuthenticationTypeException_IntrospectionTokenNotValid" xml:space="preserve">
+    <value>Invalid or not active token provided for introspection. Unable to authenticate user by provided credentials.</value>
+  </data>
 </root>
