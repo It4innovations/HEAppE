@@ -89,6 +89,47 @@ public static class ClusterInformationConverts
         };
     }
 
+    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType)
+    {
+        // get all projects
+        var projectExts = new List<ProjectExt>();
+        if (nodeType.Cluster != null)
+        {
+            var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => x.Project != null).Select(x => x.Project)
+                .ToList();
+
+            projectExts = dbProjects?
+                    .Select(x => x.ConvertIntToExt())
+                    .ToList() ?? new List<ProjectExt>();
+
+            // select possible commands for specific project or command for all projects
+            foreach (var project in projectExts)
+                project.CommandTemplates = nodeType.PossibleCommands.Where(c =>
+                        !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
+                    .Select(command => command.ConvertIntToExt())
+                    .ToArray();
+        }
+
+        var convert = new ClusterNodeTypeExt
+        {
+            Id = nodeType.Id,
+            Name = nodeType.Name,
+            Description = nodeType.Description,
+            NumberOfNodes = nodeType.NumberOfNodes,
+            CoresPerNode = nodeType.CoresPerNode,
+            MaxWalltime = nodeType.MaxWalltime,
+            FileTransferMethodId = nodeType.FileTransferMethodId,
+            Queue = nodeType.Queue,
+            QualityOfService = nodeType.QualityOfService,
+            ClusterAllocationName = nodeType.ClusterAllocationName,
+            ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
+            Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings
+                .Select(s => s.Accounting?.ConvertIntToExt()).ToArray(),
+            Projects = projectExts.ToArray()
+        };
+        return convert;
+    }
+
     public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
     {
         // get all projects
