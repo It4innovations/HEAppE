@@ -1,7 +1,8 @@
-﻿using System.Linq;
-using HEAppE.DataAccessTier.IRepository.JobManagement;
+﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
 using Microsoft.EntityFrameworkCore;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement;
 
@@ -16,6 +17,11 @@ internal class ClusterNodeTypeAggregationAccountingRepository : IClusterNodeType
     }
 
     #endregion
+
+    public IList<ClusterNodeTypeAggregationAccounting> GetAll()
+    {
+        return _dbSet.ToList();
+    }
 
     public ClusterNodeTypeAggregationAccounting GetById(long clusterNodeTypeAggregationId, long accountingId)
     {

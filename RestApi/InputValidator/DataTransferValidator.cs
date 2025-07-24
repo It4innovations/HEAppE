@@ -34,7 +34,7 @@ public class DataTransferValidator : AbstractValidator
             _messageBuilder.AppendLine("HttpHeader cannot be empty");
 
         ValidatePort(model.NodePort);
-        ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
+        ValidateId(model.SubmittedTaskInfoId, nameof(model.SubmittedTaskInfoId));
 
         if (string.IsNullOrEmpty(model.NodeIPAddress))
             _messageBuilder.AppendLine("IpAddress must be set");
@@ -67,7 +67,7 @@ public class DataTransferValidator : AbstractValidator
 
 
         ValidatePort(validationObj.NodePort);
-        ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
+        ValidateId(validationObj.SubmittedTaskInfoId, nameof(validationObj.SubmittedTaskInfoId));
 
         var sessionCodeValidation = new SessionCodeValidator(validationObj.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);

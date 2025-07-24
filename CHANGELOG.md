@@ -23,6 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API HTTP Request logging with payload (redacted output on `Sensitive data`)
 - `Reason` attribute propagation from the HPC job (in the HEAppE Task)
 - `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
+- Endpoints for bulk listing of `ClusterNodeTypes`, `FileTransferMethods`, `Projects`, `ClusterNodeTypeAggregationAccountings`
 
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
