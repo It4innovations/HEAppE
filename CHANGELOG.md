@@ -30,6 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
 - Fixed wrong error messages for CommandTemplateParameters methods in ManagementService
 - Typo in TaskParallelizationParameters in the `HEAppE Task` specificaton in `CreateJob` endpoint
+- Corrected the `SubmittedJobInfoId` field to `SubmittedTaskInfoId` in REST API endpoints `heappe/DataTransfer/RequestDataTransfer`, `heappe/DataTransfer/HttpPostToJobNode`, and `heappe/DataTransfer/HttpGetToJobNode` to reflect that these endpoints operate on Submitted Task according to the service and business logic tier
 
 ## V5.0.0
 
