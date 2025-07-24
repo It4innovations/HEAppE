@@ -109,7 +109,7 @@ public class DataTransferController : BaseController<DataTransferController>
         var validationResult = new DataTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(await _service.HttpGetToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.SubmittedJobInfoId,
+        return Ok(await _service.HttpGetToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.SubmittedTaskInfoId,
             model.NodeIPAddress, model.NodePort, model.SessionCode));
     }
 
@@ -133,7 +133,7 @@ public class DataTransferController : BaseController<DataTransferController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(await _service.HttpPostToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.HttpPayload,
-            model.SubmittedJobInfoId, model.NodeIPAddress, model.NodePort, model.SessionCode));
+            model.SubmittedTaskInfoId, model.NodeIPAddress, model.NodePort, model.SessionCode));
     }
 
     #endregion
