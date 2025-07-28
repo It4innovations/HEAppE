@@ -321,7 +321,7 @@ internal class LinuxCommands : ICommands
             //mkdir dest, eremove filename
             string destinationDirectory = Path.GetDirectoryName(sourceDestination.Item2);
             cmdBuilder.Append($"mkdir -p {destinationDirectory};");
-            cmdBuilder.Append($"cp {sourceDestination.Item1} {sourceDestination.Item2};");
+            cmdBuilder.Append($"[ -f {sourceDestination.Item1} ] && cp {sourceDestination.Item1} {sourceDestination.Item2};");
         }
 
         try
