@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
 - Fixed wrong error messages for CommandTemplateParameters methods in ManagementService
 - Typo in TaskParallelizationParameters in the `HEAppE Task` specificaton in `CreateJob` endpoint
+- Implemented logic to automatically split SSH command requests to remove SSH keys in the Background Worker when exceeding the maximum SSH.NET packet size, ensuring complete removal of temporary keys without encountering the error.
 
 ## V5.0.0
 
