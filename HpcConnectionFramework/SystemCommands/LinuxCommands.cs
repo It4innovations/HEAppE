@@ -154,7 +154,7 @@ internal class LinuxCommands : ICommands
             var base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
             var cmdText = $"{HPCConnectionFrameworkConfiguration.GetPathToScript(projectAccountingString, _commandScripts.RemoveFiletransferKeyCmdScriptName)} {base64PublicKey};";
 
-            if (cmdBuilder.Length + cmdText.Length > 64000)
+            if (cmdBuilder.Length + cmdText.Length > 55000)
             {
                 sshCommand = SshCommandUtils.RunSshCommand(adapter, cmdBuilder.ToString());
                 _log.Info(
