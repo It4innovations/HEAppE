@@ -151,7 +151,7 @@ internal class LinuxCommands : ICommands
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
+    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
     {
         SshCommandWrapper sshCommand;
         var adapter = new SshClientAdapter((SshClient)connectorClient);
@@ -159,7 +159,7 @@ internal class LinuxCommands : ICommands
         foreach (var publicKey in publicKeys)
         {
             var base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
-            var cmdText = $"{HPCConnectionFrameworkConfiguration.GetPathToScript(projectAccountingString, _commandScripts.RemoveFiletransferKeyCmdScriptName)} {base64PublicKey};";
+            var cmdText = $"{_scripts.ScriptsBasePath}/{_commandScripts.RemoveFiletransferKeyCmdScriptName} {base64PublicKey};"
 
             if (cmdBuilder.Length + cmdText.Length > 55000)
             {
