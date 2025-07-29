@@ -324,13 +324,13 @@ public class FileTransferLogic : IFileTransferLogic
 
         if(jobInfo.State == JobState.Deleted)
         {
-            return fileManager.ListArchivedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
+            return fileManager.ListArchivedFilesForJob(jobInfo, jobInfo.CreationTime);
         }
         
         if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
             return null;
        
-        return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
+        return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.CreationTime);
     }
     public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
