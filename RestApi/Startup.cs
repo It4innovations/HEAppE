@@ -2,8 +2,12 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Net.Http;
 using System.Reflection;
+using System.Text;
+using System.Text.Json;
+using System.Threading.Tasks;
 using AspNetCoreRateLimit;
 using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
@@ -15,13 +19,17 @@ using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using IdentityModel.AspNetCore.OAuth2Introspection;
 using log4net;
 using MicroKnights.Log4NetHelper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
@@ -31,6 +39,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
 using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
@@ -124,8 +133,65 @@ public class Startup
         });
         
         services.AddSingleton<IJwtTokenIntrospectionService, JwtTokenIntrospectionService>();
-
+        services.AddScoped<IUserAndLimitationManagementService, UserAndLimitationManagementService>();
         
+        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            services.AddAuthentication(OAuth2IntrospectionDefaults.AuthenticationScheme)
+                .AddOAuth2Introspection(options =>
+                {
+                    options.Authority = JwtTokenIntrospectionConfiguration.Authority;
+                    options.ClientId = JwtTokenIntrospectionConfiguration.ClientId;
+                    options.ClientSecret = JwtTokenIntrospectionConfiguration.ClientSecret;
+                    options.EnableCaching = true;
+                    options.CacheDuration = TimeSpan.FromMinutes(5);
+                    options.DiscoveryPolicy = new IdentityModel.Client.DiscoveryPolicy
+                    {
+                        ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
+                        RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
+                        ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
+                    };
+                    // Optional: Custom token retrieval
+                    options.TokenRetriever = request =>
+                    {
+                        // Default behavior: look for Bearer token in Authorization header
+                        var authHeader = request.Headers["Authorization"].FirstOrDefault();
+                        if (authHeader?.StartsWith("Bearer ") == true)
+                        {
+                            return authHeader.Substring("Bearer ".Length).Trim();
+                        }
+
+                        return null;
+                    };
+                    options.Events = new OAuth2IntrospectionEvents
+                    {
+                        OnTokenValidated = context =>
+                        {
+                            if()
+                            var token = context.SecurityToken;
+                            //authorize user - userorg
+                            IUserAndLimitationManagementService userAndLimitationManagementService =
+                                context.HttpContext.RequestServices.GetRequiredService<IUserAndLimitationManagementService>();
+
+                            userAndLimitationManagementService.AuthenticateUserAsync(new LexisCredentialsExt()
+                            {
+                                OpenIdAccessToken = token
+                            });
+                            //set user identity
+                            //context.Principal = userAndLimitationManagementService.GetUserIdentity();
+                            
+                            return Task.CompletedTask;
+                        }
+                    };
+                });
+                services.AddHttpClient(OAuth2IntrospectionDefaults.BackChannelHttpClientName)
+                    .ConfigureHttpClient(client =>
+                    {
+                        client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
+                    });
+
+        }
+
         //CORS
         services.AddCors(options =>
         {
@@ -145,6 +211,35 @@ public class Startup
 
         services.AddSwaggerGen(gen =>
         {
+            
+            //if introspection is enabled, add JWT Bearer authentication
+            if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            {
+                gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT"
+                });
+
+                gen.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            }
             gen.ParameterFilter<PascalCaseParameterFilter>();
             // Default Swagger document (Public API)
             gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo
@@ -165,6 +260,7 @@ public class Startup
                     Url = new Uri(SwaggerConfiguration.ContactUrl)
                 }
             });
+            
 
                 // Swagger document for DetailedJobReporting (Private API)
                 gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
@@ -225,7 +321,8 @@ public class Startup
 
                     return false;
                 });
-
+                
+            
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 gen.IncludeXmlComments(xmlPath);
@@ -312,6 +409,8 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseEndpoints(endpoints =>
         {
@@ -327,6 +426,7 @@ public class Startup
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
     }
+    
 
     #endregion
 }

@@ -1,11 +1,14 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using HEAppE.Authentication;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.ClusterInformation;
 using HEAppE.ServiceTier.ClusterInformation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -16,6 +19,7 @@ namespace HEAppE.RestApi.Controllers;
 /// <summary>
 ///     Cluster information Endpoint
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

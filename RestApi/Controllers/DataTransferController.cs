@@ -4,6 +4,7 @@ using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.DataTransfer;
 using HEAppE.ServiceTier.DataTransfer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -14,6 +15,7 @@ namespace HEAppE.RestApi.Controllers;
 /// <summary>
 ///     Data Transfer controller
 /// </summary>
+[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

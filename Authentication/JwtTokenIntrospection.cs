@@ -27,7 +27,7 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
             BaseAddress = new Uri(JwtTokenIntrospectionConfiguration.Authority)
         };
         _httpClient.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware (contact: support.heappe@it4i.cz)");
-        _httpClient.Timeout = TimeSpan.FromSeconds(JwtTokenIntrospectionConfiguration.TimeoutSeconds);
+        _httpClient.Timeout = TimeSpan.FromSeconds(30);
         _logger = logger;
     }
 

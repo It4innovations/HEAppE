@@ -329,6 +329,7 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
         try
         {
             _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
+            /*
             if (!JwtTokenIntrospectionConfiguration.IsEnabled)
             {
                 //skipping introspection if it is not enabled
@@ -336,6 +337,7 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
             }
             else
             {
+
                 // Introspect the token to validate it
                 var introspectionResult = await _introspectionService.IntrospectTokenAsync(lexisCredentials.OpenIdLexisAccessToken);
                 if (!introspectionResult.IsValid)
@@ -347,7 +349,9 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
                 {
                     _log.Info($"LEXIS AAI: Token introspection successful for user \"{lexisCredentials.Username}\". Token is valid.");
                 }
+        
             }
+            */
             // If introspection is successful, proceed to get user info
             var requestUri =
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";

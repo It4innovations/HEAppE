@@ -21,9 +21,11 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HEAppE.RestApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

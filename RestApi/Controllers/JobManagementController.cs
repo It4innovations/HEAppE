@@ -4,6 +4,7 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
 using HEAppE.ServiceTier.JobManagement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

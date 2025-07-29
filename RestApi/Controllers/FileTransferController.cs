@@ -4,6 +4,7 @@ using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.ServiceTier.FileTransfer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

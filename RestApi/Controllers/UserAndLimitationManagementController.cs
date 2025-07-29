@@ -5,6 +5,7 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -15,6 +16,8 @@ namespace HEAppE.RestApi.Controllers;
 /// <summary>
 ///     User and limitation Endpoint
 /// </summary>
+
+[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]
