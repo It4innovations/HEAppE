@@ -159,7 +159,8 @@ internal class LinuxCommands : ICommands
         foreach (var publicKey in publicKeys)
         {
             var base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
-            var cmdText = $"{_scripts.ScriptsBasePath}/{_commandScripts.RemoveFiletransferKeyCmdScriptName} {base64PublicKey};"
+            var cmdText =
+                $"{_scripts.ScriptsBasePath}/{_commandScripts.RemoveFiletransferKeyCmdScriptName} {base64PublicKey};";
 
             if (cmdBuilder.Length + cmdText.Length > 55000)
             {
