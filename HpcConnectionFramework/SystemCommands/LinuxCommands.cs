@@ -146,19 +146,34 @@ internal class LinuxCommands : ICommands
     /// <param name="publicKeys">Public keys</param>
     public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
+        SshCommandWrapper sshCommand;
+        var adapter = new SshClientAdapter((SshClient)connectorClient);
         var cmdBuilder = new StringBuilder();
         foreach (var publicKey in publicKeys)
         {
             var base64PublicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
-            cmdBuilder.Append(
-                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(projectAccountingString, _commandScripts.RemoveFiletransferKeyCmdScriptName)} {base64PublicKey};");
+            var cmdText =
+                $"{HPCConnectionFrameworkConfiguration.GetPathToScript(projectAccountingString, _commandScripts.RemoveFiletransferKeyCmdScriptName)} {base64PublicKey};";
+
+            if (cmdBuilder.Length + cmdText.Length > 55000)
+            {
+                sshCommand = SshCommandUtils.RunSshCommand(adapter, cmdBuilder.ToString());
+                _log.Info(
+                    $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+                cmdBuilder.Clear();
+            }
+
+            cmdBuilder.Append(cmdText);
         }
 
-        var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            cmdBuilder.ToString());
-        _log.Info(
-            $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+        if (cmdBuilder.Length > 0)
+        {
+            sshCommand = SshCommandUtils.RunSshCommand(adapter, cmdBuilder.ToString());
+            _log.Info(
+                $"Remove permission for direct file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
+        }
     }
+
 
     /// <summary>
     ///     Create job directory
@@ -308,7 +323,7 @@ internal class LinuxCommands : ICommands
             //mkdir dest, eremove filename
             string destinationDirectory = Path.GetDirectoryName(sourceDestination.Item2);
             cmdBuilder.Append($"mkdir -p {destinationDirectory};");
-            cmdBuilder.Append($"cp {sourceDestination.Item1} {sourceDestination.Item2};");
+            cmdBuilder.Append($"[ -f {sourceDestination.Item1} ] && cp {sourceDestination.Item1} {sourceDestination.Item2};");
         }
 
         try
