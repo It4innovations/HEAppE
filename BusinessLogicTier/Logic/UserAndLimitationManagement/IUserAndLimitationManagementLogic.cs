@@ -20,6 +20,7 @@ public interface IUserAndLimitationManagementLogic
     IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser,
         IEnumerable<Project> projects);
 
+    public Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials);
     bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo);
     bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo);
     AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser, long projectId);

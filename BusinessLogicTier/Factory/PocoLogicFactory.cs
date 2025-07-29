@@ -51,9 +51,7 @@ public class PocoLogicFactory : LogicFactory
     {
         using var scope = ServiceProvider.CreateScope();
         var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-        
-        var jwtIntrospectionService = scope.ServiceProvider.GetRequiredService<IJwtTokenIntrospectionService>();
-        var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac, jwtIntrospectionService);
+        var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac);
 
         return rtn;
     }

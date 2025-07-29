@@ -14,15 +14,21 @@ using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataAccessTier.Vault.Settings;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
+using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
@@ -132,8 +138,7 @@ public class Startup
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
         });
         
-        services.AddSingleton<IJwtTokenIntrospectionService, JwtTokenIntrospectionService>();
-        services.AddScoped<IUserAndLimitationManagementService, UserAndLimitationManagementService>();
+        services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         
         if (JwtTokenIntrospectionConfiguration.IsEnabled)
         {
@@ -165,22 +170,9 @@ public class Startup
                     };
                     options.Events = new OAuth2IntrospectionEvents
                     {
-                        OnTokenValidated = context =>
+                        OnTokenValidated = async context =>
                         {
-                            if()
-                            var token = context.SecurityToken;
-                            //authorize user - userorg
-                            IUserAndLimitationManagementService userAndLimitationManagementService =
-                                context.HttpContext.RequestServices.GetRequiredService<IUserAndLimitationManagementService>();
-
-                            userAndLimitationManagementService.AuthenticateUserAsync(new LexisCredentialsExt()
-                            {
-                                OpenIdAccessToken = token
-                            });
-                            //set user identity
-                            //context.Principal = userAndLimitationManagementService.GetUserIdentity();
-                            
-                            return Task.CompletedTask;
+                            await HttpContextKeys.Authorize(context.SecurityToken);
                         }
                     };
                 });

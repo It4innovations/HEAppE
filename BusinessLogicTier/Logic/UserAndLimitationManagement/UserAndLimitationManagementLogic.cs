@@ -31,16 +31,15 @@ using log4net;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 
-internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogic
+public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogic
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, IJwtTokenIntrospectionService introspectionService)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory)
     {
         _unitOfWork = unitOfWork;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
-        _introspectionService = introspectionService;
     }
 
     #endregion
@@ -58,8 +57,6 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
     private readonly ILog _log;
 
     private readonly HttpClient _userOrgHttpClient;
-    
-    private readonly IJwtTokenIntrospectionService _introspectionService;
 
     /// <summary>
     ///     Lock for creating user
@@ -324,35 +321,12 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
         }
     }
 
-    private async Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials)
+    public async Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials)
     {
         try
         {
             _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
-            /*
-            if (!JwtTokenIntrospectionConfiguration.IsEnabled)
-            {
-                //skipping introspection if it is not enabled
-                _log.Warn("LEXIS AAI: JWT token introspection is disabled. Skipping introspection.");
-            }
-            else
-            {
-
-                // Introspect the token to validate it
-                var introspectionResult = await _introspectionService.IntrospectTokenAsync(lexisCredentials.OpenIdLexisAccessToken);
-                if (!introspectionResult.IsValid)
-                {
-                    _log.Info($"LEXIS AAI: Token introspection failed for user \"{lexisCredentials.Username}\". Token is invalid.");
-                    throw new AuthenticationTypeException("IntrospectionTokenNotValid");
-                }
-                else
-                {
-                    _log.Info($"LEXIS AAI: Token introspection successful for user \"{lexisCredentials.Username}\". Token is valid.");
-                }
-        
-            }
-            */
-            // If introspection is successful, proceed to get user info
+            
             var requestUri =
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
             _userOrgHttpClient.DefaultRequestHeaders.Clear();
