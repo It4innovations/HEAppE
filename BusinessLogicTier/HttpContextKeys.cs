@@ -3,9 +3,8 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 
-namespace HEAppE.RestApi.Authentication;
+namespace HEAppE.BusinessLogicTier;
 
 public static class HttpContextKeys
 {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -11,6 +12,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
@@ -196,7 +198,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         IUnitOfWork unitOfWork, AdaptorUserRoleType allowedRole)
     {
         var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
-        var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+        AdaptorUser loggedUser;
+        loggedUser = JwtTokenIntrospectionConfiguration.IsEnabled ? 
+            HttpContextKeys.AdaptorUser : 
+            authenticationLogic.GetUserForSessionCode(sessionCode);
 
         var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x =>
                 x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == allowedRole) &&

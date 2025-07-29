@@ -12,6 +12,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
       <ProjectReference Include="..\ExternalAuthentication\ExternalAuthentication.csproj" />
     </ItemGroup>
 

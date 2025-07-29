@@ -1,4 +1,5 @@
-﻿using HEAppE.Utils.Validation;
+﻿using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Utils.Validation;
 
 namespace HEAppE.RestApi.InputValidator;
 
@@ -30,9 +31,12 @@ public class SessionCodeValidator : AbstractValidator
     /// <returns></returns>
     protected string ValidateSessionCode(string sessionCode)
     {
-        if (string.IsNullOrEmpty(sessionCode))
-            _messageBuilder.AppendLine("SessionCode cannot be empty.");
-        else if (!IsSessionCode(sessionCode)) _messageBuilder.AppendLine("SessionCode has wrong format.");
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            if (string.IsNullOrEmpty(sessionCode))
+                _messageBuilder.AppendLine("SessionCode cannot be empty.");
+            else if (!IsSessionCode(sessionCode)) _messageBuilder.AppendLine("SessionCode has wrong format.");
+        }
         return _messageBuilder.ToString();
     }
 }

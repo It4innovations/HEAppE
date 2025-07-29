@@ -65,10 +65,9 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListAvailableClusters([Required] string sessionCode, string clusterName = null, string nodeTypeName = null,
+    public IActionResult ListAvailableClusters(string sessionCode, string clusterName = null, string nodeTypeName = null,
         string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null)
     {
-        _logger.LogDebug(HttpContextKeys.AdaptorUser.Email);
         _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\", Parameters: \"SessionCode: {sessionCode}, ClusterName: {clusterName}, NodeTypeName: {nodeTypeName}, " +
                          $"ProjectName: {projectName}, AccountingString: {accountingString}, CommandTemplateName: {commandTemplateName}\"");
         ListAvailableClustersModel model = new()
