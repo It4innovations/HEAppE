@@ -282,7 +282,7 @@ public class Startup
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
             // TODO - delete this after sphinx OpenApi package be able to use V3 version of OpenApi documentation
             // now we need to serialize it as V2 see - https://github.com/sphinx-contrib/openapi/issues/107
-            swagger.SerializeAsV2 = true;
+            //swagger.SerializeAsV2 = true;
         });
 
         app.UseSwaggerUI(swaggerUI =>
