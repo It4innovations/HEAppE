@@ -25,7 +25,6 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace HEAppE.RestApi.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

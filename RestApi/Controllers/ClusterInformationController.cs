@@ -19,7 +19,6 @@ namespace HEAppE.RestApi.Controllers;
 /// <summary>
 ///     Cluster information Endpoint
 /// </summary>
-[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

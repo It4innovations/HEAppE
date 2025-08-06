@@ -41,6 +41,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -129,6 +130,16 @@ public class Startup
         {
             options.Filters.Add<LogRequestModelFilter>();
         });
+        
+        services.AddControllers(options =>
+        {
+        
+            if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            {
+                options.Filters.Add(new AuthorizeFilter());
+            }
+        });
+
 
         //UserOrgHttpClient
         //services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
@@ -381,7 +392,7 @@ public class Startup
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
             // TODO - delete this after sphinx OpenApi package be able to use V3 version of OpenApi documentation
             // now we need to serialize it as V2 see - https://github.com/sphinx-contrib/openapi/issues/107
-            //swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+            swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
         });
 
         app.UseSwaggerUI(swaggerUI =>

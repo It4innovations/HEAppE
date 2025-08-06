@@ -15,7 +15,6 @@ namespace HEAppE.RestApi.Controllers;
 /// <summary>
 ///     Data Transfer controller
 /// </summary>
-[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

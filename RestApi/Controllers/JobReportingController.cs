@@ -15,7 +15,6 @@ using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi.Controllers;
 
-[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]

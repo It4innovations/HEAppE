@@ -17,7 +17,6 @@ namespace HEAppE.RestApi.Controllers;
 ///     User and limitation Endpoint
 /// </summary>
 
-[Authorize]
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]
