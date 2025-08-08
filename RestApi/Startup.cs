@@ -392,7 +392,8 @@ public class Startup
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
             // TODO - delete this after sphinx OpenApi package be able to use V3 version of OpenApi documentation
             // now we need to serialize it as V2 see - https://github.com/sphinx-contrib/openapi/issues/107
-            swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+            //swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+            swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
         });
 
         app.UseSwaggerUI(swaggerUI =>
@@ -405,7 +406,9 @@ public class Startup
                 SwaggerConfiguration.Title);
             swaggerUI.SwaggerEndpoint(
                 $"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json",
-                SwaggerConfiguration.DetailedJobReportingTitle);
+                string.IsNullOrEmpty(SwaggerConfiguration.DetailedJobReportingTitle)?
+                    "Detailed Job Reporting API" :
+                    SwaggerConfiguration.DetailedJobReportingTitle);
             swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
             swaggerUI.EnableTryItOutByDefault();
         });
