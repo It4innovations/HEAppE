@@ -34,6 +34,7 @@ using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using IdentityModel.AspNetCore.OAuth2Introspection;
+using IdentityModel.Client;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -184,6 +185,31 @@ public class Startup
                     {
                         OnTokenValidated = async context =>
                         {
+                            var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+                            var client = httpClientFactory.CreateClient();
+                            client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
+                            
+                            var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
+                            {
+                                Address = JwtTokenIntrospectionConfiguration.Authority,
+                                Policy = new DiscoveryPolicy
+                                {
+                                    RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
+                                    ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
+                                    ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
+                                }
+                            });
+
+                            if (disco.IsError)
+                            {
+                                throw new Exception($"Discovery error: {disco.Error}");
+                            }
+                            
+                            await HttpContextKeys.ExchangeSshCaToken(
+                                context.SecurityToken,
+                                disco.TokenEndpoint,
+                                client);
+                            
                             await HttpContextKeys.Authorize(context.SecurityToken);
                         }
                     };

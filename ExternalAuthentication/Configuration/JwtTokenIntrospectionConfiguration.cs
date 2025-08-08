@@ -12,4 +12,6 @@ public class JwtTokenIntrospectionConfiguration
     public static bool RequireHttps { get; set; } = false;
     public static bool ValidateIssuerName { get; set; } = false;
     public static bool ValidateEndpoints { get; set; } = false;
+
+    public static TokenExchangeConfiguration TokenExchangeConfiguration { get; set; } = new();
 }
