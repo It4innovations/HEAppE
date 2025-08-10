@@ -185,6 +185,7 @@ public class Startup
                     {
                         OnTokenValidated = async context =>
                         {
+                            await HttpContextKeys.Authorize(context.SecurityToken);
                             var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                             var client = httpClientFactory.CreateClient();
                             client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
@@ -204,13 +205,10 @@ public class Startup
                             {
                                 throw new Exception($"Discovery error: {disco.Error}");
                             }
-                            
                             await HttpContextKeys.ExchangeSshCaToken(
                                 context.SecurityToken,
                                 disco.TokenEndpoint,
                                 client);
-                            
-                            await HttpContextKeys.Authorize(context.SecurityToken);
                         }
                     };
                 });
