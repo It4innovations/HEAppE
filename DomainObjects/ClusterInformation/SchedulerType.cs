@@ -1,12 +1,14 @@
 ﻿using System;
 
-namespace HEAppE.DomainObjects.ClusterInformation;
-
-[Flags]
-public enum SchedulerType
+namespace HEAppE.DomainObjects.ClusterInformation
 {
-    LinuxLocal = 1,
-    PbsPro = 2,
-    Slurm = 4,
-    HyperQueue = 8
+    [Flags]
+    public enum SchedulerType
+    {
+        LinuxLocal = 1,
+        PbsPro = 2,
+        Slurm = 4,
+        HyperQueue = 8,
+        FireCrest = 16
+    }
 }

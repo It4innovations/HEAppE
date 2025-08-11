@@ -44,8 +44,9 @@ public static class ClusterInformationConverts
         };
         return convert;
     }
-    
-    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects, bool onlyActive)
+
+    public static ExtendedClusterExt ConvertIntToExtendedExt(this Cluster cluster, IEnumerable<Project> projects,
+        bool onlyActive)
     {
         var convert = new ExtendedClusterExt
         {
@@ -58,14 +59,14 @@ public static class ClusterInformationConverts
             Port = cluster.Port,
             ConnectionProtocol = cluster.ConnectionProtocol.ConvertIntToExt(),
             DomainName = cluster.DomainName,
-            UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount??false,
+            UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount ?? false,
             ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray()
         };
         return convert;
     }
-    
+
     public static SchedulerTypeExt ConvertIntToExt(this SchedulerType schedulerType)
     {
         return schedulerType switch
@@ -74,10 +75,15 @@ public static class ClusterInformationConverts
             SchedulerType.PbsPro => SchedulerTypeExt.PbsPro,
             SchedulerType.Slurm => SchedulerTypeExt.Slurm,
             SchedulerType.HyperQueue => SchedulerTypeExt.HyperQueue,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Scheduler type", "<1, 2, 4, 8>")
+            SchedulerType.FireCrest => SchedulerTypeExt.FireCrest,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Scheduler type",
+                $"<{string.Join(", ", Enum.GetValues(typeof(SchedulerTypeExt)).Cast<int>())}>"
+            )
         };
     }
-    
+
     public static ClusterConnectionProtocolExt ConvertIntToExt(this ClusterConnectionProtocol connectionProtocol)
     {
         return connectionProtocol switch
@@ -99,8 +105,8 @@ public static class ClusterInformationConverts
                 .ToList();
 
             projectExts = dbProjects?
-                    .Select(x => x.ConvertIntToExt())
-                    .ToList() ?? new List<ProjectExt>();
+                .Select(x => x.ConvertIntToExt())
+                .ToList() ?? new List<ProjectExt>();
 
             // select possible commands for specific project or command for all projects
             foreach (var project in projectExts)
@@ -130,13 +136,15 @@ public static class ClusterInformationConverts
         return convert;
     }
 
-    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
+    public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects,
+        bool onlyActive)
     {
         // get all projects
         var projectExts = new List<ProjectExt>();
         if (nodeType.Cluster != null)
         {
-            var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => x.Project != null && projects.Any(y=> y.Id == x.ProjectId)).Select(x => x.Project)
+            var dbProjects = nodeType.Cluster.ClusterProjects
+                ?.Where(x => x.Project != null && projects.Any(y => y.Id == x.ProjectId)).Select(x => x.Project)
                 .ToList();
             if (onlyActive)
             {
@@ -151,7 +159,7 @@ public static class ClusterInformationConverts
                     .Select(x => x.ConvertIntToExt())
                     .ToList() ?? new List<ProjectExt>();
             }
-            
+
             // select possible commands for specific project or command for all projects
             foreach (var project in projectExts)
                 project.CommandTemplates = nodeType.PossibleCommands.Where(c =>
