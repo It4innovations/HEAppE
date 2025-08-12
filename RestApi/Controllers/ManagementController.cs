@@ -24,6 +24,7 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
+using System.Threading;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2187,28 +2188,56 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Health(string sessionCode)
+    public async Task<IActionResult> Health(string sessionCode, int timeoutMs)
     {
+        _logger.LogDebug(
+            $"Endpoint: \"Management\" Method: \"Health\" Parameters: SessionCode: \"{sessionCode}\"");
+        try
+        {
+            var validationResult = new SessionCodeValidator(sessionCode).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Manager);
+        }
+        catch { }
+
+        if (timeoutMs < 50)
+            timeoutMs = 50;
+        else if (timeoutMs > 200)
+            timeoutMs = 200;
+
         const string DOWN = "DOWN";
         const string UP = "UP";
 
-        var taskGetVaultHealth = _userAndManagementService.GetVaultHealth();
+        var taskDatabaseCanConnect = _userAndManagementService.DatabaseCanConnect(new CancellationTokenSource(timeoutMs).Token);
+        var taskGetVaultHealth = _userAndManagementService.GetVaultHealth(timeoutMs);
+        await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
 
-        await Task.WhenAll(taskGetVaultHealth);
-
-        dynamic vaultHealth = taskGetVaultHealth.Result;
+        var databaseCanConnect = false;
+        if (taskDatabaseCanConnect.IsCompletedSuccessfully)
+            databaseCanConnect = taskDatabaseCanConnect.Result;
+        string databaseStatus = databaseCanConnect ? UP : DOWN;
 
         string vaultStatus = DOWN;
-        if (vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
-            vaultStatus = UP;
+        dynamic vaultHealth = null;
+        if (taskDatabaseCanConnect.IsCompletedSuccessfully)
+        {
+            vaultHealth = taskGetVaultHealth.Result;
+            if (vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
+                vaultStatus = UP;
+        }
+
+        var overallStatus = (databaseStatus == UP && vaultStatus == UP) ? UP : DOWN;
 
         var result = new
         {
-            Status = DOWN,
+            Status = overallStatus,
             Timestamp = DateTime.UtcNow,
             Version = "" + DeploymentInformationsConfiguration.Version,
             Component = new {
-                Database = DOWN,
+                Database = new
+                {
+                    Status = databaseStatus
+                },
                 Vault = new {
                     Status = vaultStatus,
                     Health = vaultHealth

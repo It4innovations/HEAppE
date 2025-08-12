@@ -8,5 +8,5 @@ internal interface IVaultConnector
     Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id);
     void DeleteClusterAuthenticationCredentials(long id);
     bool SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data);
-    Task<object> GetVaultHealth();
+    Task<object> GetVaultHealth(int timeoutMs);
 }

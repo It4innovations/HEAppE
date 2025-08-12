@@ -89,12 +89,12 @@ public class VaultConnector : IVaultConnector
         return false;
     }
 
-    public async Task<object> GetVaultHealth()
+    public async Task<object> GetVaultHealth(int timeoutMs)
     {
         using var httpClient = new HttpClient
         {
             BaseAddress = new Uri(_vaultBaseAddress),
-            Timeout = TimeSpan.FromMilliseconds(150)
+            Timeout = TimeSpan.FromMilliseconds(timeoutMs)
         };
         var path = $"/v1/sys/health/";
         

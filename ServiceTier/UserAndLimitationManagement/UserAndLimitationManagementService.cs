@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -241,11 +242,19 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    public Task<object> GetVaultHealth()
+    public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            return unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth();
+            return unitOfWork.ClusterAuthenticationCredentialsRepository.DatabaseCanConnect(cancellationToken);
+        }
+    }
+
+    public Task<object> GetVaultHealth(int timeoutMs)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            return unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs);
         }
     }
 

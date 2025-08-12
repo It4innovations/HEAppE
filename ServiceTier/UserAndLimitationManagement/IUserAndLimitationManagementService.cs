@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
@@ -17,5 +18,6 @@ public interface IUserAndLimitationManagementService
     bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole);
     AdaptorUserExt GetCurrentUserInfo(string sessionCode);
 
-    Task<object> GetVaultHealth();
+    public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken);
+    Task<object> GetVaultHealth(int timeoutMs);
 }

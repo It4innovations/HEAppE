@@ -5,6 +5,7 @@ using HEAppE.Exceptions.External;
 using log4net;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
@@ -168,9 +169,14 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return WithVaultData(credentials);
     }
 
-    public Task<object> GetVaultHealth()
+    public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
     {
-        return _vaultConnector.GetVaultHealth();
+        return _context.Database.CanConnectAsync(cancellationToken);
+    }
+
+    public Task<object> GetVaultHealth(int timeoutMs)
+    {
+        return _vaultConnector.GetVaultHealth(timeoutMs);
     }
 
     #endregion
