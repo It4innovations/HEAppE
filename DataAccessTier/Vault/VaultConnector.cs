@@ -106,7 +106,7 @@ public class VaultConnector : IVaultConnector
             _log.Warn($"Obtained health information");
             return response;
         }
-        catch (HttpRequestException e)
+        catch (Exception e)
         {
             _log.Warn($"Failed. Exception {e}");
         }

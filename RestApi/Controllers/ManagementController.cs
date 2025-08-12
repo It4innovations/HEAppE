@@ -2202,8 +2202,8 @@ public class ManagementController : BaseController<ManagementController>
 
         if (timeoutMs < 50)
             timeoutMs = 50;
-        else if (timeoutMs > 200)
-            timeoutMs = 200;
+        else if (timeoutMs > 1000)
+            timeoutMs = 1000;
 
         const string DOWN = "DOWN";
         const string UP = "UP";
@@ -2219,10 +2219,10 @@ public class ManagementController : BaseController<ManagementController>
 
         string vaultStatus = DOWN;
         dynamic vaultHealth = null;
-        if (taskDatabaseCanConnect.IsCompletedSuccessfully)
+        if (taskGetVaultHealth.IsCompletedSuccessfully)
         {
             vaultHealth = taskGetVaultHealth.Result;
-            if (vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
+            if (vaultHealth != null && vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
                 vaultStatus = UP;
         }
 
