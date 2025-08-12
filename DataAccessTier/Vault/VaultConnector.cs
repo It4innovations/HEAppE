@@ -1,10 +1,18 @@
-﻿using System;
-using System.Net.Http;
-using System.Text;
-using System.Threading.Tasks;
-using HEAppE.DataAccessTier.Vault.Settings;
+﻿using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
 using log4net;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
+using System;
+using System.Collections.Generic;
+using System.Dynamic;
+using System.Net.Http;
+using System.Net.Http.Json;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Threading.Tasks;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HEAppE.DataAccessTier.Vault;
 
@@ -79,5 +87,30 @@ public class VaultConnector : IVaultConnector
 
         _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
         return false;
+    }
+
+    public async Task<object> GetVaultHealth()
+    {
+        using var httpClient = new HttpClient
+        {
+            BaseAddress = new Uri(_vaultBaseAddress),
+            Timeout = TimeSpan.FromMilliseconds(150)
+        };
+        var path = $"/v1/sys/health/";
+        
+        try
+        {
+            var result = await httpClient.GetStringAsync(path);
+            //var response = JsonSerializer.Deserialize<Dictionary<string, dynamic>>(result);
+            var response = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
+            _log.Warn($"Obtained health information");
+            return response;
+        }
+        catch (HttpRequestException e)
+        {
+            _log.Warn($"Failed. Exception {e}");
+        }
+
+        return null;
     }
 }

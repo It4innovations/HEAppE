@@ -1,5 +1,6 @@
-﻿using System.Collections.Generic;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 
@@ -15,4 +16,6 @@ public interface IClusterAuthenticationCredentialsRepository : IRepository<Clust
     ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId);
     IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint, long projectId);
     IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId);
+
+    Task<object> GetVaultHealth();
 }

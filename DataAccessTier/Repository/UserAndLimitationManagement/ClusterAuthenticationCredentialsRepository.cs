@@ -1,10 +1,11 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Exceptions.External;
 using log4net;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 
@@ -165,6 +166,11 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             .Where(x => x.IsGenerated && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
         return WithVaultData(credentials);
+    }
+
+    public Task<object> GetVaultHealth()
+    {
+        return _vaultConnector.GetVaultHealth();
     }
 
     #endregion

@@ -241,6 +241,14 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
+    public Task<object> GetVaultHealth()
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            return unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth();
+        }
+    }
+
     #region Instances
 
     /// <summary>

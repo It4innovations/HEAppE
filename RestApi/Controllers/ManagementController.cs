@@ -1,3 +1,13 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Net;
+using System.Threading.Tasks;
+using System.Dynamic;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -14,13 +24,6 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2169,6 +2172,51 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_managementService.ListAccountingStates(projectId, sessionCode));
+    }
+
+    #endregion
+
+    #region Health
+
+
+    [HttpGet("Health")]
+    [RequestSizeLimit(90)]
+    [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Health(string sessionCode)
+    {
+        const string DOWN = "DOWN";
+        const string UP = "UP";
+
+        var taskGetVaultHealth = _userAndManagementService.GetVaultHealth();
+
+        await Task.WhenAll(taskGetVaultHealth);
+
+        dynamic vaultHealth = taskGetVaultHealth.Result;
+
+        string vaultStatus = DOWN;
+        if (vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
+            vaultStatus = UP;
+
+        var result = new
+        {
+            Status = DOWN,
+            Timestamp = DateTime.UtcNow,
+            Version = "" + DeploymentInformationsConfiguration.Version,
+            Component = new {
+                Database = DOWN,
+                Vault = new {
+                    Status = vaultStatus,
+                    Health = vaultHealth
+                }
+            }
+        };
+
+        return Ok(result);
     }
 
     #endregion
