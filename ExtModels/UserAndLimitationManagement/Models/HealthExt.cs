@@ -11,9 +11,9 @@ namespace HEAppE.ExtModels.UserAndLimitationManagement.Models;
 [Description("Database and vault health status")]
 public class HealthExt
 {
-    [DataMember(Name = "Status")]
-    [Description("Status")]
-    public string Status { get; set; }
+    [DataMember(Name = "IsHealthy")]
+    [Description("IsHealthy")]
+    public bool IsHealthy { get; set; }
 
     [DataMember(Name = "Timestamp")]
     [Description("Timestamp")]
@@ -39,22 +39,22 @@ public class HealthExt
 
         public class Database_
         {
-            [DataMember(Name = "Vault")]
-            [Description("Vault")]
-            public string Status { get; set; }
+            [DataMember(Name = "IsHealthy")]
+            [Description("IsHealthy")]
+            public bool IsHealthy { get; set; }
         }
 
         public class Vault_
         {
-            [DataMember(Name = "Vault")]
-            [Description("Vault")]
-            public string Status { get; set; }
+            [DataMember(Name = "IsHealthy")]
+            [Description("IsHealthy")]
+            public bool IsHealthy { get; set; }
 
-            [DataMember(Name = "Vault")]
-            [Description("Vault")]
-            public VaultHealth_ Health { get; set; }
+            [DataMember(Name = "Info")]
+            [Description("Info")]
+            public VaultInfo_ Info { get; set; }
 
-            public class VaultHealth_
+            public class VaultInfo_
             {
                 [DataMember(Name = "Vault")]
                 [Description("Vault")]
@@ -77,6 +77,6 @@ public class HealthExt
 
     public override string ToString()
     {
-        return $"HealthExt(Status={Status}; Timestamp={Timestamp}; Version={Version}; ...)";
+        return $"HealthExt(IsHealthy={IsHealthy}; Timestamp={Timestamp}; Version={Version}; ...)";
     }
 }

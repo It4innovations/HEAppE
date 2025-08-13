@@ -174,6 +174,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     private static async Task<bool> DatabaseCanConnectAsync(DatabaseFacade database, CancellationToken cancellationToken)
     {
+#pragma warning disable IDE0059
         try {
             database.OpenConnection();
             try {
@@ -184,6 +185,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         } catch (Exception e) {
             return false;
         }
+#pragma warning restore IDE0059
         return true;
     }
 

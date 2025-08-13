@@ -1,16 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Net;
-using System.Threading;
 using System.Threading.Tasks;
-using System.Dynamic;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -2193,14 +2189,9 @@ public class ManagementController : BaseController<ManagementController>
     {
         _logger.LogDebug(
             $"Endpoint: \"Management\" Method: \"Health\" Parameters: SessionCode: \"{sessionCode}\"");
-        try {
-            var validationResult = new SessionCodeValidator(sessionCode).Validate();
-            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-            _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Manager);
-        } catch {
-            // TODO: remove try ... catch block
-        }
-
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Manager);
         return Ok(await _userAndManagementService.Health(timeoutMs, DeploymentInformationsConfiguration.Version));
     }
 

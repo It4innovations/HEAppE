@@ -1,4 +1,13 @@
-﻿using HEAppE.BusinessLogicTier.Factory;
+﻿using System;
+using System.Collections.Generic;
+using System.Data.SqlTypes;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
+using log4net;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
@@ -11,16 +20,6 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Utils;
-using log4net;
-using Microsoft.Extensions.Caching.Memory;
-using System;
-using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using static HEAppE.ExtModels.UserAndLimitationManagement.Models.HealthExt.HealthComponent_.Vault_;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement;
 
@@ -246,13 +245,8 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public async Task<HealthExt> Health(int timeoutMs, string version)
     {
-        const string DOWN = "DOWN";
-        const string UP = "UP";
-
-        string overallStatus = DOWN;
-        string databaseStatus = DOWN;
-        string vaultStatus = DOWN;
-        dynamic vaultHealth = null;
+        bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
+        dynamic vaultInfo = null;
 
         if (timeoutMs < 50)
             timeoutMs = 50;
@@ -267,21 +261,21 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
 
             if (taskDatabaseCanConnect.IsCompletedSuccessfully && taskDatabaseCanConnect.Result)
-                databaseStatus = UP;
+                databaseIsHealthy = true;
 
             if (taskGetVaultHealth.IsCompletedSuccessfully) {
-                vaultHealth = taskGetVaultHealth.Result;
-                if (vaultHealth != null && vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
-                    vaultStatus = UP;
+                vaultInfo = taskGetVaultHealth.Result;
+                if (vaultInfo != null && vaultInfo.initialized == true && vaultInfo.@sealed == false && vaultInfo.standby == false && vaultInfo.performance_standby == false)
+                    vaultIsHealthy = true;
             }
         }
 
-        if (databaseStatus == UP && vaultStatus == UP)
-            overallStatus = UP;
+        if (databaseIsHealthy && vaultIsHealthy)
+            isHealthy = true;
 
         var result = new HealthExt
         {
-            Status = overallStatus,
+            IsHealthy = isHealthy,
             Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
             Version = version,
 
@@ -289,16 +283,16 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             {
                 Database = new HealthExt.HealthComponent_.Database_
                 {
-                    Status = databaseStatus
+                    IsHealthy = databaseIsHealthy
                 },
                 Vault = new HealthExt.HealthComponent_.Vault_
                 {
-                    Status = vaultStatus,
-                    Health = new HealthExt.HealthComponent_.Vault_.VaultHealth_{
-                        Initialized = vaultHealth.initialized,
-                        Sealed = vaultHealth.@sealed,
-                        StandBy = vaultHealth.standby,
-                        PerformanceStandby = vaultHealth.performance_standby
+                    IsHealthy = vaultIsHealthy,
+                    Info = new HealthExt.HealthComponent_.Vault_.VaultInfo_{
+                        Initialized = vaultInfo.initialized,
+                        Sealed = vaultInfo.@sealed,
+                        StandBy = vaultInfo.standby,
+                        PerformanceStandby = vaultInfo.performance_standby
                     }
                 }
             }
