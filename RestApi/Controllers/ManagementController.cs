@@ -2193,65 +2193,15 @@ public class ManagementController : BaseController<ManagementController>
     {
         _logger.LogDebug(
             $"Endpoint: \"Management\" Method: \"Health\" Parameters: SessionCode: \"{sessionCode}\"");
-        try
-        {
+        try {
             var validationResult = new SessionCodeValidator(sessionCode).Validate();
             if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
             _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Manager);
-        }
-        catch { }
-
-        if (timeoutMs < 50)
-            timeoutMs = 50;
-        else if (timeoutMs > 1000)
-            timeoutMs = 1000;
-        
-        const string DOWN = "DOWN";
-        const string UP = "UP";
-
-        Task<bool> taskDatabaseCanConnect;
-        Task<object> taskGetVaultHealth;
-        IUnitOfWork unitOfWorkDb, unitOfWorkVault;
-        (taskDatabaseCanConnect, unitOfWorkDb) = _userAndManagementService.DatabaseCanConnect(new CancellationTokenSource(timeoutMs).Token);
-        (taskGetVaultHealth, unitOfWorkVault) = _userAndManagementService.GetVaultHealth(timeoutMs);
-        await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
-        unitOfWorkDb.Dispose();
-        unitOfWorkVault.Dispose();
-
-        var databaseCanConnect = false;
-        if (taskDatabaseCanConnect.IsCompletedSuccessfully)
-            databaseCanConnect = taskDatabaseCanConnect.Result;
-        string databaseStatus = databaseCanConnect ? UP : DOWN;
-
-        string vaultStatus = DOWN;
-        dynamic vaultHealth = null;
-        if (taskGetVaultHealth.IsCompletedSuccessfully)
-        {
-            vaultHealth = taskGetVaultHealth.Result;
-            if (vaultHealth != null && vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
-                vaultStatus = UP;
+        } catch {
+            // TODO: remove try ... catch block
         }
 
-        var overallStatus = (databaseStatus == UP && vaultStatus == UP) ? UP : DOWN;
-
-        var result = new
-        {
-            Status = overallStatus,
-            Timestamp = DateTime.UtcNow,
-            Version = "" + DeploymentInformationsConfiguration.Version,
-            Component = new {
-                Database = new
-                {
-                    Status = databaseStatus
-                },
-                Vault = new {
-                    Status = vaultStatus,
-                    Health = vaultHealth
-                }
-            }
-        };
-
-        return Ok(result);
+        return Ok(await _userAndManagementService.Health(timeoutMs, DeploymentInformationsConfiguration.Version));
     }
 
     #endregion

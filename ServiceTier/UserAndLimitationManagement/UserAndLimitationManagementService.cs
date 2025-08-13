@@ -242,16 +242,61 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    public (Task<bool>, IUnitOfWork) DatabaseCanConnect(CancellationToken cancellationToken)
+    public async Task<object> Health(int timeoutMs, string version)
     {
-        var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        return (unitOfWork.ClusterAuthenticationCredentialsRepository.DatabaseCanConnect(cancellationToken), unitOfWork);
-    }
+        const string DOWN = "DOWN";
+        const string UP = "UP";
 
-    public (Task<object>, IUnitOfWork) GetVaultHealth(int timeoutMs)
-    {
-        var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        return (unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs), unitOfWork);
+        string overallStatus = DOWN;
+        string databaseStatus = DOWN;
+        string vaultStatus = DOWN;
+        dynamic vaultHealth = null;
+
+        if (timeoutMs < 50)
+            timeoutMs = 50;
+        else if (timeoutMs > 1000)
+            timeoutMs = 1000;
+
+        var cancellationToken = new CancellationTokenSource(timeoutMs).Token;
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var taskDatabaseCanConnect = unitOfWork.ClusterAuthenticationCredentialsRepository.DatabaseCanConnect(cancellationToken);
+            var taskGetVaultHealth = unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs);
+            await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
+
+            if (taskDatabaseCanConnect.IsCompletedSuccessfully && taskDatabaseCanConnect.Result)
+                databaseStatus = UP;
+
+            if (taskGetVaultHealth.IsCompletedSuccessfully) {
+                vaultHealth = taskGetVaultHealth.Result;
+                if (vaultHealth != null && vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
+                    vaultStatus = UP;
+            }
+        }
+
+        if (databaseStatus == UP && vaultStatus == UP)
+            overallStatus = UP;
+
+        var result = new
+        {
+            Status = overallStatus,
+            Timestamp = DateTime.UtcNow,
+            Version = version, // + DeploymentInformationsConfiguration.Version,
+            Component = new
+            {
+                Database = new
+                {
+                    Status = databaseStatus
+                },
+                Vault = new
+                {
+                    Status = vaultStatus,
+                    Health = vaultHealth
+                }
+            }
+        };
+
+        return result;
     }
 
     #region Instances

@@ -20,6 +20,5 @@ public interface IUserAndLimitationManagementService
     bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole);
     AdaptorUserExt GetCurrentUserInfo(string sessionCode);
 
-    (Task<bool>, IUnitOfWork) DatabaseCanConnect(CancellationToken cancellationToken);
-    (Task<object>, IUnitOfWork) GetVaultHealth(int timeoutMs);
+    Task<object> Health(int timeoutMs, string version);
 }
