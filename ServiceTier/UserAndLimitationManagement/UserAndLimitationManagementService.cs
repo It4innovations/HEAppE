@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading;
-using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier.Factory;
+﻿using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
@@ -19,6 +13,14 @@ using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
+using System;
+using System.Collections.Generic;
+using System.Data.SqlTypes;
+using System.Linq;
+using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
+using static HEAppE.ExtModels.UserAndLimitationManagement.Models.HealthExt.HealthComponent_.Vault_;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement;
 
@@ -242,7 +244,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    public async Task<object> Health(int timeoutMs, string version)
+    public async Task<HealthExt> Health(int timeoutMs, string version)
     {
         const string DOWN = "DOWN";
         const string UP = "UP";
@@ -277,21 +279,27 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         if (databaseStatus == UP && vaultStatus == UP)
             overallStatus = UP;
 
-        var result = new
+        var result = new HealthExt
         {
             Status = overallStatus,
-            Timestamp = DateTime.UtcNow,
-            Version = version, // + DeploymentInformationsConfiguration.Version,
-            Component = new
+            Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
+            Version = version,
+
+            Component = new HealthExt.HealthComponent_
             {
-                Database = new
+                Database = new HealthExt.HealthComponent_.Database_
                 {
                     Status = databaseStatus
                 },
-                Vault = new
+                Vault = new HealthExt.HealthComponent_.Vault_
                 {
                     Status = vaultStatus,
-                    Health = vaultHealth
+                    Health = new HealthExt.HealthComponent_.Vault_.VaultHealth_{
+                        Initialized = vaultHealth.initialized,
+                        Sealed = vaultHealth.@sealed,
+                        StandBy = vaultHealth.standby,
+                        PerformanceStandby = vaultHealth.performance_standby
+                    }
                 }
             }
         };
