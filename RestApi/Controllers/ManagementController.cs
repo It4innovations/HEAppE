@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Dynamic;
 using Microsoft.AspNetCore.Http;
@@ -9,6 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -24,7 +26,6 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using System.Threading;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2204,13 +2205,18 @@ public class ManagementController : BaseController<ManagementController>
             timeoutMs = 50;
         else if (timeoutMs > 1000)
             timeoutMs = 1000;
-
+        
         const string DOWN = "DOWN";
         const string UP = "UP";
 
-        var taskDatabaseCanConnect = _userAndManagementService.DatabaseCanConnect(new CancellationTokenSource(timeoutMs).Token);
-        var taskGetVaultHealth = _userAndManagementService.GetVaultHealth(timeoutMs);
+        Task<bool> taskDatabaseCanConnect;
+        Task<object> taskGetVaultHealth;
+        IUnitOfWork unitOfWorkDb, unitOfWorkVault;
+        (taskDatabaseCanConnect, unitOfWorkDb) = _userAndManagementService.DatabaseCanConnect(new CancellationTokenSource(timeoutMs).Token);
+        (taskGetVaultHealth, unitOfWorkVault) = _userAndManagementService.GetVaultHealth(timeoutMs);
         await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
+        unitOfWorkDb.Dispose();
+        unitOfWorkVault.Dispose();
 
         var databaseCanConnect = false;
         if (taskDatabaseCanConnect.IsCompletedSuccessfully)

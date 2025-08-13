@@ -242,20 +242,16 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
+    public (Task<bool>, IUnitOfWork) DatabaseCanConnect(CancellationToken cancellationToken)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-        {
-            return unitOfWork.ClusterAuthenticationCredentialsRepository.DatabaseCanConnect(cancellationToken);
-        }
+        var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        return (unitOfWork.ClusterAuthenticationCredentialsRepository.DatabaseCanConnect(cancellationToken), unitOfWork);
     }
 
-    public Task<object> GetVaultHealth(int timeoutMs)
+    public (Task<object>, IUnitOfWork) GetVaultHealth(int timeoutMs)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-        {
-            return unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs);
-        }
+        var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+        return (unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs), unitOfWork);
     }
 
     #region Instances

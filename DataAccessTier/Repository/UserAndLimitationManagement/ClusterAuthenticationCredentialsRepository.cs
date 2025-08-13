@@ -3,6 +3,9 @@ using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Exceptions.External;
 using log4net;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
@@ -169,9 +172,25 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return WithVaultData(credentials);
     }
 
+    private static async Task<bool> DatabaseCanConnectAsync(DatabaseFacade database, CancellationToken cancellationToken)
+    {
+        try {
+            database.OpenConnection();
+            try {
+                _ = await database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
+            } finally {
+                database.CloseConnection();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+        return true;
+    }
+
     public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
     {
-        return _context.Database.CanConnectAsync(cancellationToken);
+        //return _context.Database.CanConnectAsync(cancellationToken); // unreliable...
+        return DatabaseCanConnectAsync(_context.Database, cancellationToken);
     }
 
     public Task<object> GetVaultHealth(int timeoutMs)
