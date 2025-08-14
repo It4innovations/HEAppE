@@ -1,10 +1,15 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Exceptions.External;
 using log4net;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 
@@ -165,6 +170,34 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             .Where(x => x.IsGenerated && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
         return WithVaultData(credentials);
+    }
+
+    private static async Task<bool> DatabaseCanConnectAsync(DatabaseFacade database, CancellationToken cancellationToken)
+    {
+#pragma warning disable IDE0059
+        try {
+            database.OpenConnection();
+            try {
+                _ = await database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
+            } finally {
+                database.CloseConnection();
+            }
+        } catch (Exception e) {
+            return false;
+        }
+#pragma warning restore IDE0059
+        return true;
+    }
+
+    public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
+    {
+        //return _context.Database.CanConnectAsync(cancellationToken); // unreliable...
+        return DatabaseCanConnectAsync(_context.Database, cancellationToken);
+    }
+
+    public Task<object> GetVaultHealth(int timeoutMs)
+    {
+        return _vaultConnector.GetVaultHealth(timeoutMs);
     }
 
     #endregion

@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
+
 namespace HEAppE.ServiceTier.UserAndLimitationManagement;
 
 public interface IUserAndLimitationManagementService
@@ -16,4 +17,6 @@ public interface IUserAndLimitationManagementService
     IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode);
     bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole);
     AdaptorUserExt GetCurrentUserInfo(string sessionCode);
+
+    Task<HealthExt> Health(int timeoutMs, string version);
 }

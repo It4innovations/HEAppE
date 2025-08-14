@@ -1,8 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
+using log4net;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -16,8 +20,6 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Utils;
-using log4net;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement;
 
@@ -239,6 +241,64 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
             throw new InsufficientRoleException("MissingRoleForProject", requiredUserRole.ToString(), projectId);
         }
+    }
+
+    public async Task<HealthExt> Health(int timeoutMs, string version)
+    {
+        bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
+        dynamic vaultInfo = null;
+
+        if (timeoutMs < 50)
+            timeoutMs = 50;
+        else if (timeoutMs > 1000)
+            timeoutMs = 1000;
+
+        var cancellationToken = new CancellationTokenSource(timeoutMs).Token;
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var taskDatabaseCanConnect = unitOfWork.ClusterAuthenticationCredentialsRepository.DatabaseCanConnect(cancellationToken);
+            var taskGetVaultHealth = unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs);
+            await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
+
+            if (taskDatabaseCanConnect.IsCompletedSuccessfully && taskDatabaseCanConnect.Result)
+                databaseIsHealthy = true;
+
+            if (taskGetVaultHealth.IsCompletedSuccessfully) {
+                vaultInfo = taskGetVaultHealth.Result;
+                if (vaultInfo != null && vaultInfo.initialized == true && vaultInfo.@sealed == false && vaultInfo.standby == false && vaultInfo.performance_standby == false)
+                    vaultIsHealthy = true;
+            }
+        }
+
+        if (databaseIsHealthy && vaultIsHealthy)
+            isHealthy = true;
+
+        var result = new HealthExt
+        {
+            IsHealthy = isHealthy,
+            Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
+            Version = version,
+
+            Component = new HealthExt.HealthComponent_
+            {
+                Database = new HealthExt.HealthComponent_.Database_
+                {
+                    IsHealthy = databaseIsHealthy
+                },
+                Vault = new HealthExt.HealthComponent_.Vault_
+                {
+                    IsHealthy = vaultIsHealthy,
+                    Info = new HealthExt.HealthComponent_.Vault_.VaultInfo_{
+                        Initialized = vaultInfo.initialized,
+                        Sealed = vaultInfo.@sealed,
+                        StandBy = vaultInfo.standby,
+                        PerformanceStandby = vaultInfo.performance_standby
+                    }
+                }
+            }
+        };
+
+        return result;
     }
 
     #region Instances
