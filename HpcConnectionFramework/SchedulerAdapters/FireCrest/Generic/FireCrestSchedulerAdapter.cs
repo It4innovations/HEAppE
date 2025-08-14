@@ -202,20 +202,96 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
         }
     }
 
-
     public IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
         try
         {
             var token = GetAuthToken(connectorClient);
-            Console.WriteLine(jobSpecification);
-            return null;
+            string clusterName = jobSpecification.Cluster.Name;
+            string account = jobSpecification.ClusterUser?.Username ?? "default";
+
+            var schedulerArgs = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
+            Console.WriteLine(schedulerArgs);
+            _log.Debug($"Generated scheduler arguments: {schedulerArgs}");
+
+            var scriptContent = new StringBuilder();
+            scriptContent.AppendLine("#!/bin/bash");
+            scriptContent.AppendLine($"#SBATCH {schedulerArgs}");
+            var finalScript = scriptContent.ToString();
+            _log.Debug($"Constructed script for Firecrest payload:\n{finalScript}");
+            Console.WriteLine(finalScript);
+            var taskSpec = jobSpecification.Tasks.First();
+            string jobDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpec.Id}";
+            jobDirectoryPath = jobDirectoryPath.Replace("\\", "/");
+
+            var jobPayload = new
+            {
+                job = new
+                {
+                    name = jobSpecification.Name,
+                    working_directory = jobDirectoryPath,
+                    account = jobSpecification.Project?.AccountingString,
+                    standard_output = taskSpec.StandardOutputFile,
+                    standard_error = taskSpec.StandardErrorFile,
+                    script = finalScript     
+                }
+            };
+
+            var jsonSubmitContent = JsonSerializer.Serialize(jobPayload);
+            _log.Debug($"Final JSON payload for submission: {jsonSubmitContent}");
+
+            _log.Info($"Submitting job to cluster {clusterName}");
+            var submitEndpoint = $"{_firecrestUrl}/compute/{clusterName}/jobs";
+
+            using var submitContent = new StringContent(jsonSubmitContent, Encoding.UTF8, "application/json");
+            using var submitRequest = new HttpRequestMessage(HttpMethod.Post, submitEndpoint);
+            submitRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+            submitRequest.Content = submitContent;
+
+            var submitResponse = _httpClient.SendAsync(submitRequest).GetAwaiter().GetResult();
+            var submitResponseContent = submitResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+            if (!submitResponse.IsSuccessStatusCode)
+            {
+                _log.Error(
+                    $"Job submission failed. Status: {submitResponse.StatusCode}, Response: {submitResponseContent}");
+                throw new FirecrestApiException(
+                    $"Job submission request failed with status {submitResponse.StatusCode}.",
+                    submitResponse.StatusCode, submitResponseContent);
+            }
+
+            _log.Info($"Job submission request sent successfully. Response: {submitResponseContent}");
+
+            var jobIds = _convertor.GetJobIds(submitResponseContent);
+            var submittedTasks = new List<SubmittedTaskInfo>();
+
+            var submittedJobId = jobIds.FirstOrDefault();
+            if (submittedJobId != null)
+            {
+                var originalTask = jobSpecification.Tasks.First();
+                var taskInfo = new SubmittedTaskInfo
+                {
+                    ScheduledJobId = submittedJobId,
+                    Name = originalTask.Id.ToString(),
+                    State = TaskState.Queued,
+                    Specification = originalTask,
+                    Reason = "Job successfully submitted via FireCrest API."
+                };
+                submittedTasks.Add(taskInfo);
+            }
+
+            if (!submittedTasks.Any())
+            {
+                _log.Warn("Job submission response did not contain any parsable job IDs.");
+            }
+
+            return submittedTasks;
         }
-        //Error here. 
         catch (Exception ex)
         {
-            return null;
+            _log.Error($"An unhandled error occurred in SubmitJob: {ex.Message}", ex);
+            throw;
         }
     }
 
@@ -225,10 +301,103 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
         throw new NotImplementedException();
     }
 
-    public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message)
+    //TO FINISH AND TEST
+    public void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string message)
     {
-        throw new NotImplementedException();
+        Console.WriteLine(submittedTasksInfo);
+        if (submittedTasksInfo == null || !submittedTasksInfo.Any())
+        {
+            _log.Warn("No tasks provided to cancel");
+            return;
+        }
+
+        try
+        {
+            var token = GetAuthToken(connectorClient);
+
+            foreach (var task in submittedTasksInfo)
+            {
+                try
+                {
+                    if (string.IsNullOrEmpty(task.ScheduledJobId))
+                    {
+                        _log.Warn($"Scheduled job ID is null or empty for task {task.Id}, skipping cancellation");
+                        continue;
+                    }
+
+                    string clusterName = task.NodeType?.Cluster?.Name;
+                    if (string.IsNullOrEmpty(clusterName))
+                    {
+                        _log.Warn($"Cluster name is null or empty for task {task.Id}, skipping cancellation");
+                        continue;
+                    }
+
+                    _log.Info($"Canceling job with ID {task.ScheduledJobId} on cluster {clusterName}");
+                    Console.WriteLine(
+                        $"[INFO {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Canceling job with ID {task.ScheduledJobId} on cluster {clusterName}");
+
+                    var endpoint = $"{_firecrestUrl}/compute/{clusterName}/jobs/{task.ScheduledJobId}";
+
+                    using var request = new HttpRequestMessage(HttpMethod.Delete, endpoint);
+                    request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+                    var response = _httpClient.SendAsync(request).GetAwaiter().GetResult();
+                    var responseContent = response.Content.ReadAsStringAsync().GetAwaiter().GetResult();
+
+                    if (!response.IsSuccessStatusCode)
+                    {
+                        _log.Error(
+                            $"Failed to cancel job {task.ScheduledJobId}. Status: {response.StatusCode}, Response: {responseContent}");
+                        Console.WriteLine(
+                            $"[ERROR {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Failed to cancel job {task.ScheduledJobId}. Status: {response.StatusCode}, Response: {responseContent}");
+
+                        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+                        {
+                            _log.Warn($"Job {task.ScheduledJobId} not found, might already be completed or deleted");
+                            Console.WriteLine(
+                                $"[WARN {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Job {task.ScheduledJobId} not found, might already be completed or deleted");
+                        }
+                    }
+                    else
+                    {
+                        _log.Info($"Successfully canceled job {task.ScheduledJobId}");
+                        Console.WriteLine(
+                            $"[INFO {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Successfully canceled job {task.ScheduledJobId}");
+
+                        task.State = TaskState.Canceled;
+                        task.EndTime = DateTime.UtcNow;
+                        task.Reason = !string.IsNullOrEmpty(message) ? message : "Job canceled by user";
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _log.Error($"Error canceling job for task {task.Id}: {ex.Message}", ex);
+                    Console.WriteLine(
+                        $"[ERROR {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Error canceling job for task {task.Id}: {ex.Message}");
+
+                    if (ex.InnerException != null)
+                    {
+                        Console.WriteLine(
+                            $"[ERROR {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Inner exception: {ex.InnerException.Message}");
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"Error in CancelJob: {ex.Message}", ex);
+            Console.WriteLine($"[ERROR {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Error in CancelJob: {ex.Message}");
+
+            if (ex.InnerException != null)
+            {
+                Console.WriteLine(
+                    $"[ERROR {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Inner exception: {ex.InnerException.Message}");
+            }
+
+            throw new SshCommandException("Failed to cancel jobs", ex.Message);
+        }
     }
+
 
     public ClusterNodeUsage GetCurrentClusterNodeUsage(object connectorClient, ClusterNodeType nodeType)
     {
@@ -353,7 +522,7 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
 
             Console.WriteLine(
                 $"[WARN {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Continuing without job directory creation");
-            throw; 
+            throw;
         }
     }
 

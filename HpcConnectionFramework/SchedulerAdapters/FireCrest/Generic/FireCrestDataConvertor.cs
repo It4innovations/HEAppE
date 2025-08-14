@@ -42,9 +42,9 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     {
         var nodesUsed = 0;
         var response = (string)responseMessage;
-    
+
         var jsonResponse = JsonSerializer.Deserialize<JsonElement>(response);
-    
+
         if (string.IsNullOrEmpty(nodeType.ClusterAllocationName))
         {
             if (jsonResponse.TryGetProperty("total_allocated_nodes", out var totalNodes))
@@ -54,13 +54,13 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         }
         else
         {
-            if (jsonResponse.TryGetProperty("partitions", out var partitions) && 
+            if (jsonResponse.TryGetProperty("partitions", out var partitions) &&
                 partitions.ValueKind == JsonValueKind.Array)
             {
                 foreach (var partition in partitions.EnumerateArray())
                 {
-                    if (partition.TryGetProperty("name", out var name) && 
-                        name.GetString() == nodeType.ClusterAllocationName && 
+                    if (partition.TryGetProperty("name", out var name) &&
+                        name.GetString() == nodeType.ClusterAllocationName &&
                         partition.TryGetProperty("allocated_nodes", out var allocatedNodes))
                     {
                         nodesUsed = allocatedNodes.GetInt32();
@@ -80,45 +80,31 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     }
 
     /// <summary>
-    ///     Read job parameters from scheduler
+    /// Reads job parameters from scheduler using a robust text search.
     /// </summary>
-    /// <param name="responseMessage">Scheduler response message</param>
-    /// <returns></returns>
-    /// <exception cref="FireCrestException"></exception>
     public override IEnumerable<string> GetJobIds(string responseMessage)
     {
-        var scheduledJobIds = new List<string>();
-        var jsonResponse = JsonSerializer.Deserialize<JsonElement>(responseMessage);
-    
-        if (jsonResponse.TryGetProperty("job_id", out var jobId))
+        if (string.IsNullOrWhiteSpace(responseMessage))
         {
-            scheduledJobIds.Add(jobId.GetString());
-        }
-        else if (jsonResponse.TryGetProperty("job_ids", out var jobIdsArray) && 
-                 jobIdsArray.ValueKind == JsonValueKind.Array)
-        {
-            foreach (var id in jobIdsArray.EnumerateArray())
+            throw new FireCrestException("UnableToParseResponse: Response from server was null or empty.")
             {
-                scheduledJobIds.Add(id.GetString());
-            }
-        }
-        else if (jsonResponse.TryGetProperty("array_job_id", out var arrayJobId) &&
-                 jsonResponse.TryGetProperty("array_task_ids", out var taskIds) &&
-                 taskIds.ValueKind == JsonValueKind.Array)
-        {
-            var baseId = arrayJobId.GetString();
-            foreach (var taskId in taskIds.EnumerateArray())
-            {
-                scheduledJobIds.Add($"{baseId}_{taskId.GetString()}");
-            }
+                CommandError = "The response from the server was empty."
+            };
         }
 
-        return scheduledJobIds.Any()
-            ? scheduledJobIds
-            : throw new FireCrestException("UnableToParseResponse")
-            {
-                CommandError = null
-            };
+        var match = System.Text.RegularExpressions.Regex.Match(responseMessage, "\"jobId\":\\s*(\\d+)");
+
+        if (match.Success && match.Groups.Count > 1)
+        {
+            var jobId = match.Groups[1].Value;
+
+            return new List<string> { jobId };
+        }
+
+        throw new FireCrestException("UnableToParseResponse")
+        {
+            CommandError = $"The new Regex-based code is not running. The response was: {responseMessage}"
+        };
     }
 
     /// <summary>
@@ -149,6 +135,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
             ParsedParameters = obj.ParsedParameters
         };
     }
+
     /// <summary>
     ///     Read job parameters from scheduler
     /// </summary>
@@ -156,80 +143,80 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     /// <param name="responseMessage">Scheduler response message</param>
     /// <returns></returns>
     /// <exception cref="FireCrestException"></exception>
-  public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
-{
-    var response = (string)responseMessage;
-    var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
-    FireCrestJobInfo aggregateResultObj = null;
-
-    // Parse the JSON response from FireCrest
-    var jsonResponse = JsonSerializer.Deserialize<JsonElement>(response);
-    var jobsArray = jsonResponse.GetProperty("jobs");
-    
-    // Process each job in the response
-    foreach (var jobElement in jobsArray.EnumerateArray())
+    public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
     {
-        // Extract job data as string for compatibility with FireCrestJobInfo constructor
-        var jobResponseMessage = JsonSerializer.Serialize(jobElement);
-        
-        // Convert JSON properties to dictionary of parameters
-        var parsedParameters = new Dictionary<string, string>();
-        foreach (var property in jobElement.EnumerateObject())
+        var response = (string)responseMessage;
+        var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
+        FireCrestJobInfo aggregateResultObj = null;
+
+        // Parse the JSON response from FireCrest
+        var jsonResponse = JsonSerializer.Deserialize<JsonElement>(response);
+        var jobsArray = jsonResponse.GetProperty("jobs");
+
+        // Process each job in the response
+        foreach (var jobElement in jobsArray.EnumerateArray())
         {
-            var value = property.Value.ValueKind switch
+            // Extract job data as string for compatibility with FireCrestJobInfo constructor
+            var jobResponseMessage = JsonSerializer.Serialize(jobElement);
+
+            // Convert JSON properties to dictionary of parameters
+            var parsedParameters = new Dictionary<string, string>();
+            foreach (var property in jobElement.EnumerateObject())
             {
-                JsonValueKind.String => property.Value.GetString(),
-                JsonValueKind.Number => property.Value.ToString(),
-                JsonValueKind.True => "true",
-                JsonValueKind.False => "false",
-                JsonValueKind.Null => string.Empty,
-                _ => JsonSerializer.Serialize(property.Value)
-            };
-            
-            // Skip null/N/A/Unknown values
-            if (value is "(null)" or "N/A" or "Unknown")
-                value = string.Empty;
-                
-            parsedParameters.Add(property.Name, value);
-        }
-        
-        // Create job info object and fill in details
-        var schedulerResultObj = new FireCrestJobInfo(jobResponseMessage, parsedParameters);
-        FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parsedParameters);
+                var value = property.Value.ValueKind switch
+                {
+                    JsonValueKind.String => property.Value.GetString(),
+                    JsonValueKind.Number => property.Value.ToString(),
+                    JsonValueKind.True => "true",
+                    JsonValueKind.False => "false",
+                    JsonValueKind.Null => string.Empty,
+                    _ => JsonSerializer.Serialize(property.Value)
+                };
 
-        // Handle job arrays the same way as in the original code
-        if (!schedulerResultObj.IsJobArrayJob)
-        {
-            jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
-            continue;
-        }
+                // Skip null/N/A/Unknown values
+                if (value is "(null)" or "N/A" or "Unknown")
+                    value = string.Empty;
 
-        if (aggregateResultObj is null)
-        {
+                parsedParameters.Add(property.Name, value);
+            }
+
+            // Create job info object and fill in details
+            var schedulerResultObj = new FireCrestJobInfo(jobResponseMessage, parsedParameters);
+            FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parsedParameters);
+
+            // Handle job arrays the same way as in the original code
+            if (!schedulerResultObj.IsJobArrayJob)
+            {
+                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
+                continue;
+            }
+
+            if (aggregateResultObj is null)
+            {
+                aggregateResultObj = schedulerResultObj;
+                continue;
+            }
+
+            if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
+            {
+                aggregateResultObj.CombineJobs(schedulerResultObj);
+                continue;
+            }
+
+            jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
             aggregateResultObj = schedulerResultObj;
-            continue;
         }
 
-        if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
-        {
-            aggregateResultObj.CombineJobs(schedulerResultObj);
-            continue;
-        }
+        if (aggregateResultObj is not null)
+            jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
 
-        jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-        aggregateResultObj = schedulerResultObj;
+        return jobSubmitedTasksInfo.Any()
+            ? jobSubmitedTasksInfo
+            : throw new FireCrestException("UnableToParseResponse")
+            {
+                CommandError = null
+            };
     }
-
-    if (aggregateResultObj is not null) 
-        jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-
-    return jobSubmitedTasksInfo.Any()
-        ? jobSubmitedTasksInfo
-        : throw new FireCrestException("UnableToParseResponse")
-        {
-            CommandError = null
-        };
-}
 
     /// <summary>
     ///     Convert job specification to job
@@ -237,19 +224,19 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     /// <param name="jobSpecification">Job specification</param>
     /// <param name="schedulerAllocationCmd">Scheduler allocation command</param>
     /// <returns></returns>
-    public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification, 
+    public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
         object schedulerAllocationCmd)
     {
         // Create job adapter as in original
         var jobAdapter = _conversionAdapterFactory.CreateJobAdapter();
-    
+
         // Set notifications same as original
         jobAdapter.SetNotifications(jobSpecification.NotificationEmail, jobSpecification.NotifyOnStart,
             jobSpecification.NotifyOnFinish, jobSpecification.NotifyOnAbort);
-    
+
         // Build the FireCrest API request instead of shell commands
         var jobTasks = new List<object>();
-    
+
         // Process tasks if they exist
         if (jobSpecification.Tasks != null && jobSpecification.Tasks.Any())
         {
@@ -257,15 +244,15 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
             {
                 // Convert each task to FireCrest format
                 var taskData = ConvertTaskSpecificationToTask(jobSpecification, task, schedulerAllocationCmd);
-            
+
                 // Add task to collection
                 jobTasks.Add(taskData);
             }
         }
-    
+
         // Set the task data in the adapter
         jobAdapter.SetTasks(jobTasks);
-    
+
         // Return the final API request payload
         return jobAdapter.AllocationCmd;
     }
