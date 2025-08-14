@@ -1,17 +1,20 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using log4net;
-using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
 
@@ -25,7 +28,7 @@ public class ClusterInformationService : IClusterInformationService
 
     public IEnumerable<ClusterExt> ListAvailableClusters(string sessionCode, string clusterName, string nodeTypeName,
         string projectName,
-        string[] accountingString, string commandTemplateName)
+        string[] accountingString, string commandTemplateName, bool forceRefresh)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -41,7 +44,7 @@ public class ClusterInformationService : IClusterInformationService
             ClusterExt[] value;
             var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
 
-            if (_cacheProvider.TryGetValue(memoryCacheKey, out value))
+            if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out value))
             {
                 _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
             }
@@ -94,6 +97,35 @@ public class ClusterInformationService : IClusterInformationService
 
             return clusters;
         }
+    }
+
+    public ClusterClearCacheInfoExt ListAvailableClustersClearCache(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var (loggedUser, projectIds) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager);
+            if (loggedUser is null || !projectIds.Any())
+                throw new Exception("Operation permission denied.");
+        }
+
+        var clearedKeysCount = 0;
+        var collection = (_cacheProvider as MemoryCache).Keys;
+        foreach (var item in collection ?? [])
+        {
+            var memoryCacheKey = item.ToString();
+            if (memoryCacheKey.StartsWith($"{nameof(ListAvailableClusters)}_"))
+            {
+                _cacheProvider.Remove(memoryCacheKey);
+                ++clearedKeysCount;
+            }
+        }
+
+        return new ClusterClearCacheInfoExt
+        {
+            ClearedKeysCount = clearedKeysCount,
+            Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
+            Description = "Cache cleared",
+        };
     }
 
     public IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
