@@ -187,7 +187,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             using (var connection = new SqlConnection(builder.ConnectionString))
             {
                 var command = new SqlCommand("SELECT 1", connection);
-                await connection.OpenAsync();
+                await connection.OpenAsync(cancellationToken);
                 try {
                     _ = await command.ExecuteScalarAsync(cancellationToken);
                 } finally {
