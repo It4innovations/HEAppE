@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redefined path to `cluster scripts` and setup for each `ClusterAuthenticationCredential` and `Project`
 - `Management/InitializeClusterScriptDirectory` body and business logic
 - Response structure of the `TestClusterAccessForAccount` (added info/check about specific access to the cluster)
+- Unify Attribute Names in CopyJobDataToTemp and CopyJobDataFromTemp endpoint payloads
 
 ### Added
 - 1:1 user mapping to SSH key at `Project` level
