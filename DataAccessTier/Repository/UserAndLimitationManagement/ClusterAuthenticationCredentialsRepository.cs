@@ -177,9 +177,6 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     {
 #pragma warning disable IDE0059
         try {
-            //database.OpenConnection(); // default timeout
-            //_ = await database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
-
             var builder = new SqlConnectionStringBuilder(database.GetConnectionString())
             {
                 // one second timeout is minimum possible (int)...
@@ -192,7 +189,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
                 var command = new SqlCommand("SELECT 1", connection);
                 await connection.OpenAsync();
                 try {
-                    _ = await command.ExecuteScalarAsync();
+                    _ = await command.ExecuteScalarAsync(cancellationToken);
                 } finally {
                     database.CloseConnection();
                 }
@@ -206,8 +203,8 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
     {
-        return _context.Database.CanConnectAsync(cancellationToken); // unreliable according to SO, but seems to work
-        //return DatabaseCanConnectAsync(_context.Database, cancellationToken); // makes real attempt to SELECT something 
+        //return _context.Database.CanConnectAsync(cancellationToken); // unreliable
+        return DatabaseCanConnectAsync(_context.Database, cancellationToken); 
     }
 
     public Task<object> GetVaultHealth(int timeoutMs)
