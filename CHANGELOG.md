@@ -25,6 +25,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Reason` attribute propagation from the HPC job (in the HEAppE Task)
 - `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
 - Endpoints for bulk listing of `ClusterNodeTypes`, `FileTransferMethods`, `Projects`, `ClusterNodeTypeAggregationAccountings`
+- Endpoint to Reset ListAvailableClusters Memory Cache
 
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
