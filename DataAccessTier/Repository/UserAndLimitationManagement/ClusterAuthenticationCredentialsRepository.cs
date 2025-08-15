@@ -3,6 +3,7 @@ using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Exceptions.External;
 using log4net;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using System;
@@ -176,11 +177,22 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     {
 #pragma warning disable IDE0059
         try {
-            database.OpenConnection();
-            try {
-                _ = await database.ExecuteSqlRawAsync("SELECT 1", cancellationToken);
-            } finally {
-                database.CloseConnection();
+            var builder = new SqlConnectionStringBuilder(database.GetConnectionString())
+            {
+                // one second timeout is minimum possible (int)...
+                ConnectTimeout = 1,
+                CommandTimeout = 1
+            };
+
+            using (var connection = new SqlConnection(builder.ConnectionString))
+            {
+                var command = new SqlCommand("SELECT 1", connection);
+                await connection.OpenAsync();
+                try {
+                    _ = await command.ExecuteScalarAsync();
+                } finally {
+                    database.CloseConnection();
+                }
             }
         } catch (Exception e) {
             return false;
@@ -191,8 +203,8 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
     {
-        //return _context.Database.CanConnectAsync(cancellationToken); // unreliable...
-        return DatabaseCanConnectAsync(_context.Database, cancellationToken);
+        return _context.Database.CanConnectAsync(cancellationToken); // unreliable according to SO, but seems to work
+        //return DatabaseCanConnectAsync(_context.Database, cancellationToken); // makes real attempt to SELECT something 
     }
 
     public Task<object> GetVaultHealth(int timeoutMs)

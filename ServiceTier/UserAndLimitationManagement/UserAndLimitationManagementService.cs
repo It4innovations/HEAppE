@@ -243,21 +243,23 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    public async Task<HealthExt> Health(int timeoutMs, string version)
+    public async Task<HealthExt> Health(int? timeoutMs, string version)
     {
         bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
         dynamic vaultInfo = null;
 
-        if (timeoutMs < 50)
+        if (!timeoutMs.HasValue)
+            timeoutMs = 150;
+        else if (timeoutMs < 50)
             timeoutMs = 50;
         else if (timeoutMs > 1000)
             timeoutMs = 1000;
 
-        var cancellationToken = new CancellationTokenSource(timeoutMs).Token;
+        var cancellationToken = new CancellationTokenSource(timeoutMs.Value).Token;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var taskDatabaseCanConnect = unitOfWork.ClusterAuthenticationCredentialsRepository.DatabaseCanConnect(cancellationToken);
-            var taskGetVaultHealth = unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs);
+            var taskGetVaultHealth = unitOfWork.ClusterAuthenticationCredentialsRepository.GetVaultHealth(timeoutMs.Value);
             await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
 
             if (taskDatabaseCanConnect.IsCompletedSuccessfully && taskDatabaseCanConnect.Result)
@@ -272,6 +274,17 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
         if (databaseIsHealthy && vaultIsHealthy)
             isHealthy = true;
+
+        HealthExt.HealthComponent_.Vault_.VaultInfo_ info = null;
+        if (vaultInfo != null) try {
+            info = new()
+            {
+                Initialized = vaultInfo.initialized,
+                Sealed = vaultInfo.@sealed,
+                StandBy = vaultInfo.standby,
+                PerformanceStandby = vaultInfo.performance_standby
+            };
+        } catch { }
 
         var result = new HealthExt
         {
@@ -288,12 +301,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
                 Vault = new HealthExt.HealthComponent_.Vault_
                 {
                     IsHealthy = vaultIsHealthy,
-                    Info = new HealthExt.HealthComponent_.Vault_.VaultInfo_{
-                        Initialized = vaultInfo.initialized,
-                        Sealed = vaultInfo.@sealed,
-                        StandBy = vaultInfo.standby,
-                        PerformanceStandby = vaultInfo.performance_standby
-                    }
+                    Info = info
                 }
             }
         };
