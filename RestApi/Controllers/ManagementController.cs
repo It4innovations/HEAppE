@@ -2185,13 +2185,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Health(string sessionCode, int timeoutMs)
+    public async Task<IActionResult> Health(string sessionCode, int? timeoutMs)
     {
-        _logger.LogDebug(
-            $"Endpoint: \"Management\" Method: \"Health\" Parameters: SessionCode: \"{sessionCode}\"");
-        var validationResult = new SessionCodeValidator(sessionCode).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        _userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Manager);
+        //_logger.LogDebug(
+        //    $"Endpoint: \"Management\" Method: \"Health\" Parameters: SessionCode: \"{sessionCode}\"");
+        //var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        //if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        //_userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Manager);
         return Ok(await _userAndManagementService.Health(timeoutMs, DeploymentInformationsConfiguration.Version));
     }
 
