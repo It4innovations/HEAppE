@@ -289,7 +289,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var result = new HealthExt
         {
             IsHealthy = isHealthy,
-            Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
+            Timestamp = DateTime.SpecifyKind(new SqlDateTime(DateTime.UtcNow).Value, DateTimeKind.Utc),
             Version = version,
 
             Component = new HealthExt.HealthComponent_
