@@ -1,11 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -16,12 +8,21 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2175,8 +2176,6 @@ public class ManagementController : BaseController<ManagementController>
     #endregion
 
     #region Health
-
-
     [HttpGet("Health")]
     [RequestSizeLimit(90)]
     [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
@@ -2185,14 +2184,16 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Health(string sessionCode, int? timeoutMs)
+    public async Task<IActionResult> Health(int? timeoutMs)
     {
-        //_logger.LogDebug(
-        //    $"Endpoint: \"Management\" Method: \"Health\" Parameters: SessionCode: \"{sessionCode}\"");
-        //var validationResult = new SessionCodeValidator(sessionCode).Validate();
-        //if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        //_userAndManagementService.ValidateUserPermissions(sessionCode, AdaptorUserRoleType.Manager);
-        return Ok(await _userAndManagementService.Health(timeoutMs, DeploymentInformationsConfiguration.Version));
+        const string memoryCacheKey = "Health";
+        HealthExt result;
+        if (!_cacheProvider.TryGetValue(memoryCacheKey, out result))
+        {
+            result = await _userAndManagementService.Health(timeoutMs, DeploymentInformationsConfiguration.Version);
+            _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromSeconds(5));
+        }
+        return Ok(result);
     }
 
     #endregion
