@@ -189,6 +189,18 @@ internal class MiddlewareContext : DbContext
             .WithMany(p => p.ClusterProjectCredentials)
             .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+
+        //////
+
+        //M:N relations for ClusterProjectCredentialCheckLog
+        modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
+            .HasIndex(cpccl => new { cpccl.ClusterProjectId, cpccl.CheckTimestamp });
+
+        modelBuilder.Entity<ClusterProjectCredential>()
+            .HasOne(cpc => cpc.ClusterProject);
+
+        //////
+
         //M:N ClusterProjectCredentials ignore Vault properties
         modelBuilder.Entity<ClusterAuthenticationCredentials>()
             //.Ignore(c => c.AuthenticationType)
