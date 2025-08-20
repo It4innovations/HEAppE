@@ -40,14 +40,19 @@ public class HealthExt
         public class Database_
         {
             [DataMember(Name = "IsHealthy")]
-            [Description("IsHealthy")]
+            [Description("Database is healthy")]
             public bool IsHealthy { get; set; }
+
+            public override string ToString()
+            {
+                return $"Database_(IsHealthy={IsHealthy})";
+            }
         }
 
         public class Vault_
         {
             [DataMember(Name = "IsHealthy")]
-            [Description("IsHealthy")]
+            [Description("Vault is healthy")]
             public bool IsHealthy { get; set; }
 
             [DataMember(Name = "Info")]
@@ -56,27 +61,39 @@ public class HealthExt
 
             public class VaultInfo_
             {
-                [DataMember(Name = "Vault")]
-                [Description("Vault")]
+                [DataMember(Name = "Initialized")]
+                [Description("Vault is initialized")]
                 public bool Initialized { get; set; }
 
-                [DataMember(Name = "Vault")]
-                [Description("Vault")]
+                [DataMember(Name = "@Sealed")]
+                [Description("Vault is sealed")]
                 public bool @Sealed { get; set; }
 
-                [DataMember(Name = "Vault")]
-                [Description("Vault")]
+                [DataMember(Name = "StandBy")]
+                [Description("Vault is in stand by")]
                 public bool StandBy { get; set; }
 
-                [DataMember(Name = "Vault")]
-                [Description("Vault")]
+                [DataMember(Name = "PerformanceStandby")]
+                [Description("Vault is in performance stand by")]
                 public bool PerformanceStandby { get; set; }
+
+                public override string ToString()
+                {
+                    return $"VaultInfo_(Initialized={Initialized}; Sealed={@Sealed}; StandBy={StandBy},PerformanceStandby={PerformanceStandby})";
+                }
             }
+        }
+        public override string ToString()
+        {
+            return "HealthComponent_(" + 
+                "Database=" + (Database != null ? Database.ToString() : "null") + ";" +
+                "Vault=" + (Vault != null ? Vault.ToString() : "null") + ";" +
+            ")";
         }
     }
 
     public override string ToString()
     {
-        return $"HealthExt(IsHealthy={IsHealthy}; Timestamp={Timestamp}; Version={Version}; ...)";
+        return $"HealthExt(IsHealthy={IsHealthy}; Timestamp={Timestamp}; Version={Version}; Component={Component})";
     }
 }

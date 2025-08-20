@@ -18,5 +18,5 @@ public interface IUserAndLimitationManagementService
     bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole);
     AdaptorUserExt GetCurrentUserInfo(string sessionCode);
 
-    Task<HealthExt> Health(int? timeoutMs, string version);
+    Task<HealthExt> Health(string version);
 }

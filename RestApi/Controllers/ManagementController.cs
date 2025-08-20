@@ -1,3 +1,11 @@
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -15,14 +23,6 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2184,14 +2184,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Health(int? timeoutMs)
+    public async Task<IActionResult> Health()
     {
         const string memoryCacheKey = "Health";
-        HealthExt result;
-        if (!_cacheProvider.TryGetValue(memoryCacheKey, out result))
+        if (!_cacheProvider.TryGetValue(memoryCacheKey, out HealthExt result))
         {
-            result = await _userAndManagementService.Health(timeoutMs, DeploymentInformationsConfiguration.Version);
-            _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromSeconds(5));
+            result = await _userAndManagementService.Health(DeploymentInformationsConfiguration.Version);
+            _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMilliseconds(HealthCheckSettings.ManagementHealthCacheExpirationMs));
         }
         return Ok(result);
     }
