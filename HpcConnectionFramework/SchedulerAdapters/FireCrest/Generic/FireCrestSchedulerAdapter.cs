@@ -80,7 +80,7 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
         };
 
         _firecrestUrl = "http://host.docker.internal:8000"; // CHANGE WITH REAL FIRECREST API URL
-        _baseDirectoryPath = "/home/fireuser"; // CHANGE WITH REAL BASE DIRECTORY PATH
+        _baseDirectoryPath = "/home/fireuser/Identifier/HEAppE/Executions"; // CHANGE WITH REAL BASE DIRECTORY PATH
     }
 
     #endregion
@@ -211,30 +211,38 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
             string clusterName = jobSpecification.Cluster.Name;
             string account = jobSpecification.ClusterUser?.Username ?? "default";
 
-            var schedulerArgs = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
-            Console.WriteLine(schedulerArgs);
-            _log.Debug($"Generated scheduler arguments: {schedulerArgs}");
+            var finalScript = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
 
-            var scriptContent = new StringBuilder();
-            scriptContent.AppendLine("#!/bin/bash");
-            scriptContent.AppendLine($"#SBATCH {schedulerArgs}");
-            var finalScript = scriptContent.ToString();
             _log.Debug($"Constructed script for Firecrest payload:\n{finalScript}");
+            Console.WriteLine("===============================================");
+            Console.WriteLine("Final script content:");
             Console.WriteLine(finalScript);
+            Console.WriteLine("===============================================");
+
             var taskSpec = jobSpecification.Tasks.First();
-            string jobDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpec.Id}";
-            jobDirectoryPath = jobDirectoryPath.Replace("\\", "/");
+
+            string taskDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobSpecification.Id}/{taskSpec.Id}".Replace("\\", "/");
+
+            _log.Info($"Creating task directory at: {taskDirectoryPath}");
+            Console.WriteLine(
+                $"[INFO {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Creating task directory at: {taskDirectoryPath}");
+            var mkdirEndpoint = $"{_firecrestUrl}/filesystem/{clusterName}/ops/mkdir";
+            var mkdirRequestBody = new { path = taskDirectoryPath, parent = true };
+            CreateDirectory(mkdirEndpoint, token, taskDirectoryPath, mkdirRequestBody);
+            _log.Info($"Task directory created successfully: {taskDirectoryPath}");
+            Console.WriteLine(
+                $"[INFO {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}] Task directory created successfully: {taskDirectoryPath}");
 
             var jobPayload = new
             {
                 job = new
                 {
                     name = jobSpecification.Name,
-                    working_directory = jobDirectoryPath,
+                    working_directory = taskDirectoryPath,
                     account = jobSpecification.Project?.AccountingString,
                     standard_output = taskSpec.StandardOutputFile,
                     standard_error = taskSpec.StandardErrorFile,
-                    script = finalScript     
+                    script = finalScript 
                 }
             };
 
@@ -252,6 +260,10 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
             var submitResponse = _httpClient.SendAsync(submitRequest).GetAwaiter().GetResult();
             var submitResponseContent = submitResponse.Content.ReadAsStringAsync().GetAwaiter().GetResult();
 
+            _log.Info("=======================submitResponseContent=========================");
+            _log.Info(submitResponseContent);
+            _log.Info("==============================================================");
+
             if (!submitResponse.IsSuccessStatusCode)
             {
                 _log.Error(
@@ -265,8 +277,8 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
 
             var jobIds = _convertor.GetJobIds(submitResponseContent);
             var submittedTasks = new List<SubmittedTaskInfo>();
-
             var submittedJobId = jobIds.FirstOrDefault();
+
             if (submittedJobId != null)
             {
                 var originalTask = jobSpecification.Tasks.First();
@@ -437,17 +449,8 @@ internal class FireCrestSchedulerAdapter : ISchedulerAdapter
             var token = GetAuthToken(connectorClient);
             string clusterName = jobInfo.Specification?.Cluster?.Name;
             string account = jobInfo.Specification?.ClusterUser?.Username ?? "default";
-            localBasePath = localBasePath?.TrimEnd('/') ?? string.Empty;
 
-            string jobDirectoryPath;
-            if (!string.IsNullOrEmpty(localBasePath))
-            {
-                jobDirectoryPath = $"{localBasePath}/instance/executions/{account}/{jobInfo.Specification.Id}";
-            }
-            else
-            {
-                jobDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobInfo.Specification.Id}";
-            }
+            string jobDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobInfo.Specification.Id}";
 
             jobDirectoryPath = jobDirectoryPath.Replace("\\", "/");
 
