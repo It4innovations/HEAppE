@@ -2178,7 +2178,7 @@ public class ManagementController : BaseController<ManagementController>
     #region Health
     [HttpGet("Health")]
     [RequestSizeLimit(90)]
-    [ProducesResponseType(typeof(InstanceInformationExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(HealthExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
