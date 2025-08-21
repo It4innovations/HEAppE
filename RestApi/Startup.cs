@@ -98,6 +98,7 @@ public class Startup
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
+        Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();

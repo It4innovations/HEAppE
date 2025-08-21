@@ -195,6 +195,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
                 }
             }
         } catch (Exception e) {
+            _log.Error($"Database connection health check failed. Exception {e}");
             return false;
         }
 #pragma warning restore IDE0059

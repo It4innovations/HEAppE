@@ -105,7 +105,7 @@ public class VaultConnector : IVaultConnector
         }
         catch (Exception e)
         {
-            _log.Warn($"Failed. Exception {e}");
+            _log.Error($"Vault health check failed. Exception {e}");
         }
 
         return null;

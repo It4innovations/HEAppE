@@ -243,17 +243,13 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    public async Task<HealthExt> Health(int? timeoutMs, string version)
+    public async Task<HealthExt> Health(string version)
     {
         bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
         dynamic vaultInfo = null;
 
-        if (!timeoutMs.HasValue)
-            timeoutMs = 150;
-        else if (timeoutMs < 50)
-            timeoutMs = 50;
-        else if (timeoutMs > 1000)
-            timeoutMs = 1000;
+        // let it be constant for now
+        int? timeoutMs = 1000;
 
         var cancellationToken = new CancellationTokenSource(timeoutMs.Value).Token;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
