@@ -111,6 +111,7 @@ public class Startup
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
         services.AddSingleton<SqlServerHealthCheck>();
+        services.AddSingleton<VaultHealthCheck>();
 
         services.AddControllers(options =>
         {

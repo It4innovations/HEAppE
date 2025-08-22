@@ -2194,61 +2194,7 @@ public class ManagementController : BaseController<ManagementController>
         const string memoryCacheKey = "Health";
         if (!_cacheProvider.TryGetValue(memoryCacheKey, out HealthExt result))
         {
-            var log = LogManager.GetLogger(GetType());
-
-            bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
-            dynamic vaultInfo = null;
-            int? timeoutMs = 1000; // let it be constant for now
-
-            var cancellationToken = new CancellationTokenSource(timeoutMs.Value).Token;
-            var taskDatabaseCanConnect = SqlServerHealthCheck.DatabaseCanConnectAsync(log, MiddlewareContextSettings.ConnectionString, cancellationToken);
-            var taskGetVaultHealth = VaultHealthCheck.GetVaultHealth(log, VaultConnectorSettings.VaultBaseAddress, timeoutMs.Value);
-            await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
-
-            if (taskDatabaseCanConnect.IsCompletedSuccessfully && taskDatabaseCanConnect.Result)
-                databaseIsHealthy = true;
-
-            if (taskGetVaultHealth.IsCompletedSuccessfully)
-            {
-                vaultInfo = taskGetVaultHealth.Result;
-                if (vaultInfo != null && vaultInfo.initialized == true && vaultInfo.@sealed == false && vaultInfo.standby == false && vaultInfo.performance_standby == false)
-                    vaultIsHealthy = true;
-            }
-
-            if (databaseIsHealthy && vaultIsHealthy)
-                isHealthy = true;
-
-            HealthExt.HealthComponent_.Vault_.VaultInfo_ info = null;
-            if (vaultInfo != null) try {
-                info = new()
-                {
-                    Initialized = vaultInfo.initialized,
-                    Sealed = vaultInfo.@sealed,
-                    StandBy = vaultInfo.standby,
-                    PerformanceStandby = vaultInfo.performance_standby
-                };
-            } catch { }
-
-            result = new HealthExt
-            {
-                IsHealthy = isHealthy,
-                Timestamp = DateTime.SpecifyKind(new SqlDateTime(DateTime.UtcNow).Value, DateTimeKind.Utc),
-                Version = DeploymentInformationsConfiguration.Version,
-
-                Component = new HealthExt.HealthComponent_
-                {
-                    Database = new HealthExt.HealthComponent_.Database_
-                    {
-                        IsHealthy = databaseIsHealthy
-                    },
-                    Vault = new HealthExt.HealthComponent_.Vault_
-                    {
-                        IsHealthy = vaultIsHealthy,
-                        Info = info
-                    }
-                }
-            };
-
+            result = await HEAppEHealth.GetHealth(LogManager.GetLogger(GetType()));
             _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMilliseconds(HealthCheckSettings.ManagementHealthCacheExpirationMs));
         }
         return Ok(result);
