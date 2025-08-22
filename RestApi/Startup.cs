@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using AspNetCoreRateLimit;
 using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
@@ -21,15 +23,18 @@ using HEAppE.RestApi.Logging;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 
 namespace HEAppE.RestApi;
 
@@ -105,7 +110,8 @@ public class Startup
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
-        
+        services.AddSingleton<SqlServerHealthCheck>();
+
         services.AddControllers(options =>
         {
             options.Filters.Add<LogRequestModelFilter>();
@@ -237,6 +243,18 @@ public class Startup
             options.DefaultRequestCulture = new RequestCulture("en");
             options.SupportedCultures = supportedCultures;
         });
+
+        services.AddHealthChecks()
+            .AddCheck<SqlServerHealthCheck>("sql")
+            .AddCheck<VaultHealthCheck>("vault")
+            .AddAsyncCheck("sqlOld", async () => {
+                await Task.Delay(1000);
+                return HealthCheckResult.Healthy();
+            })
+            .AddAsyncCheck("vaultOld", async () => {
+                await Task.Delay(1000);
+                return HealthCheckResult.Unhealthy();
+            });
     }
 
     /// <summary>
@@ -318,7 +336,19 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
+
+        app.UseHealthChecks("/health", new HealthCheckOptions() {
+            ResponseWriter = async (context, healthReport) => {
+                context.Response.ContentType = "application/json";
+                var result = JsonConvert.SerializeObject(new {
+                    status = healthReport.Status.ToString(),
+                    errors = healthReport.Entries.Select(e => new { key = e.Key, value = e.Value.Status.ToString() })
+                });
+                await context.Response.WriteAsync(result);
+            }
+        });
     }
 
     #endregion
+
 }

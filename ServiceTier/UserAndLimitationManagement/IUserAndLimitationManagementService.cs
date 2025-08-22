@@ -17,6 +17,4 @@ public interface IUserAndLimitationManagementService
     IEnumerable<ProjectReferenceExt> ProjectsForCurrentUser(string sessionCode);
     bool ValidateUserPermissions(string sessionCode, AdaptorUserRoleType requestedRole);
     AdaptorUserExt GetCurrentUserInfo(string sessionCode);
-
-    Task<HealthExt> Health(string version);
 }

@@ -173,45 +173,5 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return WithVaultData(credentials);
     }
 
-    private static async Task<bool> DatabaseCanConnectAsync(DatabaseFacade database, CancellationToken cancellationToken)
-    {
-#pragma warning disable IDE0059
-        try {
-            var builder = new SqlConnectionStringBuilder(database.GetConnectionString())
-            {
-                // one second timeout is minimum possible (int)...
-                ConnectTimeout = 1,
-                CommandTimeout = 1
-            };
-
-            using (var connection = new SqlConnection(builder.ConnectionString))
-            {
-                var command = new SqlCommand("SELECT 1", connection);
-                await connection.OpenAsync(cancellationToken);
-                try {
-                    _ = await command.ExecuteScalarAsync(cancellationToken);
-                } finally {
-                    database.CloseConnection();
-                }
-            }
-        } catch (Exception e) {
-            _log.Error($"Database connection health check failed. Exception {e}");
-            return false;
-        }
-#pragma warning restore IDE0059
-        return true;
-    }
-
-    public Task<bool> DatabaseCanConnect(CancellationToken cancellationToken)
-    {
-        //return _context.Database.CanConnectAsync(cancellationToken); // unreliable
-        return DatabaseCanConnectAsync(_context.Database, cancellationToken); 
-    }
-
-    public Task<object> GetVaultHealth(int timeoutMs)
-    {
-        return _vaultConnector.GetVaultHealth(timeoutMs);
-    }
-
     #endregion
 }
