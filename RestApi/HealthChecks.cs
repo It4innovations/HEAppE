@@ -23,7 +23,6 @@ public class HEAppEHealth
         bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
         dynamic vaultInfo = null;
         int? timeoutMs = 1000; // let it be constant for now
-
         var cancellationToken = new CancellationTokenSource(timeoutMs.Value).Token;
         var taskDatabaseCanConnect = SqlServerHealthCheck.DatabaseCanConnectAsync(log, MiddlewareContextSettings.ConnectionString, cancellationToken);
         var taskGetVaultHealth = VaultHealthCheck.GetVaultHealth(log, VaultConnectorSettings.VaultBaseAddress, timeoutMs.Value);
@@ -79,28 +78,16 @@ public class HEAppEHealth
     }
 }
 
-public class SqlServerHealthCheck(SqlConnection connection) : IHealthCheck
+public class SqlServerHealthCheck : IHealthCheck
 {
-    private readonly SqlConnection _connection = connection;
-
-    private readonly Random _random = new();
-
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        try
-        {
-
-            //await DatabaseCanConnectAsync()
-            await Task.Delay(1000);
-            if (_random.NextDouble() < 0.15)
-                return HealthCheckResult.Degraded();
-        }
-        catch (SqlException)
-        {
+        try {
+            var canConnect = await DatabaseCanConnectAsync(LogManager.GetLogger(GetType()), MiddlewareContextSettings.ConnectionString, new CancellationTokenSource(1000).Token);
+            return canConnect ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy();
+        } catch {
             return HealthCheckResult.Unhealthy();
         }
-
-        return HealthCheckResult.Healthy();
     }
 
     public static async Task<bool> DatabaseCanConnectAsync(ILog log, string connectionString, CancellationToken cancellationToken)
@@ -137,27 +124,16 @@ public class SqlServerHealthCheck(SqlConnection connection) : IHealthCheck
     }
 }
 
-public class VaultHealthCheck(ILog log) : IHealthCheck
+public class VaultHealthCheck : IHealthCheck
 {
-    private readonly ILog _log = log;
-
-    private readonly Random _random = new();
-
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
-        try
-        {
-            await Task.Delay(1000);
-
-            if (_random.NextDouble() < 0.25)
-                return HealthCheckResult.Degraded();
-        }
-        catch (SqlException)
-        {
+        try {
+            var vaultHealth = await GetVaultHealth(LogManager.GetLogger(GetType()), VaultConnectorSettings.VaultBaseAddress, 1000);
+            return (bool)(vaultHealth as dynamic).IsHealthy ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy();
+        } catch (SqlException) {
             return HealthCheckResult.Unhealthy();
         }
-
-        return HealthCheckResult.Healthy();
     }
     public static async Task<object> GetVaultHealth(ILog log, string vaultBaseAddress, int timeoutMs)
     {
