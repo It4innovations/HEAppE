@@ -71,9 +71,11 @@ namespace SshCaAPI
                 .AddStringBody(requestBody, DataFormat.Json);
 
             var response = await _basicRestClient.ExecuteAsync(request);
-            var result = ParseHelper.ParseJsonOrThrow<string, SshCAServiceTypeException>(response, HttpStatusCode.OK);
+            if (response.StatusCode != HttpStatusCode.OK)
+                throw new SshCAServiceTypeException($"Unexpected status {response.StatusCode}");
 
-            return result;
+            var result = response.Content;
+            return result ?? throw new SshCAServiceTypeException("Response content is null");
         }
     }
 }
