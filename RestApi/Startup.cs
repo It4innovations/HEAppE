@@ -247,15 +247,7 @@ public class Startup
 
         services.AddHealthChecks()
             .AddCheck<SqlServerHealthCheck>("sql")
-            .AddCheck<VaultHealthCheck>("vault")
-            .AddAsyncCheck("sqlOld", async () => {
-                await Task.Delay(1000);
-                return HealthCheckResult.Healthy();
-            })
-            .AddAsyncCheck("vaultOld", async () => {
-                await Task.Delay(1000);
-                return HealthCheckResult.Unhealthy();
-            });
+            .AddCheck<VaultHealthCheck>("vault");
     }
 
     /// <summary>
@@ -339,14 +331,8 @@ public class Startup
         app.UseRewriter(option);
 
         app.UseHealthChecks("/health", new HealthCheckOptions() {
-            ResponseWriter = async (context, healthReport) => {
-                context.Response.ContentType = "application/json";
-                var result = JsonConvert.SerializeObject(new {
-                    status = healthReport.Status.ToString(),
-                    errors = healthReport.Entries.Select(e => new { key = e.Key, value = e.Value.Status.ToString() })
-                });
-                await context.Response.WriteAsync(result);
-            }
+            ResponseWriter = HEAppEHealth.ResponseWriter,
+            AllowCachingResponses = false, // use custom caching
         });
     }
 
