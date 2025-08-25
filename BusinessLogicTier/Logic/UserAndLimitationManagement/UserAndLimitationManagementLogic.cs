@@ -28,6 +28,7 @@ using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using log4net;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 
@@ -35,9 +36,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _unitOfWork = unitOfWork;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
     }
@@ -67,6 +69,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     ///     Session code expiration in seconds
     /// </summary>
     private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
+    
+    private ISshCertificateAuthorityService _sshCertificateAuthorityService;
     
     #endregion
 
@@ -184,9 +188,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
+        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService)
             .ListClusterNodeTypes();
 
         IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());

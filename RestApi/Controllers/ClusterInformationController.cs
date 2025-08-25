@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -37,10 +38,11 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="cacheProvider">Memory cache instance</param>
-    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider) :
+    /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
+    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService) :
         base(logger, cacheProvider)
     {
-        _service = new ClusterInformationService(cacheProvider);
+        _service = new ClusterInformationService(cacheProvider, sshCertificateAuthorityService);
     }
 
     #endregion

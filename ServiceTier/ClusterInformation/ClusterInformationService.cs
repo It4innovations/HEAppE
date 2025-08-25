@@ -12,13 +12,16 @@ using HEAppE.Utils;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
+using SshCaAPI;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
 
 public class ClusterInformationService : IClusterInformationService
 {
-    public ClusterInformationService(IMemoryCache cacheProvider)
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    public ClusterInformationService(IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
+        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _cacheProvider = cacheProvider;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
@@ -48,7 +51,7 @@ public class ClusterInformationService : IClusterInformationService
             else
             {
                 _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+                var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService);
                 var c = projects.ToList();
                 value = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExt(projects, true)).ToArray();
                 _cacheProvider.Set(memoryCacheKey, value, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
@@ -121,7 +124,7 @@ public class ClusterInformationService : IClusterInformationService
             }
 
             _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService);
             var result =
                 clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
             _cacheProvider.Set(memoryCacheKey, result,
@@ -154,7 +157,7 @@ public class ClusterInformationService : IClusterInformationService
             }
 
             _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService);
             var nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
             _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(),
                 TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));

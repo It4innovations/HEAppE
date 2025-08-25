@@ -8,5 +8,5 @@ public interface IFileSynchronizer
 {
     FullFileSpecification SyncFileInfo { get; set; }
     long Offset { get; set; }
-    ICollection<JobFileContent> SynchronizeFiles(Cluster cluster);
+    ICollection<JobFileContent> SynchronizeFiles(Cluster cluster, string sshCaToken);
 }

@@ -22,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -37,11 +38,11 @@ public class ManagementController : BaseController<ManagementController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache) : base(logger,
+    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService) : base(logger,
         memoryCache)
     {
-        _managementService = new ManagementService();
-        _userAndManagementService = new UserAndLimitationManagementService(memoryCache);
+        _managementService = new ManagementService(sshCertificateAuthorityService);
+        _userAndManagementService = new UserAndLimitationManagementService(memoryCache, sshCertificateAuthorityService);
     }
 
     #endregion

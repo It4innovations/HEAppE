@@ -25,11 +25,11 @@ namespace SshCaAPI
         /// <returns>Configured rest client.</returns>
         private readonly RestClient _basicRestClient;
 
-        public SshCertificateAuthorityService()
+        public SshCertificateAuthorityService(string baseUri, string caName, double connectionTimeoutInSeconds)
         {
             _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-            var options = new RestClientOptions($"{SshCaSettings.BaseUri}/{SshCaSettings.CAName}/")
+            var options = new RestClientOptions($"{baseUri}/{caName}/")
             {
                 Encoding = Encoding.UTF8,
                 CachePolicy = new CacheControlHeaderValue
@@ -37,7 +37,7 @@ namespace SshCaAPI
                     NoCache = true,
                     NoStore = true
                 },
-                Timeout = TimeSpan.FromMilliseconds(SshCaSettings.ConnectionTimeoutInSeconds * 1000)
+                Timeout = TimeSpan.FromMilliseconds(connectionTimeoutInSeconds * 1000)
             };
             _basicRestClient = new RestClient(options);
         }

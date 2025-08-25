@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -35,10 +36,11 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
+    /// <param name="sshCertificateAuthorityService">SSH Certificate Authority Service</param>
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
-        IMemoryCache memoryCache) : base(logger, memoryCache)
+        IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService) : base(logger, memoryCache)
     {
-        _service = new UserAndLimitationManagementService(_cacheProvider);
+        _service = new UserAndLimitationManagementService(_cacheProvider, sshCertificateAuthorityService);
     }
 
     #endregion

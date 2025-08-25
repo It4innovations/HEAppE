@@ -20,14 +20,16 @@ using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
+using SshCaAPI;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement;
 
 public class UserAndLimitationManagementService : IUserAndLimitationManagementService
 {
-    
-    public UserAndLimitationManagementService(IMemoryCache memoryCache)
+    private static ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    public UserAndLimitationManagementService(IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
+        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _cacheProvider = memoryCache;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
@@ -81,7 +83,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var userLogic =
-                LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             result = await userLogic.AuthenticateUserAsync(credentialsIn);
             if (!string.IsNullOrEmpty(result))
             { 
@@ -97,7 +99,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         if (credentials is OpenIdCredentialsExt openIdCredentials)
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+                var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
                 var user = await userLogic.AuthenticateUserToOpenIdAsync(new OpenIdCredentials
                 {
                     OpenIdAccessToken = openIdCredentials.OpenIdAccessToken
@@ -134,7 +136,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         {
             var (loggedUser, projects) =
                 GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
-            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser, projects)
                 .Select(s => s.ConvertIntToExt());
         }
@@ -146,7 +148,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         {
             var (loggedUser, projects) =
                 GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Reporter);
-            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             return userLogic.ProjectsForCurrentUser(loggedUser, projects).Select(p => p.ConvertIntToExt());
         }
     }
@@ -164,7 +166,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             var loggedUser = userLogic.GetUserForSessionCode(sessionCode);
             return loggedUser.ConvertIntToExt();
         }
@@ -187,7 +189,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork,
         AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
     {
-        var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+        var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
         var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
         CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
@@ -197,7 +199,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     public static (AdaptorUser, IEnumerable<Project> projectIds) GetValidatedUserForSessionCode(string sessionCode,
         IUnitOfWork unitOfWork, AdaptorUserRoleType allowedRole)
     {
-        var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+        var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
         AdaptorUser loggedUser;
         loggedUser = JwtTokenIntrospectionConfiguration.IsEnabled ? 
             HttpContextKeys.AdaptorUser : 

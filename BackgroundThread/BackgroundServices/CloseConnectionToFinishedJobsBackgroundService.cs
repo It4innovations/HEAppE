@@ -7,6 +7,7 @@ using System.Threading;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
+using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -17,10 +18,12 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
     protected readonly ILog _log;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
-    public CloseConnectionToFinishedJobsBackgroundService()
+    public CloseConnectionToFinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _log = LogManager.GetLogger(GetType());
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -30,10 +33,10 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
             try
             {
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+                var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService);
 
                 var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
-                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetAllFinishedTaskInfos(taskIds)
+                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService).GetAllFinishedTaskInfos(taskIds)
                     .ToList()
                     .ForEach(f => dataTransferLogic.CloseAllTunnelsForTask(f));
             }

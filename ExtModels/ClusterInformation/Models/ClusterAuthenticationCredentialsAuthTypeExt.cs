@@ -17,5 +17,7 @@ public enum ClusterAuthenticationCredentialsAuthTypeExt
     PasswordInteractiveViaProxy = 6,
     PasswordAndPrivateKeyViaProxy = 7,
     PrivateKeyViaProxy = 8,
-    PrivateKeyInSshAgent = 9
+    PrivateKeyInSshAgent = 9,
+    SshCertificate = 10,
+    SshCertificateViaProxy = 11
 }

@@ -7,6 +7,7 @@ using System.Threading;
 using System;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
+using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -17,10 +18,12 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck);
     protected readonly ILog _log;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
-    public ClusterAccountRotationJobBackgroundService()
+    public ClusterAccountRotationJobBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _log = LogManager.GetLogger(GetType());
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -40,7 +43,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                     foreach (var job in allWaitingJobs)
                     {
                         _log.Info($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
-                        LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).SubmitJob(job.Id, job.Submitter);
+                        LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService).SubmitJob(job.Id, job.Submitter);
                     }
                         
                 }

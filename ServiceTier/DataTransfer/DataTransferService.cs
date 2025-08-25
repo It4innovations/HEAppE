@@ -8,11 +8,17 @@ using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Converts;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
+using SshCaAPI;
 
 namespace HEAppE.ServiceTier.DataTransfer;
 
 public class DataTransferService : IDataTransferService
 {
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    public DataTransferService(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    {
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+    }
     public DataTransferMethodExt RequestDataTransfer(string nodeIPAddress, int nodePort, long submittedTaskInfoId,
         string sessionCode)
     {
@@ -22,7 +28,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService);
         var dataTransferMethod =
             dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
         return dataTransferMethod.ConvertIntToExt();
@@ -36,7 +42,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", usedTransferMethod.SubmittedTaskId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService);
         dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
     }
 
@@ -49,7 +55,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService);
         return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()),
             submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
     }
@@ -63,7 +69,7 @@ public class DataTransferService : IDataTransferService
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService);
         return await dataTransferLogic.HttpPostToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()),
             httpPayload, submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
     }

@@ -175,7 +175,7 @@ public class LogRequestModelFilter : ActionFilterAttribute
         try
         {
             using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-            var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, null);
             var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
             
             return (loggedUser?.Id ?? -1, loggedUser?.Username ?? "Unknown Username");

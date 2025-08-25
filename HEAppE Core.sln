@@ -53,8 +53,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SshCaAPI", "SshCaAPI\SshCaA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Authentication", "Authentication\Authentication.csproj", "{4E596048-AABE-44EF-B8BD-4F0B59AA6810}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SshCaAPITests", "SshCaAPITests\SshCaAPITests.csproj", "{1B5ADF91-1811-420B-8A3B-00E4E3FC65F0}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -149,10 +147,6 @@ Global
 		{4E596048-AABE-44EF-B8BD-4F0B59AA6810}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E596048-AABE-44EF-B8BD-4F0B59AA6810}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E596048-AABE-44EF-B8BD-4F0B59AA6810}.Release|Any CPU.Build.0 = Release|Any CPU
-		{1B5ADF91-1811-420B-8A3B-00E4E3FC65F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{1B5ADF91-1811-420B-8A3B-00E4E3FC65F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{1B5ADF91-1811-420B-8A3B-00E4E3FC65F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{1B5ADF91-1811-420B-8A3B-00E4E3FC65F0}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

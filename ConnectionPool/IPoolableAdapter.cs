@@ -5,8 +5,9 @@ namespace HEAppE.ConnectionPool;
 
 public interface IPoolableAdapter
 {
+    
     object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials,
-        ClusterProxyConnection proxy, int? port);
+        ClusterProxyConnection proxy, string sshCaToken, int? port);
 
     void Connect(object connection);
 
