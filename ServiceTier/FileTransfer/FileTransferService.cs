@@ -9,12 +9,19 @@ using HEAppE.ExtModels.FileTransfer.Converts;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
+using SshCaAPI;
 
 namespace HEAppE.ServiceTier.FileTransfer;
 
 public class FileTransferService : IFileTransferService
 {
     private static readonly ILog log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    
+    public FileTransferService(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    {
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+    }
 
     public FileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
     {
@@ -26,7 +33,7 @@ public class FileTransferService : IFileTransferService
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
-            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService);
             var fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
             return fileTransferMethod.ConvertIntToExt();
         }
@@ -42,7 +49,7 @@ public class FileTransferService : IFileTransferService
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
-            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService);
             var fileTransferMethod = fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
             return fileTransferMethod.ConvertIntToExt();
         }
@@ -58,7 +65,7 @@ public class FileTransferService : IFileTransferService
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
-            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService);
             fileTransferLogic.EndFileTransfer(submittedJobInfoId, publicKey, loggedUser);
         }
     }
@@ -74,7 +81,7 @@ public class FileTransferService : IFileTransferService
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
-            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService);
             var downloadedFileParts = fileTransferLogic.DownloadPartsOfJobFilesFromCluster(
                 submittedJobInfoId,
                 (from taskFileOffset in new List<TaskFileOffsetExt>(taskFileOffsets).ToList()
@@ -95,7 +102,7 @@ public class FileTransferService : IFileTransferService
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
-            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService);
             var result = fileTransferLogic.ListChangedFilesForJob(submittedJobInfoId, loggedUser);
             return result?.Select(s => s.ConvertIntToExt()).ToArray();
         }
@@ -111,7 +118,7 @@ public class FileTransferService : IFileTransferService
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
-            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork);
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService);
             return fileTransferLogic.DownloadFileFromCluster(submittedJobInfoId, relativeFilePath, loggedUser);
         }
     }

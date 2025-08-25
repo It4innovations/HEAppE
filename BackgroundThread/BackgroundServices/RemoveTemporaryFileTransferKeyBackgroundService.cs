@@ -6,6 +6,7 @@ using System.Threading;
 using System;
 using Microsoft.Extensions.Hosting;
 using System.Threading.Tasks;
+using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -16,10 +17,12 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.FileTransferKeyRemovalCheck);
     protected readonly ILog _log;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
-    public RemoveTemporaryFileTransferKeyBackgroundService()
+    public RemoveTemporaryFileTransferKeyBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _log = LogManager.GetLogger(GetType());
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -29,7 +32,7 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
             try
             {
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork).RemoveJobsTemporaryFileTransferKeys();
+                LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService).RemoveJobsTemporaryFileTransferKeys();
             }
             catch (Exception ex)
             {

@@ -1,4 +1,5 @@
 ﻿using HEAppE.DomainObjects.ClusterInformation;
+using SshCaAPI.Configuration;
 
 namespace HEAppE.Utils;
 
@@ -16,7 +17,17 @@ public static class ClusterAuthenticationCredentialsUtils
                 return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKey;
 
             if (!string.IsNullOrEmpty(credential.PrivateKey))
-                return ClusterAuthenticationCredentialsAuthType.PrivateKey;
+            {
+                if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+                {
+                    return ClusterAuthenticationCredentialsAuthType.SshCertificate;
+                }
+                else
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PrivateKey;
+                }
+            }
+                
 
             if (!string.IsNullOrEmpty(credential.Password))
                 switch (cluster.ConnectionProtocol)
@@ -38,9 +49,18 @@ public static class ClusterAuthenticationCredentialsUtils
         {
             if (!string.IsNullOrEmpty(credential.Password) && !string.IsNullOrEmpty(credential.PrivateKey))
                 return ClusterAuthenticationCredentialsAuthType.PasswordAndPrivateKeyViaProxy;
-
+            
             if (!string.IsNullOrEmpty(credential.PrivateKey))
-                return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+            {
+                if (SshCaSettings.UseCertificateAuthorityForAuthentication)
+                {
+                    return ClusterAuthenticationCredentialsAuthType.SshCertificate;
+                }
+                else
+                {
+                    return ClusterAuthenticationCredentialsAuthType.PrivateKeyViaProxy;
+                }
+            }
 
             if (!string.IsNullOrEmpty(credential.Password))
                 switch (cluster.ConnectionProtocol)

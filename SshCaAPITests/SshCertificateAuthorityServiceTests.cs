@@ -20,7 +20,7 @@ namespace SshCaAPITests
                 throw new ArgumentException("Property Token in SshCaSettings cannot be null");
 
             // initialize service
-            _sshCaService = new SshCertificateAuthorityService();
+            _sshCaService = null;
         }
 
         [Fact]

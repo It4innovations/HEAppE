@@ -16,5 +16,6 @@
     <ItemGroup>
         <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
         <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
+        <ProjectReference Include="..\SshCaAPI\SshCaAPI.csproj" />
     </ItemGroup>
 </Project>

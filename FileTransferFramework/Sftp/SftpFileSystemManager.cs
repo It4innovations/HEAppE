@@ -40,7 +40,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     #region AbstractFileSystemManager Members
 
-    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
+    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken)
     {
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
@@ -49,7 +49,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var partPath = localBasePath.Replace(basePath, string.Empty);
 
         var connection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
         _logger.LogInformation($"Downloading file {relativeFilePath} from cluster");
         try
         {
@@ -68,10 +68,10 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     }
 
     public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
-        string absoluteFilePath)
+        string absoluteFilePath, string sshCaToken)
     {
         _logger.LogInformation($"Downloading file {absoluteFilePath} from cluster");
-        var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser, jobSpecification.Cluster);
+        var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser, jobSpecification.Cluster, sshCaToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -86,12 +86,12 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
     }
 
-    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
+    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
         var connection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
         try
         {
             var remotePath = jobClusterDirectoryPath;
@@ -106,9 +106,9 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite,
         DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials,
-        Cluster cluster)
+        Cluster cluster, string sshCaToken)
     {
-        var connection = _connectionPool.GetConnectionForUser(credentials, cluster);
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -133,9 +133,9 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone,
         string taskClusterDirectoryPath, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials,
-        Cluster cluster)
+        Cluster cluster, string sshCaToken)
     {
-        var connection = _connectionPool.GetConnectionForUser(credentials, cluster);
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -149,7 +149,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     }
 
     protected override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
-        ClusterAuthenticationCredentials credentials)
+        ClusterAuthenticationCredentials credentials, string sshCaToken)
     {
         var synchronizer = (SftpFullNameSynchronizer)_synchronizerFactory.CreateFileSynchronizer(fileInfo, credentials);
         synchronizer.ConnectionPool = _connectionPool;

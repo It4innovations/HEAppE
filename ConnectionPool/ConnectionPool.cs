@@ -84,7 +84,7 @@ public class ConnectionPool : IConnectionPool
 
     #region IConnectionPool Members
 
-    public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster)
+    public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
     {
         //log.DebugFormat("Thread {0} Requesting connectin for {1}",Thread.CurrentThread.ManagedThreadId, credentials.Username);
         ConnectionInfo connection = null;
@@ -104,7 +104,7 @@ public class ConnectionPool : IConnectionPool
                     if (actualSize < maxSize)
                     {
                         // If there is space free, create new connection
-                        connection = ExpandPoolAndGetConnection(credentials, cluster);
+                        connection = ExpandPoolAndGetConnection(credentials, cluster, sshCaToken);
                     }
                     else if (HasAnyFreeConnection())
                     {
@@ -114,7 +114,7 @@ public class ConnectionPool : IConnectionPool
                         // Drop it
                         RemoveConnectionFromPool(oldest);
                         // Expand pool with newly created one
-                        connection = ExpandPoolAndGetConnection(credentials, cluster);
+                        connection = ExpandPoolAndGetConnection(credentials, cluster, sshCaToken);
                     }
                     else
                     {
@@ -144,7 +144,7 @@ public class ConnectionPool : IConnectionPool
 
     #region Local Methods
 
-    private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster)
+    private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
     {
         if (!cred.IsVaultDataLoaded)
         {
@@ -154,7 +154,7 @@ public class ConnectionPool : IConnectionPool
         }
 
         var connectionObject =
-            adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, cluster.Port);
+            adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port);
         var connection = new ConnectionInfo
         {
             Connection = connectionObject,
@@ -165,9 +165,9 @@ public class ConnectionPool : IConnectionPool
         return connection;
     }
 
-    private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred, Cluster cluster)
+    private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
     {
-        var connection = InitializeConnection(cred, cluster);
+        var connection = InitializeConnection(cred, cluster, sshCaToken);
         actualSize++;
         if (poolCleanTimer != null && actualSize > minSize)
             poolCleanTimer.Start();

@@ -8,6 +8,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using IdentityModel.Client;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier;
 public static class HttpContextKeys
@@ -15,11 +16,11 @@ public static class HttpContextKeys
     public static AdaptorUser AdaptorUser;
     public static string SshCaToken;
 
-    public static async Task<AdaptorUser> Authorize(string token)
+    public static async Task<AdaptorUser> Authorize(string token, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, sshCertificateAuthorityService);
 
             var user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
             {

@@ -9,6 +9,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using log4net;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 
@@ -20,9 +21,10 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    internal ClusterInformationLogic(IUnitOfWork unitOfWork)
+    internal ClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCaService)
     {
         _unitOfWork = unitOfWork;
+        _sshCaService = sshCaService;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
@@ -39,6 +41,11 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     ///     Log instance
     /// </summary>
     protected readonly ILog _log;
+    
+    /// <summary>
+    /// SSH CA service
+    /// </summary>
+    protected readonly ISshCertificateAuthorityService _sshCaService;
 
     #endregion
 
@@ -70,8 +77,8 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return serviceAccount is null
             ? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, nodeType.ClusterId.Value)
             : SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType)
-                .CreateScheduler(nodeType.Cluster, project, adaptorUserId:loggedUser.Id)
-                .GetCurrentClusterNodeUsage(nodeType, serviceAccount);
+                .CreateScheduler(nodeType.Cluster, project, _sshCaService, adaptorUserId:loggedUser.Id)
+                .GetCurrentClusterNodeUsage(nodeType, serviceAccount, HttpContextKeys.SshCaToken);
     }
 
     public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
@@ -105,8 +112,8 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             var commandTemplateParameters = new List<string> { scriptPath };
             commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, adaptorUserId: loggedUser.Id)
-                .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath).ToList());
+                .CreateScheduler(cluster, project, _sshCaService, adaptorUserId: loggedUser.Id)
+                .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath, HttpContextKeys.SshCaToken).ToList());
             return commandTemplateParameters;
         }
 

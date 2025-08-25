@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -19,7 +20,8 @@ public class JobManagementController : BaseController<JobManagementController>
 {
     #region Instances
 
-    private readonly IJobManagementService _service = new JobManagementService();
+    private readonly IJobManagementService _service;
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
     #endregion
 
@@ -30,9 +32,12 @@ public class JobManagementController : BaseController<JobManagementController>
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache) : base(logger,
+    /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
+    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService) : base(logger,
         memoryCache)
     {
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _service = new JobManagementService(_sshCertificateAuthorityService);
     }
 
     #endregion

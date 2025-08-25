@@ -11,6 +11,7 @@ using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
 using Microsoft.Extensions.DependencyInjection;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Factory;
 
@@ -21,24 +22,24 @@ public class PocoLogicFactory : LogicFactory
         return new AdminUserManagementLogic(unitOfWork);
     }
 
-    public override IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork)
+    public override IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
-        return new ClusterInformationLogic(unitOfWork);
+        return new ClusterInformationLogic(unitOfWork, sshCertificateAuthorityService);
     }
 
-    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork)
+    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
-        return new DataTransferLogic(unitOfWork);
+        return new DataTransferLogic(unitOfWork, sshCertificateAuthorityService);
     }
 
-    public override IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork)
+    public override IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
-        return new FileTransferLogic(unitOfWork);
+        return new FileTransferLogic(unitOfWork, sshCertificateAuthorityService);
     }
 
-    public override IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork)
+    public override IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
-        return new JobManagementLogic(unitOfWork);
+        return new JobManagementLogic(unitOfWork, sshCertificateAuthorityService);
     }
 
     public override IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork)
@@ -47,17 +48,17 @@ public class PocoLogicFactory : LogicFactory
     }
 
 
-    public override IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork)
+    public override IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         using var scope = ServiceProvider.CreateScope();
         var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-        var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac);
+        var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac, sshCertificateAuthorityService);
 
         return rtn;
     }
 
-    public override IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork)
+    public override IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
-        return new ManagementLogic(unitOfWork);
+        return new ManagementLogic(unitOfWork, sshCertificateAuthorityService);
     }
 }

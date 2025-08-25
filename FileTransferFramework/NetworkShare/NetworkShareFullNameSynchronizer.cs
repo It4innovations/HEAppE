@@ -20,7 +20,7 @@ public class NetworkShareFullNameSynchronizer : IFileSynchronizer
 
     #region Local Methods
 
-    public ICollection<JobFileContent> SynchronizeFiles(Cluster cluster)
+    public ICollection<JobFileContent> SynchronizeFiles(Cluster cluster, string sshCaToken)
     {
         if (File.Exists(Path.Combine(SyncFileInfo.SourceDirectory, SyncFileInfo.RelativePath)))
         {

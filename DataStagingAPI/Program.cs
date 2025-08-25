@@ -14,6 +14,8 @@ using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
+using SshCaAPI;
+using SshCaAPI.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -43,6 +45,8 @@ else
         throw new Exception("Configuration files not found!");
 }
 
+builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
+
 //IPRateLimitation
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
@@ -54,6 +58,11 @@ builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounte
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+    SshCaSettings.BaseUri,
+    SshCaSettings.CAName,
+    SshCaSettings.ConnectionTimeoutInSeconds
+));
 
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
@@ -178,7 +187,9 @@ app.UseMiddleware<RequestSizeMiddleware>();
 
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
-app.RegisterApiRoutes();
+//get ISshCertificateAuthorityService instance from DI
+var sshCertificateAuthorityService = app.Services.GetRequiredService<ISshCertificateAuthorityService>();
+app.RegisterApiRoutes(sshCertificateAuthorityService);
 
 app.UseSwagger(swagger =>
 {

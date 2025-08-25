@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -25,7 +26,7 @@ public class DataTransferController : BaseController<DataTransferController>
     /// <summary>
     ///     Service provider
     /// </summary>
-    private readonly IDataTransferService _service = new DataTransferService();
+    private readonly IDataTransferService _service;
 
     #endregion
 
@@ -36,9 +37,10 @@ public class DataTransferController : BaseController<DataTransferController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache) : base(logger,
+    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService) : base(logger,
         memoryCache)
     {
+        _service = new DataTransferService(sshCertificateAuthorityService);
     }
 
     #endregion

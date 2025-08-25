@@ -2,6 +2,7 @@
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
+using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.CertificateGenerator.Generators.v2;
 using HEAppE.ConnectionPool;
@@ -14,6 +15,7 @@ using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using SshCaAPI;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
 
@@ -24,6 +26,11 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 /// </summary>
 public class SshConnector : IPoolableAdapter
 {
+    private ISshCertificateAuthorityService _sshCaService;
+    public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    {
+        _sshCaService = sshCertificateAuthorityService;
+    }
     #region Local Methods
 
     /// <summary>
@@ -35,7 +42,7 @@ public class SshConnector : IPoolableAdapter
     /// <param name="port">Port</param>
     /// <returns></returns>
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, int? port)
+        ClusterProxyConnection proxy, string sshCaToken, int? port)
     {
         SshClient sshClient = (SshClient)(credentials.AuthenticationType switch
         {
@@ -79,6 +86,13 @@ public class SshConnector : IPoolableAdapter
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
                 => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
+            
+            ClusterAuthenticationCredentialsAuthType.SshCertificate => 
+                CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
+            
+            ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy => 
+                CreateConnectionObjectUsingSshCertificateViaProxy(proxy.Host, proxy.Type,
+                    proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
         });
@@ -311,6 +325,92 @@ public class SshConnector : IPoolableAdapter
         }
 
         return privateKeyMemoryStream;
+    }
+    
+    private SshClient CreateConnectionObjectUsingSshCertificate(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
+    {
+        try
+        {
+            credentials.Username = "d3d98370-2b72-4a94-9b17-29cb08c29271@acc.myaccessid.org";
+            string publicKey = credentials.PublicKey;
+            if (string.IsNullOrEmpty(credentials.PublicKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
+            }
+            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken)
+                .GetAwaiter()
+                .GetResult();
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            var connectionInfo = port switch
+            {
+                null => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    credentials.Username,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                _ => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    port.Value,
+                    credentials.Username,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
+            };
+
+            var client = new SshClient(connectionInfo);
+            return client;
+        }
+        catch (Exception e)
+        {
+            throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
+        }
+        
+    }
+    
+    private SshClient CreateConnectionObjectUsingSshCertificateViaProxy(string proxyHost,
+        ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName,
+        ClusterAuthenticationCredentials credentials, string sshCaToken, int? port){
+        try
+        {
+            string publicKey = credentials.PublicKey;
+            if (string.IsNullOrEmpty(credentials.PublicKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
+            }
+            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken)
+                .GetAwaiter()
+                .GetResult();
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            var connectionInfo = port switch
+            {
+                null => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    credentials.Username,
+                    proxyType.Map(),
+                    proxyHost,
+                    proxyPort,
+                    proxyUsername ?? string.Empty,
+                    proxyPassword ?? string.Empty,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                _ => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    port.Value,
+                    credentials.Username,
+                    proxyType.Map(),
+                    proxyHost,
+                    proxyPort,
+                    proxyUsername ?? string.Empty,
+                    proxyPassword ?? string.Empty,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+            };
+
+            var client = new SshClient(connectionInfo);
+            return client;
+        }
+        catch (Exception e)
+        {
+            throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
+        }
+        
     }
 
     /// <summary>

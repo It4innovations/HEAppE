@@ -6,6 +6,7 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -17,10 +18,12 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck);
     protected readonly ILog _log;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
-    public UpdateUnfinishedJobsBackgroundService()
+    public UpdateUnfinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _log = LogManager.GetLogger(GetType());
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -30,7 +33,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
             try
             {
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).UpdateCurrentStateOfUnfinishedJobs();
+                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService).UpdateCurrentStateOfUnfinishedJobs();
             }
             catch (Exception ex)
             {

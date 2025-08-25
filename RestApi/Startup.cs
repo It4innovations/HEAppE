@@ -48,9 +48,11 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
+using SshCaAPI;
 using SshCaAPI.Configuration;
 using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
 
@@ -128,6 +130,11 @@ public class Startup
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+        services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+            SshCaSettings.BaseUri,
+            SshCaSettings.CAName,
+            SshCaSettings.ConnectionTimeoutInSeconds
+        ));
         
         services.AddControllers(options =>
         {
@@ -142,10 +149,6 @@ public class Startup
                 options.Filters.Add(new AuthorizeFilter());
             }
         });
-
-
-        //UserOrgHttpClient
-        //services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
 
         services.AddHttpClient("userOrgApi", conf =>
         {
@@ -187,7 +190,8 @@ public class Startup
                     {
                         OnTokenValidated = async context =>
                         {
-                            await HttpContextKeys.Authorize(context.SecurityToken);
+                            await HttpContextKeys.Authorize(context.SecurityToken, 
+                                context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>());
                             var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                             var client = httpClientFactory.CreateClient();
                             client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");

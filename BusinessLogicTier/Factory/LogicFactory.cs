@@ -9,6 +9,7 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Factory;
 
@@ -56,13 +57,21 @@ public abstract class LogicFactory
     #region Abstract methods
 
     public abstract IAdminUserManagementLogic CreateAdminUserManagementLogic(IUnitOfWork unitOfWork);
-    public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork);
-    public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork);
-    public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork);
-    public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork);
+
+    public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService);
+    public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService);
+    public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService);
+    public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService);
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);
-    public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork);
-    public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork);
+    public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService);
+
+    public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork,
+        ISshCertificateAuthorityService sshCertificateAuthorityService);
 
     #endregion
 }

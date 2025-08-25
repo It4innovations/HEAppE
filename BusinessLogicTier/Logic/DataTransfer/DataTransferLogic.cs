@@ -16,6 +16,7 @@ using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using log4net;
 using RestSharp;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.DataTransfer;
 
@@ -30,11 +31,12 @@ public class DataTransferLogic : IDataTransferLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    public DataTransferLogic(IUnitOfWork unitOfWork)
+    public DataTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _logger = LogManager.GetLogger(typeof(DataTransferLogic));
         _unitOfWork = unitOfWork;
-        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork);
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService);
     }
 
     #endregion
@@ -65,6 +67,8 @@ public class DataTransferLogic : IDataTransferLogic
     ///     Lock tunnel object
     /// </summary>
     private readonly object _lockTunnelObj = new();
+    
+    ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
     #endregion
 
@@ -91,14 +95,14 @@ public class DataTransferLogic : IDataTransferLogic
             {
                 var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id);
+                    .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
 
                 var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
                 if (getTunnelsInfos.Any(f => f.RemotePort == nodePort))
                     throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress,
                         nodePort);
 
-                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort);
+                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, HttpContextKeys.SshCaToken);
                 _taskWithExistingTunnel.Add(submittedTaskInfoId);
                 var tunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).Where(w => w.RemotePort == nodePort)
                     .FirstOrDefault();
@@ -132,8 +136,8 @@ public class DataTransferLogic : IDataTransferLogic
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
         lock (_lockTunnelObj)
         {
-            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id)
-                .RemoveTunnel(taskInfo);
+            SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+                .RemoveTunnel(taskInfo, HttpContextKeys.SshCaToken);
             _taskWithExistingTunnel.Remove(taskInfo.Id);
         }
     }
@@ -156,10 +160,10 @@ public class DataTransferLogic : IDataTransferLogic
         _logger.Info($"Closing all tunnels for task id: \"{taskInfo.Id}\"");
 
         var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
-            .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id);
+            .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id);
         lock (_lockTunnelObj)
         {
-            scheduler.RemoveTunnel(taskInfo);
+            scheduler.RemoveTunnel(taskInfo, HttpContextKeys.SshCaToken);
             _taskWithExistingTunnel.Remove(taskInfo.Id);
         }
     }
@@ -172,7 +176,7 @@ public class DataTransferLogic : IDataTransferLogic
             $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id);
+        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
         var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
 
         if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
@@ -207,8 +211,8 @@ public class DataTransferLogic : IDataTransferLogic
             lock (_lockTunnelObj)
             {
                 _logger.Info($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
-                scheduler.RemoveTunnel(taskInfo);
-                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort);
+                scheduler.RemoveTunnel(taskInfo, HttpContextKeys.SshCaToken);
+                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, HttpContextKeys.SshCaToken);
                 _taskWithExistingTunnel.Add(submittedTaskInfoId);
                 _logger.Info($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
             }
@@ -278,7 +282,7 @@ public class DataTransferLogic : IDataTransferLogic
             $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\" HTTP Payload: \"{httpPayload}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, adaptorUserId: loggedUser.Id);
+        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
         var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
 
         if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))

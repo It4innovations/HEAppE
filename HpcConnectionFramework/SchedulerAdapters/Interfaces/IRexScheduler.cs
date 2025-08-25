@@ -13,43 +13,43 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 public interface IRexScheduler
 {
     IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification,
-        ClusterAuthenticationCredentials credentials);
+        ClusterAuthenticationCredentials credentials, string sshCaToken);
 
     IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
-        ClusterAuthenticationCredentials credentials);
+        ClusterAuthenticationCredentials credentials, string sshCaToken);
 
     void CancelJob(IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message,
-        ClusterAuthenticationCredentials credentials);
+        ClusterAuthenticationCredentials credentials, string sshCaToken);
 
-    ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType, ClusterAuthenticationCredentials credentials);
+    ClusterNodeUsage GetCurrentClusterNodeUsage(ClusterNodeType nodeType, ClusterAuthenticationCredentials credentials, string sshCaToken);
 
-    IEnumerable<string> GetAllocatedNodes(SubmittedTaskInfo taskInfo);
+    IEnumerable<string> GetAllocatedNodes(SubmittedTaskInfo taskInfo,string sshCaToken);
 
     IEnumerable<string> GetParametersFromGenericUserScript(Cluster cluster,
-        ClusterAuthenticationCredentials serviceCredentials, string userScriptPath);
+        ClusterAuthenticationCredentials serviceCredentials, string userScriptPath, string sshCaToken);
 
-    void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo);
+    void AllowDirectFileTransferAccessForUserToJob(string publicKey, SubmittedJobInfo jobInfo, string sshCaToken);
 
     void RemoveDirectFileTransferAccessForUser(IEnumerable<string> publicKeys,
-        ClusterAuthenticationCredentials credentials, Cluster cluster, Project project);
+        ClusterAuthenticationCredentials credentials, Cluster cluster, Project project, string sshCaToken);
 
-    void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode);
+    void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode, string sshCaToken);
 
-    bool DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath);
+    bool DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, string sshCaToken);
 
-    void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash, string path);
+    void CopyJobDataToTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash, string path, string sshCaToken);
 
-    void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash);
+    void CopyJobDataFromTemp(SubmittedJobInfo jobInfo, string localBasePath, string hash, string sshCaToken);
 
-    void CreateTunnel(SubmittedTaskInfo taskInfo, string nodeHost, int nodePort);
+    void CreateTunnel(SubmittedTaskInfo taskInfo, string nodeHost, int nodePort, string sshCaToken);
 
-    void RemoveTunnel(SubmittedTaskInfo taskInfo);
+    void RemoveTunnel(SubmittedTaskInfo taskInfo, string sshCaToken);
 
     IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost);
 
     bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
-        Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount);
+        Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount, string sshCaToken);
 
-    bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials);
-    bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
+    bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, string sshCaToken);
+    bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, string sshCaToken);
 }
