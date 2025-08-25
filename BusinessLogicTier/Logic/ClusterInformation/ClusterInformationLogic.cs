@@ -51,6 +51,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, long projectId)
     {
+        
         var nodeType = GetClusterNodeTypeById(clusterNodeId);
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (!nodeType.ClusterId.HasValue) throw new InvalidRequestException("ClusterNodeNoReferenceToCluster");
