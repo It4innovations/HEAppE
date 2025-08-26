@@ -1,11 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Dynamic;
 using System.Linq;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-
 using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
@@ -22,7 +22,7 @@ namespace HEAppE.RestApi;
 
 public class HEAppEHealth
 {
-    private static HealthExt.HealthComponent_.Vault_.VaultInfo_ ConstructExtVaultHealth_(dynamic vaultHealth)
+    public static HealthExt.HealthComponent_.Vault_.VaultInfo_ ConstructExtVaultHealth_(dynamic vaultHealth)
     {
         HealthExt.HealthComponent_.Vault_.VaultInfo_ result = null;
         if (vaultHealth != null)
@@ -40,7 +40,7 @@ public class HEAppEHealth
         return result;
     }
 
-    static HealthExt ConstructHealthExt(bool isHealthy, bool databaseIsHealthy, bool vaultIsHealthy, HealthExt.HealthComponent_.Vault_.VaultInfo_ vaultInfo)
+    public static HealthExt ConstructHealthExt(bool isHealthy, bool databaseIsHealthy, bool vaultIsHealthy, HealthExt.HealthComponent_.Vault_.VaultInfo_ vaultInfo)
     {
         return new HealthExt
         {
@@ -92,11 +92,20 @@ public class HEAppEHealth
 
     public static Task ResponseWriter(HttpContext context, HealthReport healthReport) {
         context.Response.ContentType = "application/json";
-        var result = JsonConvert.SerializeObject(new
-        {
-            status = healthReport.Status.ToString(),
-            errors = healthReport.Entries.Select(e => new { key = e.Key, value = e.Value.Status.ToString() })
-        });
+
+        var sqlEntry = healthReport.Entries["sql"];
+        var sqlCanConnect = (bool)sqlEntry.Data["canConnect"];
+        bool databaseIsHealthy = sqlEntry.Status == HealthStatus.Healthy;
+
+        var vaultEntry = healthReport.Entries["vault"];
+        var vaultHealth = (HealthExt.HealthComponent_.Vault_.VaultInfo_)vaultEntry.Data["vaultHealth"];
+        bool vaultIsHealthy = vaultEntry.Status == HealthStatus.Healthy;
+
+        bool isHealthy = databaseIsHealthy && vaultIsHealthy;
+
+        var healthExt = ConstructHealthExt(isHealthy, databaseIsHealthy, vaultIsHealthy, vaultHealth);
+        var result = JsonConvert.SerializeObject(healthExt);
+
         return context.Response.WriteAsync(result);
     }
 }
@@ -109,6 +118,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null) : IHealthCh
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         HealthCheckResult result;
+        IReadOnlyDictionary<string, object>? data = null;
         try {
             bool canConnect;
             if (_cacheProvider == null || !_cacheProvider.TryGetValue(_cacheKey, out canConnect))
@@ -116,9 +126,12 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null) : IHealthCh
                 canConnect = await DatabaseCanConnectAsync(LogManager.GetLogger(GetType()), MiddlewareContextSettings.ConnectionString, new CancellationTokenSource(1000).Token);
                 _cacheProvider?.Set(_cacheKey, canConnect, TimeSpan.FromMilliseconds(10000));
             }
-            result = canConnect ? HealthCheckResult.Healthy() : HealthCheckResult.Unhealthy();
-        } catch {
-            result = HealthCheckResult.Unhealthy();
+            data = new Dictionary<string, object>() {
+                { "canConnect", canConnect }
+            };
+            result = canConnect ? HealthCheckResult.Healthy(null, data) : HealthCheckResult.Unhealthy(null, null, data);
+        } catch (Exception e) {
+            result = HealthCheckResult.Unhealthy(null, e, data);
         }
         return result;
     }
@@ -165,6 +178,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
         HealthCheckResult result;
+        IReadOnlyDictionary<string, object>? data = null;
         try {
             dynamic vaultHealth;
 
@@ -173,14 +187,20 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
                 vaultHealth = await GetVaultHealth(LogManager.GetLogger(GetType()), VaultConnectorSettings.VaultBaseAddress, 1000);
                 _cacheProvider?.Set(_cacheKey, (vaultHealth as ExpandoObject), TimeSpan.FromMilliseconds(10000));
             }
+            if (vaultHealth != null)
+            {
+                data = new Dictionary<string, object>() {
+                    { "vaultHealth", HEAppEHealth.ConstructExtVaultHealth_(vaultHealth) }
+                };
+            }
 
             if (vaultHealth != null && vaultHealth.initialized == true && vaultHealth.@sealed == false && vaultHealth.standby == false && vaultHealth.performance_standby == false)
-                result = HealthCheckResult.Healthy();
+                result = HealthCheckResult.Healthy(null, data);
             else
-                result = HealthCheckResult.Unhealthy();
+                result = HealthCheckResult.Unhealthy(null, null, data);
 
-        } catch (SqlException) {
-            result = HealthCheckResult.Unhealthy();
+        } catch (Exception e) {
+            result = HealthCheckResult.Unhealthy(null, e, data);
         }
         return result;
     }
