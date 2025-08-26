@@ -94,11 +94,12 @@ public class HEAppEHealth
         context.Response.ContentType = "application/json";
 
         var sqlEntry = healthReport.Entries["sql"];
-        var sqlCanConnect = (bool)sqlEntry.Data["canConnect"];
+        var sqlCanConnect = sqlEntry.Data.ContainsKey("canConnect") ? (bool)sqlEntry.Data["canConnect"] : false;
         bool databaseIsHealthy = sqlEntry.Status == HealthStatus.Healthy;
 
         var vaultEntry = healthReport.Entries["vault"];
-        var vaultHealth = (HealthExt.HealthComponent_.Vault_.VaultInfo_)vaultEntry.Data["vaultHealth"];
+        
+        var vaultHealth = vaultEntry.Data.ContainsKey("vaultHealth") ? (HealthExt.HealthComponent_.Vault_.VaultInfo_)vaultEntry.Data["vaultHealth"] : null;
         bool vaultIsHealthy = vaultEntry.Status == HealthStatus.Healthy;
 
         bool isHealthy = databaseIsHealthy && vaultIsHealthy;
@@ -124,7 +125,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null) : IHealthCh
             if (_cacheProvider == null || !_cacheProvider.TryGetValue(_cacheKey, out canConnect))
             {
                 canConnect = await DatabaseCanConnectAsync(LogManager.GetLogger(GetType()), MiddlewareContextSettings.ConnectionString, new CancellationTokenSource(1000).Token);
-                _cacheProvider?.Set(_cacheKey, canConnect, TimeSpan.FromMilliseconds(10000));
+                _cacheProvider?.Set(_cacheKey, canConnect, TimeSpan.FromMilliseconds(HealthCheckSettings.HealthChecksCacheExpirationMs));
             }
             data = new Dictionary<string, object>() {
                 { "canConnect", canConnect }
@@ -185,7 +186,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
             if (_cacheProvider == null || !_cacheProvider.TryGetValue(_cacheKey, out vaultHealth))
             {
                 vaultHealth = await GetVaultHealth(LogManager.GetLogger(GetType()), VaultConnectorSettings.VaultBaseAddress, 1000);
-                _cacheProvider?.Set(_cacheKey, (vaultHealth as ExpandoObject), TimeSpan.FromMilliseconds(10000));
+                _cacheProvider?.Set(_cacheKey, (vaultHealth as ExpandoObject), TimeSpan.FromMilliseconds(HealthCheckSettings.HealthChecksCacheExpirationMs));
             }
             if (vaultHealth != null)
             {
