@@ -33,6 +33,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo in TaskParallelizationParameters in the `HEAppE Task` specificaton in `CreateJob` endpoint
 - Corrected the `SubmittedJobInfoId` field to `SubmittedTaskInfoId` in REST API endpoints `heappe/DataTransfer/RequestDataTransfer`, `heappe/DataTransfer/HttpPostToJobNode`, and `heappe/DataTransfer/HttpGetToJobNode` to reflect that these endpoints operate on Submitted Task according to the service and business logic tier
 - Implemented logic to automatically split SSH command requests to remove SSH keys in the Background Worker when exceeding the maximum SSH.NET packet size, ensuring complete removal of temporary keys without encountering the error.
+- Multiple SSH Tunnel creation support and port allocation when using `heappe/DataTransfer/RequestDataTransfer` endpoint
 
 ## V5.0.0
 
