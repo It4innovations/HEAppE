@@ -57,10 +57,10 @@ public sealed class SshTunnelUtils
             if (allocatedAddressWithPorts.ContainsKey(nodeHost))
             {
                 var allocatedPortsForJob = allocatedAddressWithPorts[nodeHost];
-                if (allocatedPortsForJob.FirstOrDefault(f => f.RemotePort == nodePort).LocalPort is null)
-                {
+                
+                //if contains already allocated then thow, or if nodePort is not allocated then create tunnel
+                if (allocatedPortsForJob.Any(f => f.RemotePort == nodePort))
                     throw new UnableToCreateConnectionException("PortAlreadyInUse", taskId, nodeHost, nodePort);
-                }
 
                 var sshTunnelInfo = CreateSshTunnel(connectorClient, TunnelConfiguration.LocalhostName,
                     GetFirstFreePort(), nodeHost, nodePort);
@@ -183,7 +183,7 @@ public sealed class SshTunnelUtils
             {
                 break;
             }
-        } while (IsLocalPortFree(port));
+        } while (!IsLocalPortFree(port));
 
         return port;
     }
