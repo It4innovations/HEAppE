@@ -1,12 +1,16 @@
 using System;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -23,6 +27,7 @@ using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
+using log4net;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2189,7 +2194,7 @@ public class ManagementController : BaseController<ManagementController>
         const string memoryCacheKey = "Health";
         if (!_cacheProvider.TryGetValue(memoryCacheKey, out HealthExt result))
         {
-            result = await _userAndManagementService.Health(DeploymentInformationsConfiguration.Version);
+            result = await HEAppEHealth.GetHealth(LogManager.GetLogger(GetType()));
             _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMilliseconds(HealthCheckSettings.ManagementHealthCacheExpirationMs));
         }
         return Ok(result);

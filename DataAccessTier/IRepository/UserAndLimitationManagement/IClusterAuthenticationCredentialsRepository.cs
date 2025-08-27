@@ -17,8 +17,4 @@ public interface IClusterAuthenticationCredentialsRepository : IRepository<Clust
     ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId);
     IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint, long projectId);
     IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId);
-
-    Task<bool> DatabaseCanConnect(CancellationToken cancellationToken);
-
-    Task<object> GetVaultHealth(int timeoutMs);
 }

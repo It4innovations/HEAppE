@@ -64,7 +64,6 @@ public class VaultConnector : IVaultConnector
         }
     }
 
-
     public bool SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data)
     {
         using var httpClient = new HttpClient();
@@ -84,30 +83,5 @@ public class VaultConnector : IVaultConnector
 
         _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
         return false;
-    }
-
-    public async Task<object> GetVaultHealth(int timeoutMs)
-    {
-        using var httpClient = new HttpClient
-        {
-            BaseAddress = new Uri(_vaultBaseAddress),
-            Timeout = TimeSpan.FromMilliseconds(timeoutMs)
-        };
-        var path = $"/v1/sys/health/";
-        
-        try
-        {
-            var result = await httpClient.GetStringAsync(path);
-            //var response = JsonSerializer.Deserialize<Dictionary<string, dynamic>>(result);
-            var response = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
-            _log.Warn($"Obtained health information");
-            return response;
-        }
-        catch (Exception e)
-        {
-            _log.Error($"Vault health check failed. Exception {e}");
-        }
-
-        return null;
     }
 }
