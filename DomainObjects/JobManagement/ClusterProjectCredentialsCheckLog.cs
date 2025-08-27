@@ -10,12 +10,10 @@ namespace HEAppE.DomainObjects.JobManagement;
 public class ClusterProjectCredentialCheckLog : IdentifiableDbEntity
 {
     [Required] public long ClusterProjectId { get; set; }
-    public virtual ClusterProject ClusterProject { get; set; }
-
 
     [Required] public long ClusterAuthenticationCredentialsId { get; set; }
-    public virtual ClusterAuthenticationCredentials ClusterAuthenticationCredentials { get; set; }
 
+    public virtual ClusterProjectCredential ClusterProjectCredential { get; set; }
 
     [Required] public DateTime CheckTimestamp { get; set; } = DateTime.UtcNow;
 
@@ -31,7 +29,6 @@ public class ClusterProjectCredentialCheckLog : IdentifiableDbEntity
 
     public override string ToString()
     {
-        return
-            $"""ClusterProjectCredentials: Id={Id}, ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, CheckTimestamp={CheckTimestamp}, VaultCredentialOk={VaultCredentialOk}, ClusterConnectionOk={ClusterConnectionOk}, DryRunJobOk={DryRunJobOk}, ErrorMessage={ErrorMessage}, CreatedAt={CreatedAt}""";
+        return $"""ClusterProjectCredentialsCheckLog: Id={Id}, ClusterProjectCredential={ClusterProjectCredential}, CheckTimestamp={CheckTimestamp}, VaultCredentialOk={VaultCredentialOk}, ClusterConnectionOk={ClusterConnectionOk}, DryRunJobOk={DryRunJobOk}, ErrorMessage={ErrorMessage}, CreatedAt={CreatedAt}""";
     }
 }
