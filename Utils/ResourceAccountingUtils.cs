@@ -28,7 +28,7 @@ public class ResourceAccountingUtils
 
         if (accounting == null)
         {
-            logger.Error($"Accounting not found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
+            logger.Info($"Accounting not found for SubmittedTaskInfo: {dbTaskInfo.Id}");
             return;
         }
 

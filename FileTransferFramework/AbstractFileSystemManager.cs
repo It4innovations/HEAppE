@@ -66,7 +66,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory)
     {
         var jobClusterDirectoryPath =
-            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath);
+            FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
         CopyAll(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null,
             jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
     }
@@ -92,13 +92,13 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     }
 
     public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo,
-        SynchronizableFiles fileType, long offset, string subPath)
+        SynchronizableFiles fileType, long offset, string instancePath, string subPath)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(taskInfo.Specification.JobSpecification,
-                subPath);
+                instancePath, subPath);
         var taskClusterDirectoryPath =
-            FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, subPath);
+            FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, instancePath, subPath);
         var fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
         var synchronizer = CreateFileSynchronizer(fileInfo, taskInfo.Specification.JobSpecification.ClusterUser);
         synchronizer.Offset = offset;
@@ -121,7 +121,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         foreach (var taskInfo in jobInfo.Tasks)
         {
             var taskClusterDirectoryPath =
-                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.SubExecutionsPath);
+                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
 
             string[] excludedFiles =
             {
@@ -137,14 +137,14 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         }
     }
 
-    public virtual ICollection<FileInformation> ListFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string subPath)
+    public virtual ICollection<FileInformation> ListFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string instancePath, string subPath)
     {
         var result = new List<FileInformation>();
 
         foreach (var taskInfo in jobInfo.Tasks)
         {
             var taskClusterDirectoryPath =
-                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, subPath);
+                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, instancePath, subPath);
 
             var changedFiles = ListChangedFilesForTask(
                 jobInfo.Specification.Cluster.TimeZone, 
@@ -173,12 +173,12 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
     public virtual ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime)
     {
-        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.SubExecutionsPath);
+        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
     }
 
     public virtual ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime)
     {
-        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.JobLogArchiveSubPath);
+        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath);
     }
 
 
@@ -196,7 +196,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         foreach (var taskInfo in jobInfo.Tasks)
         {
             var taskClusterDirectoryPath =
-                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.SubExecutionsPath);
+                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
             var fileInfo =
                 CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
             var sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
@@ -225,7 +225,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         foreach (var task in jobSpecification.Tasks)
         {
             var taskClusterDirectoryPath =
-                FileSystemUtils.GetTaskClusterDirectoryPath(task, _scripts.SubExecutionsPath);
+                FileSystemUtils.GetTaskClusterDirectoryPath(task, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
             var fileInfo = CreateSynchronizableFileInfoForType(task, taskClusterDirectoryPath, fileType);
             var sourceFilePath = FileSystemUtils.ConcatenatePaths(fileInfo.SourceDirectory, fileInfo.RelativePath);
 

@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApiModels.DataTransfer;
 using HEAppE.Utils.Validation;
@@ -33,10 +33,8 @@ public class DataTransferValidator : AbstractValidator
                 string.IsNullOrEmpty(httpHeader.Name) || string.IsNullOrEmpty(httpHeader.Value)))
             _messageBuilder.AppendLine("HttpHeader cannot be empty");
 
-        if (string.IsNullOrEmpty(model.HttpPayload)) _messageBuilder.AppendLine("HttpPayload must be set");
-
         ValidatePort(model.NodePort);
-        ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
+        ValidateId(model.SubmittedTaskInfoId, nameof(model.SubmittedTaskInfoId));
 
         if (string.IsNullOrEmpty(model.NodeIPAddress))
             _messageBuilder.AppendLine("IpAddress must be set");
@@ -69,7 +67,7 @@ public class DataTransferValidator : AbstractValidator
 
 
         ValidatePort(validationObj.NodePort);
-        ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
+        ValidateId(validationObj.SubmittedTaskInfoId, nameof(validationObj.SubmittedTaskInfoId));
 
         var sessionCodeValidation = new SessionCodeValidator(validationObj.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
@@ -97,7 +95,7 @@ public class DataTransferValidator : AbstractValidator
 
         ValidatePort(validationObj.Port);
 
-        ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
+        ValidateId(validationObj.SubmittedTaskInfoId, nameof(validationObj.SubmittedTaskInfoId));
 
         var sessionCodeValidation = new SessionCodeValidator(validationObj.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);

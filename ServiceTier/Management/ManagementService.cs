@@ -1,13 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Reflection;
-using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Converts;
@@ -20,6 +16,11 @@ using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -73,7 +74,8 @@ public class ManagementService : IManagementService
                 AdaptorUserRoleType.Maintainer, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var commandTemplate = managementLogic.CreateCommandTemplateFromGeneric(genericCommandTemplateId, name,
-                projectId, description, extendedAllocationCommand, executableFile, preparationScript);
+                projectId, description, extendedAllocationCommand, executableFile, preparationScript,
+                adaptorUserId: loggedUser.Id);
             return commandTemplate.ConvertIntToExt();
         }
     }
@@ -117,7 +119,8 @@ public class ManagementService : IManagementService
             if (!commandTemplate.ProjectId.HasValue || commandTemplate.IsDeleted)
                 throw new InputValidationException("NotPermitted");
             var updatedCommandTemplate = managementLogic.ModifyCommandTemplateFromGeneric(commandTemplateId, name, projectId,
-                description, extendedAllocationCommand, executableFile, preparationScript);
+                description, extendedAllocationCommand, executableFile, preparationScript,
+                adaptorUserId: loggedUser.Id);
             return updatedCommandTemplate.ConvertIntToExt();
         }
     }
@@ -128,7 +131,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
-                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
 
             if (commandTemplate.ProjectId == null)
                 throw new InputValidationException("The specified command template cannot be removed!");
@@ -137,6 +140,19 @@ public class ManagementService : IManagementService
                 AdaptorUserRoleType.Maintainer, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveCommandTemplate(commandTemplateId);
+        }
+    }
+
+    public List<ProjectExt> ListProjects(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var projects = managementLogic.ListProjects();
+            return projects.Select(p => p.ConvertIntToExt()).ToList();
         }
     }
 
@@ -167,10 +183,10 @@ public class ManagementService : IManagementService
     }
 
     public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, string sessionCode)
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping, string sessionCode)
     {
         _logger.Info(
-            $"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}");
+            $"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}, IsOneToOneMapping: {isOneToOneMapping}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
@@ -178,23 +194,23 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate,
-                endDate, useAccountingStringForScheduler, piEmail, loggedUser);
+                endDate, useAccountingStringForScheduler, piEmail, isOneToOneMapping, loggedUser);
             return project.ConvertIntToExt();
         }
     }
 
     public ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, string sessionCode)
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, string sessionCode)
     {
         _logger.Info(
-            $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}");
+            $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, IsOneToOneMapping: {isOneToOneMapping}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, id, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             var project = managementLogic.ModifyProject(id, usageType, name, description, startDate, endDate,
-                useAccountingStringForScheduler);
+                useAccountingStringForScheduler, isOneToOneMapping);
             return project.ConvertIntToExt();
         }
     }
@@ -272,7 +288,8 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.GetSecureShellKeys(projectId).Select(x => x.ConvertIntToExt()).ToList();
+            return managementLogic.GetSecureShellKeys(projectId,
+                adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -282,11 +299,27 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
+            
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.CreateSecureShellKey(credentials, projectId).Select(x => x.ConvertIntToExt())
-                .ToList();
+            return managementLogic.CreateSecureShellKey(credentials, projectId,
+                project.IsOneToOneMapping ? loggedUser.Id : null).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -320,26 +353,28 @@ public class ManagementService : IManagementService
     }
 
     public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
-        string clusterProjectRootDirectory, string sessionCode)
+        bool overwriteExistingProjectRootDirectory, string sessionCode, string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.InitializeClusterScriptDirectory(projectId, clusterProjectRootDirectory)
-                .Select(x => x.ConvertIntToExt()).ToList();
+            return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory,
+                adaptorUserId: loggedUser.Id, username: username).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
-    public bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username)
+    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.ManagementAdmin, modelProjectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            return managementLogic.TestClusterAccessForAccount(modelProjectId, username);
+            return managementLogic.TestClusterAccessForAccount(modelProjectId, username, loggedUser.Id)
+                .Select(x => x.ConvertIntToExt())
+                .ToList();
         }
     }
 
@@ -365,7 +400,15 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId)
-                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", modelCommandTemplateId);
+
+            //command template has no project assigned
+            if (!commandTemplate.ProjectId.HasValue)
+            {
+                _logger.Warn($"Method: CreateCommandTemplateParameter: Command Template with Id: {modelCommandTemplateId} has no reference to Project.");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateHasNoProjectAssigned", modelCommandTemplateId);
+            }
+
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
@@ -379,17 +422,19 @@ public class ManagementService : IManagementService
         string modelQuery,
         string modelDescription, string modelSessionCode)
     {
-        _logger.Info(
-            $"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
+        _logger.Info($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
                                            ?? throw new RequestedObjectDoesNotExistException(
                                                "CommandTemplateParameterNotFound", id);
 
-            //command template not found or not enabled
+            //command template has no project assigned
             if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
-                throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+            {
+                _logger.Warn($"Method: ModifyCommandTemplateParameter: Command Template Parameter with Id: {id} for Command Template with Id: {commandTemplateParameter.CommandTemplateId} has no reference to Project.");
+                throw new RequestedObjectDoesNotExistException("CommandTemplateParameterHasNoProjectAssigned", id, commandTemplateParameter.CommandTemplateId);
+            }
 
             if (commandTemplateParameter.CommandTemplate.IsDeleted) throw new InputValidationException("NotPermitted");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
@@ -411,14 +456,14 @@ public class ManagementService : IManagementService
                                                "CommandTemplateParameterNotFound", id);
 
             if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
-                throw new InputValidationException("The specified command template parameter cannot be removed!");
+                throw new InputValidationException("CommandTemplateParameterCannotBeRemoved", id);
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value,
                 true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveCommandTemplateParameter(id);
-            return $"CommandTemplateParameter id {id} was removed";
+            return $"CommandTemplateParameter with Id: '{id}' was removed";
         }
     }
 
@@ -438,8 +483,8 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
-                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
-            if (commandTemplate.IsDeleted) throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
+                                  ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
+            if (commandTemplate.IsDeleted) throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", commandTemplateId);
             if (!commandTemplate.ProjectId.HasValue)
             {
                 (var loggedUser, _) =
@@ -638,6 +683,19 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ClusterNodeTypeExt> ListClusterNodeTypes(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, var projects) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterNodeTypes = managementLogic.ListClusterNodeTypes();
+            return clusterNodeTypes.Select(n => n.ConvertIntToExt()).ToList();
+        }
+    }
+
     public ClusterNodeTypeExt GetClusterNodeTypeById(long clusterId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -712,6 +770,21 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterProxyConnection = managementLogic.GetClusterProxyConnections();
+            return clusterProxyConnection
+                .Select(x=> x.ConvertIntToExt())
+                .ToList();
+        }
+    }
+
     public ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username,
         string password, ProxyType type, string sessionCode)
     {
@@ -751,6 +824,19 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveClusterProxyConnection(id);
+        }
+    }
+
+    public List<FileTransferMethodNoCredentialsExt> ListFileTransferMethods(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var fileTransferMethods = managementLogic.ListFileTransferMethods();
+            return fileTransferMethods.Select(f => f.ConvertIntToNoCredentialsExt()).ToList();
         }
     }
 
@@ -881,6 +967,20 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ClusterNodeTypeAggregationAccountingExt> ListClusterNodeTypeAggregationAccountings(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterNodeTypeAggregationAccountings =
+                managementLogic.ListClusterNodeTypeAggregationAccountings();
+            return clusterNodeTypeAggregationAccountings.Select(a => a.ConvertIntToExt()).ToList();
+        }
+    }
+
     public ClusterNodeTypeAggregationAccountingExt GetClusterNodeTypeAggregationAccountingById(
         long clusterNodeTypeAggregationId, long accountingId, string sessionCode)
     {
@@ -921,6 +1021,19 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveClusterNodeTypeAggregationAccounting(clusterNodeTypeAggregationId, accountingId);
+        }
+    }
+
+    public List<AccountingExt> ListAccountings(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var accountings = managementLogic.ListAccountings();
+            return accountings.Select(a => a.ConvertIntToExt()).ToList();
         }
     }
 

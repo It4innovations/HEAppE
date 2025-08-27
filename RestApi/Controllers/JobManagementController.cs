@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
@@ -205,7 +205,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CopyJobDataToTemp(model.SubmittedJobInfoId, model.SessionCode, model.Path);
+        _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
         return Ok("Data were copied to Temp");
     }
 

@@ -154,11 +154,11 @@ public class TaskSpecificationExt
     public string[] RequiredNodes { get; set; }
 
     /// <summary>
-    /// Array of task paralization parameters
+    /// Array of task paralelization parameters
     /// </summary>
-    [DataMember(Name = "TaskParalizationParameter")]
-    [Description("Array of task paralization parameters")]
-    public TaskParalizationParameterExt[] TaskParalizationParameters { get; set; }
+    [DataMember(Name = "TaskParallelizationParameters")]
+    [Description("Array of task paralelization parameters")]
+    public TaskParalizationParameterExt[] TaskParallelizationParameters { get; set; }
 
     /// <summary>
     /// Array of environment variables
@@ -184,7 +184,7 @@ public class TaskSpecificationExt
     public override string ToString()
     {
         return
-            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={RequiredNodes}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParalizationParameters={TaskParalizationParameters}; environmentVariables={EnvironmentVariables}; dependsOn={DependsOn}; templateParameterValues={TemplateParameterValues})";
+            $"TaskSpecificationExt(name={Name}; minCores={MinCores}; maxCores={MaxCores}; walltimeLimit={WalltimeLimit}; requiredNodes={RequiredNodes}; priority={Priority}; jobArrays={JobArrays}; isExclusive={IsExclusive}; isRerunnable={IsRerunnable}; standardInputFile={StandardInputFile}; standardOutputFile={StandardOutputFile}; standardErrorFile={StandardErrorFile}; progressFile={ProgressFile}; logFile={LogFile}; clusterTaskSubdirectory={ClusterTaskSubdirectory}; clusterNodeTypeId={ClusterNodeTypeId}; commandTemplateId={CommandTemplateId}; taskParalizationParameters={TaskParallelizationParameters}; environmentVariables={EnvironmentVariables}; dependsOn={DependsOn}; templateParameterValues={TemplateParameterValues})";
     }
 
     public override bool Equals(object obj)

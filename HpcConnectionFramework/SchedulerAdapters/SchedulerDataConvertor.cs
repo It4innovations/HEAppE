@@ -113,7 +113,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
         if (Convert.ToInt32(taskSpecification.WalltimeLimit) > 0)
             taskAdapter.Runtime = Convert.ToInt32(taskSpecification.WalltimeLimit);
 
-        var workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.SubExecutionsPath);
+        var workDirectory = FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
 
         var stdErrFilePath = FileSystemUtils.ConcatenatePaths(workDirectory, taskSpecification.StandardErrorFile);
         taskAdapter.StdErrFilePath = workDirectory.Equals(stdErrFilePath) ? string.Empty : stdErrFilePath;
@@ -259,7 +259,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
 
                 if (templateParameter.Query == "Task.Workdir")
                     templateParameterValueFromQuery =
-                        FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.SubExecutionsPath);
+                        FileSystemUtils.GetTaskClusterDirectoryPath(taskSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
 
                 if (templateParameter.Query.StartsWith("Task."))
                     templateParameterValueFromQuery =
