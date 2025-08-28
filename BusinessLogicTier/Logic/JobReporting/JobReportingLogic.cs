@@ -94,7 +94,7 @@ internal class JobReportingLogic : IJobReportingLogic
     public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects)
     {
         return _unitOfWork.SubmittedJobInfoRepository.GetAll()
-            .Where(x => projects.Any(y => y.Id == x.Project.Id))
+            .Where(x => x.Project != null && projects.Any(y => y.Id == x.Project.Id))
             .GroupBy(g => g.State)
             .Select(s => new JobStateAggregationReport
             {
