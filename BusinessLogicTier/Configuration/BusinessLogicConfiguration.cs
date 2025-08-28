@@ -31,6 +31,11 @@ public sealed class BusinessLogicConfiguration
     ///     HTTP requeues connection timeout in seconds
     /// </summary>
     public static double HTTPRequestConnectionTimeoutInSeconds { get; set; } = 10;
+    
+    /// <summary>
+    ///     Auto initialize project credentials on first use
+    /// </summary>
+    public static bool AutoInitializeProjectCredentialsOnFirstUse { get; set; } = true;
 
     #endregion
 }

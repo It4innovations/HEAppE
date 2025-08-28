@@ -854,7 +854,8 @@ public class ManagementLogic : IManagementLogic
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
 
-    clusterProjectCredential.IsInitialized = isInitialized;            if (isInitialized)
+                clusterProjectCredential.IsInitialized = isInitialized;            
+                if (isInitialized)
                 {
                     if (!clusterInitReports.ContainsKey(cluster))
                         clusterInitReports.Add(cluster, new ClusterInitReport
