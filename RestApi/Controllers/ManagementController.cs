@@ -2179,4 +2179,21 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     #endregion
+
+    #region Status
+    [HttpGet("Status")]
+    [RequestSizeLimit(90)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Status()
+    {
+        await Task.Delay(1);
+        return Ok(null);
+    }
+
+    #endregion
 }

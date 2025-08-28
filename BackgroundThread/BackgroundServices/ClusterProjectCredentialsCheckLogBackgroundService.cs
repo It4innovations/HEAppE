@@ -14,7 +14,7 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 /// </summary>
 internal class ClusterProjectCredentialsCheckLog : BackgroundService
 {
-    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck);
+    private readonly TimeSpan _interval = TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IntervalMinutes);
     protected readonly ILog _log;
 
     public ClusterProjectCredentialsCheckLog()
