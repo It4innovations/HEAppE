@@ -2179,26 +2179,4 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     #endregion
-
-    #region Health
-    [HttpGet("Health")]
-    [RequestSizeLimit(90)]
-    [ProducesResponseType(typeof(HealthExt), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Health()
-    {
-        const string memoryCacheKey = "Health";
-        if (!_cacheProvider.TryGetValue(memoryCacheKey, out HealthExt result))
-        {
-            result = await HEAppEHealth.GetHealth(LogManager.GetLogger(GetType()));
-            _cacheProvider.Set(memoryCacheKey, result, TimeSpan.FromMilliseconds(HealthCheckSettings.ManagementHealthCacheExpirationMs));
-        }
-        return Ok(result);
-    }
-
-    #endregion
 }
