@@ -219,7 +219,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
 
         var parSpec = paralizationSpecs.FirstOrDefault();
 
-        if (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"))
+        if (aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU")))
         {
             allocationCmdBuilder.Append($" --gpus={maxCores}");
         }

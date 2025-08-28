@@ -11,7 +11,7 @@ public interface IJobManagementService
     bool DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode);
     SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null);
     SubmittedJobInfoExt CurrentInfoForJob(long submittedJobInfoId, string sessionCode);
-    void CopyJobDataToTemp(long submittedJobInfoId, string sessionCode, string path);
+    void CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path);
     void CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode);
     IEnumerable<string> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode);
 }

@@ -10,7 +10,7 @@ namespace HEAppE.RestApiModels.JobManagement;
 /// </summary>
 [DataContract(Name = "CopyJobDataToTempModel")]
 [Description("Model to copy job data to temp")]
-public class CopyJobDataToTempModel : SubmittedJobInfoModel
+public class CopyJobDataToTempModel : CreatedJobInfoModel
 {
     /// <summary>
     /// Path

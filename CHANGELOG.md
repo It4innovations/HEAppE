@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Redefined path to `cluster scripts` and setup for each `ClusterAuthenticationCredential` and `Project`
 - `Management/InitializeClusterScriptDirectory` body and business logic
 - Response structure of the `TestClusterAccessForAccount` (added info/check about specific access to the cluster)
+- Unify Attribute Names in CopyJobDataToTemp and CopyJobDataFromTemp endpoint payloads
 
 ### Added
 - 1:1 user mapping to SSH key at `Project` level
@@ -21,9 +22,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for the `EdDSA - ED25519` SSH key pair generation
 - Options `ConnectionRetryAttempts` and `ConnectionTimeout` for SSH client component are now configurable from `appsettings.json`
 - API HTTP Request logging with payload (redacted output on `Sensitive data`)
+- Add `/health` check endpoint
 - `Reason` attribute propagation from the HPC job (in the HEAppE Task)
 - `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
 - Endpoints for bulk listing of `ClusterNodeTypes`, `FileTransferMethods`, `Projects`, `ClusterNodeTypeAggregationAccountings`
+- Endpoint to Reset ListAvailableClusters Memory Cache
 
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
@@ -31,6 +34,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Typo in TaskParallelizationParameters in the `HEAppE Task` specificaton in `CreateJob` endpoint
 - Corrected the `SubmittedJobInfoId` field to `SubmittedTaskInfoId` in REST API endpoints `heappe/DataTransfer/RequestDataTransfer`, `heappe/DataTransfer/HttpPostToJobNode`, and `heappe/DataTransfer/HttpGetToJobNode` to reflect that these endpoints operate on Submitted Task according to the service and business logic tier
 - Implemented logic to automatically split SSH command requests to remove SSH keys in the Background Worker when exceeding the maximum SSH.NET packet size, ensuring complete removal of temporary keys without encountering the error.
+- Multiple SSH Tunnel creation support and port allocation when using `heappe/DataTransfer/RequestDataTransfer` endpoint
 
 ## V5.0.0
 

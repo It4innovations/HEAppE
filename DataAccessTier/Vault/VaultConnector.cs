@@ -1,10 +1,15 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Dynamic;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
+using log4net;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Converters;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
-using log4net;
+
 
 namespace HEAppE.DataAccessTier.Vault;
 
@@ -58,7 +63,6 @@ public class VaultConnector : IVaultConnector
             return ClusterProjectCredentialVaultPart.Empty;
         }
     }
-
 
     public bool SetClusterAuthenticationCredentials(ClusterProjectCredentialVaultPart data)
     {
