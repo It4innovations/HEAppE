@@ -58,6 +58,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// <param name="projectName"></param>
     /// <param name="accountingString"></param>
     /// <param name="commandTemplateName"></param>
+    /// <param name="forceRefresh"></param>
     /// <returns></returns>
     [HttpGet("ListAvailableClusters")]
     [RequestSizeLimit(0)]
@@ -67,7 +68,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListAvailableClusters(string sessionCode, string clusterName = null, string nodeTypeName = null,
-        string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null)
+        string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null, bool? forceRefresh = null)
     {
         _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\", Parameters: \"SessionCode: {sessionCode}, ClusterName: {clusterName}, NodeTypeName: {nodeTypeName}, " +
                          $"ProjectName: {projectName}, AccountingString: {accountingString}, CommandTemplateName: {commandTemplateName}\"");
@@ -78,7 +79,26 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_service.ListAvailableClusters(sessionCode, clusterName, nodeTypeName, projectName, accountingString,
-            commandTemplateName));
+            commandTemplateName, forceRefresh ?? false));
+    }
+
+    [HttpPost("ListAvailableClustersClearCache")]
+    [RequestSizeLimit(200)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListAvailableClustersClearCache([Required] string sessionCode)
+    {
+        ListAvailableClustersModel model = new()
+        {
+            SessionCode = sessionCode
+        };
+        var validationResult = new ClusterInformationValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        return Ok(_service.ListAvailableClustersClearCache(sessionCode));
     }
 
     /// <summary>

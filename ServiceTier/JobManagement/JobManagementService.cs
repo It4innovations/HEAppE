@@ -145,17 +145,17 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public void CopyJobDataToTemp(long submittedJobInfoId, string sessionCode, string path)
+    public void CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
-                      throw new InputValidationException("NotExistingJob", submittedJobInfoId);
+            var job = unitOfWork.SubmittedJobInfoRepository.GetById(createdJobInfoId) ??
+                      throw new InputValidationException("NotExistingJob", createdJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.Submitter, job.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService);
 
-            jobLogic.CopyJobDataToTemp(submittedJobInfoId, loggedUser, sessionCode, path);
+            jobLogic.CopyJobDataToTemp(createdJobInfoId, loggedUser, sessionCode, path);
         }
     }
 

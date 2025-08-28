@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.JobManagement;
 using HEAppE.Utils.Validation;
@@ -54,7 +54,7 @@ public class JobManagementValidator : AbstractValidator
 
     private string ValidateCopyJobDataToTempModel(CopyJobDataToTempModel validationObj)
     {
-        ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
+        ValidateId(validationObj.CreatedJobInfoId, nameof(validationObj.CreatedJobInfoId));
 
         var validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
         if (!validationResult.IsValid) _messageBuilder.AppendLine(validationResult.Message);

@@ -397,11 +397,11 @@ internal class JobManagementLogic : IJobManagementLogic
         _unitOfWork.Save();
     }
 
-    public void CopyJobDataToTemp(long submittedJobInfoId, AdaptorUser loggedUser, string hash, string path)
+    public void CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
     {
         _logger.Info(string.Format("User {0} with job Id {1} is copying job data to temp {2}",
-            loggedUser.GetLogIdentification(), submittedJobInfoId, hash));
-        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            loggedUser.GetLogIdentification(), createdJobInfoId, hash));
+        var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
                 jobInfo.Project.Id)
