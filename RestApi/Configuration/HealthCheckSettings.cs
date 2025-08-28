@@ -8,11 +8,6 @@ public sealed class HealthCheckSettings
     #region Properties
 
     /// <summary>
-    ///    heappe/Management/Health endpoint's cache expiration in milliseconds
-    /// </summary>
-    public static int ManagementHealthCacheExpirationMs { get; set; } = 5000;
-
-    /// <summary>
     ///    health checks cache expiration in milliseconds
     /// </summary>
     public static int HealthChecksCacheExpirationMs { get; set; } = 5000;
