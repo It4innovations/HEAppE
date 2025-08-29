@@ -2182,17 +2182,57 @@ public class ManagementController : BaseController<ManagementController>
 
     #region Status
     [HttpGet("Status")]
-    [RequestSizeLimit(90)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [RequestSizeLimit(200)]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Status()
+    public async Task<IActionResult> Status(int projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
         await Task.Delay(1);
-        return Ok(null);
+        var result = new StatusExt()
+        {
+            ProjectId = projectId,
+            TimeFrom = timeFrom,
+            TimeTo = timeTo,
+            Statistics = new StatusExt.StatisticsExt_
+            {
+                TotalChecks = 42,
+                VaultCredentialOkCount = 40,
+                VaultCredentialFailCount = 2,
+                ClusterConnectionOkCount = 39,
+                ClusterConnectionFailCount = 3,
+                DryRunJobOkCount = 38,
+                DryRunJobFailCount = 4
+            },
+            Details = new[] {
+                new {
+                    ClusterAuthenticationCredentialId = 1,
+                    RobotAccountName = "projA",
+                    CheckTimestamp = "2025-08-05T10:15:00Z",
+                    VaultCredentialOkCount = 10,
+                    VaultCredentialFailCount = 2,
+                    ClusterConnectionOkCount = 18,
+                    ClusterConnectionFailCount = 3,
+                    DryRunJobOkCount = 3,
+                    DryRunJobFailCount = 4
+                },
+                new {
+                    ClusterAuthenticationCredentialId = 2,
+                    RobotAccountName = "projB",
+                    CheckTimestamp = "2025-08-05T10:15:00Z",
+                    VaultCredentialOkCount = 10,
+                    VaultCredentialFailCount = 2,
+                    ClusterConnectionOkCount = 18,
+                    ClusterConnectionFailCount = 3,
+                    DryRunJobOkCount = 3,
+                    DryRunJobFailCount = 4
+                }
+            }
+        };
+        return Ok(result);
     }
 
     #endregion
