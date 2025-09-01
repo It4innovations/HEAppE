@@ -90,21 +90,28 @@ public class HEAppEHealth
         );
     }
 
-    public static Task ResponseWriter(HttpContext context, HealthReport healthReport) {
-        context.Response.ContentType = "application/json";
-
+    public static HealthExt DoProcessHealthReport(HealthReport healthReport)
+    {
         var sqlEntry = healthReport.Entries["sql"];
         var sqlCanConnect = sqlEntry.Data.ContainsKey("canConnect") ? (bool)sqlEntry.Data["canConnect"] : false;
         bool databaseIsHealthy = sqlEntry.Status == HealthStatus.Healthy;
 
         var vaultEntry = healthReport.Entries["vault"];
-        
+
         var vaultHealth = vaultEntry.Data.ContainsKey("vaultHealth") ? (HealthExt.HealthComponent_.Vault_.VaultInfo_)vaultEntry.Data["vaultHealth"] : null;
         bool vaultIsHealthy = vaultEntry.Status == HealthStatus.Healthy;
 
         bool isHealthy = databaseIsHealthy && vaultIsHealthy;
 
         var healthExt = ConstructHealthExt(isHealthy, databaseIsHealthy, vaultIsHealthy, vaultHealth);
+        return healthExt;
+    }
+
+    public static Task ResponseWriter(HttpContext context, HealthReport healthReport)
+    {
+        context.Response.ContentType = "application/json";
+
+        HealthExt healthExt = DoProcessHealthReport(healthReport);
         var result = JsonConvert.SerializeObject(healthExt);
 
         return context.Response.WriteAsync(result);
@@ -230,5 +237,3 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
         return null;
     }
 }
-
-// https://blog.elmah.io/asp-net-core-2-2-health-checks-explained/
