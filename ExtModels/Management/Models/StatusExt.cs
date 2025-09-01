@@ -78,46 +78,25 @@ public class StatusExt
         public int TotalChecks { get; set; }
 
         /// <summary>
-        /// VaultCredentialOkCount
+        /// VaultCredential
         /// </summary>
-        [DataMember(Name = "VaultCredentialOkCount")]
-        [Description("VaultCredentialOkCount")]
-        public int VaultCredentialOkCount { get; set; }
+        [DataMember(Name = "VaultCredential")]
+        [Description("VaultCredential")]
+        public VaultCredentialCountsExt_ VaultCredential { get; set; }
 
         /// <summary>
-        /// VaultCredentialFailCount
+        /// ClusterConnection
         /// </summary>
-        [DataMember(Name = "VaultCredentialFailCount")]
-        [Description("VaultCredentialFailCount")]
-        public int VaultCredentialFailCount { get; set; }
+        [DataMember(Name = "ClusterConnection")]
+        [Description("ClusterConnection")]
+        public ClusterConnectionCountsExt_ ClusterConnection { get; set; }
 
         /// <summary>
-        /// ClusterConnectionOkCount
+        /// DryRunJob
         /// </summary>
-        [DataMember(Name = "ClusterConnectionOkCount")]
-        [Description("ClusterConnectionOkCount")]
-        public int ClusterConnectionOkCount { get; set; }
-
-        /// <summary>
-        /// ClusterConnectionFailCount
-        /// </summary>
-        [DataMember(Name = "ClusterConnectionFailCount")]
-        [Description("ClusterConnectionFailCount")]
-        public int ClusterConnectionFailCount { get; set; }
-
-        /// <summary>
-        /// DryRunJobOkCount
-        /// </summary>
-        [DataMember(Name = "DryRunJobOkCount")]
-        [Description("DryRunJobOkCount")]
-        public int DryRunJobOkCount { get; set; }
-
-        /// <summary>
-        /// DryRunJobFailCount
-        /// </summary>
-        [DataMember(Name = "DryRunJobFailCount")]
-        [Description("DryRunJobFailCount")]
-        public int DryRunJobFailCount { get; set; }
+        [DataMember(Name = "DryRunJob")]
+        [Description("DryRunJob")]
+        public ClusterConnectionCountsExt_ DryRunJob { get; set; }
 
         #endregion
 
@@ -129,11 +108,96 @@ public class StatusExt
         /// <returns></returns>
         public override string ToString()
         {
-            return $"StatusExt: TotalChecks={TotalChecks}, VaultCredentialOkCount={VaultCredentialOkCount}, VaultCredentialFailCount={VaultCredentialFailCount},ClusterConnectionOkCount={ClusterConnectionOkCount}, ClusterConnectionFailCount={ClusterConnectionFailCount}, DryRunJobOkCount={DryRunJobOkCount}, DryRunJobFailCount={DryRunJobFailCount}";
+            return $"StatisticsExt_: TotalChecks={TotalChecks}, VaultCredential={VaultCredential}, ClusterConnection={ClusterConnection},DryRunJob={DryRunJob}";
         }
 
         #endregion
 
+    }
+
+    public abstract class OkFailCountsExt_
+    {
+        /// <summary>
+        /// OkCount
+        /// </summary>
+        [DataMember(Name = "OkCount")]
+        [Description("OkCount")]
+        public int OkCount { get; set; }
+
+        /// <summary>
+        /// FailCount
+        /// </summary>
+        [DataMember(Name = "FailCount")]
+        [Description("FailCount")]
+        public int FailCount { get; set; }
+
+        /// <summary>
+        ///     Override to string method
+        /// </summary>
+        /// <returns></returns>
+        public override string ToString()
+        {
+            return $"StatusExt: OkCount={OkCount}, FailCount={FailCount}";
+        }
+    }
+    public class VaultCredentialCountsExt_ : OkFailCountsExt_;
+    public class ClusterConnectionCountsExt_ : OkFailCountsExt_;
+    public class DryRunJobCountsExt_ : OkFailCountsExt_;
+
+    public class DetailExt_
+    {
+        /// <summary>
+        /// CheckTimestamp
+        /// </summary>
+        [DataMember(Name = "CheckTimestamp")]
+        [Description("CheckTimestamp")]
+        public DateTime CheckTimestamp { get; set; }
+
+        /// <summary>
+        /// ClusterAuthenticationCredential
+        /// </summary>
+        [DataMember(Name = "ClusterAuthenticationCredential")]
+        [Description("ClusterAuthenticationCredential")]
+        public ClusterAuthenticationCredentialExt_ ClusterAuthenticationCredential { get; set; }
+
+        /// <summary>
+        /// VaultCredential
+        /// </summary>
+        [DataMember(Name = "VaultCredential")]
+        [Description("VaultCredential")]
+        public VaultCredentialCountsExt_ VaultCredential { get; set; }
+
+        /// <summary>
+        /// ClusterConnection
+        /// </summary>
+        [DataMember(Name = "ClusterConnection")]
+        [Description("ClusterConnection")]
+        public ClusterConnectionCountsExt_ ClusterConnection { get; set; }
+
+        /// <summary>
+        /// ClusterConnection
+        /// </summary>
+        [DataMember(Name = "DryRunJob")]
+        [Description("DryRunJob")]
+        public DryRunJobCountsExt_ DryRunJob { get; set; }
+
+        public class ClusterAuthenticationCredentialExt_
+        {
+            /// <summary>
+            /// Id
+            /// </summary>
+            [DataMember(Name = "Id")]
+            [Description("Id")]
+            public int Id { get; set; }
+
+            /// <summary>
+            /// Username
+            /// </summary>
+            [DataMember(Name = "Username")]
+            [Description("Username")]
+            public string Username { get; set; }
+
+        }
     }
 
     #endregion
