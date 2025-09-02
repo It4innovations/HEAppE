@@ -329,10 +329,10 @@ public class Startup
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
 
-        app.UseHealthChecks("/health", new HealthCheckOptions() {
-            ResponseWriter = HEAppEHealth.ResponseWriter,
-            AllowCachingResponses = false, // use custom caching
-        });
+        //app.UseHealthChecks("/health", new HealthCheckOptions() {
+        //    ResponseWriter = HEAppEHealth.ResponseWriter,
+        //    AllowCachingResponses = false, // use custom caching
+        //});
     }
 
     #endregion
