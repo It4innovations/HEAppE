@@ -63,15 +63,25 @@ public class RexSchedulerWrapper : IRexScheduler
     public IEnumerable<SubmittedTaskInfo> SubmitJob(JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
-        var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster);
-        try
+        var cluster = jobSpecification.Cluster;
+
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
+            var tasks = _adapter.SubmitJob(null, jobSpecification, credentials);
             return tasks;
         }
-        finally
+        else
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster);
+            try
+            {
+                var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
+                return tasks;
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -136,14 +146,22 @@ public class RexSchedulerWrapper : IRexScheduler
         ClusterAuthenticationCredentials credentials)
     {
         var cluster = submitedTasksInfo.FirstOrDefault().Specification.JobSpecification.Cluster;
-        var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
-        try
+
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            _adapter.CancelJob(schedulerConnection.Connection, submitedTasksInfo, message);
+            _adapter.CancelJob(null, submitedTasksInfo, message);
         }
-        finally
+        else
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
+            try
+            {
+                _adapter.CancelJob(schedulerConnection.Connection, submitedTasksInfo, message);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -252,16 +270,26 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="sharedAccountsPoolMode"></param>
     public void CreateJobDirectory(SubmittedJobInfo jobInfo, string localBasePath, bool sharedAccountsPoolMode)
     {
-        var schedulerConnection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+        var cluster = jobInfo.Specification.Cluster;
 
-        try
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
+            _adapter.CreateJobDirectory(null, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
-        finally
+        else
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            var schedulerConnection =
+                _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+
+            try
+            {
+                _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath,
+                    sharedAccountsPoolMode);
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -271,20 +299,37 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="jobInfo">Job info</param>
     public bool DeleteJobDirectory(SubmittedJobInfo jobInfo, string localBasePath)
     {
-        var schedulerConnection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
-        try
+        var cluster = jobInfo.Specification.Cluster;
+
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
         {
-            return _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
+            try
+            {
+                return _adapter.DeleteJobDirectory(null, jobInfo, localBasePath);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
+                return false;
+            }
         }
-        catch (Exception ex)
+        else
         {
-            _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
-            return false;
-        }
-        finally
-        {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            var schedulerConnection =
+                _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+            try
+            {
+                return _adapter.DeleteJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath);
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Error deleting job directory for job {jobInfo.Id}", ex);
+                return false;
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
