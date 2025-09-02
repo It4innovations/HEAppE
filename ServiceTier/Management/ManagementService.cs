@@ -2,6 +2,7 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -1162,6 +1163,99 @@ public class ManagementService : IManagementService
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             managementLogic.RemoveProjectClusterNodeTypeAggregation(projectId, clusterNodeTypeAggregationId);
         }
+    }
+
+    public async Task<StatusExt> Status(int projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    {
+        StatusExt result = null;
+        
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+
+            result = new StatusExt()
+            {
+                ProjectId = projectId,
+                TimeFrom = timeFrom,
+                TimeTo = timeTo,
+                Statistics = new StatusExt.StatisticsExt_
+                {
+                    TotalChecks = 42,
+                    VaultCredential = new StatusExt.VaultCredentialCountsExt_()
+                    {
+                        OkCount = 40,
+                        FailCount = 2
+                    },
+                    ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
+                    {
+                        OkCount = 39,
+                        FailCount = 3
+                    },
+                    DryRunJob = new StatusExt.ClusterConnectionCountsExt_()
+                    {
+                        OkCount = 38,
+                        FailCount = 4
+                    }
+                },
+                Details = new[]
+                {
+                    new StatusExt.DetailExt_
+                    {
+                        CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+                        ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
+                        {
+                            Id = 1,
+                            Username = "projA",
+                        },
+                        VaultCredential = new StatusExt.VaultCredentialCountsExt_()
+                        {
+                            OkCount = 10,
+                            FailCount = 2
+                        },
+                        ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
+                        {
+                            OkCount = 10,
+                            FailCount = 2
+                        },
+                        DryRunJob = new StatusExt.DryRunJobCountsExt_()
+                        {
+                            OkCount = 3,
+                            FailCount = 4
+                        }
+                    },
+                    new StatusExt.DetailExt_
+                    {
+                        CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+                        ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
+                        {
+                            Id = 2,
+                            Username = "projB",
+                        },
+                        VaultCredential = new StatusExt.VaultCredentialCountsExt_()
+                        {
+                            OkCount = 10,
+                            FailCount = 2
+                        },
+                        ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
+                        {
+                            OkCount = 10,
+                            FailCount = 2
+                        },
+                        DryRunJob = new StatusExt.DryRunJobCountsExt_()
+                        {
+                            OkCount = 3,
+                            FailCount = 4
+                        }
+                    }
+                }
+            };
+        }
+        await Task.Delay(1);
+        
+        return result;
     }
 
     #endregion

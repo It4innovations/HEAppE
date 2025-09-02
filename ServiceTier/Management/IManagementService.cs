@@ -7,6 +7,7 @@ using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -194,4 +195,6 @@ public interface IManagementService
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
+
+    Task<StatusExt> Status(int projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 }

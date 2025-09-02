@@ -2184,7 +2184,7 @@ public class ManagementController : BaseController<ManagementController>
     #region Status
     [HttpGet("Status")]
     [RequestSizeLimit(200)]
-    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(StatusExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -2192,85 +2192,8 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Status(int projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        await Task.Delay(1);
-        var result = new StatusExt()
-        {
-            ProjectId = projectId,
-            TimeFrom = timeFrom,
-            TimeTo = timeTo,
-            Statistics = new StatusExt.StatisticsExt_
-            {
-                TotalChecks = 42,
-                VaultCredential = new StatusExt.VaultCredentialCountsExt_()
-                {
-                    OkCount = 40,
-                    FailCount = 2
-                },
-                ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
-                {
-                    OkCount = 39,
-                    FailCount = 3
-                },
-                DryRunJob = new StatusExt.ClusterConnectionCountsExt_()
-                {
-                    OkCount = 38,
-                    FailCount = 4
-                }
-            },
-            Details = new[]
-            {
-                new StatusExt.DetailExt_
-                {
-                    CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-                    ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
-                    {
-                        Id = 1,
-                        Username = "projA",
-                    },
-                    VaultCredential = new StatusExt.VaultCredentialCountsExt_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    DryRunJob = new StatusExt.DryRunJobCountsExt_()
-                    {
-                        OkCount = 3,
-                        FailCount = 4
-                    }
-                },
-                new StatusExt.DetailExt_
-                {
-                    CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-                    ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
-                    {
-                        Id = 2,
-                        Username = "projB",
-                    },
-                    VaultCredential = new StatusExt.VaultCredentialCountsExt_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    DryRunJob = new StatusExt.DryRunJobCountsExt_()
-                    {
-                        OkCount = 3,
-                        FailCount = 4
-                    }
-
-                }
-            }
-        };
-        return Ok(result);
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
+        return Ok(await _managementService.Status(projectId, timeFrom, timeTo, sessionCode));
     }
 
     #endregion
