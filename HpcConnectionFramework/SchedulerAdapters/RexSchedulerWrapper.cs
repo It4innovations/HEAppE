@@ -84,25 +84,45 @@ public class RexSchedulerWrapper : IRexScheduler
     public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(IEnumerable<SubmittedTaskInfo> submitedTasksInfo,
         ClusterAuthenticationCredentials credentials)
     {
-        var cluster = submitedTasksInfo.FirstOrDefault().Specification.JobSpecification.Cluster;
-        var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
-        try
+        if (submitedTasksInfo == null || !submitedTasksInfo.Any())
         {
-            var allTasks = new List<SubmittedTaskInfo>();
-            var groupedTasksByUser = submitedTasksInfo
-                .GroupBy(t => t.Specification.JobSpecification.ClusterUser.Username);
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
 
+        var cluster = submitedTasksInfo.First().Specification.JobSpecification.Cluster;
+        var allTasks = new List<SubmittedTaskInfo>();
+        var groupedTasksByUser = submitedTasksInfo
+            .GroupBy(t => t.Specification.JobSpecification.ClusterUser.Username);
+
+        if (cluster.SchedulerType == SchedulerType.FireCrest)
+        {
             foreach (var groupedTasksByUsername in groupedTasksByUser)
             {
-                var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, cluster, groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
+                var tasks = _adapter.GetActualTasksInfo(null, cluster,
+                    groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
                 allTasks.AddRange(tasks);
             }
 
             return allTasks;
         }
-        finally
+        else
         {
-            _connectionPool.ReturnConnection(schedulerConnection);
+            ConnectionInfo schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
+            try
+            {
+                foreach (var groupedTasksByUsername in groupedTasksByUser)
+                {
+                    var tasks = _adapter.GetActualTasksInfo(schedulerConnection.Connection, cluster,
+                        groupedTasksByUsername.ToList(), groupedTasksByUsername.Key);
+                    allTasks.AddRange(tasks);
+                }
+
+                return allTasks;
+            }
+            finally
+            {
+                _connectionPool.ReturnConnection(schedulerConnection);
+            }
         }
     }
 
@@ -215,7 +235,8 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, cluster);
         try
         {
-            _adapter.RemoveDirectFileTransferAccessForUser(schedulerConnection.Connection, publicKeys, project.AccountingString);
+            _adapter.RemoveDirectFileTransferAccessForUser(schedulerConnection.Connection, publicKeys,
+                project.AccountingString);
         }
         finally
         {
@@ -233,6 +254,7 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         var schedulerConnection =
             _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+
         try
         {
             _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
@@ -362,7 +384,8 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="clusterAuthCredentials">Credentials</param>
     /// <param name="isServiceAccount">Is servis account</param>
-    public bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
+    public bool InitializeClusterScriptDirectory(string clusterProjectRootDirectory,
+        bool overwriteExistingProjectRootDirectory, string localBasepath,
         Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, bool isServiceAccount)
     {
         ConnectionInfo schedulerConnection = null;
@@ -370,7 +393,8 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
             return _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection,
-                clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath, clusterAuthCredentials.Username, isServiceAccount);
+                clusterProjectRootDirectory, overwriteExistingProjectRootDirectory, localBasepath,
+                clusterAuthCredentials.Username, isServiceAccount);
         }
         catch (Exception ex)
         {

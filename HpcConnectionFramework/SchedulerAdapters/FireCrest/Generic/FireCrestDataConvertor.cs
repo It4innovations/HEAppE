@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Text.RegularExpressions;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -14,6 +15,37 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.DTO;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.Generic;
 
+#region Data Transfer Objects (DTOs) for FireCrest JSON
+
+internal class FireCrestJob
+{
+    [JsonPropertyName("jobId")] public long JobId { get; set; }
+
+    [JsonPropertyName("name")] public string Name { get; set; }
+
+    [JsonPropertyName("status")] public JobStatus Status { get; set; }
+
+    [JsonPropertyName("time")] public TimeInfo Time { get; set; }
+
+    [JsonPropertyName("nodes")] public string Nodes { get; set; }
+}
+
+internal class JobStatus
+{
+    [JsonPropertyName("state")] public string State { get; set; }
+}
+
+internal class TimeInfo
+{
+    [JsonPropertyName("start")] public long Start { get; set; }
+
+    [JsonPropertyName("end")] public long End { get; set; }
+
+    [JsonPropertyName("elapsed")] public int Elapsed { get; set; }
+}
+
+#endregion
+
 public class FireCrestDataConvertor : SchedulerDataConvertor
 {
     public FireCrestDataConvertor(ConversionAdapterFactory conversionAdapterFactory) : base(conversionAdapterFactory)
@@ -23,20 +55,13 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     public override object ConvertJobSpecificationToJob(JobSpecification jobSpecification,
         object schedulerAllocationCmd)
     {
-        if (jobSpecification.Tasks == null || !jobSpecification.Tasks.Any())
-        {
-            throw new InvalidOperationException("JobSpecification must contain at least one task.");
-        }
-
-        var task = jobSpecification.Tasks.First();
+        var task = (TaskSpecification)schedulerAllocationCmd;
         var scriptBuilder = new StringBuilder();
-
         string baseDirectoryPath = "/home/fireuser/Identifier/HEAppE/Executions";
         string account = jobSpecification.ClusterUser?.Username ?? "default";
         string workingDirectory = $"{baseDirectoryPath}/{account}/{jobSpecification.Id}/{task.Id}".Replace("\\", "/");
 
         scriptBuilder.AppendLine("#!/bin/bash");
-
         scriptBuilder.AppendLine($"#SBATCH -J {jobSpecification.Name}");
 
         if (jobSpecification.Project != null && !string.IsNullOrEmpty(jobSpecification.Project.AccountingString))
@@ -63,28 +88,9 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         scriptBuilder.AppendLine($"#SBATCH -o {workingDirectory}/{task.StandardOutputFile}");
         scriptBuilder.AppendLine($"#SBATCH -e {workingDirectory}/{task.StandardErrorFile}");
         scriptBuilder.AppendLine($"#SBATCH -D {workingDirectory}");
-
         if (task.IsExclusive)
         {
             scriptBuilder.AppendLine("#SBATCH --exclusive");
-        }
-
-        if (jobSpecification.NotifyOnStart == true || jobSpecification.NotifyOnFinish == true ||
-            jobSpecification.NotifyOnAbort == true)
-        {
-            var mailType = new List<string>();
-            if (jobSpecification.NotifyOnStart == true) mailType.Add("BEGIN");
-            if (jobSpecification.NotifyOnFinish == true) mailType.Add("END");
-            if (jobSpecification.NotifyOnAbort == true) mailType.Add("FAIL");
-
-            if (mailType.Any())
-            {
-                scriptBuilder.AppendLine($"#SBATCH --mail-type={string.Join(",", mailType)}");
-                if (!string.IsNullOrEmpty(jobSpecification.NotificationEmail))
-                {
-                    scriptBuilder.AppendLine($"#SBATCH --mail-user={jobSpecification.NotificationEmail}");
-                }
-            }
         }
 
         scriptBuilder.AppendLine();
@@ -140,42 +146,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
 
     public override ClusterNodeUsage ReadQueueActualInformation(ClusterNodeType nodeType, object responseMessage)
     {
-        var nodesUsed = 0;
-        var response = (string)responseMessage;
-        var jsonResponse = JsonSerializer.Deserialize<JsonElement>(response);
-
-        if (string.IsNullOrEmpty(nodeType.ClusterAllocationName))
-        {
-            if (jsonResponse.TryGetProperty("total_allocated_nodes", out var totalNodes))
-            {
-                nodesUsed = totalNodes.GetInt32();
-            }
-        }
-        else
-        {
-            if (jsonResponse.TryGetProperty("partitions", out var partitions) &&
-                partitions.ValueKind == JsonValueKind.Array)
-            {
-                foreach (var partition in partitions.EnumerateArray())
-                {
-                    if (partition.TryGetProperty("name", out var name) &&
-                        name.GetString() == nodeType.ClusterAllocationName &&
-                        partition.TryGetProperty("allocated_nodes", out var allocatedNodes))
-                    {
-                        nodesUsed = allocatedNodes.GetInt32();
-                        break;
-                    }
-                }
-            }
-        }
-
-        return new ClusterNodeUsage
-        {
-            NodeType = nodeType,
-            NodesUsed = nodesUsed,
-            Priority = default,
-            TotalJobs = default
-        };
+        return new ClusterNodeUsage();
     }
 
     public override IEnumerable<string> GetJobIds(string responseMessage)
@@ -183,122 +154,136 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         if (string.IsNullOrWhiteSpace(responseMessage))
         {
             throw new FireCrestException("UnableToParseResponse: Response from server was null or empty.")
-            {
-                CommandError = "The response from the server was empty."
-            };
+                { CommandError = "The response from the server was empty." };
         }
 
-        var match = Regex.Match(responseMessage, "\"jobid\":\\s*(\\d+)");
-
+        var match = Regex.Match(responseMessage, "\"job(?:I|i)d\"\\s*:\\s*(\\d+)");
         if (match.Success && match.Groups.Count > 1)
         {
             return new List<string> { match.Groups[1].Value };
         }
 
-        match = Regex.Match(responseMessage, "\"jobId\":\\s*(\\d+)");
-        if (match.Success && match.Groups.Count > 1)
-        {
-            return new List<string> { match.Groups[1].Value };
-        }
-
-        throw new FireCrestException("UnableToParseResponse: Could not find 'jobid' in the response.")
-        {
-            CommandError = $"The response was: {responseMessage}"
-        };
+        throw new FireCrestException("UnableToParseResponse: Could not find 'jobid' in the JSON response.")
+            { CommandError = $"The response was: {responseMessage}" };
     }
 
     public override SubmittedTaskInfo ConvertTaskToTaskInfo(ISchedulerJobInfo jobInfo)
     {
-        var obj = (FireCrestJobInfo)jobInfo;
-        return new SubmittedTaskInfo
-        {
-            ScheduledJobId = obj.SchedulerJobId,
-            Name = obj.Name,
-            StartTime = obj.StartTime,
-            EndTime = obj.StartTime.HasValue && obj.TaskState >= TaskState.Finished ? obj.EndTime : null,
-            AllocatedTime = Math.Round(obj.RunTime.TotalSeconds, 3),
-            AllocatedCores = obj.UsedCores,
-            State = obj.IsDeadLock ? TaskState.Failed : obj.TaskState,
-            TaskAllocationNodes = obj.AllocatedNodes?.Select(s => new SubmittedTaskAllocationNodeInfo
-                    { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
-                .ToList(),
-            ErrorMessage = default,
-            Reason = obj.Reason,
-            AllParameters = obj.IsJobArrayJob
-                ? obj.AggregateSchedulerResponseParameters
-                : obj.SchedulerResponseParameters,
-            ParsedParameters = obj.ParsedParameters
-        };
+        throw new NotImplementedException();
     }
+
 
     public override IEnumerable<SubmittedTaskInfo> ReadParametersFromResponse(Cluster cluster, object responseMessage)
     {
         var response = (string)responseMessage;
-        var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
-        FireCrestJobInfo aggregateResultObj = null;
+        if (string.IsNullOrWhiteSpace(response))
+        {
+            return Enumerable.Empty<SubmittedTaskInfo>();
+        }
 
+        var submittedTasks = new List<SubmittedTaskInfo>();
         var jsonResponse = JsonSerializer.Deserialize<JsonElement>(response);
-        if (!jsonResponse.TryGetProperty("jobs", out var jobsArray))
-        {
-            throw new FireCrestException("UnableToParseResponse: Response JSON does not contain a 'jobs' array.")
-            {
-                CommandError = response
-            };
-        }
 
-        foreach (var jobElement in jobsArray.EnumerateArray())
+        if (jsonResponse.TryGetProperty("jobs", out var jobsArray) && jobsArray.ValueKind == JsonValueKind.Array)
         {
-            var jobResponseMessage = JsonSerializer.Serialize(jobElement);
-            var parsedParameters = new Dictionary<string, string>();
-
-            foreach (var property in jobElement.EnumerateObject())
+            foreach (var jobElement in jobsArray.EnumerateArray())
             {
-                var value = property.Value.ValueKind switch
+                var taskInfo = ProcessJobElement(cluster, jobElement);
+                if (taskInfo != null)
                 {
-                    JsonValueKind.String => property.Value.GetString(),
-                    JsonValueKind.Number => property.Value.GetRawText(),
-                    JsonValueKind.True => "true",
-                    JsonValueKind.False => "false",
-                    JsonValueKind.Null => string.Empty,
-                    _ => JsonSerializer.Serialize(property.Value)
-                };
-
-                if (value is "(null)" or "N/A" or "Unknown")
-                    value = string.Empty;
-
-                parsedParameters.Add(property.Name, value);
+                    submittedTasks.Add(taskInfo);
+                }
             }
-
-            var schedulerResultObj = new FireCrestJobInfo(jobResponseMessage, parsedParameters);
-            FillingSchedulerJobResultObjectFromSchedulerAttribute(cluster, schedulerResultObj, parsedParameters);
-
-            if (!schedulerResultObj.IsJobArrayJob)
+        }
+        else if (jsonResponse.ValueKind == JsonValueKind.Object)
+        {
+            var taskInfo = ProcessJobElement(cluster, jsonResponse);
+            if (taskInfo != null)
             {
-                jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
-                continue;
+                submittedTasks.Add(taskInfo);
             }
-
-            if (aggregateResultObj is null)
-            {
-                aggregateResultObj = schedulerResultObj;
-                continue;
-            }
-
-            if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
-            {
-                aggregateResultObj.CombineJobs(schedulerResultObj);
-                continue;
-            }
-
-            jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-            aggregateResultObj = schedulerResultObj;
         }
 
-        if (aggregateResultObj is not null)
-            jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
-
-        return jobSubmitedTasksInfo.Any()
-            ? jobSubmitedTasksInfo
-            : new List<SubmittedTaskInfo>();
+        return submittedTasks;
     }
+
+    private SubmittedTaskInfo ProcessJobElement(Cluster cluster, JsonElement jobElement)
+    {
+        try
+        {
+            var firecrestJob = JsonSerializer.Deserialize<FireCrestJob>(jobElement.GetRawText());
+            if (firecrestJob == null) return null;
+
+            var nameParts = firecrestJob.Name.Split('-');
+            string taskId = nameParts.LastOrDefault() ?? firecrestJob.Name;
+
+            var taskInfo = new SubmittedTaskInfo
+            {
+                ScheduledJobId = firecrestJob.JobId.ToString(),
+                Name = taskId,
+                State = ConvertState(firecrestJob.Status?.State),
+                StartTime = ConvertFromUnixTimestamp(firecrestJob.Time?.Start),
+                EndTime = ConvertFromUnixTimestamp(firecrestJob.Time?.End),
+                AllocatedTime = firecrestJob.Time?.Elapsed,
+                TaskAllocationNodes = ParseNodes(firecrestJob.Nodes, taskId)
+            };
+
+            return taskInfo;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[CONVERTOR] ERROR: Failed to process job element. Error: {ex.Message}");
+            return null;
+        }
+    }
+
+    #region Helper Methods
+
+    private DateTime? ConvertFromUnixTimestamp(long? timestamp)
+    {
+        if (!timestamp.HasValue || timestamp.Value <= 0) return null;
+        return DateTime.UnixEpoch.AddSeconds(timestamp.Value);
+    }
+
+    private TaskState ConvertState(string state)
+    {
+        if (string.IsNullOrEmpty(state)) return TaskState.Unknown;
+        return state.ToUpperInvariant() switch
+        {
+            "PENDING" => TaskState.Queued,
+            "RUNNING" => TaskState.Running,
+            "COMPLETED" => TaskState.Finished,
+            "FAILED" => TaskState.Failed,
+            "CANCELLED" => TaskState.Canceled,
+            "TIMEOUT" => TaskState.Failed,
+            "SUSPENDED" => TaskState.Paused,
+            _ => TaskState.Unknown,
+        };
+    }
+
+    private List<SubmittedTaskAllocationNodeInfo> ParseNodes(string nodesString, string taskId)
+    {
+        var nodeList = new List<SubmittedTaskAllocationNodeInfo>();
+        if (string.IsNullOrEmpty(nodesString) ||
+            nodesString.Equals("None assigned", StringComparison.OrdinalIgnoreCase))
+        {
+            return nodeList;
+        }
+
+        var nodeNames = nodesString.Split(',');
+        long.TryParse(taskId, out long submittedTaskInfoId);
+
+        foreach (var name in nodeNames)
+        {
+            nodeList.Add(new SubmittedTaskAllocationNodeInfo
+            {
+                AllocationNodeId = name.Trim(),
+                SubmittedTaskInfoId = submittedTaskInfoId
+            });
+        }
+
+        return nodeList;
+    }
+
+    #endregion
 }
