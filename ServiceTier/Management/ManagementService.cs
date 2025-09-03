@@ -1165,97 +1165,17 @@ public class ManagementService : IManagementService
         }
     }
 
-    public async Task<StatusExt> Status(int projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    public async Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
-        StatusExt result = null;
-        
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-
-            result = new StatusExt()
-            {
-                ProjectId = projectId,
-                TimeFrom = timeFrom,
-                TimeTo = timeTo,
-                Statistics = new StatusExt.StatisticsExt_
-                {
-                    TotalChecks = 42,
-                    VaultCredential = new StatusExt.VaultCredentialCountsExt_()
-                    {
-                        OkCount = 40,
-                        FailCount = 2
-                    },
-                    ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
-                    {
-                        OkCount = 39,
-                        FailCount = 3
-                    },
-                    DryRunJob = new StatusExt.ClusterConnectionCountsExt_()
-                    {
-                        OkCount = 38,
-                        FailCount = 4
-                    }
-                },
-                Details = new[]
-                {
-                    new StatusExt.DetailExt_
-                    {
-                        CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-                        ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
-                        {
-                            Id = 1,
-                            Username = "projA",
-                        },
-                        VaultCredential = new StatusExt.VaultCredentialCountsExt_()
-                        {
-                            OkCount = 10,
-                            FailCount = 2
-                        },
-                        ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
-                        {
-                            OkCount = 10,
-                            FailCount = 2
-                        },
-                        DryRunJob = new StatusExt.DryRunJobCountsExt_()
-                        {
-                            OkCount = 3,
-                            FailCount = 4
-                        }
-                    },
-                    new StatusExt.DetailExt_
-                    {
-                        CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-                        ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
-                        {
-                            Id = 2,
-                            Username = "projB",
-                        },
-                        VaultCredential = new StatusExt.VaultCredentialCountsExt_()
-                        {
-                            OkCount = 10,
-                            FailCount = 2
-                        },
-                        ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
-                        {
-                            OkCount = 10,
-                            FailCount = 2
-                        },
-                        DryRunJob = new StatusExt.DryRunJobCountsExt_()
-                        {
-                            OkCount = 3,
-                            FailCount = 4
-                        }
-                    }
-                }
-            };
+            var result = (await managementLogic.Status(projectId, timeFrom, timeTo));
+            return result.ConvertIntToExt();
         }
-        await Task.Delay(1);
-        
-        return result;
     }
 
     #endregion

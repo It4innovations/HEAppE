@@ -196,5 +196,5 @@ public interface IManagementService
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
 
-    Task<StatusExt> Status(int projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
+    Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 }

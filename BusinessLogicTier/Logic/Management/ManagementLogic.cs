@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Transactions;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
@@ -2206,6 +2207,90 @@ public class ManagementLogic : IManagementLogic
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         return project.AccountingStates.ToList();
+    }
+
+    public async Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
+    {
+        await Task.Delay(1);
+
+        var result = new Status()
+        {
+            ProjectId = projectId,
+            TimeFrom = timeFrom,
+            TimeTo = timeTo,
+            Statistics = new Status.Statistics_
+            {
+                TotalChecks = 42,
+                VaultCredential = new Status.VaultCredentialCounts_()
+                {
+                    OkCount = 40,
+                    FailCount = 2
+                },
+                ClusterConnection = new Status.ClusterConnectionCounts_()
+                {
+                    OkCount = 39,
+                    FailCount = 3
+                },
+                DryRunJob = new Status.ClusterConnectionCounts_()
+                {
+                    OkCount = 38,
+                    FailCount = 4
+                }
+            },
+            Details = new[]
+            {
+                new Status.Detail_
+                {
+                    CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+                    ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
+                    {
+                        Id = 1,
+                        Username = "projA",
+                    },
+                    VaultCredential = new Status.VaultCredentialCounts_()
+                    {
+                        OkCount = 10,
+                        FailCount = 2
+                    },
+                    ClusterConnection = new Status.ClusterConnectionCounts_()
+                    {
+                        OkCount = 10,
+                        FailCount = 2
+                    },
+                    DryRunJob = new Status.DryRunJobCounts_()
+                    {
+                        OkCount = 3,
+                        FailCount = 4
+                    }
+                },
+                new Status.Detail_
+                {
+                    CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+                    ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
+                    {
+                        Id = 2,
+                        Username = "projB",
+                    },
+                    VaultCredential = new Status.VaultCredentialCounts_()
+                    {
+                        OkCount = 10,
+                        FailCount = 2
+                    },
+                    ClusterConnection = new Status.ClusterConnectionCounts_()
+                    {
+                        OkCount = 10,
+                        FailCount = 2
+                    },
+                    DryRunJob = new Status.DryRunJobCounts_()
+                    {
+                        OkCount = 3,
+                        FailCount = 4
+                    }
+                }
+            }
+        };
+
+        return result;
     }
 
     #endregion

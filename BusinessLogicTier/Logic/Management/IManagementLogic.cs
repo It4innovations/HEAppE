@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -169,4 +170,6 @@ public interface IManagementLogic
 
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
     List<AccountingState> ListAccountingStates(long projectId);
+
+    Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
 }

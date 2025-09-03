@@ -1,17 +1,16 @@
-﻿using HEAppE.ExtModels.JobManagement.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
-namespace HEAppE.ExtModels.Management.Models;
+namespace HEAppE.DomainObjects.Management;
 
 /// <summary>
-/// Instance status information ext
+/// Instance status information
 /// </summary>
-[DataContract(Name = "StatusExt")]
-[Description("Instance status information ext")]
-public class StatusExt
+[DataContract(Name = "Status")]
+[Description("Instance status information")]
+public class Status
 {
     #region Properties
     /// <summary>
@@ -40,14 +39,14 @@ public class StatusExt
     /// </summary>
     [DataMember(Name = "Statistics")]
     [Description("Statistics")]
-    public StatisticsExt_ Statistics { get; set; }
+    public Statistics_ Statistics { get; set; }
 
     /// <summary>
     /// Details
     /// </summary>
     [DataMember(Name = "Details")]
     [Description("Details")]
-    public IEnumerable<DetailExt_> Details { get; set; }
+    public IEnumerable<Detail_> Details { get; set; }
 
     #endregion
 
@@ -59,14 +58,14 @@ public class StatusExt
     /// <returns></returns>
     public override string ToString()
     {
-        return $"StatusExt: ProjectId={ProjectId}, TimeFrom={TimeFrom}, TimeTo={TimeTo}, ...";
+        return $"Status: ProjectId={ProjectId}, TimeFrom={TimeFrom}, TimeTo={TimeTo}, ...";
     }
 
     #endregion
 
     #region Internal classes
 
-    public class StatisticsExt_
+    public class Statistics_
     {
 
         #region Properties
@@ -82,21 +81,21 @@ public class StatusExt
         /// </summary>
         [DataMember(Name = "VaultCredential")]
         [Description("VaultCredential")]
-        public VaultCredentialCountsExt_ VaultCredential { get; set; }
+        public VaultCredentialCounts_ VaultCredential { get; set; }
 
         /// <summary>
         /// ClusterConnection
         /// </summary>
         [DataMember(Name = "ClusterConnection")]
         [Description("ClusterConnection")]
-        public ClusterConnectionCountsExt_ ClusterConnection { get; set; }
+        public ClusterConnectionCounts_ ClusterConnection { get; set; }
 
         /// <summary>
         /// DryRunJob
         /// </summary>
         [DataMember(Name = "DryRunJob")]
         [Description("DryRunJob")]
-        public ClusterConnectionCountsExt_ DryRunJob { get; set; }
+        public ClusterConnectionCounts_ DryRunJob { get; set; }
 
         #endregion
 
@@ -108,14 +107,14 @@ public class StatusExt
         /// <returns></returns>
         public override string ToString()
         {
-            return $"StatisticsExt_: TotalChecks={TotalChecks}, VaultCredential={VaultCredential}, ClusterConnection={ClusterConnection},DryRunJob={DryRunJob}";
+            return $"Statistics_: TotalChecks={TotalChecks}, VaultCredential={VaultCredential}, ClusterConnection={ClusterConnection},DryRunJob={DryRunJob}";
         }
 
         #endregion
 
     }
 
-    public abstract class OkFailCountsExt_
+    public abstract class OkFailCounts_
     {
         /// <summary>
         /// OkCount
@@ -137,14 +136,14 @@ public class StatusExt
         /// <returns></returns>
         public override string ToString()
         {
-            return $"StatusExt: OkCount={OkCount}, FailCount={FailCount}";
+            return $"Status: OkCount={OkCount}, FailCount={FailCount}";
         }
     }
-    public class VaultCredentialCountsExt_ : OkFailCountsExt_;
-    public class ClusterConnectionCountsExt_ : OkFailCountsExt_;
-    public class DryRunJobCountsExt_ : OkFailCountsExt_;
+    public class VaultCredentialCounts_ : OkFailCounts_;
+    public class ClusterConnectionCounts_ : OkFailCounts_;
+    public class DryRunJobCounts_ : OkFailCounts_;
 
-    public class DetailExt_
+    public class Detail_
     {
         /// <summary>
         /// CheckTimestamp
@@ -158,30 +157,30 @@ public class StatusExt
         /// </summary>
         [DataMember(Name = "ClusterAuthenticationCredential")]
         [Description("ClusterAuthenticationCredential")]
-        public ClusterAuthenticationCredentialExt_ ClusterAuthenticationCredential { get; set; }
+        public ClusterAuthenticationCredential_ ClusterAuthenticationCredential { get; set; }
 
         /// <summary>
         /// VaultCredential
         /// </summary>
         [DataMember(Name = "VaultCredential")]
         [Description("VaultCredential")]
-        public VaultCredentialCountsExt_ VaultCredential { get; set; }
+        public VaultCredentialCounts_ VaultCredential { get; set; }
 
         /// <summary>
         /// ClusterConnection
         /// </summary>
         [DataMember(Name = "ClusterConnection")]
         [Description("ClusterConnection")]
-        public ClusterConnectionCountsExt_ ClusterConnection { get; set; }
+        public ClusterConnectionCounts_ ClusterConnection { get; set; }
 
         /// <summary>
         /// ClusterConnection
         /// </summary>
         [DataMember(Name = "DryRunJob")]
         [Description("DryRunJob")]
-        public DryRunJobCountsExt_ DryRunJob { get; set; }
+        public DryRunJobCounts_ DryRunJob { get; set; }
 
-        public class ClusterAuthenticationCredentialExt_
+        public class ClusterAuthenticationCredential_
         {
             /// <summary>
             /// Id

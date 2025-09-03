@@ -2190,7 +2190,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public async Task<IActionResult> Status(int projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    public async Task<IActionResult> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
         return Ok(await _managementService.Status(projectId, timeFrom, timeTo, sessionCode));

@@ -6,6 +6,7 @@ using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.Management;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Models;
@@ -355,6 +356,64 @@ public static class JobManagementConverts
     public static TaskPriorityExt ConvertIntToExt(this TaskPriority taskPriority)
     {
         _ = Enum.TryParse(taskPriority.ToString(), out TaskPriorityExt convert);
+        return convert;
+    }
+
+    public static StatusExt ConvertIntToExt(this Status status)
+    {
+        var convert = new StatusExt()
+        {
+            ProjectId = status.ProjectId,
+            TimeFrom = status.TimeFrom,
+            TimeTo = status.TimeTo,
+            Statistics = new StatusExt.StatisticsExt_
+            {
+                TotalChecks = status.Statistics.TotalChecks,
+                VaultCredential = new StatusExt.VaultCredentialCountsExt_()
+                {
+                    OkCount = status.Statistics.VaultCredential.OkCount,
+                    FailCount = status.Statistics.VaultCredential.FailCount
+                },
+                ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
+                {
+                    OkCount = status.Statistics.ClusterConnection.OkCount,
+                    FailCount = status.Statistics.ClusterConnection.FailCount
+                },
+                DryRunJob = new StatusExt.ClusterConnectionCountsExt_()
+                {
+                    OkCount = status.Statistics.DryRunJob.OkCount,
+                    FailCount = status.Statistics.DryRunJob.FailCount
+                }
+            },
+            Details = new List<StatusExt.DetailExt_>()
+        };
+
+        foreach (var detail in status.Details)
+            convert.Details.Append(new StatusExt.DetailExt_()
+            {
+                CheckTimestamp = detail.CheckTimestamp,
+                ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
+                {
+                    Id = detail.ClusterAuthenticationCredential.Id,
+                    Username = detail.ClusterAuthenticationCredential.Username,
+                },
+                VaultCredential = new StatusExt.VaultCredentialCountsExt_()
+                {
+                    OkCount = detail.VaultCredential.OkCount,
+                    FailCount = detail.VaultCredential.FailCount
+                },
+                ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
+                {
+                    OkCount = detail.ClusterConnection.OkCount,
+                    FailCount = detail.ClusterConnection.FailCount
+                },
+                DryRunJob = new StatusExt.DryRunJobCountsExt_()
+                {
+                    OkCount = detail.DryRunJob.OkCount,
+                    FailCount = detail.DryRunJob.FailCount
+                }
+            });
+
         return convert;
     }
 
