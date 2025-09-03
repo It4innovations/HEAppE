@@ -463,8 +463,11 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId)
     {
-        return _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
                ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+        return projectAssignmentToCluster.IsDeleted ?
+            throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId) :
+            projectAssignmentToCluster;
     }
 
     /// <summary>
