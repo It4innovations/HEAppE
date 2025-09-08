@@ -112,6 +112,16 @@ public class Status
 
         #endregion
 
+        #region Methods
+
+        public void Add(Detail_ detail)
+        {
+            VaultCredential.Add(detail.VaultCredential);
+            ClusterConnection.Add(detail.ClusterConnection);
+            DryRunJob.Add(detail.DryRunJob);
+        }
+        
+        #endregion
     }
 
     public abstract class OkFailCounts_
@@ -137,6 +147,12 @@ public class Status
         public override string ToString()
         {
             return $"Status: OkCount={OkCount}, FailCount={FailCount}";
+        }
+
+        public void Add(OkFailCounts_ other)
+        {
+            OkCount += other.OkCount;
+            FailCount += other.FailCount;
         }
     }
     public class VaultCredentialCounts_ : OkFailCounts_;

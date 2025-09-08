@@ -171,5 +171,7 @@ public interface IManagementLogic
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
     List<AccountingState> ListAccountingStates(long projectId);
 
+    object CheckClusteProjectCredential(ClusterProjectCredential obj);
+
     Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
 }

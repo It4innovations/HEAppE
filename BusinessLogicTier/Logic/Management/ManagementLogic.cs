@@ -2209,85 +2209,101 @@ public class ManagementLogic : IManagementLogic
         return project.AccountingStates.ToList();
     }
 
+    public object CheckClusteProjectCredential(ClusterProjectCredential obj)
+    {
+        return new {
+            result = false
+        };
+    }
+
     public async Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
     {
         await Task.Delay(1);
+
+        var statistics = new Status.Statistics_
+        {
+            TotalChecks = 0,
+            VaultCredential = new Status.VaultCredentialCounts_()
+            {
+                OkCount = 0,
+                FailCount = 0
+            },
+            ClusterConnection = new Status.ClusterConnectionCounts_()
+            {
+                OkCount = 0,
+                FailCount = 0
+            },
+            DryRunJob = new Status.ClusterConnectionCounts_()
+            {
+                OkCount = 0,
+                FailCount = 0
+            }
+        };
+
+        var details = new List<Status.Detail_>();
+        Status.Detail_ detail;
+
+        detail = new()
+        {
+            CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+            ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
+            {
+                Id = 1,
+                Username = "projA",
+            },
+            VaultCredential = new Status.VaultCredentialCounts_()
+            {
+                OkCount = 12,
+                FailCount = 1
+            },
+            ClusterConnection = new Status.ClusterConnectionCounts_()
+            {
+                OkCount = 34,
+                FailCount = 2
+            },
+            DryRunJob = new Status.DryRunJobCounts_()
+            {
+                OkCount = 56,
+                FailCount = 3
+            }
+        };
+        details.Add(detail);
+        statistics.Add(detail);
+
+        detail = new()
+        {
+            CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+            ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
+            {
+                Id = 2,
+                Username = "projB",
+            },
+            VaultCredential = new Status.VaultCredentialCounts_()
+            {
+                OkCount = 21,
+                FailCount = 4
+            },
+            ClusterConnection = new Status.ClusterConnectionCounts_()
+            {
+                OkCount = 43,
+                FailCount = 5
+            },
+            DryRunJob = new Status.DryRunJobCounts_()
+            {
+                OkCount = 65,
+                FailCount = 6
+            }
+        };
+        details.Add(detail);
+        statistics.Add(detail);
 
         var result = new Status()
         {
             ProjectId = projectId,
             TimeFrom = timeFrom,
             TimeTo = timeTo,
-            Statistics = new Status.Statistics_
-            {
-                TotalChecks = 42,
-                VaultCredential = new Status.VaultCredentialCounts_()
-                {
-                    OkCount = 40,
-                    FailCount = 2
-                },
-                ClusterConnection = new Status.ClusterConnectionCounts_()
-                {
-                    OkCount = 39,
-                    FailCount = 3
-                },
-                DryRunJob = new Status.ClusterConnectionCounts_()
-                {
-                    OkCount = 38,
-                    FailCount = 4
-                }
-            },
-            Details = new[]
-            {
-                new Status.Detail_
-                {
-                    CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-                    ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
-                    {
-                        Id = 1,
-                        Username = "projA",
-                    },
-                    VaultCredential = new Status.VaultCredentialCounts_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    ClusterConnection = new Status.ClusterConnectionCounts_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    DryRunJob = new Status.DryRunJobCounts_()
-                    {
-                        OkCount = 3,
-                        FailCount = 4
-                    }
-                },
-                new Status.Detail_
-                {
-                    CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-                    ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
-                    {
-                        Id = 2,
-                        Username = "projB",
-                    },
-                    VaultCredential = new Status.VaultCredentialCounts_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    ClusterConnection = new Status.ClusterConnectionCounts_()
-                    {
-                        OkCount = 10,
-                        FailCount = 2
-                    },
-                    DryRunJob = new Status.DryRunJobCounts_()
-                    {
-                        OkCount = 3,
-                        FailCount = 4
-                    }
-                }
-            }
+            Statistics = statistics,
+            Details = details
         };
 
         return result;

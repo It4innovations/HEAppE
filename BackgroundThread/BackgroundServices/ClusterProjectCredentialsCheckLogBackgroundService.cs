@@ -30,6 +30,17 @@ internal class ClusterProjectCredentialsCheckLog : BackgroundService
             {
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
                 //LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).UpdateCurrentStateOfUnfinishedJobs();
+
+                //LogicFactory.GetLogicFactory().CreateJobManagementLogic().
+                //unitOfWork.CommandTemplateRepository
+
+                //Try to submit them again
+                /*
+                foreach (var job in allWaitingJobs)
+                {
+                    _log.Info($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
+                    LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).SubmitJob(job.Id, job.Submitter);
+                }*/
             }
             catch (Exception ex)
             {
