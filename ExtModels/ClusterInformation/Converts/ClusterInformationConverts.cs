@@ -39,6 +39,7 @@ public static class ClusterInformationConverts
             Id = cluster.Id,
             Name = cluster.Name,
             Description = cluster.Description,
+            FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray()
         };
@@ -60,6 +61,7 @@ public static class ClusterInformationConverts
             DomainName = cluster.DomainName,
             UpdateJobStateByServiceAccount = cluster.UpdateJobStateByServiceAccount??false,
             ProxyConnection = cluster.ProxyConnection?.ConvertIntToExt(),
+            FileTransferMethodIds = cluster.FileTransferMethods.Select(x => x.Id).ToList(),
             NodeTypes = cluster.NodeTypes.Select(s => s.ConvertIntToExt(projects, onlyActive))
                 .ToArray()
         };
@@ -95,7 +97,7 @@ public static class ClusterInformationConverts
         var projectExts = new List<ProjectExt>();
         if (nodeType.Cluster != null)
         {
-            var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => x.Project != null && projects.Any(y=> y.Id == x.ProjectId)).Select(x => x.Project)
+            var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => !x.IsDeleted && x.Project != null && projects.Any(y=> y.Id == x.ProjectId)).Select(x => x.Project)
                 .ToList();
             if (onlyActive)
             {

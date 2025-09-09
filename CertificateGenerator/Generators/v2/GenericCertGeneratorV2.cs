@@ -62,20 +62,27 @@ public abstract class GenericCertGeneratorV2
 
     public static string ToPublicKeyInPEMFromPrivateKey(string privateKey, string passphrase)
     {
-        using var fileStream = new StringReader(privateKey);
-        var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
-        var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
-        var publicKey = keyPair.Public;
-        var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
-        using (var stringWriter = new StringWriter())
+        try
         {
-            using (var w = new PemWriter(stringWriter))
+            using var fileStream = new StringReader(privateKey);
+            var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
+            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
+            var publicKey = keyPair.Public;
+            var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+            using (var stringWriter = new StringWriter())
             {
-                w.WriteObject(new PemObject("OPENSSH PUBLIC KEY", publicKeyBytes));
-            }
+                using (var w = new PemWriter(stringWriter))
+                {
+                    w.WriteObject(new PemObject("OPENSSH PUBLIC KEY", publicKeyBytes));
+                }
 
-            return stringWriter.ToString();
+                return stringWriter.ToString();
+            }
+        }catch(Exception e)
+        {
+            return null;
         }
+        
     }
 
     /// <summary>

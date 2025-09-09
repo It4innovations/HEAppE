@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 
 namespace HEAppE.ExtModels.ClusterInformation.Models;
@@ -30,6 +31,13 @@ public class ClusterExt
     [DataMember(Name = "Description")]
     [Description("Description")]
     public string Description { get; set; }
+    
+    /// <summary>
+    /// File transfer id
+    /// </summary>
+    [DataMember(Name = "FileTransferMethodIds")]
+    [Description("File transfer ids")]
+    public List<long> FileTransferMethodIds { get; set; }
 
     /// <summary>
     /// Array of node types

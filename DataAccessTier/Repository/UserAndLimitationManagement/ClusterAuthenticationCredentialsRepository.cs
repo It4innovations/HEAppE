@@ -128,20 +128,20 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return WithVaultData(cred);
     }
 
-    public IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint,
+    public IEnumerable<ClusterAuthenticationCredentials> GetAllClusterAutneticationCredentialsWithFingerprint(string fingerprint,
         long projectId)
     {
         var credentials = _context.ClusterAuthenticationCredentials
-            .Where(x => x.IsGenerated && x.PublicKeyFingerprint == fingerprint &&
+            .Where(x => x.PublicKeyFingerprint == fingerprint &&
                         x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
         return WithVaultData(credentials);
     }
 
-    public IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId)
+    public IEnumerable<ClusterAuthenticationCredentials> GetAllClusterAuthenticationCredentials(long projectId)
     {
         var credentials = _context.ClusterAuthenticationCredentials
-            .Where(x => x.IsGenerated && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
+            .Where(x => x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
         return WithVaultData(credentials);
     }

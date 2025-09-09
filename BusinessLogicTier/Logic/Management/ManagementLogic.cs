@@ -447,8 +447,12 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId)
     {
-        return _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-               ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
+                                         ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+        return projectAssignmentToCluster.IsDeleted ?
+            throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId) :
+            projectAssignmentToCluster;
+
     }
 
     /// <summary>
@@ -562,7 +566,7 @@ public class ManagementLogic : IManagementLogic
     public List<SecureShellKey> GetSecureShellKeys(long projectId)
     {
         return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId)
-            .Where(x => !x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
+            .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
             .ToList();
@@ -696,7 +700,7 @@ public class ManagementLogic : IManagementLogic
     {
         var publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
         var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
+            .GetAllClusterAutneticationCredentialsWithFingerprint(publicKeyFingerprint, projectId)
             .ToList();
         if (!clusterAuthenticationCredentials.Any())
             throw new RequestedObjectDoesNotExistException("PublicKeyNotFound");
@@ -740,7 +744,7 @@ public class ManagementLogic : IManagementLogic
     {
         var publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
         var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
+            .GetAllClusterAutneticationCredentialsWithFingerprint(publicKeyFingerprint, projectId)
             .ToList();
 
         if (!clusterAuthenticationCredentials.Any())
@@ -832,7 +836,7 @@ public class ManagementLogic : IManagementLogic
     public bool TestClusterAccessForAccount(long projectId, string username)
     {
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
+            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllClusterAuthenticationCredentials(projectId).ToList()
             : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(w =>
                 w.Username == username &&
                 w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
