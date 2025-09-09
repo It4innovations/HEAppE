@@ -174,4 +174,6 @@ public interface IManagementLogic
     object CheckClusteProjectCredential(ClusterProjectCredential obj);
 
     Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
+
+    void DoSomething();
 }

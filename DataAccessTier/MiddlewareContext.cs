@@ -640,6 +640,8 @@ internal class MiddlewareContext : DbContext
     public virtual DbSet<SubProject> SubProjects { get; set; }
     public virtual DbSet<Contact> Contacts { get; set; }
     public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
+    public virtual DbSet<ClusterProjectCredential> ClusterProjectCredentials { get; set; }
+    public virtual DbSet<ClusterProjectCredentialCheckLog> ClusterProjectCredentialsCheckLog { get; set; }
 
     #endregion
 

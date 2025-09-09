@@ -12,12 +12,12 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 /// <summary>
 ///     ClusterProjectCredentialsCheckLog
 /// </summary>
-internal class ClusterProjectCredentialsCheckLog : BackgroundService
+internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IntervalMinutes);
     protected readonly ILog _log;
 
-    public ClusterProjectCredentialsCheckLog()
+    public ClusterProjectCredentialsCheckLogBackgroundService()
     {
         _log = LogManager.GetLogger(GetType());
     }
@@ -29,6 +29,12 @@ internal class ClusterProjectCredentialsCheckLog : BackgroundService
             try
             {
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+
+
+                LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork).DoSomething();
+
+                unitOfWork.Save();
+                //unitOfWork.ClusterProjectRepository
                 //LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).UpdateCurrentStateOfUnfinishedJobs();
 
                 //LogicFactory.GetLogicFactory().CreateJobManagementLogic().

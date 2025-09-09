@@ -1,12 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Globalization;
-using System.IO;
-using System.Linq;
-using System.Reflection;
-using System.Text.RegularExpressions;
-using System.Threading.Tasks;
-using System.Transactions;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -25,7 +16,17 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
 using log4net;
+using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Security;
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.IO;
+using System.Linq;
+using System.Reflection;
+using System.Text.RegularExpressions;
+using System.Threading.Tasks;
+using System.Transactions;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
 
@@ -2220,8 +2221,7 @@ public class ManagementLogic : IManagementLogic
     {
         await Task.Delay(1);
 
-        var statistics = new Status.Statistics_
-        {
+        var statistics = new Status.Statistics_() {
             TotalChecks = 0,
             VaultCredential = new Status.VaultCredentialCounts_()
             {
@@ -2242,6 +2242,24 @@ public class ManagementLogic : IManagementLogic
 
         var details = new List<Status.Detail_>();
         Status.Detail_ detail;
+
+        /*
+        var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectsForProject(projectId);
+        foreach (var clusterProject in clusterProjects)
+            foreach (var clusterProjectCredential in clusterProject.ClusterProjectCredentials)
+            {
+                foreach (var checkLog in clusterProjectCredential.ClusterProjectCredentialsCheckLog)
+                {
+                    //clusterProjectCredential.ClusterAuthenticationCredentials.Id
+                    //checkLog.ClusterAuthenticationCredentialsId
+                }
+            }
+        */
+
+        var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
+        //var x1 = (from l in logs select);
+        var byAuthCred = logs.GroupBy(l => l.ClusterAuthenticationCredentialsId);
+
 
         detail = new()
         {
@@ -2307,6 +2325,10 @@ public class ManagementLogic : IManagementLogic
         };
 
         return result;
+    }
+    public void DoSomething()
+    {
+        _unitOfWork.ClusterProjectRepository.DoSomething();
     }
 
     #endregion
