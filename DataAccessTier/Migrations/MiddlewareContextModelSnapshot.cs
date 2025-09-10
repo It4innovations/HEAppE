@@ -17,7 +17,7 @@ namespace HEAppE.DataAccessTier.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.19")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Proxies:ChangeTracking", false)
                 .HasAnnotation("Proxies:CheckEquality", false)
                 .HasAnnotation("Proxies:LazyLoading", true)
@@ -467,10 +467,16 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long>("ClusterAuthenticationCredentialsId")
                         .HasColumnType("bigint");
 
+                    b.Property<long?>("AdaptorUserId")
+                        .HasColumnType("bigint");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsInitialized")
                         .HasColumnType("bit");
 
                     b.Property<bool>("IsServiceAccount")
@@ -480,6 +486,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("ClusterProjectId", "ClusterAuthenticationCredentialsId");
+
+                    b.HasIndex("AdaptorUserId");
 
                     b.HasIndex("ClusterAuthenticationCredentialsId");
 
@@ -866,6 +874,10 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<long?>("ProjectId")
                         .HasColumnType("bigint");
 
+                    b.Property<string>("Reason")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<string>("ScheduledJobId")
                         .HasColumnType("nvarchar(max)");
 
@@ -994,6 +1006,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<bool>("IsDeleted")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsOneToOneMapping")
                         .HasColumnType("bit");
 
                     b.Property<DateTime?>("ModifiedAt")
@@ -1728,6 +1743,10 @@ namespace HEAppE.DataAccessTier.Migrations
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredential", b =>
                 {
+                    b.HasOne("HEAppE.DomainObjects.UserAndLimitationManagement.AdaptorUser", "AdaptorUser")
+                        .WithMany()
+                        .HasForeignKey("AdaptorUserId");
+
                     b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterAuthenticationCredentials", "ClusterAuthenticationCredentials")
                         .WithMany("ClusterProjectCredentials")
                         .HasForeignKey("ClusterAuthenticationCredentialsId")
@@ -1739,6 +1758,8 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasForeignKey("ClusterProjectId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+
+                    b.Navigation("AdaptorUser");
 
                     b.Navigation("ClusterAuthenticationCredentials");
 

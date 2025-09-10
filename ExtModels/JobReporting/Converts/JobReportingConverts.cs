@@ -246,7 +246,7 @@ public static class JobReportingConverts
             Id = report.Cluster.Id,
             Name = report.Cluster.Name,
             TotalUsage = report.TotalUsage,
-            ClusterNodeTypesAggregations = report.ClusterNodeTypesAggregations.Select(x => x.ConvertIntToExt()).ToList()
+            ClusterNodeTypesAggregations = report.ClusterNodeTypesAggregations.Where(y=> y.ClusterNodeTypeAggregation != null).Select(x => x.ConvertIntToExt()).ToList()
         };
 
         return convert;

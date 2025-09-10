@@ -55,6 +55,12 @@ internal static class SshCommandUtils
                 throw new InputValidationException("NoFileOrDirectory");
             }
 
+            if (sshCommand.Error.Contains("GIT CLONE ERROR"))
+            {
+                _log.Warn($"SSH command error (git clone). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");
+                throw new InputValidationException("GitCloneCommandError");
+            }
+
             _log.Error($"SSH command failed. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}, Command: {sshCommand.CommandText}, Duration: {duration.TotalMilliseconds}ms");
             throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
         }

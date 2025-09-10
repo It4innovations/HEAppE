@@ -1,6 +1,8 @@
 ﻿using System;
 using System.IO;
+using HEAppE.Exceptions.Internal;
 using Org.BouncyCastle.Crypto;
+using Org.BouncyCastle.Crypto.Parameters;
 using Org.BouncyCastle.Crypto.Utilities;
 using Org.BouncyCastle.Utilities.IO.Pem;
 using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
@@ -62,27 +64,21 @@ public abstract class GenericCertGeneratorV2
 
     public static string ToPublicKeyInPEMFromPrivateKey(string privateKey, string passphrase)
     {
-        try
-        {
-            using var fileStream = new StringReader(privateKey);
-            var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
-            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
-            var publicKey = keyPair.Public;
-            var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
-            using (var stringWriter = new StringWriter())
-            {
-                using (var w = new PemWriter(stringWriter))
-                {
-                    w.WriteObject(new PemObject("OPENSSH PUBLIC KEY", publicKeyBytes));
-                }
+        using var fileStream = new StringReader(privateKey);
+        var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
+        var keyObject = pemReader.ReadObject();
 
-                return stringWriter.ToString();
-            }
-        }catch(Exception e)
+        if (keyObject is AsymmetricCipherKeyPair keyPair)
         {
-            return null;
+            return ConvertToPublicPEM(keyPair.Public);
         }
-        
+        else if (keyObject is AsymmetricKeyParameter privateKeyParam)
+        {
+            var publicKey = ((Ed25519PrivateKeyParameters)privateKeyParam).GeneratePublicKey();
+            return ConvertToPublicPEM(publicKey);
+        }
+
+        throw new SshClientArgumentException("UnknownPrivateKeyException");
     }
 
     /// <summary>
@@ -97,6 +93,19 @@ public abstract class GenericCertGeneratorV2
     /// <param name="fingerprintAlgorithm"></param>
     /// <returns></returns>
     public abstract string GetPublicKeyFingerprint();
+
+    #endregion
+
+    #region Private methods
+
+    private static string ConvertToPublicPEM(AsymmetricKeyParameter publicKey)
+    {
+        using var stringWriter = new StringWriter();
+        using var pemWriter = new PemWriter(stringWriter);
+        var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+        pemWriter.WriteObject(new PemObject("OPENSSH PUBLIC KEY", publicKeyBytes));
+        return stringWriter.ToString();
+    }
 
     #endregion
 }

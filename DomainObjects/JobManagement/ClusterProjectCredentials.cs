@@ -2,6 +2,7 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 
 namespace HEAppE.DomainObjects.JobManagement;
 
@@ -22,10 +23,15 @@ public class ClusterProjectCredential : ISoftDeletableEntity
 
     [Required] public bool IsDeleted { get; set; } = false;
 
+    public long? AdaptorUserId { get; set; }
+
+    public virtual AdaptorUser AdaptorUser { get; set; }
+
+    public bool IsInitialized { get; set; }
 
     public override string ToString()
     {
         return
-            $"""ClusterProjectCredentials: ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, IsServiceAccount={IsServiceAccount}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
+            $"""ClusterProjectCredentials: ClusterProject={ClusterProject}, ClusterAuthenticationCredentials={ClusterAuthenticationCredentials}, IsServiceAccount={IsServiceAccount}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}, AdaptorUserId={AdaptorUserId}, IsInitialized={IsInitialized}""";
     }
 }

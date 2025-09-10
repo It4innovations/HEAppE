@@ -51,6 +51,8 @@ public static class ManagementConverts
                 return FileTransferCipherTypeExt.nistP256;
             case FileTransferCipherType.nistP521:
                 return FileTransferCipherTypeExt.nistP521;
+            case FileTransferCipherType.Ed25519:
+                return FileTransferCipherTypeExt.Ed25519;
             case FileTransferCipherType.Unknown:
                 return FileTransferCipherTypeExt.None;
             default:
@@ -76,6 +78,16 @@ public static class ManagementConverts
         {
             ClusterName = report.Cluster.Name,
             IsClusterInitialized = report.IsClusterInitialized
+        };
+        return convert;
+    }
+    
+    public static ClusterAccessReportExt ConvertIntToExt(this ClusterAccessReport report)
+    {
+        var convert = new ClusterAccessReportExt
+        {
+            ClusterName = report.Cluster.Name,
+            IsClusterAccessible = report.IsClusterAccessible
         };
         return convert;
     }

@@ -5,6 +5,31 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## V5.1.0
+
+### Changed
+- Enhanced logging in `DataTransfer` endpoints
+- Redefined `Job Execution` and `Job Log Archive path` (dedicated to specific HEAppE instance and cluster user)
+- Redefined path to `cluster scripts` and setup for each `ClusterAuthenticationCredential` and `Project`
+- `Management/InitializeClusterScriptDirectory` body and business logic
+- Response structure of the `TestClusterAccessForAccount` (added info/check about specific access to the cluster)
+
+### Added
+- 1:1 user mapping to SSH key at `Project` level
+- Possibility to send `application/json` payload with `HttpPostToJobNode`
+- Support for the `EdDSA - ED25519` SSH key pair generation
+- Options `ConnectionRetryAttempts` and `ConnectionTimeout` for SSH client component are now configurable from `appsettings.json`
+- API HTTP Request logging with payload (redacted output on `Sensitive data`)
+- `Reason` attribute propagation from the HPC job (in the HEAppE Task)
+- `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
+- Endpoints for bulk listing of `ClusterNodeTypes`, `FileTransferMethods`, `Projects`, `ClusterNodeTypeAggregationAccountings`
+
+### Fixed
+- `External UsageType` model conversion to `Internal UsageType` model (enum)
+- Fixed wrong error messages for CommandTemplateParameters methods in ManagementService
+- Typo in TaskParallelizationParameters in the `HEAppE Task` specificaton in `CreateJob` endpoint
+
 ## V5.0.0
 
 ### Changed

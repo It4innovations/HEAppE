@@ -1,6 +1,3 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -21,6 +18,9 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -342,7 +342,7 @@ public class ManagementController : BaseController<ManagementController>
     #region CommandTemplateParameter
 
     /// <summary>
-    ///     Get CommandTemplateParameter by id
+    ///     Get Command Template Parameter by id
     /// </summary>
     /// <param name="id"></param>
     /// <param name="sessionCode"></param>
@@ -364,7 +364,7 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
-    ///     Create Static Command Template
+    ///     Create a new Command Template Parameter
     /// </summary>
     /// <param name="model">CreateCommandTemplateModel</param>
     /// <returns></returns>
@@ -388,7 +388,7 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
-    ///     Modify Static Command Template
+    ///     Modify an existing Command Template Parameter
     /// </summary>
     /// <param name="model">ModifyCommandTemplateParameterModel</param>
     /// <returns></returns>
@@ -413,7 +413,7 @@ public class ManagementController : BaseController<ManagementController>
 
 
     /// <summary>
-    ///     Remove Static Command Template
+    ///     Remove an existing Command Template Parameter
     /// </summary>
     /// <param name="model">RemoveCommandTemplateParameterModel</param>
     /// <returns></returns>
@@ -475,6 +475,29 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
+    ///     List Projects
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("Projects")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ProjectExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListProjects(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Projects\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListProjects(sessionCode));
+    }
+
+    /// <summary>
     ///     Get Project by id
     /// </summary>
     /// <param name="id"></param>
@@ -516,9 +539,11 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var project = _managementService.CreateProject(model.AccountingString, (UsageType)model.UsageType,
-            model.Name,
-            model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler, model.PIEmail,
+        var project = _managementService.CreateProject(model.AccountingString,
+            model.UsageType.HasValue ? model.UsageType.ConvertExtToInt() : UsageType.NodeHours,
+            model.Name, model.Description,
+            model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
+            model.PIEmail, model.IsOneToOneMapping ?? false,
             model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
@@ -546,7 +571,7 @@ public class ManagementController : BaseController<ManagementController>
 
         var project = _managementService.ModifyProject(model.Id, model.UsageType.ConvertExtToInt(), model.Name,
             model.Description, model.StartDate, model.EndDate, model.UseAccountingStringForScheduler,
-            model.SessionCode);
+            model.IsOneToOneMapping ?? false, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(project);
     }
@@ -790,7 +815,6 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get all clusters
     /// </summary>
-    /// <param name="id"></param>
     /// <param name="sessionCode"></param>
     /// <returns></returns>
     [HttpGet("Clusters")]
@@ -812,6 +836,29 @@ public class ManagementController : BaseController<ManagementController>
     #endregion
 
     #region ClusterNodeType
+
+    /// <summary>
+    ///     List ClusterNodeTypes
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("ClusterNodeTypes")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ClusterNodeTypeExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListClusterNodeTypes(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterNodeTypes\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListClusterNodeTypes(sessionCode));
+    }
 
     /// <summary>
     ///     Get ClusterNodeType by id
@@ -1020,10 +1067,54 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("ClusterProxyConnection was deleted.");
     }
+    
+    /// <summary>
+    ///     Get ClusterProxyConnections 
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpGet("ClusterProxyConnections")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ClusterProxyConnectionExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetClusterProxyConnections(string sessionCode)
+    {
+        _logger.LogDebug(
+            $"Endpoint: \"Management\" Method: \"GetClusterProxyConnections\" Parameters: SessionCode: \"{sessionCode}\"");
+
+        var clusterProxyConnection = _managementService.GetClusterProxyConnections(sessionCode);
+        return Ok(clusterProxyConnection);
+    }
 
     #endregion
 
     #region FileTransferMethod
+
+    /// <summary>
+    ///     List FileTransferMethods
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("FileTransferMethods")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<FileTransferMethodNoCredentialsExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListFileTransferMethods(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"FileTransferMethods\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListFileTransferMethods(sessionCode));
+    }
 
     /// <summary>
     ///     Get FileTransferMethod by id
@@ -1255,6 +1346,29 @@ public class ManagementController : BaseController<ManagementController>
     #region ClusterNodeTypeAggregationAccounting
 
     /// <summary>
+    ///     List ClusterNodeTypeAggregationAccountings
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("ClusterNodeTypeAggregationAccountings")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<ClusterNodeTypeAggregationAccountingExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListClusterNodeTypeAggregationAccountings(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterNodeTypeAggregationAccountings\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListClusterNodeTypeAggregationAccountings(sessionCode));
+    }
+
+    /// <summary>
     ///     Get ClusterNodeTypeAggregationAccounting by id
     /// </summary>
     /// <param name="clusterNodeTypeAggregationId"></param>
@@ -1338,6 +1452,29 @@ public class ManagementController : BaseController<ManagementController>
     #endregion
 
     #region Accounting
+
+    /// <summary>
+    ///     List Accountings
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("Accountings")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(List<AccountingExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListAccountings(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Accountings\"");
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_managementService.ListAccountings(sessionCode));
+    }
 
     /// <summary>
     ///     Get Accounting by id
@@ -1743,7 +1880,8 @@ public class ManagementController : BaseController<ManagementController>
     /// <summary>
     ///     Get SSH keys for project
     /// </summary>
-    /// <param name="model"></param>
+    /// <param name="projectId"></param>
+    /// <param name="sessionCode"></param>
     /// <returns></returns>
     [HttpGet("SecureShellKeys")]
     [RequestSizeLimit(1000)]
@@ -1908,7 +2046,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         List<ClusterInitReportExt> report = _managementService.InitializeClusterScriptDirectory(model.ProjectId,
-            model.ClusterProjectRootDirectory, model.SessionCode);
+            model.OverwriteExistingProjectRootDirectory, model.SessionCode, model.Username);
         
         if(report.Any(x=> !x.IsClusterInitialized))
             return BadRequest(report);
@@ -1935,14 +2073,21 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var testClusterAccess =
+        List<ClusterAccessReportExt> report =
             _managementService.TestClusterAccessForAccount(model.ProjectId, model.SessionCode, null);
-        var message = testClusterAccess
-            ? "All clusters assigned to project are accessible with selected account."
-            : "Some of the clusters are not accessible with selected account";
 
-        _logger.LogInformation(message);
-        return testClusterAccess ? Ok(message) : BadRequest(message);
+        if(report.Any(x=> !x.IsClusterAccessible))
+        {
+            var message = "Some of the clusters are not accessible with selected account";
+            _logger.LogWarning(message);
+            return BadRequest(message);
+        }
+        else
+        {
+            var message = "All clusters assigned to project are accessible with selected account.";
+            _logger.LogInformation(message);
+            return Ok(message);
+        }
     }
 
     /// <summary>
@@ -1954,7 +2099,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     [HttpGet("TestClusterAccessForAccount")]
     [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(List<ClusterAccessReportExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
@@ -1972,13 +2117,11 @@ public class ManagementController : BaseController<ManagementController>
         }).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var testClusterAccess = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username);
-        var message = testClusterAccess
-            ? "All clusters assigned to project are accessible with selected account."
-            : "Some of the clusters are not accessible with selected account";
-
-        _logger.LogInformation(message);
-        return testClusterAccess ? Ok(message) : BadRequest(message);
+        List<ClusterAccessReportExt> report = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username);
+        
+        if(report.Any(x=> !x.IsClusterAccessible))
+            return BadRequest(report);
+        return Ok(report);
     }
 
     /// <summary>

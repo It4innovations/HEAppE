@@ -15,11 +15,6 @@ public interface ICommands
     string InterpreterCommand { get; }
 
     /// <summary>
-    ///     Execution command script path
-    /// </summary>
-    string ExecuteCmdScriptPath { get; }
-
-    /// <summary>
     ///     Get generic command templates parameters from script
     /// </summary>
     /// <param name="connectorClient">Connector</param>
@@ -58,7 +53,7 @@ public interface ICommands
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
-    void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys);
+    void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString);
 
     /// <summary>
     ///     Create job directory
@@ -82,10 +77,12 @@ public interface ICommands
     /// </summary>
     /// <param name="schedulerConnectionConnection">Connector</param>
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+    /// <param name="overwriteExistingProjectRootDirectory">Overwrite existing scripts directory</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
-    bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
-        string localBasepath, bool isServiceAccount);
+    /// <param name="account">Cluster username</param>
+    bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory, 
+        bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount);
 
     bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
 }

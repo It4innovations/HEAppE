@@ -80,8 +80,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             var userLogic =
                 LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
             result = await userLogic.AuthenticateUserAsync(credentialsIn);
+            if (!string.IsNullOrEmpty(result))
+            { 
+                _log.Info($"User {credentials.Username} authenticated successfully.");
+            }
         }
-
         return result;
     }
 

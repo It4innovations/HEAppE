@@ -33,8 +33,6 @@ public class DataTransferValidator : AbstractValidator
                 string.IsNullOrEmpty(httpHeader.Name) || string.IsNullOrEmpty(httpHeader.Value)))
             _messageBuilder.AppendLine("HttpHeader cannot be empty");
 
-        if (string.IsNullOrEmpty(model.HttpPayload)) _messageBuilder.AppendLine("HttpPayload must be set");
-
         ValidatePort(model.NodePort);
         ValidateId(model.SubmittedJobInfoId, nameof(model.SubmittedJobInfoId));
 

@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
+﻿using System;
+using HEAppE.DomainObjects.ClusterInformation;
 
 namespace HEAppE.ConnectionPool;
 

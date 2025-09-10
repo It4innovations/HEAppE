@@ -232,7 +232,9 @@ internal class JobManagementValidator : AbstractValidator
                 "User script path parameter, for generic command template, does not have a value.");
 
         var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster,
-            clusterPathToUserScript, task.JobSpecification.ProjectId);
+            clusterPathToUserScript, task.JobSpecification.ProjectId,
+            adaptorUserId: task.JobSpecification.Submitter.Id
+        );
 
         foreach (var parameter in scriptDefinedParametres)
             if (!genericCommandParametres.Select(x => x.Value)
@@ -240,7 +242,7 @@ internal class JobManagementValidator : AbstractValidator
                 _ = _messageBuilder.AppendLine($"Task specification does not contain '{parameter}' parameter.");
     }
 
-    private IEnumerable<string> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath, long projectId)
+    private IEnumerable<string> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath, long projectId, long? adaptorUserId)
     {
         try
         {
@@ -248,8 +250,8 @@ internal class JobManagementValidator : AbstractValidator
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                    projectId);
-            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project)
+                    projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
+            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId)
                 .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
         }
         catch (Exception)

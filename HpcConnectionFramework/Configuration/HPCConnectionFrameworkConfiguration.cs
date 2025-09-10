@@ -28,9 +28,35 @@ public sealed class HPCConnectionFrameworkConfiguration
     public static ClusterConnectionPoolConfiguration ClustersConnectionPoolSettings { get; } = new();
 
     /// <summary>
+    ///     Clusters connection Pool configuration
+    /// </summary>
+    public static SshClientConfiguration SshClientSettings { get; } = new();
+
+    /// <summary>
     ///     Clusters scripts configuration
     /// </summary>
     public static ScriptsConfiguration ScriptsSettings { get; } = new();
 
     #endregion
+
+    /// <summary>
+    /// Return full path to execute command script
+    /// </summary>
+    /// <param name="projectAccountingString"></param>
+    /// <returns></returns>
+    public static string GetExecuteCmdScriptPath(string projectAccountingString)
+    {
+        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/.key_scripts/{HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings.ExecuteCmdScriptName}";
+    }
+
+    /// <summary>
+    /// Return full path to script for project
+    /// </summary>
+    /// <param name="projectAccountingString"></param>
+    /// <param name="scriptName"></param>
+    /// <returns></returns>
+    public static string GetPathToScript(string projectAccountingString, string scriptName)
+    {
+        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/.key_scripts/{scriptName}";
+    }
 }

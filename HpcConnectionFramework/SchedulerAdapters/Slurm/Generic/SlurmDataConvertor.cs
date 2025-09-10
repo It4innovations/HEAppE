@@ -107,6 +107,7 @@ public class SlurmDataConvertor : SchedulerDataConvertor
                     { AllocationNodeId = s, SubmittedTaskInfoId = long.Parse(obj.Name) })
                 .ToList(),
             ErrorMessage = default,
+            Reason = obj.Reason,
             AllParameters = obj.IsJobArrayJob
                 ? obj.AggregateSchedulerResponseParameters
                 : obj.SchedulerResponseParameters,

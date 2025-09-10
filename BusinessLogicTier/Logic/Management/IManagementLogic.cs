@@ -17,29 +17,33 @@ public interface IManagementLogic
         long modelProjectId, long modelClusterNodeTypeId);
 
     CommandTemplate CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
-        string description, string code, string executableFile, string preparationScript);
+        string description, string code, string executableFile, string preparationScript, long? adaptorUserId);
 
     CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription,
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelClusterNodeTypeId, bool modelIsEnabled);
 
     CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
-        string description, string code, string executableFile, string preparationScript);
+        string description, string code, string executableFile, string preparationScript, long? adaptorUserId);
 
     void RemoveCommandTemplate(long commandTemplateId);
+
+    List<Project> ListProjects();
+
     Project GetProjectByAccountingString(string accountingString);
+
     Project GetProjectById(long id);
 
     Project CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail,
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
         AdaptorUser loggedUser);
 
     Project ModifyProject(long id, UsageType usageType, string modelName, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler);
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping);
 
     void RemoveProject(long id);
-    List<SecureShellKey> GetSecureShellKeys(long projectId);
-    List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId);
+    List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId);
+    List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId);
     SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);
     void RemoveSecureShellKey(string publicKey, long projectId);
     SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId);
@@ -48,8 +52,11 @@ public interface IManagementLogic
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
-    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory);
-    bool TestClusterAccessForAccount(long projectId, string username);
+
+    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,
+        long? adaptorUserId, string username);
+    
+    public List<ClusterAccessReport> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
     CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
@@ -82,6 +89,9 @@ public interface IManagementLogic
         string timeZone, int? port, bool updateJobStateByServiceAccount, string domainName, long? proxyConnectionId);
 
     void RemoveCluster(long id);
+
+    List<ClusterNodeType> ListClusterNodeTypes();
+
     ClusterNodeType GetClusterNodeTypeById(long id);
 
     ClusterNodeType CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode,
@@ -94,6 +104,7 @@ public interface IManagementLogic
 
     void RemoveClusterNodeType(long id);
     ClusterProxyConnection GetClusterProxyConnectionById(long id);
+    List<ClusterProxyConnection> GetClusterProxyConnections();
 
     ClusterProxyConnection CreateClusterProxyConnection(string host, int port, string username, string password,
         ProxyType type);
@@ -102,6 +113,9 @@ public interface IManagementLogic
         string password, ProxyType type);
 
     void RemoveClusterProxyConnection(long id);
+
+    List<FileTransferMethod> ListFileTransferMethods();
+
     FileTransferMethod GetFileTransferMethodById(long id);
 
     FileTransferMethod CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId,
@@ -122,6 +136,8 @@ public interface IManagementLogic
 
     void RemoveClusterNodeTypeAggregation(long id);
 
+    List<ClusterNodeTypeAggregationAccounting> ListClusterNodeTypeAggregationAccountings();
+
     ClusterNodeTypeAggregationAccounting GetClusterNodeTypeAggregationAccountingById(long clusterNodeTypeAggregationId,
         long accountingId);
 
@@ -129,9 +145,15 @@ public interface IManagementLogic
         long accountingId);
 
     void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId);
+
+    List<Accounting> ListAccountings();
+
     Accounting GetAccountingById(long id);
+
     Accounting CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo);
+
     Accounting ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo);
+
     void RemoveAccounting(long id);
 
     ProjectClusterNodeTypeAggregation GetProjectClusterNodeTypeAggregationById(long projectId,

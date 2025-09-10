@@ -242,9 +242,6 @@ public class ManagementValidator : AbstractValidator
     {
         var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
-        var validationResult = new PathValidator(ext.ClusterProjectRootDirectory).Validate();
-
-        if (!validationResult.IsValid) _messageBuilder.AppendLine(validationResult.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
         return _messageBuilder.ToString();

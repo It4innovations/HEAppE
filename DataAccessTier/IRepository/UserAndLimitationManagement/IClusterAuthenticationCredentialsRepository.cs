@@ -11,8 +11,8 @@ public interface IClusterAuthenticationCredentialsRepository : IRepository<Clust
     IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForUsernameAndProject(string username,
         long projectId);
 
-    IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId);
-    ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId);
-    IEnumerable<ClusterAuthenticationCredentials> GetAllClusterAutneticationCredentialsWithFingerprint(string fingerprint, long projectId);
-    IEnumerable<ClusterAuthenticationCredentials> GetAllClusterAuthenticationCredentials(long projectId);
+    IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId, bool requireIsInitialized, long? adaptorUserId);
+    ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId);
+    IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint, long projectId);
+    IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId);
 }

@@ -223,7 +223,7 @@ public class JobManagementValidator : AbstractValidator
             }
         }
 
-        if (task.TaskParalizationParameters?.Sum(s => s.MaxCores) > task.MaxCores)
+        if (task.TaskParallelizationParameters?.Sum(s => s.MaxCores) > task.MaxCores)
             _messageBuilder.AppendLine(
                 $"TaskParalizationSpecifications count of maximal cores for task \"{task.Name}\" must be lower or equals to Maximal number of cores in task.");
 
