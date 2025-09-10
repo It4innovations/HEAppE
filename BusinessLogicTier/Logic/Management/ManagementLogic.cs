@@ -2221,99 +2221,60 @@ public class ManagementLogic : IManagementLogic
     {
         await Task.Delay(1);
 
-        var statistics = new Status.Statistics_() {
-            TotalChecks = 0,
+        var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
+
+        var statistics = new Status.Statistics_()
+        {
+            TotalChecks = logs.Count(),
             VaultCredential = new Status.VaultCredentialCounts_()
             {
-                OkCount = 0,
-                FailCount = 0
+                OkCount = logs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == true).Count(),
+                FailCount = logs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == false).Count()
             },
             ClusterConnection = new Status.ClusterConnectionCounts_()
             {
-                OkCount = 0,
-                FailCount = 0
+                OkCount = logs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == true).Count(),
+                FailCount = logs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == false).Count()
             },
             DryRunJob = new Status.ClusterConnectionCounts_()
             {
-                OkCount = 0,
-                FailCount = 0
+                OkCount = logs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == true).Count(),
+                FailCount = logs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == false).Count()
             }
         };
 
         var details = new List<Status.Detail_>();
         Status.Detail_ detail;
-
-        /*
-        var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectsForProject(projectId);
-        foreach (var clusterProject in clusterProjects)
-            foreach (var clusterProjectCredential in clusterProject.ClusterProjectCredentials)
+        foreach (var groupedLogs in logs.GroupBy(l => l.ClusterAuthenticationCredentialsId).ToList())
+        {
+            var clusterAuthenticationCredentials = groupedLogs.First().ClusterProjectCredential.ClusterAuthenticationCredentials;
+            detail = new()
             {
-                foreach (var checkLog in clusterProjectCredential.ClusterProjectCredentialsCheckLog)
+                CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+                ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
                 {
-                    //clusterProjectCredential.ClusterAuthenticationCredentials.Id
-                    //checkLog.ClusterAuthenticationCredentialsId
+                    Id = clusterAuthenticationCredentials.Id,
+                    Username = clusterAuthenticationCredentials.Username,
+                },
+                VaultCredential = new Status.VaultCredentialCounts_()
+                {
+                    OkCount = groupedLogs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == true).Count(),
+                    FailCount = groupedLogs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == false).Count()
+                },
+                ClusterConnection = new Status.ClusterConnectionCounts_()
+                {
+                    OkCount = groupedLogs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == true).Count(),
+                    FailCount = groupedLogs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == false).Count()
+                },
+                DryRunJob = new Status.DryRunJobCounts_()
+                {
+                    OkCount = groupedLogs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == true).Count(),
+                    FailCount = groupedLogs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == false).Count()
                 }
-            }
-        */
-
-        var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
-        //var x1 = (from l in logs select);
-        var byAuthCred = logs.GroupBy(l => l.ClusterAuthenticationCredentialsId);
-
-
-        detail = new()
-        {
-            CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-            ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
-            {
-                Id = 1,
-                Username = "projA",
-            },
-            VaultCredential = new Status.VaultCredentialCounts_()
-            {
-                OkCount = 12,
-                FailCount = 1
-            },
-            ClusterConnection = new Status.ClusterConnectionCounts_()
-            {
-                OkCount = 34,
-                FailCount = 2
-            },
-            DryRunJob = new Status.DryRunJobCounts_()
-            {
-                OkCount = 56,
-                FailCount = 3
-            }
-        };
-        details.Add(detail);
-        statistics.Add(detail);
-
-        detail = new()
-        {
-            CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
-            ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
-            {
-                Id = 2,
-                Username = "projB",
-            },
-            VaultCredential = new Status.VaultCredentialCounts_()
-            {
-                OkCount = 21,
-                FailCount = 4
-            },
-            ClusterConnection = new Status.ClusterConnectionCounts_()
-            {
-                OkCount = 43,
-                FailCount = 5
-            },
-            DryRunJob = new Status.DryRunJobCounts_()
-            {
-                OkCount = 65,
-                FailCount = 6
-            }
-        };
-        details.Add(detail);
-        statistics.Add(detail);
+            };
+            //details.Add(detail);
+            //statistics.Add(detail);
+        }
 
         var result = new Status()
         {

@@ -389,7 +389,7 @@ public static class JobManagementConverts
         };
 
         foreach (var detail in status.Details)
-            convert.Details.Append(new StatusExt.DetailExt_()
+            (convert.Details as List<StatusExt.DetailExt_>).Add(new StatusExt.DetailExt_()
             {
                 CheckTimestamp = detail.CheckTimestamp,
                 ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()

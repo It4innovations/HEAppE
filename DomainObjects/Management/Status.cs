@@ -203,7 +203,7 @@ public class Status
             /// </summary>
             [DataMember(Name = "Id")]
             [Description("Id")]
-            public int Id { get; set; }
+            public long Id { get; set; }
 
             /// <summary>
             /// Username

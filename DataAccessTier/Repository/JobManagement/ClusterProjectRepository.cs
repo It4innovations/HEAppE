@@ -87,7 +87,7 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
 
     public void DoSomething()
     {
-        Junk02();
+        //Junk02();
     }
 
     #endregion
