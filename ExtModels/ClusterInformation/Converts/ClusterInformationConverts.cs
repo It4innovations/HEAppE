@@ -127,6 +127,7 @@ public static class ClusterInformationConverts
             ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
             Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings
                 .Select(s => s.Accounting?.ConvertIntToExt()).ToArray(),
+            ClusterId = nodeType.ClusterId,
             Projects = projectExts.ToArray()
         };
         return convert;
@@ -177,6 +178,7 @@ public static class ClusterInformationConverts
             ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
             Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings
                 .Select(s => s.Accounting?.ConvertIntToExt()).ToArray(),
+            ClusterId = nodeType.ClusterId,
             Projects = projectExts.ToArray()
         };
         return convert;

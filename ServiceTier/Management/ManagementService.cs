@@ -238,6 +238,18 @@ public class ManagementService : IManagementService
             return clusterProject.ConvertIntToExt();
         }
     }
+    
+    public ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterProject = managementLogic.GetProjectAssignmentToClusters(projectId);
+            return clusterProject.Select(x=>x.ConvertIntToExt()).ToArray();
+        }
+    }
 
     public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
         string sessionCode)

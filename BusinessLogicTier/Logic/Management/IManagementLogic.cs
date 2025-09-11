@@ -49,6 +49,7 @@ public interface IManagementLogic
     SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId);
     void RemoveSecureShellKeyByPublicKey(string publicKey, long projectId);
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
+    List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);

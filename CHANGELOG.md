@@ -30,6 +30,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Fixed wrong error messages for CommandTemplateParameters methods in ManagementService
 - Typo in TaskParallelizationParameters in the `HEAppE Task` specificaton in `CreateJob` endpoint
 
+### Open-API changes summary
+- edit-summary                  /heappe/Management/CommandTemplateParameter (get) - Summary turned from Get CommandTemplateParameter by id to Get Command Template Parameter by id
+- edit-summary                  /heappe/Management/CommandTemplateParameter (post) - Summary turned from Create Static Command Template to Create a new Command Template Parameter
+- edit-summary                  /heappe/Management/CommandTemplateParameter (put) - Summary turned from Modify Static Command Template to Modify an existing Command Template Parameter
+- edit-summary                  /heappe/Management/CommandTemplateParameter (delete) - Summary turned from Remove Static Command Template to Remove an existing Command Template Parameter
+- add-description               /paths//heappe/Management/SecureShellKeys/get/parameters/ProjectId/ - Description added: 
+- add-description               /paths//heappe/Management/SecureShellKeys/get/parameters/SessionCode/ - Description added: 
+- add-path                      /heappe/Management/Projects - Added
+- add-path                      /heappe/Management/ProjectAssignmentToClusters - Added
+- add-path                      /heappe/Management/ClusterNodeTypes - Added
+- add-path                      /heappe/Management/ClusterProxyConnections - Added
+- add-path                      /heappe/Management/FileTransferMethods - Added
+- add-path                      /heappe/Management/ClusterNodeTypeAggregationAccountings - Added
+- add-path                      /heappe/Management/Accountings - Added
+- add-optional-object-property  definitions/ClusterExt - Optional property FileTransferMethodIds added
+- add-optional-object-property  definitions/ClusterNodeTypeExt - Optional property ClusterId added
+- add-optional-object-property  definitions/CreateProjectModel - Optional property IsOneToOneMapping added
+- add-optional-object-property  definitions/ExtendedClusterExt - Optional property FileTransferMethodIds added
+- add-optional-object-property  definitions/FileTransferMethodNoCredentialsExt - Optional property ClusterId added
+- delete-object-property        definitions/InitializeClusterScriptDirectoryModel - Property ClusterProjectRootDirectory deleted
+- add-optional-object-property  definitions/InitializeClusterScriptDirectoryModel - Optional property OverwriteExistingProjectRootDirectory added
+- add-optional-object-property  definitions/InitializeClusterScriptDirectoryModel - Optional property Username added
+- add-optional-object-property  definitions/ModifyProjectModel - Optional property IsOneToOneMapping added
+- add-optional-object-property  definitions/ProjectExt - Optional property IsOneToOneMapping added
+- add-optional-object-property  definitions/SubmittedTaskInfoExt - Optional property Reason added
+- delete-object-property        definitions/TaskSpecificationExt - Property TaskParalizationParameters deleted
+- add-optional-object-property  definitions/TaskSpecificationExt - Optional property TaskParallelizationParameters added
+- add-definition                ClusterAccessReportExt - Added
+
 ## V5.0.0
 
 ### Changed

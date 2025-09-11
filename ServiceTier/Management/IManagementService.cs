@@ -46,6 +46,7 @@ public interface IManagementService
     void RemoveProject(long id, string sessionCode);
 
     ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode);
+    ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode);
 
     ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
         string sessionCode);

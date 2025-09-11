@@ -704,6 +704,22 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("Removed assignment of the Project to the Cluster.");
     }
+    
+    [HttpGet("ProjectAssignmentToClusters")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(ClusterProjectExt[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetProjectAssignmentToClusters(long projectId, string sessionCode)
+    {
+        _logger.LogDebug(
+            $"Endpoint: \"Management\" Method: \"GetProjectAssignmentToClusters\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
+
+        var clusterProject = _managementService.GetProjectAssignmentToClusters(projectId, sessionCode);
+        return Ok(clusterProject);
+    }
 
     #endregion
 

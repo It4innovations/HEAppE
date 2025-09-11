@@ -470,6 +470,13 @@ public class ManagementLogic : IManagementLogic
             projectAssignmentToCluster;
 
     }
+    
+    public List<ClusterProject> GetProjectAssignmentToClusters(long projectId)
+    {
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForCluster(projectId).Where(x=> !x.IsDeleted).ToList();
+        return projectAssignmentToCluster;
+
+    }
 
     /// <summary>
     ///     Assigns a project to a clusters
@@ -742,7 +749,7 @@ public class ManagementLogic : IManagementLogic
     {
         var publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
         var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAllClusterAutneticationCredentialsWithFingerprint(publicKeyFingerprint, projectId)
+            .GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
             .ToList();
         if (!clusterAuthenticationCredentials.Any())
             throw new RequestedObjectDoesNotExistException("PublicKeyNotFound");
@@ -786,7 +793,7 @@ public class ManagementLogic : IManagementLogic
     {
         var publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
         var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAllClusterAutneticationCredentialsWithFingerprint(publicKeyFingerprint, projectId)
+            .GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
             .ToList();
 
         if (!clusterAuthenticationCredentials.Any())
@@ -855,7 +862,8 @@ public class ManagementLogic : IManagementLogic
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
 
-    clusterProjectCredential.IsInitialized = isInitialized;            if (isInitialized)
+                clusterProjectCredential.IsInitialized = isInitialized;            
+                if (isInitialized)
                 {
                     if (!clusterInitReports.ContainsKey(cluster))
                         clusterInitReports.Add(cluster, new ClusterInitReport
@@ -901,7 +909,7 @@ public class ManagementLogic : IManagementLogic
     {
         List<ClusterAccessReport> clusterAccountAccess = new();
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllClusterAuthenticationCredentials(projectId).ToList()
+            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
             : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId)
                 .Where(w =>
                     w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
