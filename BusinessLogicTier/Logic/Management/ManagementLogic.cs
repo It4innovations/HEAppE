@@ -19,6 +19,7 @@ using log4net;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Security;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -27,6 +28,7 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
 
@@ -2287,8 +2289,59 @@ public class ManagementLogic : IManagementLogic
 
         return result;
     }
+
+    public string PrepareDryRunScript(
+        string job_name="dummy_test",
+        string account="ATR-25-1",
+        string partition="qcpu",
+        int nodes=400,
+        TimeSpan? time = null,
+        int ntasks_per_node=128,
+        string output="dummy_%j.out",
+        string error="dummy_%j.err"
+    )
+    {
+        if (time == null)
+            time = TimeSpan.FromMinutes(1);
+        var result = @"#!/bin/bash
+# -- REAL PARAMETERS OF TARGET JOB TO SUBMIT
+#SBATCH --job-name=" + job_name + @"
+#SBATCH --account=" + account + @"
+#SBATCH --partition=" + partition + @"
+#SBATCH --nodes=" + nodes + @"
+#SBATCH --ntasks-per-node=" + ntasks_per_node + @"
+#SBATCH --time=" + $"{time:hh\\:mm\\:ss}" + @"00:01:00
+#SBATCH --output=" + output + @"
+#SBATCH --error=" + error + @"
+#
+# Print job information
+echo ""Job started at: $(date)""
+echo ""Running on nodes: $SLURM_JOB_NODELIST""
+echo ""Number of nodes: $SLURM_JOB_NUM_NODES""
+echo ""Total tasks: $SLURM_NTASKS""
+#
+# Dummy work - just sleep and print from each task
+srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 300; echo ""Task $SLURM_PROCID finished""'
+#
+echo ""Job finished at: $(date)""
+# Expected to be run only with: sbatch --test-only dummy_job.sh
+";
+        return result;
+    }
+
     public void DoSomething()
     {
+        var script = PrepareDryRunScript(
+            job_name: "dummy_test",
+            account: "ATR-25-1",
+            partition: "qcpu",
+            nodes: 400,
+            time: TimeSpan.FromMinutes(1),
+            ntasks_per_node: 128,
+            output: "dummy_%j.out",
+            error: "dummy_%j.err"
+        );
+
         _unitOfWork.ClusterProjectRepository.DoSomething();
     }
 
