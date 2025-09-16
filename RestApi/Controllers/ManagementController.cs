@@ -1621,7 +1621,7 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
-    ///     Get ProjectClusterNodeTypeAggregations by ProjectId
+    /// Get ProjectClusterNodeTypeAggregations by ProjectId
     /// </summary>
     /// <param name="projectId"></param>
     /// <param name="sessionCode"></param>
@@ -1633,15 +1633,27 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetProjectClusterNodeTypeAggregationsByProjectId(long projectId, string sessionCode)
+    public IActionResult GetProjectClusterNodeTypeAggregations(long? projectId, string sessionCode)
     {
         _logger.LogDebug(
             $"Endpoint: \"Management\" Method: \"GetProjectClusterNodeTypeAggregationsByProjectId\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
 
-        var projectClusterNodeTypeAggregations =
-            _managementService.GetProjectClusterNodeTypeAggregationsByProjectId(projectId, sessionCode);
-        return Ok(projectClusterNodeTypeAggregations);
+        if (projectId.HasValue)
+        {
+            var projectClusterNodeTypeAggregations =
+                _managementService.GetProjectClusterNodeTypeAggregationsByProjectId(projectId.Value, sessionCode);
+            return Ok(projectClusterNodeTypeAggregations);
+        }
+        else
+        {
+            var projectClusterNodeTypeAggregations =
+                _managementService.GetProjectClusterNodeTypeAggregations(sessionCode);
+            return Ok(projectClusterNodeTypeAggregations);
+        }
+           
     }
+    
+    
 
     /// <summary>
     ///     Create ProjectClusterNodeTypeAggregation

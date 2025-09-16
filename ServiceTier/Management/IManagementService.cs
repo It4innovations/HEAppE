@@ -183,6 +183,8 @@ public interface IManagementService
     ProjectClusterNodeTypeAggregationExt GetProjectClusterNodeTypeAggregationById(long projectId,
         long clusterNodeTypeAggregationId, string sessionCode);
 
+    List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregations(
+        string sessionCode);
     List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId,
         string sessionCode);
 

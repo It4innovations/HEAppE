@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -1117,6 +1118,24 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregations(
+        string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, var projects) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            List<ProjectClusterNodeTypeAggregation> aggregations = new();
+            foreach (var project in projects)
+            {
+                var list = managementLogic.GetProjectClusterNodeTypeAggregationsByProjectId(project.Id);
+                aggregations.AddRange(list);
+            }
+            return aggregations.Select(pcna => pcna.ConvertIntToExt()).ToList();
+        }
+    }
     public List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId,
         string sessionCode)
     {
