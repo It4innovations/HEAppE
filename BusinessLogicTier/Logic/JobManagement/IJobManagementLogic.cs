@@ -19,7 +19,7 @@ public interface IJobManagementLogic
     IEnumerable<SubmittedJobInfo> GetNotFinishedJobInfos();
     IEnumerable<SubmittedTaskInfo> GetAllFinishedTaskInfos(IEnumerable<long> taskIds);
     void UpdateCurrentStateOfUnfinishedJobs();
-    void CopyJobDataToTemp(long submittedJobInfoId, AdaptorUser loggedUser, string hash, string path);
+    void CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path);
     void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
     IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser);
 }
