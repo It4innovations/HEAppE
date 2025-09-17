@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
@@ -710,6 +710,22 @@ public class ManagementController : BaseController<ManagementController>
         _managementService.RemoveProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("Removed assignment of the Project to the Cluster.");
+    }
+    
+    [HttpGet("ProjectAssignmentToClusters")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(ClusterProjectExt[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetProjectAssignmentToClusters(long projectId, string sessionCode)
+    {
+        _logger.LogDebug(
+            $"Endpoint: \"Management\" Method: \"GetProjectAssignmentToClusters\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
+
+        var clusterProject = _managementService.GetProjectAssignmentToClusters(projectId, sessionCode);
+        return Ok(clusterProject);
     }
 
     #endregion
@@ -1612,7 +1628,7 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
-    ///     Get ProjectClusterNodeTypeAggregations by ProjectId
+    /// Get ProjectClusterNodeTypeAggregations by ProjectId
     /// </summary>
     /// <param name="projectId"></param>
     /// <param name="sessionCode"></param>
@@ -1624,15 +1640,27 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetProjectClusterNodeTypeAggregationsByProjectId(long projectId, string sessionCode)
+    public IActionResult GetProjectClusterNodeTypeAggregations(long? projectId, string sessionCode)
     {
         _logger.LogDebug(
             $"Endpoint: \"Management\" Method: \"GetProjectClusterNodeTypeAggregationsByProjectId\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
 
-        var projectClusterNodeTypeAggregations =
-            _managementService.GetProjectClusterNodeTypeAggregationsByProjectId(projectId, sessionCode);
-        return Ok(projectClusterNodeTypeAggregations);
+        if (projectId.HasValue)
+        {
+            var projectClusterNodeTypeAggregations =
+                _managementService.GetProjectClusterNodeTypeAggregationsByProjectId(projectId.Value, sessionCode);
+            return Ok(projectClusterNodeTypeAggregations);
+        }
+        else
+        {
+            var projectClusterNodeTypeAggregations =
+                _managementService.GetProjectClusterNodeTypeAggregations(sessionCode);
+            return Ok(projectClusterNodeTypeAggregations);
+        }
+           
     }
+    
+    
 
     /// <summary>
     ///     Create ProjectClusterNodeTypeAggregation
@@ -2128,6 +2156,38 @@ public class ManagementController : BaseController<ManagementController>
         
         if(report.Any(x=> !x.IsClusterAccessible))
             return BadRequest(report);
+        return Ok(report);
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="projectId"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpGet("ClusterAccountStatus")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(List<ClusterAccountStatusExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ClusterAccountStatus(string username, long projectId, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterAccountStatus\"");
+
+        var validationResult = new ManagementValidator(new TestClusterAccessForAccountModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode,
+            Username = username
+        }).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        List<ClusterAccountStatusExt> report = _managementService.ClusterAccountStatus(projectId, sessionCode, username);
+        
         return Ok(report);
     }
 

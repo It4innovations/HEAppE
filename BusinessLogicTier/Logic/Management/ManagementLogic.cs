@@ -464,10 +464,18 @@ public class ManagementLogic : IManagementLogic
     public ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId)
     {
         var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-               ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+                                         ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
         return projectAssignmentToCluster.IsDeleted ?
             throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId) :
             projectAssignmentToCluster;
+
+    }
+    
+    public List<ClusterProject> GetProjectAssignmentToClusters(long projectId)
+    {
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForCluster(projectId).Where(x=> !x.IsDeleted).ToList();
+        return projectAssignmentToCluster;
+
     }
 
     /// <summary>
@@ -606,7 +614,7 @@ public class ManagementLogic : IManagementLogic
         }
         
         return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId)
-            .Where(x => !x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
+            .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
             .ToList();
@@ -843,7 +851,7 @@ public class ManagementLogic : IManagementLogic
 
         foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.Where(x => string.IsNullOrEmpty(username) || x.Username == username).OrderBy(x => x.Username))
         {
-            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.OrderByDescending(x => x.IsServiceAccount))
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).OrderByDescending(x => x.IsServiceAccount))
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
                 var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
@@ -854,7 +862,8 @@ public class ManagementLogic : IManagementLogic
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
 
-    clusterProjectCredential.IsInitialized = isInitialized;            if (isInitialized)
+                clusterProjectCredential.IsInitialized = isInitialized;            
+                if (isInitialized)
                 {
                     if (!clusterInitReports.ContainsKey(cluster))
                         clusterInitReports.Add(cluster, new ClusterInitReport
@@ -909,8 +918,8 @@ public class ManagementLogic : IManagementLogic
         if (!clusterAuthenticationCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
 
         List<long> noAccessClusterIds = new();
-        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
-        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x =>
+        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.Where(x=>!x.IsDeleted).DistinctBy(x => x.Username))
+        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).DistinctBy(x =>
                      x.ClusterProject))
         {
             var cluster = clusterProjectCredential.ClusterProject.Cluster;
@@ -935,6 +944,42 @@ public class ManagementLogic : IManagementLogic
         return clusterAccountAccess;
     }
     
+    
+        /// <summary>
+    /// Test cluster access for a specific account in a project.
+    /// </summary>
+    /// <param name="projectId"></param>
+    /// <param name="username"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidRequestException"></exception>
+    public List<ClusterAccountStatus> ClusterAccountStatus(long projectId, string username, long? adaptorUserId)
+    {
+        List<ClusterAccountStatus> clusterAccountStatusList = new();
+        var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
+            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
+            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId)
+                .Where(w =>
+                    w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+
+        var clusterAuthenticationCredentialsEnumerable = clusterAuthenticationCredentials as ClusterAuthenticationCredentials[] ?? clusterAuthenticationCredentials.ToArray();
+        if (!clusterAuthenticationCredentialsEnumerable.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
+        
+        foreach (var clusterAuthCredentials in clusterAuthenticationCredentialsEnumerable.Where(x=>!x.IsDeleted).DistinctBy(x => x.Username))
+        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).DistinctBy(x =>
+                     x.ClusterProject))
+        {
+            var cluster = clusterProjectCredential.ClusterProject.Cluster;
+            var project = clusterProjectCredential.ClusterProject.Project;
+
+            clusterAccountStatusList.Add(new ClusterAccountStatus()
+            {
+                Cluster = cluster,
+                Project = project,
+                IsInitialized = clusterProjectCredential.IsInitialized
+            });
+        }
+        return clusterAccountStatusList;
+    }
     
 
     /// <summary>
@@ -1969,7 +2014,7 @@ public class ManagementLogic : IManagementLogic
     private SecureShellKey CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
     {
         _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
-        var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id)
+        var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) throw new InputValidationException("ProjectNoAssignToCluster");
 

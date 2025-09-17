@@ -18,7 +18,7 @@ public class CommandTemplateParameterValue : IdentifiableDbEntity
         TemplateParameter = commandTemplateParameterValue.TemplateParameter; //shallow copy
     }
 
-    [Required] [StringLength(1000)] public string Value { get; set; }
+    [Required] [StringLength(100000)] public string Value { get; set; }
 
     [NotMapped] public string CommandParameterIdentifier { get; set; }
 

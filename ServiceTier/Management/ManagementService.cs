@@ -21,6 +21,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.JobManagement;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -238,6 +239,18 @@ public class ManagementService : IManagementService
             return clusterProject.ConvertIntToExt();
         }
     }
+    
+    public ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var clusterProject = managementLogic.GetProjectAssignmentToClusters(projectId);
+            return clusterProject.Select(x=>x.ConvertIntToExt()).ToArray();
+        }
+    }
 
     public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
         string sessionCode)
@@ -371,9 +384,26 @@ public class ManagementService : IManagementService
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.ManagementAdmin, modelProjectId, true);
+           
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             return managementLogic.TestClusterAccessForAccount(modelProjectId, username, loggedUser.Id)
                 .Select(x => x.ConvertIntToExt())
+                .ToList();
+        }
+    }
+    
+    public List<ClusterAccountStatusExt> ClusterAccountStatus(long modelProjectId, string modelSessionCode, string username)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
+                unitOfWork, AdaptorUserRoleType.ManagementAdmin, modelProjectId, true);
+            (var user, var projects) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            return managementLogic.ClusterAccountStatus(modelProjectId, username, loggedUser.Id)
+                .Select(x => x.ConvertIntToExt(projects, true))
                 .ToList();
         }
     }
@@ -1105,6 +1135,24 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregations(
+        string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, var projects) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            List<ProjectClusterNodeTypeAggregation> aggregations = new();
+            foreach (var project in projects)
+            {
+                var list = managementLogic.GetProjectClusterNodeTypeAggregationsByProjectId(project.Id);
+                aggregations.AddRange(list);
+            }
+            return aggregations.Select(pcna => pcna.ConvertIntToExt()).ToList();
+        }
+    }
     public List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId,
         string sessionCode)
     {

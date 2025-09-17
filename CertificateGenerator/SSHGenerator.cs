@@ -113,7 +113,7 @@ public class SSHGenerator
                     Username = existingKey.Username,
                     CipherType = CipherGeneratorConfiguration.Type,
                     PublicKeyPEM = GenericCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey,
-                        existingKey.PrivateKeyPassphrase),
+                        existingKey.PrivateKeyPassphrase) ?? "Unable to convert",
                     PublicKeyInAuthorizedKeysFormat =
                         ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
@@ -141,7 +141,7 @@ public class SSHGenerator
                         RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
-        };
+        }
     }
 
     /// <summary>
