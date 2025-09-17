@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
@@ -2156,6 +2156,38 @@ public class ManagementController : BaseController<ManagementController>
         
         if(report.Any(x=> !x.IsClusterAccessible))
             return BadRequest(report);
+        return Ok(report);
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="projectId"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpGet("ClusterAccountStatus")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(List<ClusterAccountStatusExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ClusterAccountStatus(string username, long projectId, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterAccountStatus\"");
+
+        var validationResult = new ManagementValidator(new TestClusterAccessForAccountModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode,
+            Username = username
+        }).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        List<ClusterAccountStatusExt> report = _managementService.ClusterAccountStatus(projectId, sessionCode, username);
+        
         return Ok(report);
     }
 

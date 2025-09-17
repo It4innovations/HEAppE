@@ -58,6 +58,7 @@ public interface IManagementLogic
         long? adaptorUserId, string username);
     
     public List<ClusterAccessReport> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId);
+    public List<ClusterAccountStatus> ClusterAccountStatus(long projectId, string username, long? adaptorUserId);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
     CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,

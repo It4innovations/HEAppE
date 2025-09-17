@@ -384,9 +384,26 @@ public class ManagementService : IManagementService
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
                 unitOfWork, AdaptorUserRoleType.ManagementAdmin, modelProjectId, true);
+           
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             return managementLogic.TestClusterAccessForAccount(modelProjectId, username, loggedUser.Id)
                 .Select(x => x.ConvertIntToExt())
+                .ToList();
+        }
+    }
+    
+    public List<ClusterAccountStatusExt> ClusterAccountStatus(long modelProjectId, string modelSessionCode, string username)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
+                unitOfWork, AdaptorUserRoleType.ManagementAdmin, modelProjectId, true);
+            (var user, var projects) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            return managementLogic.ClusterAccountStatus(modelProjectId, username, loggedUser.Id)
+                .Select(x => x.ConvertIntToExt(projects, true))
                 .ToList();
         }
     }

@@ -64,21 +64,27 @@ public abstract class GenericCertGeneratorV2
 
     public static string ToPublicKeyInPEMFromPrivateKey(string privateKey, string passphrase)
     {
-        using var fileStream = new StringReader(privateKey);
-        var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
-        var keyObject = pemReader.ReadObject();
-
-        if (keyObject is AsymmetricCipherKeyPair keyPair)
+        try
         {
-            return ConvertToPublicPEM(keyPair.Public);
-        }
-        else if (keyObject is AsymmetricKeyParameter privateKeyParam)
-        {
-            var publicKey = ((Ed25519PrivateKeyParameters)privateKeyParam).GeneratePublicKey();
-            return ConvertToPublicPEM(publicKey);
-        }
+            using var fileStream = new StringReader(privateKey);
+            var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
+            var keyObject = pemReader.ReadObject();
 
-        throw new SshClientArgumentException("UnknownPrivateKeyException");
+            if (keyObject is AsymmetricCipherKeyPair keyPair)
+            {
+                return ConvertToPublicPEM(keyPair.Public);
+            }
+            else if (keyObject is AsymmetricKeyParameter privateKeyParam)
+            {
+                var publicKey = ((Ed25519PrivateKeyParameters)privateKeyParam).GeneratePublicKey();
+                return ConvertToPublicPEM(publicKey);
+            }
+        }
+        catch (Exception e)
+        {
+            return "Unable to convert to PEM format";
+        }
+        return string.Empty;
     }
 
     /// <summary>

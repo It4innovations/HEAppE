@@ -71,6 +71,8 @@ public interface IManagementService
 
     public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
         string username);
+    public List<ClusterAccountStatusExt> ClusterAccountStatus(long modelProjectId, string modelSessionCode,
+        string username);
 
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
 
