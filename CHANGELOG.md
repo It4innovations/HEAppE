@@ -99,10 +99,6 @@ Other Changes
 -------------
 Extensions changed
 - Deleted extension: basePath
-- Modified extension: host
-  - Modified value from 'heappe.it4i.cz' to 'localhost:5005'
-- Modified extension: schemes
-  - Modified /0 from 'https' to 'http'
 - Modified extension: definitions
   - Added /ClusterAccessReportExt with value: 'map[additionalProperties:false properties:map[ClusterName:map[description:Cluster name type:string] IsClusterAccessible:map[description:Is cluster accessible type:boolean]] type:object]'
   - Added /ClusterAccountStatusExt with value: 'map[additionalProperties:false properties:map[Cluster:map[$ref:#/definitions/ClusterExt] IsInitialized:map[description:Is initialized type:boolean] Project:map[$ref:#/definitions/ProjectExt]] type:object]'
