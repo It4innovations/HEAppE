@@ -6,7 +6,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
-## V5.1.0
+## V6.0.0
 
 ### Changed
 - Enhanced logging in `DataTransfer` endpoints
@@ -28,6 +28,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
 - Endpoints for bulk listing of `ClusterNodeTypes`, `FileTransferMethods`, `Projects`, `ClusterNodeTypeAggregationAccountings`
 - Endpoint to Reset ListAvailableClusters Memory Cache
+- '/health' check endpoint
 
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
@@ -37,34 +38,103 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Implemented logic to automatically split SSH command requests to remove SSH keys in the Background Worker when exceeding the maximum SSH.NET packet size, ensuring complete removal of temporary keys without encountering the error.
 - Multiple SSH Tunnel creation support and port allocation when using `heappe/DataTransfer/RequestDataTransfer` endpoint
 
-### Open-API changes summary
-- edit-summary                  /heappe/Management/CommandTemplateParameter (get) - Summary turned from Get CommandTemplateParameter by id to Get Command Template Parameter by id
-- edit-summary                  /heappe/Management/CommandTemplateParameter (post) - Summary turned from Create Static Command Template to Create a new Command Template Parameter
-- edit-summary                  /heappe/Management/CommandTemplateParameter (put) - Summary turned from Modify Static Command Template to Modify an existing Command Template Parameter
-- edit-summary                  /heappe/Management/CommandTemplateParameter (delete) - Summary turned from Remove Static Command Template to Remove an existing Command Template Parameter
-- add-description               /paths//heappe/Management/SecureShellKeys/get/parameters/ProjectId/ - Description added: 
-- add-description               /paths//heappe/Management/SecureShellKeys/get/parameters/SessionCode/ - Description added: 
-- add-path                      /heappe/Management/Projects - Added
-- add-path                      /heappe/Management/ProjectAssignmentToClusters - Added
-- add-path                      /heappe/Management/ClusterNodeTypes - Added
-- add-path                      /heappe/Management/ClusterProxyConnections - Added
-- add-path                      /heappe/Management/FileTransferMethods - Added
-- add-path                      /heappe/Management/ClusterNodeTypeAggregationAccountings - Added
-- add-path                      /heappe/Management/Accountings - Added
-- add-optional-object-property  definitions/ClusterExt - Optional property FileTransferMethodIds added
-- add-optional-object-property  definitions/ClusterNodeTypeExt - Optional property ClusterId added
-- add-optional-object-property  definitions/CreateProjectModel - Optional property IsOneToOneMapping added
-- add-optional-object-property  definitions/ExtendedClusterExt - Optional property FileTransferMethodIds added
-- add-optional-object-property  definitions/FileTransferMethodNoCredentialsExt - Optional property ClusterId added
-- delete-object-property        definitions/InitializeClusterScriptDirectoryModel - Property ClusterProjectRootDirectory deleted
-- add-optional-object-property  definitions/InitializeClusterScriptDirectoryModel - Optional property OverwriteExistingProjectRootDirectory added
-- add-optional-object-property  definitions/InitializeClusterScriptDirectoryModel - Optional property Username added
-- add-optional-object-property  definitions/ModifyProjectModel - Optional property IsOneToOneMapping added
-- add-optional-object-property  definitions/ProjectExt - Optional property IsOneToOneMapping added
-- add-optional-object-property  definitions/SubmittedTaskInfoExt - Optional property Reason added
-- delete-object-property        definitions/TaskSpecificationExt - Property TaskParalizationParameters deleted
-- add-optional-object-property  definitions/TaskSpecificationExt - Optional property TaskParallelizationParameters added
-- add-definition                ClusterAccessReportExt - Added
+### New Endpoints: 10
+---------------------
+POST /heappe/ClusterInformation/ListAvailableClustersClearCache  
+GET /heappe/Health  
+GET /heappe/Management/Accountings  
+GET /heappe/Management/ClusterAccountStatus  
+GET /heappe/Management/ClusterNodeTypeAggregationAccountings  
+GET /heappe/Management/ClusterNodeTypes  
+GET /heappe/Management/ClusterProxyConnections  
+GET /heappe/Management/FileTransferMethods  
+GET /heappe/Management/ProjectAssignmentToClusters  
+GET /heappe/Management/Projects  
+
+### Deleted Endpoints: None
+---------------------------
+
+### Modified Endpoints: 14
+--------------------------
+GET /heappe/ClusterInformation/ListAvailableClusters
+- New query param: ForceRefresh
+
+POST /heappe/DataTransfer/HttpGetToJobNode
+
+POST /heappe/DataTransfer/HttpPostToJobNode
+
+POST /heappe/DataTransfer/RequestDataTransfer
+
+POST /heappe/JobManagement/CopyJobDataToTemp
+
+POST /heappe/JobManagement/CreateJob
+
+DELETE /heappe/Management/CommandTemplateParameter
+- Summary changed from 'Remove Static Command Template' to 'Remove an existing Command Template Parameter'
+
+GET /heappe/Management/CommandTemplateParameter
+- Summary changed from 'Get CommandTemplateParameter by id' to 'Get Command Template Parameter by id'
+
+POST /heappe/Management/CommandTemplateParameter
+- Summary changed from 'Create Static Command Template' to 'Create a new Command Template Parameter'
+
+PUT /heappe/Management/CommandTemplateParameter
+- Summary changed from 'Modify Static Command Template' to 'Modify an existing Command Template Parameter'
+
+POST /heappe/Management/InitializeClusterScriptDirectory
+
+POST /heappe/Management/Project
+
+PUT /heappe/Management/Project
+
+GET /heappe/Management/TestClusterAccessForAccount
+- Responses changed
+  - Modified response: 200
+    - Extensions changed
+      - Modified extension: schema
+        - Added /items with value: 'map[$ref:#/definitions/ClusterAccessReportExt]'
+        - Modified /type from 'string' to 'array'
+
+Other Changes
+-------------
+Extensions changed
+- Deleted extension: basePath
+- Modified extension: host
+  - Modified value from 'heappe.it4i.cz' to 'localhost:5005'
+- Modified extension: schemes
+  - Modified /0 from 'https' to 'http'
+- Modified extension: definitions
+  - Added /ClusterAccessReportExt with value: 'map[additionalProperties:false properties:map[ClusterName:map[description:Cluster name type:string] IsClusterAccessible:map[description:Is cluster accessible type:boolean]] type:object]'
+  - Added /ClusterAccountStatusExt with value: 'map[additionalProperties:false properties:map[Cluster:map[$ref:#/definitions/ClusterExt] IsInitialized:map[description:Is initialized type:boolean] Project:map[$ref:#/definitions/ProjectExt]] type:object]'
+  - Added /ClusterExt/properties/FileTransferMethodIds with value: 'map[description:File transfer ids items:map[format:int64 type:integer] type:array]'
+  - Added /ClusterNodeTypeExt/properties/ClusterId with value: 'map[description:Cluster id format:int64 type:integer]'
+  - Added /CopyJobDataToTempModel/properties/CreatedJobInfoId with value: 'map[description:Created job info id format:int64 type:integer]'
+  - Removed /CopyJobDataToTempModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
+  - Added /CreateProjectModel/properties/IsOneToOneMapping with value: 'map[description:Map user account to exact robot account type:boolean]'
+  - Added /ExtendedClusterExt/properties/FileTransferMethodIds with value: 'map[description:File transfer ids items:map[format:int64 type:integer] type:array]'
+  - Modified /FileTransferCipherTypeExt/enum/0 from '0' to '1'
+  - Modified /FileTransferCipherTypeExt/enum/1 from '1' to '2'
+  - Modified /FileTransferCipherTypeExt/enum/2 from '2' to '3'
+  - Modified /FileTransferCipherTypeExt/enum/3 from '3' to '4'
+  - Modified /FileTransferCipherTypeExt/enum/4 from '4' to '5'
+  - Modified /FileTransferCipherTypeExt/enum/5 from '5' to '6'
+  - Added /FileTransferMethodNoCredentialsExt/properties/ClusterId with value: 'map[description:Cluster id format:int64 type:integer]'
+  - Removed /GetDataTransferMethodModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
+  - Added /GetDataTransferMethodModel/properties/SubmittedTaskInfoId with value: 'map[description:Submitted task info id format:int64 type:integer]'
+  - Removed /HttpGetToJobNodeModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
+  - Added /HttpGetToJobNodeModel/properties/SubmittedTaskInfoId with value: 'map[description:Submitted task info id format:int64 type:integer]'
+  - Removed /HttpPostToJobNodeModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
+  - Added /HttpPostToJobNodeModel/properties/SubmittedTaskInfoId with value: 'map[description:Submitted task info id format:int64 type:integer]'
+  - Removed /InitializeClusterScriptDirectoryModel/properties/ClusterProjectRootDirectory with value: 'map[description:Cluster project root directory type:string]'
+  - Added /InitializeClusterScriptDirectoryModel/properties/OverwriteExistingProjectRootDirectory with value: 'map[description:Overwrite existing cluster project root directory type:boolean]'
+  - Added /InitializeClusterScriptDirectoryModel/properties/Username with value: 'map[description:Username type:string]'
+  - Added /ModifyProjectModel/properties/IsOneToOneMapping with value: 'map[description:Map user account to exact robot account type:boolean]'
+  - Added /ProjectExt/properties/IsOneToOneMapping with value: 'map[description:Map user account to exact robot account type:boolean]'
+  - Added /SubmittedTaskInfoExt/properties/Reason with value: 'map[description:Reason (parsed from scheduler, e.g. SLURM) type:string]'
+  - Removed /TaskSpecificationExt/properties/TaskParalizationParameters with value: 'map[description:Array of task paralization parameters items:map[$ref:#/definitions/TaskParalizationParameterExt] type:array]'
+  - Added /TaskSpecificationExt/properties/TaskParallelizationParameters with value: 'map[description:Array of task paralelization parameters items:map[$ref:#/definitions/TaskParalizationParameterExt] type:array]'
+
+
 
 ## V5.0.0
 
