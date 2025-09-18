@@ -293,6 +293,22 @@ public class Startup
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
             //swagger.SerializeAsV2 = true;
         });
+        
+        app.UseSwagger(swagger =>
+        {
+            swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+            {
+                swaggerDoc.Servers = new List<OpenApiServer>
+                {
+                    new()
+                    {
+                        Url = $"{SwaggerConfiguration.Host}/{SwaggerConfiguration.HostPostfix}"
+                    }
+                };
+            });
+            swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/v2/swagger.json";
+            swagger.SerializeAsV2 = true;
+        });
 
         app.UseSwaggerUI(swaggerUI =>
         {
