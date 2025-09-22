@@ -40,39 +40,7 @@ public class SshClientAdapter
         if (_sshClient is NoAuthenticationSshClient ownSshCommand)
             return ownSshCommand.RunShellCommand(command);
         
-        //return new SshCommandWrapper(_sshClient.RunCommand(command));
-        var output = RunBigCommand(command, Encoding.UTF8);
-        return new SshCommandWrapper
-        {
-            Result = output,
-            CommandText = command,
-            ExitStatus = 0,
-            Error = string.Empty
-        };
-    }
-    
-    private string RunBigCommand(string commandText, Encoding encoding, int readDelayMs = 100)
-    {
-        using var input = new MemoryStream(encoding.GetBytes(commandText + "\n"));
-        using var output = new MemoryStream();
-        using var error = new MemoryStream();
-
-        using var shell = _sshClient.CreateShellNoTerminal(input, output, error);
-
-        var result = new StringBuilder();
-        var buffer = new byte[8192];
-        
-        int bytesRead;
-        while ((bytesRead = output.Read(buffer, 0, buffer.Length)) > 0)
-        {
-            result.Append(encoding.GetString(buffer, 0, bytesRead));
-            System.Threading.Thread.Sleep(readDelayMs);
-        }
-        
-        output.Seek(0, SeekOrigin.Begin);
-        error.Seek(0, SeekOrigin.Begin);
-
-        return result.ToString();
+        return new SshCommandWrapper(_sshClient.RunCommand(command));
     }
 
 
