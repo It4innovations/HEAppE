@@ -411,6 +411,12 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
+    public void CheckClusterAuthenticationCredentialsStatus(ClusterProject clusterProject, ClusterAuthenticationCredentials clusterAuthCredentials, ClusterProjectCredentialCheckLog checkLog)
+    {
+        var rnd = new Random();
+        checkLog.DryRunJobOk = rnd.NextDouble() < 0.7;
+    }
+
     #endregion
 
     #endregion

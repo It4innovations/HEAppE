@@ -382,5 +382,15 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
+    public void CheckClusterAuthenticationCredentialsStatus(ClusterProject clusterProject, ClusterAuthenticationCredentials clusterAuthCredentials, ClusterProjectCredentialCheckLog checkLog)
+    {
+        var rnd = new Random();
+
+        checkLog.VaultCredentialOk = rnd.NextDouble() < 0.9;
+        checkLog.ClusterConnectionOk = rnd.NextDouble() < 0.8;
+        checkLog.DryRunJobOk = rnd.NextDouble() < 0.7;
+        checkLog.ErrorMessage = "Lorem ipsum dolor sit amet";
+    }
+
     #endregion
 }

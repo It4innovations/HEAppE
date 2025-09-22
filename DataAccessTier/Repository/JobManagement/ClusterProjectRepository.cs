@@ -1,9 +1,11 @@
 ﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
+using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
+using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement;
 
@@ -82,6 +84,19 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
                 CreatedAt = checkTimestamp
             });
             checkTimestamp = checkTimestamp.AddSeconds(15);
+        }
+    }
+
+    public IQueryable<ClusterProjectCredential> GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster()
+    {
+        try
+        {
+            //FormattableString sql = $"""SELECT TOP(100) PERCENT CPC.* FROM ClusterProjectCredentials CPC, C""";
+            //var tmp = _context.ClusterProjectCredentials.FromSql(sql).ToList();
+            return _context.ClusterProjectCredentials.AsQueryable();
+        } catch(Exception e) {
+            e = e;
+            throw e;
         }
     }
 

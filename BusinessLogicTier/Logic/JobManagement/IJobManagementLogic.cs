@@ -22,4 +22,5 @@ public interface IJobManagementLogic
     void CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path);
     void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
     IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser);
+    void DoSomething2();
 }

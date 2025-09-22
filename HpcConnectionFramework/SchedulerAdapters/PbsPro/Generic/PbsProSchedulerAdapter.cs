@@ -448,5 +448,12 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         return combJobIdAndJobArrayIndex;
     }
 
+    public void CheckClusterAuthenticationCredentialsStatus(ClusterProject clusterProject, ClusterAuthenticationCredentials clusterAuthCredentials, ClusterProjectCredentialCheckLog checkLog)
+    {
+        checkLog.VaultCredentialOk = true;
+        checkLog.ClusterConnectionOk = true;
+        checkLog.DryRunJobOk = true;
+    }
+
     #endregion
 }

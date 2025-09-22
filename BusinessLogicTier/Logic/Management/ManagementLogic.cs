@@ -14,6 +14,7 @@ using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.EntityFrameworkCore;
@@ -2291,14 +2292,9 @@ public class ManagementLogic : IManagementLogic
     }
 
     public string PrepareDryRunScript(
-        string job_name="dummy_test",
-        string account="ATR-25-1",
-        string partition="qcpu",
-        int nodes=400,
-        TimeSpan? time = null,
-        int ntasks_per_node=128,
-        string output="dummy_%j.out",
-        string error="dummy_%j.err"
+        string job_name, string account, string partition,
+        int nodes, int ntasks_per_node, TimeSpan? time,
+        string output, string error
     )
     {
         if (time == null)
@@ -2331,16 +2327,39 @@ echo ""Job finished at: $(date)""
 
     public void DoSomething()
     {
-        var script = PrepareDryRunScript(
-            job_name: "dummy_test",
-            account: "ATR-25-1",
-            partition: "qcpu",
-            nodes: 400,
-            time: TimeSpan.FromMinutes(1),
-            ntasks_per_node: 128,
-            output: "dummy_%j.out",
-            error: "dummy_%j.err"
-        );
+        var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster().ToList();
+
+        foreach (var clusterProjectCredential in clusterProjectCredentials)
+        {
+            var clusterProject = clusterProjectCredential.ClusterProject;
+            var cluster = clusterProject.Cluster;
+            var project = clusterProject.Project;
+            var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
+
+            var script = PrepareDryRunScript(
+                job_name: "dummy_test",
+                account: "ATR-25-1",
+                partition: "qcpu",
+                nodes: 400,
+                ntasks_per_node: 128,
+                time: TimeSpan.FromMinutes(1),
+                output: "dummy_%j.out",
+                error: "dummy_%j.err"
+            );
+
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
+
+            var xxx = scheduler.CheckClusterAuthenticationCredentialsStatus(clusterProject, clusterAuthCredentials);
+
+            if (xxx["Result"] == true)
+            {
+
+            }
+            else
+            {
+                throw new Exception("Damn!");
+            }
+        }
 
         _unitOfWork.ClusterProjectRepository.DoSomething();
     }

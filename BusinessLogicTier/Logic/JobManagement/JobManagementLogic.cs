@@ -602,6 +602,11 @@ internal class JobManagementLogic : IJobManagementLogic
         }
     }
 
+    public void DoSomething2()
+    {
+
+    }
+
     protected static IEnumerable<EnvironmentVariable> CombineJobAndTaskEnvironmentVariables(
         IEnumerable<EnvironmentVariable> jobVariables, IEnumerable<EnvironmentVariable> taskVariables)
     {

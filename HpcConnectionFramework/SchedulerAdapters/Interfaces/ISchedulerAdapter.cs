@@ -50,4 +50,6 @@ public interface ISchedulerAdapter
         bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount);
 
     bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
+
+    void CheckClusterAuthenticationCredentialsStatus(ClusterProject clusterProject, ClusterAuthenticationCredentials clusterAuthCredentials, ClusterProjectCredentialCheckLog checkLog);
 }

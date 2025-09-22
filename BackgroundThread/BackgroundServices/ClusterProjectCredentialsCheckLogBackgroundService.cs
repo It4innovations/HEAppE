@@ -32,6 +32,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
 
                 LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork).DoSomething();
+                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).DoSomething2();
                 unitOfWork.Save();
                 //unitOfWork.ClusterProjectRepository
                 //LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).UpdateCurrentStateOfUnfinishedJobs();
