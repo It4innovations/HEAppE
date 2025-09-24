@@ -415,8 +415,10 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
-    public Dictionary<string, dynamic> CheckClusterAuthenticationCredentialsStatus(ClusterProject clusterProject, ClusterAuthenticationCredentials clusterAuthCredentials)
+    public ClusterProjectCredentialCheckLog CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential)
     {
+        var clusterProject = clusterProjectCredential.ClusterProject;
+        var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
         var checkTimestamp = DateTime.UtcNow;
         var checkLog = new ClusterProjectCredentialCheckLog()
         {
@@ -430,18 +432,11 @@ public class RexSchedulerWrapper : IRexScheduler
             CreatedAt = checkTimestamp
         };
 
-        var result = new Dictionary<string, dynamic>() {
-            { "Result", false },
-            { "CheckLog", checkLog }
-        };
-
         try
         {
             var schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, clusterProject.Cluster);
             checkLog.ClusterConnectionOk = true;
-
-            _adapter.CheckClusterAuthenticationCredentialsStatus(clusterProject, clusterAuthCredentials, checkLog);
-
+            _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
             _connectionPool.ReturnConnection(schedulerConnection);
         }
         catch (Exception ex)
@@ -450,7 +445,7 @@ public class RexSchedulerWrapper : IRexScheduler
                 $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
         }
 
-        return result;
+        return checkLog;
     }
 
     #endregion

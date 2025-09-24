@@ -2334,31 +2334,9 @@ echo ""Job finished at: $(date)""
             var clusterProject = clusterProjectCredential.ClusterProject;
             var cluster = clusterProject.Cluster;
             var project = clusterProject.Project;
-            var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
-
-            var script = PrepareDryRunScript(
-                job_name: "dummy_test",
-                account: "ATR-25-1",
-                partition: "qcpu",
-                nodes: 400,
-                ntasks_per_node: 128,
-                time: TimeSpan.FromMinutes(1),
-                output: "dummy_%j.out",
-                error: "dummy_%j.err"
-            );
-
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
-
-            var xxx = scheduler.CheckClusterAuthenticationCredentialsStatus(clusterProject, clusterAuthCredentials);
-
-            if (xxx["Result"] == true)
-            {
-
-            }
-            else
-            {
-                throw new Exception("Damn!");
-            }
+            var checkLog = scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential);
+            clusterProjectCredential.ClusterProjectCredentialsCheckLog.Add(checkLog);
         }
 
         _unitOfWork.ClusterProjectRepository.DoSomething();

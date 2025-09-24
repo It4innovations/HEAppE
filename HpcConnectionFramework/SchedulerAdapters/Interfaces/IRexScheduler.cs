@@ -53,7 +53,6 @@ public interface IRexScheduler
     bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials);
     bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
 
-
-    Dictionary<string, dynamic> CheckClusterAuthenticationCredentialsStatus(ClusterProject clusterProject, ClusterAuthenticationCredentials clusterAuthCredentials);
+    ClusterProjectCredentialCheckLog CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential);
 
 }

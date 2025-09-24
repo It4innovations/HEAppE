@@ -382,8 +382,79 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
-    public void CheckClusterAuthenticationCredentialsStatus(ClusterProject clusterProject, ClusterAuthenticationCredentials clusterAuthCredentials, ClusterProjectCredentialCheckLog checkLog)
+    public string PrepareDryRunScript(
+    string job_name, string account, string partition,
+    int nodes, int ntasks_per_node, TimeSpan? time,
+    string output, string error
+)
     {
+        if (time == null)
+            time = TimeSpan.FromMinutes(1);
+        var result = @"#!/bin/bash
+# -- REAL PARAMETERS OF TARGET JOB TO SUBMIT
+#SBATCH --job-name=" + job_name + @"
+#SBATCH --account=" + account + @"
+#SBATCH --partition=" + partition + @"
+#SBATCH --nodes=" + nodes + @"
+#SBATCH --ntasks-per-node=" + ntasks_per_node + @"
+#SBATCH --time=" + $"{time:hh\\:mm\\:ss}" + @"00:01:00
+#SBATCH --output=" + output + @"
+#SBATCH --error=" + error + @"
+#
+# Print job information
+echo ""Job started at: $(date)""
+echo ""Running on nodes: $SLURM_JOB_NODELIST""
+echo ""Number of nodes: $SLURM_JOB_NUM_NODES""
+echo ""Total tasks: $SLURM_NTASKS""
+#
+# Dummy work - just sleep and print from each task
+srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 5; echo ""Task $SLURM_PROCID finished""'
+#
+echo ""Job finished at: $(date)""
+# Expected to be run only with: sbatch --test-only dummy_job.sh
+";
+        return result;
+    }
+    public void CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
+    {
+
+        SshCommandWrapper command = null;
+
+        var cluster = clusterProjectCredential.ClusterProject.Cluster;
+        var project = clusterProjectCredential.ClusterProject.Project;
+
+        string dryRunScript = PrepareDryRunScript(
+            job_name: "dummy_test",
+            account: project.AccountingString,
+            partition: "qcpu",
+            nodes: 1,
+            ntasks_per_node: 1,
+            time: TimeSpan.FromSeconds(5),
+            output: "dummy_%j.out",
+            error: "dummy_%j.err"
+        );
+
+        var createScriptCommand = @"eval `(mkdir -p ~/tmp)` &&
+cat <<EOF > ~/tmp/aaabbb123.sh
+#!/bin/bash
+echo \$PWD
+echo $PWD
+echo ""Hello, world!""
+EOF
+chmod +x ~/tmp/aaabbb123.sh && ~/tmp/aaabbb123.sh
+".Replace("\r\n", "\n");
+
+        var runScriptCommand = @"chmod +x ~/tmp/aaabbb123.sh && ~/tmp/aaabbb123.sh";
+
+        var sshCommand = $"{_commands.InterpreterCommand} " + createScriptCommand;
+
+        try {
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+        } catch (Exception e) {
+            e = e;
+            throw;
+        }
+
         var rnd = new Random();
 
         checkLog.VaultCredentialOk = rnd.NextDouble() < 0.9;
