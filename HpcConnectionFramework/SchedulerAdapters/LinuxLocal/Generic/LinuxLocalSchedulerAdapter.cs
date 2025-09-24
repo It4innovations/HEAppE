@@ -417,7 +417,6 @@ echo ""Job finished at: $(date)""
     }
     public void CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
-
         SshCommandWrapper command = null;
 
         var cluster = clusterProjectCredential.ClusterProject.Cluster;
@@ -434,20 +433,15 @@ echo ""Job finished at: $(date)""
             error: "dummy_%j.err"
         );
 
-        var createScriptCommand = @"eval `(mkdir -p ~/tmp)` &&
-cat <<EOF > ~/tmp/aaabbb123.sh
-#!/bin/bash
-echo \$PWD
-echo $PWD
-echo ""Hello, world!""
+        var testCommand = @"eval `(mkdir -p ~/tmp)` &&
+cat <<EOF > ~/tmp/dryrunscript.sh
+" + dryRunScript + @"
 EOF
-chmod +x ~/tmp/aaabbb123.sh && ~/tmp/aaabbb123.sh
-".Replace("\r\n", "\n");
+chmod +x ~/tmp/dryrunscript.sh && ~/tmp/dryrunscript.sh
+";
 
-        var runScriptCommand = @"chmod +x ~/tmp/aaabbb123.sh && ~/tmp/aaabbb123.sh";
-
-        var sshCommand = $"{_commands.InterpreterCommand} " + createScriptCommand;
-
+        var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
+        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
         try {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
         } catch (Exception e) {
