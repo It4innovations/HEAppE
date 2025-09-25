@@ -56,6 +56,11 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
         );
     }
 
+    public void AddClusterProjectCredentialCheckLog(ClusterProjectCredentialCheckLog checkLog)
+    {
+        _context.ClusterProjectCredentialsCheckLog.Add(checkLog);
+    }
+
     private void Junk01(long projectId)
     {
         var x1 = _context.Projects.Where(p => p.Id == projectId);

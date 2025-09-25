@@ -412,8 +412,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
-
-    public string PrepareDryRunScript(
+    private string PrepareDryRunScript(
         string job_name, string account, string partition,
         int nodes, int ntasks_per_node, TimeSpan? time,
         string output, string error
@@ -428,7 +427,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 #SBATCH --partition=" + partition + @"
 #SBATCH --nodes=" + nodes + @"
 #SBATCH --ntasks-per-node=" + ntasks_per_node + @"
-#SBATCH --time=" + $"{time:hh\\:mm\\:ss}" + @"00:01:00
+#SBATCH --time=" + $"{time:hh\\:mm\\:ss}" + @"
 #SBATCH --output=" + output + @"
 #SBATCH --error=" + error + @"
 #
@@ -449,17 +448,14 @@ echo ""Job finished at: $(date)""
 
     public void CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
-        var rnd = new Random();
-
         SshCommandWrapper command = null;
-
         var cluster = clusterProjectCredential.ClusterProject.Cluster;
         var project = clusterProjectCredential.ClusterProject.Project;
 
         string dryRunScript = PrepareDryRunScript(
-            job_name: "dummy_test",
+            job_name: "dryrun",
             account: project.AccountingString,
-            partition: "qcpu",
+            partition: cluster.NodeTypes.First().Queue,
             nodes: 1,
             ntasks_per_node: 1,
             time: TimeSpan.FromSeconds(5),
@@ -467,17 +463,34 @@ echo ""Job finished at: $(date)""
             error: "dummy_%j.err"
         );
 
-        var sshCommand = $"{_commands.InterpreterCommand} ";
+        var testCommand = @"eval `(mkdir -p ~/tmp)` &&
+cat <<EOF > ~/tmp/dummy_job.sh
+" + dryRunScript + @"
+EOF
+chmod +x ~/tmp/dummy_job.sh && ~/tmp/dummy_job.sh
+";
+        var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
+        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-        }catch (Exception e) {
-            e = e;
-            throw;
+            checkLog.VaultCredentialOk = true;
+            checkLog.ClusterConnectionOk = true;
+            if (command.Error.Length == 0)
+            {
+                checkLog.DryRunJobOk = true;
+            }
+            else
+            {
+                checkLog.DryRunJobOk = false;
+                checkLog.ErrorMessage += command.Error + "\n";
+            }
         }
-
-        checkLog.DryRunJobOk = rnd.NextDouble() < 0.7;
-
+        catch (Exception e)
+        {
+            checkLog.ErrorMessage += e.Message + "\n";
+        }
+        checkLog.ErrorMessage = checkLog.ErrorMessage[..500];
     }
 
     #endregion

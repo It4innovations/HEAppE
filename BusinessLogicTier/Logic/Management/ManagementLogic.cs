@@ -2336,7 +2336,9 @@ echo ""Job finished at: $(date)""
             var project = clusterProject.Project;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
             var checkLog = scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential);
-            clusterProjectCredential.ClusterProjectCredentialsCheckLog.Add(checkLog);
+
+            //clusterProjectCredential.ClusterProjectCredentialsCheckLog.Add(checkLog);
+            _unitOfWork.ClusterProjectRepository.AddClusterProjectCredentialCheckLog(checkLog);
         }
 
         _unitOfWork.ClusterProjectRepository.DoSomething();

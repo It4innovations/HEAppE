@@ -382,11 +382,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
-    public string PrepareDryRunScript(
-    string job_name, string account, string partition,
-    int nodes, int ntasks_per_node, TimeSpan? time,
-    string output, string error
-)
+    private string PrepareDryRunScript(
+        string job_name, string account, string partition,
+        int nodes, int ntasks_per_node, TimeSpan? time,
+        string output, string error
+    )
     {
         if (time == null)
             time = TimeSpan.FromMinutes(1);
@@ -397,7 +397,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 #SBATCH --partition=" + partition + @"
 #SBATCH --nodes=" + nodes + @"
 #SBATCH --ntasks-per-node=" + ntasks_per_node + @"
-#SBATCH --time=" + $"{time:hh\\:mm\\:ss}" + @"00:01:00
+#SBATCH --time=" + $"{time:hh\\:mm\\:ss}" + @"
 #SBATCH --output=" + output + @"
 #SBATCH --error=" + error + @"
 #
@@ -408,24 +408,24 @@ echo ""Number of nodes: $SLURM_JOB_NUM_NODES""
 echo ""Total tasks: $SLURM_NTASKS""
 #
 # Dummy work - just sleep and print from each task
-srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 5; echo ""Task $SLURM_PROCID finished""'
+srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 1; echo ""Task $SLURM_PROCID finished""'
 #
 echo ""Job finished at: $(date)""
 # Expected to be run only with: sbatch --test-only dummy_job.sh
 ";
         return result;
     }
+
     public void CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
         SshCommandWrapper command = null;
-
         var cluster = clusterProjectCredential.ClusterProject.Cluster;
         var project = clusterProjectCredential.ClusterProject.Project;
 
         string dryRunScript = PrepareDryRunScript(
-            job_name: "dummy_test",
+            job_name: "dryrun",
             account: project.AccountingString,
-            partition: "qcpu",
+            partition: cluster.NodeTypes.First().Queue,
             nodes: 1,
             ntasks_per_node: 1,
             time: TimeSpan.FromSeconds(5),
@@ -434,27 +434,28 @@ echo ""Job finished at: $(date)""
         );
 
         var testCommand = @"eval `(mkdir -p ~/tmp)` &&
-cat <<EOF > ~/tmp/dryrunscript.sh
+cat <<EOF > ~/tmp/dummy_job.sh
 " + dryRunScript + @"
 EOF
-chmod +x ~/tmp/dryrunscript.sh && ~/tmp/dryrunscript.sh
+chmod +x ~/tmp/dummy_job.sh && ~/tmp/dummy_job.sh
 ";
-
         var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
         sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
         try {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            checkLog.VaultCredentialOk = true;
+            checkLog.ClusterConnectionOk = true;
+            if (command.Error.Length == 0) {
+                checkLog.DryRunJobOk = true;
+            } else {
+                checkLog.DryRunJobOk = false;
+                checkLog.ErrorMessage += command.Error + "\n";
+            }
+
         } catch (Exception e) {
-            e = e;
-            throw;
+            checkLog.ErrorMessage += e.Message + "\n";
         }
-
-        var rnd = new Random();
-
-        checkLog.VaultCredentialOk = rnd.NextDouble() < 0.9;
-        checkLog.ClusterConnectionOk = rnd.NextDouble() < 0.8;
-        checkLog.DryRunJobOk = rnd.NextDouble() < 0.7;
-        checkLog.ErrorMessage = "Lorem ipsum dolor sit amet";
+        checkLog.ErrorMessage = checkLog.ErrorMessage[..500];
     }
 
     #endregion

@@ -13,7 +13,9 @@ public interface IClusterProjectRepository : IRepository<ClusterProject>
 
     public IQueryable<ClusterProjectCredentialCheckLog> GetAllClusterProjectCredentialsCheckLogForProject(long projectId, DateTime? timeFrom, DateTime? timeTo);
 
-    void DoSomething();
+    public void AddClusterProjectCredentialCheckLog(ClusterProjectCredentialCheckLog checkLog);
 
     public IQueryable<ClusterProjectCredential> GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster();
+
+    void DoSomething();
 }
