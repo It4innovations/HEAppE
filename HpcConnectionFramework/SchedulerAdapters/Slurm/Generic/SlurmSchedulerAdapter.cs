@@ -391,6 +391,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
     }
 
+    #endregion
+
     /// <summary>
     ///     Initialize Cluster Script Directory
     /// </summary>
@@ -438,7 +440,7 @@ echo ""Number of nodes: $SLURM_JOB_NUM_NODES""
 echo ""Total tasks: $SLURM_NTASKS""
 #
 # Dummy work - just sleep and print from each task
-srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 5; echo ""Task $SLURM_PROCID finished""'
+srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 1; echo ""Task $SLURM_PROCID finished""'
 #
 echo ""Job finished at: $(date)""
 # Expected to be run only with: sbatch --test-only dummy_job.sh
@@ -467,7 +469,7 @@ echo ""Job finished at: $(date)""
 cat <<EOF > ~/tmp/dummy_job.sh
 " + dryRunScript + @"
 EOF
-chmod +x ~/tmp/dummy_job.sh && ~/tmp/dummy_job.sh
+chmod +x ~/tmp/dummy_job.sh && sbatch --test-only ~/tmp/dummy_job.sh
 ";
         var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
         sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -476,7 +478,7 @@ chmod +x ~/tmp/dummy_job.sh && ~/tmp/dummy_job.sh
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
             checkLog.VaultCredentialOk = true;
             checkLog.ClusterConnectionOk = true;
-            if (command.Error.Length == 0)
+            if (command.ExitStatus == 0)
             {
                 checkLog.DryRunJobOk = true;
             }
@@ -490,10 +492,7 @@ chmod +x ~/tmp/dummy_job.sh && ~/tmp/dummy_job.sh
         {
             checkLog.ErrorMessage += e.Message + "\n";
         }
-        checkLog.ErrorMessage = checkLog.ErrorMessage[..500];
     }
-
-    #endregion
 
     #endregion
 }

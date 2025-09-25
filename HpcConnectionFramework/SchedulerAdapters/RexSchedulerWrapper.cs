@@ -432,18 +432,25 @@ public class RexSchedulerWrapper : IRexScheduler
             CreatedAt = checkTimestamp
         };
 
+        ConnectionInfo schedulerConnection = null;
         try
         {
-            var schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, clusterProject.Cluster);
+            schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, clusterProject.Cluster);
             checkLog.ClusterConnectionOk = true;
             _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
-            _connectionPool.ReturnConnection(schedulerConnection);
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            _log.Info(
-                $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
+            checkLog.ErrorMessage += e.Message + "\n";
         }
+        finally
+        {
+            if (schedulerConnection != null)
+                _connectionPool.ReturnConnection(schedulerConnection);
+        }
+
+        if (checkLog.ErrorMessage != null && checkLog.ErrorMessage.Length > 500)
+            checkLog.ErrorMessage = checkLog.ErrorMessage[..500];
 
         return checkLog;
     }

@@ -437,25 +437,29 @@ echo ""Job finished at: $(date)""
 cat <<EOF > ~/tmp/dummy_job.sh
 " + dryRunScript + @"
 EOF
-chmod +x ~/tmp/dummy_job.sh && ~/tmp/dummy_job.sh
+chmod +x ~/tmp/dummy_job.sh && sbatch --test-only ~/tmp/dummy_job.sh
 ";
         var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
         sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
-        try {
+        try
+        {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
             checkLog.VaultCredentialOk = true;
             checkLog.ClusterConnectionOk = true;
-            if (command.Error.Length == 0) {
+            if (command.ExitStatus == 0)
+            {
                 checkLog.DryRunJobOk = true;
-            } else {
+            }
+            else
+            {
                 checkLog.DryRunJobOk = false;
                 checkLog.ErrorMessage += command.Error + "\n";
             }
-
-        } catch (Exception e) {
+        }
+        catch (Exception e)
+        {
             checkLog.ErrorMessage += e.Message + "\n";
         }
-        checkLog.ErrorMessage = checkLog.ErrorMessage[..500];
     }
 
     #endregion
