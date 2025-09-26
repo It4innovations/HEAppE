@@ -29,24 +29,14 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
             try
             {
                 using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-
-
-                LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork).DoSomething();
-                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).DoSomething2();
-                unitOfWork.Save();
-                //unitOfWork.ClusterProjectRepository
-                //LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).UpdateCurrentStateOfUnfinishedJobs();
-
-                //LogicFactory.GetLogicFactory().CreateJobManagementLogic().
-                //unitOfWork.CommandTemplateRepository
-
-                //Try to submit them again
-                /*
-                foreach (var job in allWaitingJobs)
+                try
                 {
-                    _log.Info($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
-                    LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).SubmitJob(job.Id, job.Submitter);
-                }*/
+                    await LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork).CheckClusterProjectCredentialsStatus();
+                }
+                finally
+                {
+                    unitOfWork.Save();
+                }
             }
             catch (Exception ex)
             {

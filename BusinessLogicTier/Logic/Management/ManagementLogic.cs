@@ -27,6 +27,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Transactions;
 using static System.Runtime.InteropServices.JavaScript.JSType;
@@ -2325,23 +2326,36 @@ echo ""Job finished at: $(date)""
         return result;
     }
 
-    public void DoSomething()
+    public async Task<dynamic> CheckClusterProjectCredentialsStatus()
     {
+        await Task.Delay(1);
+
         var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster().ToList();
 
+        List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
         foreach (var clusterProjectCredential in clusterProjectCredentials)
         {
             var clusterProject = clusterProjectCredential.ClusterProject;
             var cluster = clusterProject.Cluster;
             var project = clusterProject.Project;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
-            var checkLog = scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential);
-
+            tasks.Add(scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential));
             //clusterProjectCredential.ClusterProjectCredentialsCheckLog.Add(checkLog);
-            _unitOfWork.ClusterProjectRepository.AddClusterProjectCredentialCheckLog(checkLog);
+            
         }
 
-        _unitOfWork.ClusterProjectRepository.DoSomething();
+        try
+        {
+            var data = await Task.WhenAll(tasks);
+        }
+        catch(Exception e)
+        {
+            //
+        }
+
+        //_unitOfWork.ClusterProjectRepository.AddClusterProjectCredentialCheckLog(checkLog);
+
+        return null;
     }
 
     #endregion

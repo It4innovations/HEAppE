@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -448,8 +449,10 @@ echo ""Job finished at: $(date)""
         return result;
     }
 
-    public void CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
+    public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
+        await Task.Delay(1);
+
         SshCommandWrapper command = null;
         var cluster = clusterProjectCredential.ClusterProject.Cluster;
         var project = clusterProjectCredential.ClusterProject.Project;
@@ -492,6 +495,8 @@ chmod +x ~/tmp/dummy_job.sh && sbatch --test-only ~/tmp/dummy_job.sh
         {
             checkLog.ErrorMessage += e.Message + "\n";
         }
+
+        return null;
     }
 
     #endregion

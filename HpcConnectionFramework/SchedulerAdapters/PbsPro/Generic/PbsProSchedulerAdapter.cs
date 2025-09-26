@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -447,11 +448,14 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
 
         return combJobIdAndJobArrayIndex;
     }
-    public void CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
+    public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
+        await Task.Delay(1);
+
         checkLog.VaultCredentialOk = true;
         checkLog.ClusterConnectionOk = true;
         checkLog.DryRunJobOk = true;
+        return null;
     }
 
     #endregion

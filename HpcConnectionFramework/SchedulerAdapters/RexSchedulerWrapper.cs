@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -415,8 +416,10 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
-    public ClusterProjectCredentialCheckLog CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential)
+    public async Task<ClusterProjectCredentialCheckLog> CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential)
     {
+        await Task.Delay(1);
+
         var clusterProject = clusterProjectCredential.ClusterProject;
         var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
         var checkTimestamp = DateTime.UtcNow;

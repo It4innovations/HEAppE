@@ -175,5 +175,5 @@ public interface IManagementLogic
 
     Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
 
-    void DoSomething();
+    Task<dynamic> CheckClusterProjectCredentialsStatus();
 }
