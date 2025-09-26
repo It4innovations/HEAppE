@@ -13,6 +13,11 @@ public sealed class BusinessLogicConfiguration
     public static bool SharedAccountsPoolMode { get; set; }
 
     /// <summary>
+    /// Automatic Cluster Account Initialization
+    /// </summary>
+    public static bool AutomaticClusterAccountInitialization { get; set; } = true;
+
+    /// <summary>
     ///     Limit of generated file transfer key per job
     /// </summary>
     public static int GeneratedFileTransferKeyLimitPerJob { get; set; } = 5;

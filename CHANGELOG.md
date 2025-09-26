@@ -29,6 +29,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Endpoints for bulk listing of `ClusterNodeTypes`, `FileTransferMethods`, `Projects`, `ClusterNodeTypeAggregationAccountings`
 - Endpoint to Reset ListAvailableClusters Memory Cache
 - '/health' check endpoint
+- Automatic cluster account initialization feature configurable from `appsettings.json` 
 
 ### Fixed
 - `External UsageType` model conversion to `Internal UsageType` model (enum)
