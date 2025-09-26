@@ -14,6 +14,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -50,6 +51,7 @@ public class HealthController : BaseController<HealthController>
     #region Methods
 
     [HttpGet]
+    [ProducesResponseType(typeof(HealthExt), StatusCodes.Status200OK)]
     public async Task<ActionResult> Get()
     {
         HealthReport report = await this._healthCheckService.CheckHealthAsync();
