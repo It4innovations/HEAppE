@@ -9,7 +9,7 @@ public interface IJobReportingLogic
 {
     IEnumerable<UserGroupListReport> UserGroupListReport(IEnumerable<Project> projects, long userId);
     IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects);
-    IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects);
+    IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo);
     ProjectReport ResourceUsageReportForJob(long jobId, IEnumerable<long> reporterGroupIds);
 
     IEnumerable<ProjectReport> UserResourceUsageReport(long userId, IEnumerable<long> reporterGroupIds,
