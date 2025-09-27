@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Support for the `EdDSA - ED25519` SSH key pair generation
 - Options `ConnectionRetryAttempts` and `ConnectionTimeout` for SSH client component are now configurable from `appsettings.json`
 - API HTTP Request logging with payload (redacted output on `Sensitive data`)
-- Add `/heappe/health` check endpoint
+- Add `/heappe/Health` check endpoint
 - Health checks are not visible in swagger
 - `Reason` attribute propagation from the HPC job (in the HEAppE Task)
 - `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
