@@ -61,48 +61,9 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
         _context.ClusterProjectCredentialsCheckLog.Add(checkLog);
     }
 
-    private void Junk01(long projectId)
-    {
-        var x1 = _context.Projects.Where(p => p.Id == projectId);
-        var x2 = x1.First().ClusterProjects;
-        foreach (var x3 in x2)
-            foreach (var x4 in x3.ClusterProjectCredentials)
-                foreach (var x5 in x4.ClusterProjectCredentialsCheckLog)
-                    ;
-    }
-
-    private void Junk02()
-    {
-        var rnd = new Random();
-        var checkTimestamp = DateTime.Today;
-        for (var i = 0; i < 100; i++)
-        {
-            _context.ClusterProjectCredentialsCheckLog.Add(new ClusterProjectCredentialCheckLog()
-            {
-                ClusterProjectId = 1,
-                ClusterAuthenticationCredentialsId = 1,
-                CheckTimestamp = checkTimestamp,
-                VaultCredentialOk = rnd.NextDouble() < 0.9,
-                ClusterConnectionOk = rnd.NextDouble() < 0.8,
-                DryRunJobOk = rnd.NextDouble() < 0.7,
-                ErrorMessage = "Lorem ipsum dolor sit amet",
-                CreatedAt = checkTimestamp
-            });
-            checkTimestamp = checkTimestamp.AddSeconds(15);
-        }
-    }
-
     public IQueryable<ClusterProjectCredential> GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster()
     {
-        try
-        {
-            //FormattableString sql = $"""SELECT TOP(100) PERCENT CPC.* FROM ClusterProjectCredentials CPC, C""";
-            //var tmp = _context.ClusterProjectCredentials.FromSql(sql).ToList();
-            return _context.ClusterProjectCredentials.AsQueryable();
-        } catch(Exception e) {
-            e = e;
-            throw e;
-        }
+        return _context.ClusterProjectCredentials.AsQueryable();
     }
 
     #endregion

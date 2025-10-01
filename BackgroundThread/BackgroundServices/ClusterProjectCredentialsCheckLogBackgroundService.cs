@@ -1,5 +1,6 @@
 ﻿using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.UnitOfWork;
 using log4net;
 using Microsoft.Extensions.Hosting;
@@ -21,27 +22,43 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
     {
         _log = LogManager.GetLogger(GetType());
     }
+    private enum ExecutionStep { DoLogic, DoSave, DoCleanup }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        IUnitOfWork unitOfWork = null;
+        IManagementLogic managementLogic = null;
+
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
+            for (ExecutionStep i = ExecutionStep.DoLogic; i <= ExecutionStep.DoCleanup; i++)
             {
-                using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
                 try
                 {
-                    await LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork).CheckClusterProjectCredentialsStatus();
+                    switch (i)
+                    {
+                        case ExecutionStep.DoLogic:
+                            unitOfWork = new DatabaseUnitOfWork();
+                            managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                            await managementLogic.CheckClusterProjectCredentialsStatus();
+                            break;
+
+                        case ExecutionStep.DoSave:
+                            unitOfWork?.Save();
+                            break;
+
+                        case ExecutionStep.DoCleanup:
+                            managementLogic = null;
+                            unitOfWork?.Dispose();
+                            break;
+                    }
                 }
-                finally
+                catch (Exception ex)
                 {
-                    unitOfWork.Save();
+                    _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
                 }
             }
-            catch (Exception ex)
-            {
-                _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
-            }
+            unitOfWork = null;
 
             await Task.Delay(_interval, stoppingToken);
         }

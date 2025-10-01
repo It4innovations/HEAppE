@@ -440,7 +440,7 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, clusterProject.Cluster);
             checkLog.ClusterConnectionOk = true;
-            _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
+            await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
         }
         catch (Exception e)
         {

@@ -235,9 +235,31 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
     public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
         await Task.Delay(1);
-        checkLog.VaultCredentialOk = true;
-        checkLog.ClusterConnectionOk = true;
-        checkLog.DryRunJobOk = true;
+
+        // Dummy solution for HyperQueue: just test that we can connect to the server and run some command...
+        var testCommand = @"echo OK";
+        var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
+        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+        try
+        {
+            SshCommandWrapper command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+            checkLog.VaultCredentialOk = true;
+            checkLog.ClusterConnectionOk = true;
+            if (command.ExitStatus == 0)
+            {
+                checkLog.DryRunJobOk = true;
+            }
+            else
+            {
+                checkLog.DryRunJobOk = false;
+                checkLog.ErrorMessage += command.Error + "\n";
+            }
+        }
+        catch (Exception e)
+        {
+            checkLog.ErrorMessage += e.Message + "\n";
+        }
+
         return null;
     }
 
