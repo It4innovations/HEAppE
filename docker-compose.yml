@@ -141,8 +141,7 @@ services:
       - vaultNet
     profiles:
       - initVault
-    depends_on:
-      - vault
+
   
   vault_unseal:
     build:
