@@ -543,4 +543,16 @@
   <data name="NotAllowedException_ClusterAccountNotInitialized" xml:space="preserve">
     <value />
   </data>
+  <data name="DatabaseBackupException_BackupTransactionLogsCantBeDone" xml:space="preserve">
+    <value>Záloha transakčních logů databáze nemůže být provedena. Musí existovat úplná záloha a databáze musí být v režimu obnovení ‚FULL‘ nebo ‚BULK_LOGGED‘.</value>
+  </data>
+  <data name="DatabaseBackupException_FullBackupCantBeDone" xml:space="preserve">
+    <value>Úplná záloha databáze nemůže být provedena. Databáze musí být v režimu obnovení ‚FULL‘ nebo ‚BULK_LOGGED‘.</value>
+  </data>
+  <data name="DatabaseBackupException_FullBackupException" xml:space="preserve">
+    <value>Při provádění úplné zálohy databáze došlo k výjimce.</value>
+  </data>
+  <data name="DatabaseBackupException_TransactionLogsBackupException" xml:space="preserve">
+    <value>Při provádění zálohy transakčních logů došlo k výjimce.</value>
+  </data>
 </root>

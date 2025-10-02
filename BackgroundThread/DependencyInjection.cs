@@ -16,6 +16,8 @@ namespace HEAppE.BackgroundThread
             services.AddHostedService<ClusterAccountRotationJobBackgroundService>();
             services.AddHostedService<RemoveTemporaryFileTransferKeyBackgroundService>();
             services.AddHostedService<UpdateUnfinishedJobsBackgroundService>();
+            services.AddHostedService<DatabaseFullBackupBackgroundService>();
+            services.AddHostedService<DatabaseTransactionLogBackupService>();
 
             return services;
         }

@@ -171,4 +171,7 @@ public interface IManagementLogic
 
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
     List<AccountingState> ListAccountingStates(long projectId);
+
+    string BackupDatabase();
+    string BackupDatabaseTransactionLogs();
 }

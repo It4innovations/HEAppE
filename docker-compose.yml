@@ -23,6 +23,8 @@ services:
     user: root
     volumes:
       - sql_volume:/var/opt/mssql
+      - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
+      - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
     ports:
       - "${HOST_MSSQL_PORT}:1433"
     environment:

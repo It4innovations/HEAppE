@@ -199,4 +199,7 @@ public interface IManagementService
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
+
+    string BackupDatabase(string sessionCode);
+    string BackupDatabaseTransactionLogs(string sessionCode);
 }

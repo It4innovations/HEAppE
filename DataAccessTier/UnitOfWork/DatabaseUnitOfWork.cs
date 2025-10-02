@@ -14,6 +14,7 @@ using HEAppE.DataAccessTier.Repository.JobManagement.Command;
 using HEAppE.DataAccessTier.Repository.JobManagement.JobInformation;
 using HEAppE.DataAccessTier.Repository.OpenStack;
 using HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
+using HEAppE.DataAccessTier.Service;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 
@@ -123,6 +124,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
     private ITaskParalizationSpecificationRepository _taskParalizationSpecificationRepository;
     private ITaskSpecificationRequiredNodeRepository _taskSpecificationRequiredNodeRepository;
     private IOpenStackSessionRepository _openStackSessionRepository;
+    private IDatabaseBackupService _databaseBackupService;
 
     #endregion
 
@@ -418,6 +420,15 @@ public class DatabaseUnitOfWork : IUnitOfWork
         {
             return _openStackSessionRepository =
                 _openStackSessionRepository ?? new OpenStackSessionRepository(_context);
+        }
+    }
+
+    public IDatabaseBackupService DatabaseBackupService
+    {
+        get
+        {
+            return _databaseBackupService =
+                _databaseBackupService ?? new DatabaseBackupService(_context);
         }
     }
 

@@ -1,16 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -20,14 +8,19 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using log4net;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2236,6 +2229,50 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_managementService.ListAccountingStates(projectId, sessionCode));
+    }
+
+    /// <summary>
+    ///     Full backup database
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpPost("BackupDatabase")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabase(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabase\"");
+
+        var backupFilePath = _managementService.BackupDatabase(sessionCode);
+
+        return Ok($"Full backup database was created successfully at '{backupFilePath}'.");
+    }
+
+    /// <summary>
+    ///     Backup database transaction logs
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpPost("BackupDatabaseTransactionLogs")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabaseTransactionLogs(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabaseTransactionLogs\"");
+
+        var backupFilePath = _managementService.BackupDatabaseTransactionLogs(sessionCode);
+
+        return Ok($"Database transaction logs backup was created successfully at '{backupFilePath}'.");
     }
 
     #endregion

@@ -2256,6 +2256,16 @@ public class ManagementLogic : IManagementLogic
         return project.AccountingStates.ToList();
     }
 
+    public string BackupDatabase()
+    {
+        return _unitOfWork.DatabaseBackupService.BackupDatabase();
+    }
+
+    public string BackupDatabaseTransactionLogs()
+    {
+        return _unitOfWork.DatabaseBackupService.BackupDatabaseTransactionLogs();
+    }
+
     #endregion
 
     #region Private methods
