@@ -415,7 +415,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
-    private string PrepareDryRunScript(
+    private static string PrepareSbatchCommand(
         string script_name,
         string job_name, string account, string partition,
         int nodes, int ntasks_per_node, TimeSpan? time,
@@ -424,29 +424,16 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     {
         if (time == null)
             time = TimeSpan.FromMinutes(1);
-        var result = @"#!/bin/bash
-# -- REAL PARAMETERS OF TARGET JOB TO SUBMIT
-#SBATCH --job-name=" + job_name + @"
-#SBATCH --account=" + account + @"
-#SBATCH --partition=" + partition + @"
-#SBATCH --nodes=" + nodes + @"
-#SBATCH --ntasks-per-node=" + ntasks_per_node + @"
-#SBATCH --time=" + $"{time:hh\\:mm\\:ss}" + @"
-#SBATCH --output=" + output + @"
-#SBATCH --error=" + error + @"
-#
-# Print job information
-echo ""Job started at: $(date)""
-echo ""Running on nodes: $SLURM_JOB_NODELIST""
-echo ""Number of nodes: $SLURM_JOB_NUM_NODES""
-echo ""Total tasks: $SLURM_NTASKS""
-#
-# Dummy work - just sleep and print from each task
-srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 1; echo ""Task $SLURM_PROCID finished""'
-#
-echo ""Job finished at: $(date)""
-# Expected to be run only with: sbatch --test-only " + script_name + @"
-";
+        var result = "sbatch";
+        result += " --job-name=" + job_name;
+        result += " --account=" + account;
+        result += " --partition=" + partition;
+        result += " --nodes=" + nodes;
+        result += " --ntasks-per-node=" + ntasks_per_node;
+        result += " --time=" + $"{time:hh\\:mm\\:ss}";
+        result += " --output=" + output;
+        result += " --error=" + error;
+        result += " --test-only ~/tmp/" + script_name;
         return result;
     }
 
@@ -467,24 +454,23 @@ echo ""Job finished at: $(date)""
         {
             var partition = nodeType.Queue;
 
-            string dryRunScript = PrepareDryRunScript(
-                script_name,
-                job_name: "dryrun",
-                account: project.AccountingString,
-                partition: partition,
-                nodes: 1,
-                ntasks_per_node: 1,
-                time: TimeSpan.FromSeconds(1),
-                output: "dummy_%j.out",
-                error: "dummy_%j.err"
-            );
-
             var testCommand = @"eval `(mkdir -p ~/tmp)` &&
 cat <<EOF > ~/tmp/" + script_name + @"
-" + dryRunScript + @"
+#!/bin/bash
+srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 1; echo ""Task $SLURM_PROCID finished""'
 EOF
-chmod +x ~/tmp/" + script_name + @" && sbatch --test-only ~/tmp/" + script_name + @"
-";
+chmod +x ~/tmp/" + script_name + @" && " + PrepareSbatchCommand(
+    script_name,
+    job_name: "dryrun",
+    account: project.AccountingString,
+    partition: partition,
+    nodes: 1,
+    ntasks_per_node: 1,
+    time: TimeSpan.FromSeconds(1),
+    output: "dummy.out",
+    error: "dummy.err"
+) + "\n";
+
             var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
