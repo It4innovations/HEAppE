@@ -1,6 +1,7 @@
 ﻿using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 
@@ -22,6 +23,14 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
         return GetAll().Where(w => w.Username == username)
             .FirstOrDefault();
     }
+    
+    public AdaptorUser GetByNameIgnoreQueryFilters(string username)
+    {
+        return _dbSet
+            .IgnoreQueryFilters() 
+            .FirstOrDefault(w => w.Username == username);
+    }
+
 
     #endregion
 }

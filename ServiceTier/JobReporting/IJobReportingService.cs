@@ -21,5 +21,5 @@ public interface IJobReportingService
 
     ProjectExtendedReportExt ResourceUsageReportForJob(long jobId, string sessionCode);
     IEnumerable<JobStateAggregationReportExt> GetJobsStateAgregationReport(string sessionCode);
-    IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, string sessionCode);
+    IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 }

@@ -1,6 +1,8 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -113,6 +115,25 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return commandTemplate.TemplateParameters.Select(s => s.Identifier)
             .ToList();
     }
+    
+    private IEnumerable<ClusterAuthenticationCredentials> InitializeCredentials(long projectId, long clusterId, long? adaptorUserId)
+    {
+        var credentials =
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
+                clusterId, projectId, false, null);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork);
+        foreach (var credential in credentials)
+        {
+            var status = managementLogic.InitializeClusterScriptDirectory(
+                projectId, 
+                true,
+                adaptorUserId: adaptorUserId.HasValue ? adaptorUserId.Value : null,
+                username: credential.Username
+            );
+            _log.Info($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
+        }
+        return credentials;
+    }
 
     public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
@@ -123,14 +144,43 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project == null)
             throw new RequestedObjectDoesNotExistException("ProjectNotExists", projectId);
-        
-        if (project.IsOneToOneMapping)
-            return GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, requireIsInitialized, adaptorUserId.Value);
 
+        if (project.IsOneToOneMapping)
+        {
+            try
+            {
+                return GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, requireIsInitialized,
+                    adaptorUserId.Value);
+            }
+            catch (NotAllowedException ex)
+            {
+                if (BusinessLogicConfiguration.AutomaticClusterAccountInitialization)
+                {
+                    _log.Info($"Automatic initialization of cluster accounts is enabled. Attempting to initialize accounts for project {projectId} on cluster {clusterId} for adaptor user {adaptorUserId}");
+                    var initializedCredentials = InitializeCredentials(projectId, clusterId, adaptorUserId);
+                    return GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, requireIsInitialized,
+                        adaptorUserId.Value);
+                }
+            }
+        }
+        
         //return all non service account for specific cluster and project
-        var credentials =
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                clusterId, projectId, requireIsInitialized, null);
+        IEnumerable<ClusterAuthenticationCredentials> credentials = new List<ClusterAuthenticationCredentials>();
+        try
+        {
+            credentials =
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
+                    clusterId, projectId, requireIsInitialized, null);
+        }
+        catch (NotAllowedException ex)
+        {
+            if (BusinessLogicConfiguration.AutomaticClusterAccountInitialization)
+            {
+                _log.Info($"Automatic initialization of cluster accounts is enabled. Attempting to initialize accounts for project {projectId} on cluster {clusterId}");
+                credentials = InitializeCredentials(projectId, clusterId, null);
+            }
+        }
+
         if (credentials == null || credentials?.Count() == 0)
             throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", clusterId, projectId);
 
