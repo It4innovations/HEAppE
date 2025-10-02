@@ -2288,15 +2288,18 @@ public class ManagementLogic : IManagementLogic
     public async Task<dynamic> CheckClusterProjectCredentialsStatus()
     {
         //await Task.Delay(1);
-
+        
         var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster().ToList();
 
         List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
         foreach (var clusterProjectCredential in clusterProjectCredentials)
         {
+            // preload all dependencies to prevent database race condition in tasks
             var clusterProject = clusterProjectCredential.ClusterProject;
             var cluster = clusterProject.Cluster;
             var project = clusterProject.Project;
+            var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
+            // prepare task
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
             tasks.Add(scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential));
         }
@@ -2312,7 +2315,7 @@ public class ManagementLogic : IManagementLogic
            e = e;
         }
         _unitOfWork.Save();
-
+        
         return null;
     }
 

@@ -460,45 +460,66 @@ echo ""Job finished at: $(date)""
         var authCreds = clusterProjectCredential.ClusterAuthenticationCredentials;
         var script_name = "dummy_job_" + authCreds.Username + ".sh";
 
-        string dryRunScript = PrepareDryRunScript(
-            script_name,
-            job_name: "dryrun",
-            account: project.AccountingString,
-            partition: cluster.NodeTypes.First().Queue, // !!!
-            nodes: 1,
-            ntasks_per_node: 1,
-            time: TimeSpan.FromSeconds(5),
-            output: "dummy_%j.out",
-            error: "dummy_%j.err"
-        );
+        int clusterConnectionFailedCount = 0;
+        int dryRunJobFailedCount = 0;
 
-        var testCommand = @"eval `(mkdir -p ~/tmp)` &&
+        foreach (var nodeType in cluster.NodeTypes)
+        {
+            var partition = nodeType.Queue;
+
+            string dryRunScript = PrepareDryRunScript(
+                script_name,
+                job_name: "dryrun",
+                account: project.AccountingString,
+                partition: partition,
+                nodes: 1,
+                ntasks_per_node: 1,
+                time: TimeSpan.FromSeconds(1),
+                output: "dummy_%j.out",
+                error: "dummy_%j.err"
+            );
+
+            var testCommand = @"eval `(mkdir -p ~/tmp)` &&
 cat <<EOF > ~/tmp/" + script_name + @"
 " + dryRunScript + @"
 EOF
-chmod +x ~/tmp/" + script_name + @" && sbatch --test-only ~/tmp/" + script_name +@"
+chmod +x ~/tmp/" + script_name + @" && sbatch --test-only ~/tmp/" + script_name + @"
 ";
-        var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
-        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
-        try
-        {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            checkLog.VaultCredentialOk = true;
-            checkLog.ClusterConnectionOk = true;
-            if (command.ExitStatus == 0)
+            var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
+            sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+            try
             {
-                checkLog.DryRunJobOk = true;
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                checkLog.VaultCredentialOk = true;
+                checkLog.ClusterConnectionOk = true;
+                if (command.ExitStatus == 0)
+                {
+                    checkLog.DryRunJobOk = true;
+                }
+                else
+                {
+                    checkLog.DryRunJobOk = false;
+                    checkLog.ErrorMessage += command.Error + "\n";
+                    ++dryRunJobFailedCount;
+                }
             }
-            else
+            catch (SshCommandException e)
             {
-                checkLog.DryRunJobOk = false;
-                checkLog.ErrorMessage += command.Error + "\n";
+                ++clusterConnectionFailedCount;
+                
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
+            catch (Exception e)
+            {
+                checkLog.ErrorMessage += e.Message + "\n";
             }
         }
-        catch (Exception e)
-        {
-            checkLog.ErrorMessage += e.Message + "\n";
-        }
+
+        if (clusterConnectionFailedCount > 0)
+            checkLog.ClusterConnectionOk = false;
+
+        if (dryRunJobFailedCount > 0)
+            checkLog.DryRunJobOk = false;
 
         return null;
     }
