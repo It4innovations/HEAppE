@@ -5,10 +5,12 @@ using System.ComponentModel.DataAnnotations.Schema;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using Microsoft.EntityFrameworkCore;
 
 namespace HEAppE.DomainObjects.JobManagement;
 
 [Table("Project")]
+[Index(nameof(EndDate))]
 public class Project : IdentifiableDbEntity, ISoftDeletableEntity
 {
     [Required] [StringLength(50)] public string Name { get; set; }

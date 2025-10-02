@@ -18,6 +18,7 @@ using HEAppE.Utils;
 using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace HEAppE.DataAccessTier;
 

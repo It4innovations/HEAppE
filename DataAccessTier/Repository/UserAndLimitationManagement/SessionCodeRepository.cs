@@ -19,15 +19,21 @@ internal class SessionCodeRepository : GenericRepository<SessionCode>, ISessionC
 
     public SessionCode GetByUniqueCode(string uniqueCode)
     {
-        return GetAll().Where(w => w.UniqueCode == uniqueCode)
-            .FirstOrDefault();
+        return _dbSet
+            .OfType<SessionCode>() 
+            .OrderByDescending(w=> w.Id)
+            .FirstOrDefault(w => w.UniqueCode == uniqueCode);
     }
 
     public SessionCode GetByUser(AdaptorUser user)
     {
-        return GetAll().Where(w => w.User.Username == user.Username)
-            .FirstOrDefault();
+        return _dbSet
+            .OfType<SessionCode>()
+            .OrderByDescending(w=> w.Id)
+            .FirstOrDefault(w => w.User.Id == user.Id);
     }
+
+
 
     #endregion
 }
