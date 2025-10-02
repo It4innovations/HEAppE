@@ -29,14 +29,15 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     {
         return _dbSet
             .AsNoTracking()
-            .Include(c => c.ClusterProjects)
+            .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
             .Include(c => c.NodeTypes)
             .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
             .Include(c => c.FileTransferMethods)
             .Include(c => c.ProxyConnection)
-            .Where(c => c.ClusterProjects.Any(p => p.Project.EndDate >= DateTime.UtcNow))
             .ToList();
     }
+
+
 
     /// <summary>
     ///     Get all clusters with Cluster Proxy Connection id
