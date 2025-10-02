@@ -84,7 +84,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - vault_unseal
+      - mssql
 
   vault:
     image: hashicorp/vault:1.17.3
@@ -141,8 +141,7 @@ services:
       - vaultNet
     profiles:
       - initVault
-    depends_on:
-      - vault
+
   
   vault_unseal:
     build:
