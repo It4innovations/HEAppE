@@ -1,5 +1,6 @@
 ﻿using System.IO;
 using System;
+using System.Net;
 using System.Text;
 using Org.BouncyCastle.Crypto;
 using Org.BouncyCastle.Crypto.Generators;
@@ -87,15 +88,20 @@ public class EdDSACertGenerator : GenericCertGenerator
     /// <returns></returns>
     public override string ToPuTTYPublicKey()
     {
-        var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(_keyPair.Public);
-        var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
-
-        var formattedPublicKey = new StringBuilder();
-        formattedPublicKey.Append("ssh-ed25519 ");
-        formattedPublicKey.Append(base64PublicKey);
-        formattedPublicKey.Append($" {_publicComment}");
-
-        return formattedPublicKey.ToString();
+        var pub = (Ed25519PublicKeyParameters)_keyPair.Public;
+        var keyType = Encoding.ASCII.GetBytes("ssh-ed25519");
+        var pubRaw = pub.GetEncoded();
+        using var ms = new MemoryStream();
+        using (var bw = new BinaryWriter(ms))
+        {
+            bw.Write(IPAddress.HostToNetworkOrder(keyType.Length));
+            bw.Write(keyType);
+            bw.Write(IPAddress.HostToNetworkOrder(pubRaw.Length));
+            bw.Write(pubRaw);
+        }
+        var base64 = Convert.ToBase64String(ms.ToArray());
+        string comment = $"key-temp-added-{DateTime.UtcNow.ToString("yyyy-MM-dd_HH-mm-ss")}";
+        return $"ssh-ed25519 {base64} {comment}";
     }
 
     #endregion

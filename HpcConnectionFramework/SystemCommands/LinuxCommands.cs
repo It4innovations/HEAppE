@@ -134,8 +134,9 @@ internal class LinuxCommands : ICommands
         SubmittedJobInfo jobInfo)
     {
         publicKey = Convert.ToBase64String(Encoding.UTF8.GetBytes(publicKey));
+        string remoteCmd3Path = HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, "remote-cmd3.sh");
         var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id}");
+            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobInfo.Project.AccountingString, _commandScripts.AddFiletransferKeyCmdScriptName)} {publicKey} {jobInfo.Specification.Id} {remoteCmd3Path}");
         _log.InfoFormat($"Allow file transfer result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
     }
 
@@ -280,7 +281,8 @@ internal class LinuxCommands : ICommands
             .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
                 StringSplitOptions.RemoveEmptyEntries);
         var gitCloneLogic = $@"
-            error=$(git clone --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} 2>&1); 
+            error=$(git clone -b {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch} --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} HEAppE-scripts
+ 2>&1); 
             code=$?; 
             if [ $code -ne 0 ]; then 
               echo ""GIT CLONE ERROR: $error"" >&2; 

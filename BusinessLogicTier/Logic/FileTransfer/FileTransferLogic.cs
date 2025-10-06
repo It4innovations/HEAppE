@@ -176,19 +176,19 @@ public class FileTransferLogic : IFileTransferLogic
 
 
         var certGenerator = new SSHGenerator();
-        publicKey = certGenerator.ToPuTTYPublicKey();
+        publicKey = certGenerator.ToPuTTYPublicKey("");
 
         while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
         {
             certGenerator.Regenerate();
-            publicKey = certGenerator.ToPuTTYPublicKey();
+            publicKey = certGenerator.ToPuTTYPublicKey("");
         }
 
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
             Username = jobInfo.Specification.ClusterUser.Username,
             FileTransferCipherType = certGenerator.CipherType,
-            PrivateKey = certGenerator.ToPrivateKey(),
+            PrivateKey = certGenerator.CipherType != FileTransferCipherType.Ed25519 ? certGenerator.ToPrivateKey() : certGenerator.ToPrivateKeyInPEM(),
             CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, PublicKey = publicKey
         };
 

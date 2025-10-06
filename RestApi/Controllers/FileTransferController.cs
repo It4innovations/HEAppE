@@ -81,7 +81,7 @@ public class FileTransferController : BaseController<FileTransferController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         _service.CloseFileTransfer(model.SubmittedJobInfoId, model.PublicKey, model.SessionCode);
-        return Ok("CloseFileTransfer");
+        return Ok("File transfer closed");
     }
 
     /// <summary>
