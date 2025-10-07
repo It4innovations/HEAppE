@@ -61,9 +61,17 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
         _context.ClusterProjectCredentialsCheckLog.Add(checkLog);
     }
 
-    public IQueryable<ClusterProjectCredential> GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster()
+    public List<ClusterProjectCredential> GetAllClusterProjectCredentialsUntracked()
     {
-        return _context.ClusterProjectCredentials.AsQueryable();
+        var result = _context.ClusterProjectCredentials
+            .Include(cpc => cpc.ClusterProject)
+            .Include(cpc => cpc.ClusterProject.Cluster)
+            .Include(cpc => cpc.ClusterProject.Cluster.NodeTypes)
+            .Include(cpc => cpc.ClusterProject.Project)
+            .Include(cpc => cpc.ClusterAuthenticationCredentials)
+            .AsNoTracking()
+            .ToList();
+        return result;
     }
 
     #endregion

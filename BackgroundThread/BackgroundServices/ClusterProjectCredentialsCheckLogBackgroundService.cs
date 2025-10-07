@@ -22,43 +22,23 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
     {
         _log = LogManager.GetLogger(GetType());
     }
-    private enum ExecutionStep { DoLogic, DoSave, DoCleanup }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        IUnitOfWork unitOfWork = null;
-        IManagementLogic managementLogic = null;
-
         while (!stoppingToken.IsCancellationRequested)
         {
-            for (ExecutionStep i = ExecutionStep.DoLogic; i <= ExecutionStep.DoCleanup; i++)
+            try
             {
-                try
+                using (IUnitOfWork unitOfWork = new DatabaseUnitOfWork())
                 {
-                    switch (i)
-                    {
-                        case ExecutionStep.DoLogic:
-                            unitOfWork = new DatabaseUnitOfWork();
-                            managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-                            await managementLogic.CheckClusterProjectCredentialsStatus();
-                            break;
-
-                        case ExecutionStep.DoSave:
-                            unitOfWork?.Save();
-                            break;
-
-                        case ExecutionStep.DoCleanup:
-                            managementLogic = null;
-                            unitOfWork?.Dispose();
-                            break;
-                    }
-                }
-                catch (Exception ex)
-                {
-                    _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    await managementLogic.CheckClusterProjectCredentialsStatus();
                 }
             }
-            unitOfWork = null;
+            catch (Exception ex)
+            {
+                _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
+            }
 
             await Task.Delay(_interval, stoppingToken);
         }

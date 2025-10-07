@@ -441,10 +441,12 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     {
         await Task.Delay(1);
 
-        SshCommandWrapper command = null;
-        var cluster = clusterProjectCredential.ClusterProject.Cluster;
-        var project = clusterProjectCredential.ClusterProject.Project;
-        var authCreds = clusterProjectCredential.ClusterAuthenticationCredentials;
+        SshCommandWrapper command;
+        
+        Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
+        Project project = clusterProjectCredential.ClusterProject.Project;
+        ClusterAuthenticationCredentials authCreds = clusterProjectCredential.ClusterAuthenticationCredentials;
+        
         var script_name = "dummy_job_" + authCreds.Username + ".sh";
 
         int clusterConnectionFailedCount = 0;

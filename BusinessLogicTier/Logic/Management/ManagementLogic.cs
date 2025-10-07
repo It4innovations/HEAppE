@@ -2288,8 +2288,7 @@ public class ManagementLogic : IManagementLogic
     public async Task<dynamic> CheckClusterProjectCredentialsStatus()
     {
         //await Task.Delay(1);
-        
-        var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsOrderByProjectAndThenByCluster().ToList();
+        var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsUntracked();
 
         List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
         foreach (var clusterProjectCredential in clusterProjectCredentials)

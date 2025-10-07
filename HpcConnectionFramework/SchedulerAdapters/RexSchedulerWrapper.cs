@@ -419,8 +419,11 @@ public class RexSchedulerWrapper : IRexScheduler
     public async Task<ClusterProjectCredentialCheckLog> CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential)
     {
         //await Task.Delay(1);
-        var clusterProject = clusterProjectCredential.ClusterProject;
-        var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
+        
+        ClusterProject clusterProject = clusterProjectCredential.ClusterProject;
+        ClusterAuthenticationCredentials clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
+        Cluster cluster = clusterProject.Cluster;
+
         var checkTimestamp = DateTime.UtcNow;
         var checkLog = new ClusterProjectCredentialCheckLog()
         {
@@ -437,7 +440,7 @@ public class RexSchedulerWrapper : IRexScheduler
         ConnectionInfo schedulerConnection = null;
         try
         {
-            schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, clusterProject.Cluster);
+            schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
             checkLog.ClusterConnectionOk = true;
             await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
         }
