@@ -46,7 +46,7 @@ public sealed class HPCConnectionFrameworkConfiguration
     /// <returns></returns>
     public static string GetExecuteCmdScriptPath(string projectAccountingString)
     {
-        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/.key_scripts/{HPCConnectionFrameworkConfiguration.ScriptsSettings.CommandScriptsPathSettings.ExecuteCmdScriptName}";
+        return $"{ScriptsSettings.ScriptsBasePath}/.{projectAccountingString}/{ScriptsSettings.InstanceIdentifierPath}/.key_scripts/{ScriptsSettings.CommandScriptsPathSettings.ExecuteCmdScriptName}";
     }
 
     /// <summary>
