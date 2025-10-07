@@ -16,7 +16,7 @@ public class ClusterProject : IdentifiableDbEntity //, ISoftDeletableEntity
     public virtual Project Project { get; set; }
 
     [Required] [StringLength(100)] public string ScratchStoragePath { get; set; }
-    [Required] [StringLength(100)] public string PermanentStoragePath { get; set; }
+    [StringLength(100)] public string PermanentStoragePath { get; set; }
 
     [Required] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
