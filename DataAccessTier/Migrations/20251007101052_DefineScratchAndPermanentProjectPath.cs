@@ -20,8 +20,7 @@ namespace HEAppE.DataAccessTier.Migrations
                 table: "ClusterProject",
                 type: "nvarchar(100)",
                 maxLength: 100,
-                nullable: false,
-                defaultValue: "");
+                nullable: true);
         }
 
         /// <inheritdoc />

@@ -12,7 +12,7 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    [Migration("20251007093800_DefineScratchAndPermanentProjectPath")]
+    [Migration("20251007101052_DefineScratchAndPermanentProjectPath")]
     partial class DefineScratchAndPermanentProjectPath
     {
         /// <inheritdoc />
@@ -461,7 +461,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<string>("PermanentStoragePath")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
