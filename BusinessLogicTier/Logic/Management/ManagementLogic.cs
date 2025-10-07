@@ -473,7 +473,7 @@ public class ManagementLogic : IManagementLogic
     
     public List<ClusterProject> GetProjectAssignmentToClusters(long projectId)
     {
-        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForCluster(projectId).Where(x=> !x.IsDeleted).ToList();
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId).Where(x=> !x.IsDeleted).ToList();
         return projectAssignmentToCluster;
 
     }
@@ -514,6 +514,25 @@ public class ManagementLogic : IManagementLogic
             CreatedAt = modified,
             IsDeleted = false
         };
+
+        var cps = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
+        foreach (var c in cps)
+        {
+            foreach(var cpc in c.ClusterProjectCredentials)
+            {
+                var newCpc = new ClusterProjectCredential
+                {
+                    ClusterProject = clusterProject,
+                    ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
+                    IsServiceAccount = cpc.IsServiceAccount,
+                    CreatedAt = modified,
+                    IsDeleted = cpc.IsServiceAccount,
+                    IsInitialized = false,
+                    AdaptorUserId = cpc.AdaptorUserId,
+                };
+                clusterProject.ClusterProjectCredentials.Add(newCpc);
+            }
+        }
 
         project.ModifiedAt = modified;
         _unitOfWork.ProjectRepository.Update(project);
