@@ -644,6 +644,38 @@ public class ManagementLogic : IManagementLogic
             .DistinctBy(x=>x.Username)
             .ToList();
     }
+    
+    public List<SecureShellKey> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername, string newPassword, long projectId, long? adaptorUserId)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        if (project is null || project.EndDate < DateTime.UtcNow)
+        {
+            _logger.Error($"Project with ID {projectId} not found or has already ended.");
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        }
+
+        if (project.IsOneToOneMapping)
+        {
+            _logger.Info($"Project with ID {projectId} is one-to-one mapping, returning only service account credentials for user {adaptorUserId}.");
+        }
+        else
+        {
+            _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
+        }
+        
+        var credentials =  _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId)
+            .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
+            .ToList();
+        foreach (var cred in credentials)
+        {
+            cred.Username = newUsername;
+            cred.Password = newPassword;
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(cred);
+            _logger.Info($"Renamed ClusterAuthenticationCredentials ID '{cred.Id}' username to '{newUsername}'.");
+        }
+        _unitOfWork.Save();
+        return credentials.Select(SSHGenerator.GetPublicKeyFromPrivateKey).DistinctBy(x=>x.Username).ToList();
+    }
 
     /// <summary>
     ///     Creates encrypted SSH key for the specified user and saves it to the database.

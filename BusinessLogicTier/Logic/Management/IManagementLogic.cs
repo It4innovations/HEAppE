@@ -43,6 +43,9 @@ public interface IManagementLogic
 
     void RemoveProject(long id);
     List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId);
+
+    List<SecureShellKey> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername,
+        string newPassword, long projectId, long? adaptorUserId);
     List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId);
     SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);
     void RemoveSecureShellKey(string publicKey, long projectId);

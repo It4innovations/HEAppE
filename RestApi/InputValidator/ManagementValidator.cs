@@ -77,10 +77,23 @@ public class ManagementValidator : AbstractValidator
             RemoveProjectClusterNodeTypeAggregationModel ext =>
                 ValidateRemoveProjectClusterNodeTypeAggregationModel(ext),
             AccountingStateModel ext => ValidateAccountingStateModel(ext),
+            ModifyClusterAuthenticationCredentialModel ext => ValidateModifyClusterAuthenticationCredentialModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateModifyClusterAuthenticationCredentialModel(ModifyClusterAuthenticationCredentialModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        ValidateId(ext.ProjectId, "ProjectId");
+        if (string.IsNullOrEmpty(ext.OldUsername)) _messageBuilder.AppendLine("OldUsername can not be null or empty.");
+        if (string.IsNullOrEmpty(ext.NewUsername)) _messageBuilder.AppendLine("NewUsername can not be null or empty.");
+
+        return _messageBuilder.ToString();
     }
 
     private string ValidateGetSecureShellKeysModel(GetSecureShellKeysModel ext)
