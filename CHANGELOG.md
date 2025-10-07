@@ -29,7 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `IsInitialized` attribute for `ClusterAuthenticationCredentials` with check for all endpoints which uses `ClusterAuthenticationCredential` to connect HPC
 - Endpoints for bulk listing of `ClusterNodeTypes`, `FileTransferMethods`, `Projects`, `ClusterNodeTypeAggregationAccountings`
 - Endpoint to Reset ListAvailableClusters Memory Cache
-- '/health' check endpoint
 - Automatic cluster account initialization feature configurable from `appsettings.json` 
 
 ### Fixed
@@ -42,7 +41,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - SessionCode regeneration method
 
 
-### New Endpoints: 10
+### New Endpoints: 11
 ---------------------
 POST /heappe/ClusterInformation/ListAvailableClustersClearCache  
 GET /heappe/Health  
@@ -52,13 +51,14 @@ GET /heappe/Management/ClusterNodeTypeAggregationAccountings
 GET /heappe/Management/ClusterNodeTypes  
 GET /heappe/Management/ClusterProxyConnections  
 GET /heappe/Management/FileTransferMethods  
+PUT /heappe/Management/ModifyClusterAuthenticationCredential  
 GET /heappe/Management/ProjectAssignmentToClusters  
 GET /heappe/Management/Projects  
 
 ### Deleted Endpoints: None
 ---------------------------
 
-### Modified Endpoints: 14
+### Modified Endpoints: 17
 --------------------------
 GET /heappe/ClusterInformation/ListAvailableClusters
 - New query param: ForceRefresh
@@ -72,6 +72,14 @@ POST /heappe/DataTransfer/RequestDataTransfer
 POST /heappe/JobManagement/CopyJobDataToTemp
 
 POST /heappe/JobManagement/CreateJob
+
+GET /heappe/JobReporting/JobsDetailedReport
+- New query param: TimeFrom
+- New query param: TimeTo
+- Modified query param: SessionCode
+  - Description changed from 'Session code' to ''
+- Modified query param: SubProjects
+  - Description changed from 'SubProjects' to ''
 
 DELETE /heappe/Management/CommandTemplateParameter
 - Summary changed from 'Remove Static Command Template' to 'Remove an existing Command Template Parameter'
@@ -91,6 +99,10 @@ POST /heappe/Management/Project
 
 PUT /heappe/Management/Project
 
+POST /heappe/Management/ProjectAssignmentToCluster
+
+PUT /heappe/Management/ProjectAssignmentToCluster
+
 GET /heappe/Management/TestClusterAccessForAccount
 - Responses changed
   - Modified response: 200
@@ -102,15 +114,22 @@ GET /heappe/Management/TestClusterAccessForAccount
 Other Changes
 -------------
 Extensions changed
-- Deleted extension: basePath
 - Modified extension: definitions
   - Added /ClusterAccessReportExt with value: 'map[additionalProperties:false properties:map[ClusterName:map[description:Cluster name type:string] IsClusterAccessible:map[description:Is cluster accessible type:boolean]] type:object]'
   - Added /ClusterAccountStatusExt with value: 'map[additionalProperties:false properties:map[Cluster:map[$ref:#/definitions/ClusterExt] IsInitialized:map[description:Is initialized type:boolean] Project:map[$ref:#/definitions/ProjectExt]] type:object]'
   - Added /ClusterExt/properties/FileTransferMethodIds with value: 'map[description:File transfer ids items:map[format:int64 type:integer] type:array]'
   - Added /ClusterNodeTypeExt/properties/ClusterId with value: 'map[description:Cluster id format:int64 type:integer]'
+  - Removed /ClusterProjectExt/properties/LocalBasepath with value: 'map[description:Local base path maxLength:100 minLength:0 type:string]'
+  - Added /ClusterProjectExt/properties/PermanentStoragePath with value: 'map[description:Permanent Storage Path maxLength:100 minLength:0 type:string]'
+  - Added /ClusterProjectExt/properties/ScratchStoragePath with value: 'map[description:Scratch Storage Path maxLength:100 minLength:0 type:string]'
+  - Modified /CommandTemplateParameterValueExt/properties/ParameterValue/maxLength from '1000' to '100000'
   - Added /CopyJobDataToTempModel/properties/CreatedJobInfoId with value: 'map[description:Created job info id format:int64 type:integer]'
   - Removed /CopyJobDataToTempModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
+  - Removed /CreateProjectAssignmentToClusterModel/properties/LocalBasepath with value: 'map[description:Local base path maxLength:100 minLength:0 type:string]'
+  - Added /CreateProjectAssignmentToClusterModel/properties/PermanentStoragePath with value: 'map[description:Permanent Storage Path maxLength:100 minLength:0 type:string]'
+  - Added /CreateProjectAssignmentToClusterModel/properties/ScratchStoragePath with value: 'map[description:Scratch Storage Path maxLength:100 minLength:0 type:string]'
   - Added /CreateProjectModel/properties/IsOneToOneMapping with value: 'map[description:Map user account to exact robot account type:boolean]'
+  - Added /Database_ with value: 'map[additionalProperties:false properties:map[IsHealthy:map[description:Database is healthy type:boolean]] type:object]'
   - Added /ExtendedClusterExt/properties/FileTransferMethodIds with value: 'map[description:File transfer ids items:map[format:int64 type:integer] type:array]'
   - Modified /FileTransferCipherTypeExt/enum/0 from '0' to '1'
   - Modified /FileTransferCipherTypeExt/enum/1 from '1' to '2'
@@ -121,6 +140,8 @@ Extensions changed
   - Added /FileTransferMethodNoCredentialsExt/properties/ClusterId with value: 'map[description:Cluster id format:int64 type:integer]'
   - Removed /GetDataTransferMethodModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
   - Added /GetDataTransferMethodModel/properties/SubmittedTaskInfoId with value: 'map[description:Submitted task info id format:int64 type:integer]'
+  - Added /HealthComponent_ with value: 'map[additionalProperties:false properties:map[Database:map[$ref:#/definitions/Database_] Vault:map[$ref:#/definitions/Vault_]] type:object]'
+  - Added /HealthExt with value: 'map[additionalProperties:false properties:map[Component:map[$ref:#/definitions/HealthComponent_] IsHealthy:map[description:IsHealthy type:boolean] Timestamp:map[description:Timestamp format:date-time type:string] Version:map[description:Version type:string]] type:object]'
   - Removed /HttpGetToJobNodeModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
   - Added /HttpGetToJobNodeModel/properties/SubmittedTaskInfoId with value: 'map[description:Submitted task info id format:int64 type:integer]'
   - Removed /HttpPostToJobNodeModel/properties/SubmittedJobInfoId with value: 'map[description:Subbmited job info id format:int64 type:integer]'
@@ -128,11 +149,18 @@ Extensions changed
   - Removed /InitializeClusterScriptDirectoryModel/properties/ClusterProjectRootDirectory with value: 'map[description:Cluster project root directory type:string]'
   - Added /InitializeClusterScriptDirectoryModel/properties/OverwriteExistingProjectRootDirectory with value: 'map[description:Overwrite existing cluster project root directory type:boolean]'
   - Added /InitializeClusterScriptDirectoryModel/properties/Username with value: 'map[description:Username type:string]'
+  - Added /ModifyClusterAuthenticationCredentialModel with value: 'map[additionalProperties:false properties:map[NewPassword:map[description:New password type:string] NewUsername:map[description:New username type:string] OldUsername:map[description:Old username type:string] ProjectId:map[description:Project ID format:int64 type:integer] SessionCode:map[description:Session code maxLength:50 minLength:0 type:string]] type:object]'
+  - Removed /ModifyProjectAssignmentToClusterModel/properties/LocalBasepath with value: 'map[description:Local base path maxLength:100 minLength:0 type:string]'
+  - Added /ModifyProjectAssignmentToClusterModel/properties/PermanentStoragePath with value: 'map[description:Permanent Storage Path maxLength:100 minLength:0 type:string]'
+  - Added /ModifyProjectAssignmentToClusterModel/properties/ScratchStoragePath with value: 'map[description:Scratch Storage Path maxLength:100 minLength:0 type:string]'
   - Added /ModifyProjectModel/properties/IsOneToOneMapping with value: 'map[description:Map user account to exact robot account type:boolean]'
   - Added /ProjectExt/properties/IsOneToOneMapping with value: 'map[description:Map user account to exact robot account type:boolean]'
   - Added /SubmittedTaskInfoExt/properties/Reason with value: 'map[description:Reason (parsed from scheduler, e.g. SLURM) type:string]'
   - Removed /TaskSpecificationExt/properties/TaskParalizationParameters with value: 'map[description:Array of task paralization parameters items:map[$ref:#/definitions/TaskParalizationParameterExt] type:array]'
   - Added /TaskSpecificationExt/properties/TaskParallelizationParameters with value: 'map[description:Array of task paralelization parameters items:map[$ref:#/definitions/TaskParalizationParameterExt] type:array]'
+  - Added /VaultInfo_ with value: 'map[additionalProperties:false properties:map[Initialized:map[description:Vault is initialized type:boolean] PerformanceStandby:map[description:Vault is in performance stand by type:boolean] Sealed:map[description:Vault is sealed type:boolean] StandBy:map[description:Vault is in stand by type:boolean]] type:object]'
+  - Added /Vault_ with value: 'map[additionalProperties:false properties:map[Info:map[$ref:#/definitions/VaultInfo_] IsHealthy:map[description:Vault is healthy type:boolean]] type:object]'
+
 
 
 
