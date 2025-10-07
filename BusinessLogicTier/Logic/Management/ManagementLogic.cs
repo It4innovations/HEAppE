@@ -856,7 +856,8 @@ public class ManagementLogic : IManagementLogic
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
                 var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId);
-                var isInitialized = scheduler.InitializeClusterScriptDirectory(project.AccountingString, overwriteExistingProjectRootDirectory,localBasepath,
+                string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
+                var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory,localBasepath,
                     cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
 
                 if (clusterAuthCredentials.IsGenerated)
