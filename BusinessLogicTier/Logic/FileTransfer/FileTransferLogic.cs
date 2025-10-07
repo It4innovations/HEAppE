@@ -410,7 +410,7 @@ public class FileTransferLogic : IFileTransferLogic
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
                 
                 var basePath = jobInfo.Specification.Cluster.ClusterProjects
-                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.PermanentStoragePath;
                 var localBasePath = Path.Combine(basePath, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username);
  
                 if (relativeFilePath.StartsWith(start1))

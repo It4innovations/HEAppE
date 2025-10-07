@@ -487,7 +487,8 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     /// <exception cref="InputValidationException"></exception>
-    public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
+    public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
+        string permanentStoragePath)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -499,7 +500,7 @@ public class ManagementLogic : IManagementLogic
             //Cluster to project is marked as deleted, update it
             return !cp.IsDeleted
                 ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
-                : ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                : ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
 
 
         //Create cluster to project mapping
@@ -508,8 +509,10 @@ public class ManagementLogic : IManagementLogic
         {
             ClusterId = clusterId,
             ProjectId = projectId,
-            LocalBasepath = localBasepath
+            ScratchStoragePath = scratchStoragePath
                 .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
+                .TrimEnd('\\', '/'),
+            PermanentStoragePath = permanentStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
             CreatedAt = modified,
             IsDeleted = false
@@ -551,14 +554,17 @@ public class ManagementLogic : IManagementLogic
     /// <param name="localBasepath"></param>
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
-    public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
+    public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
+        string permanentStoragePath)
     {
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
             ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
 
         var modified = DateTime.UtcNow;
-        clusterProject.LocalBasepath = localBasepath
+        clusterProject.ScratchStoragePath = scratchStoragePath
+            .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
+        clusterProject.PermanentStoragePath = permanentStoragePath
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
         clusterProject.ModifiedAt = modified;
         clusterProject.IsDeleted = false;
@@ -873,7 +879,7 @@ public class ManagementLogic : IManagementLogic
             foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).OrderByDescending(x => x.IsServiceAccount))
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
-                var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+                var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId);
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory,localBasepath,

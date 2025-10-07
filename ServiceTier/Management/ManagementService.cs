@@ -252,32 +252,32 @@ public class ManagementService : IManagementService
         }
     }
 
-    public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode)
     {
         _logger.Info(
-            $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, LocalBasepath: {localBasepath}");
+            $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, PermanentStoragePath: {permanentStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+            var clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
             return clusterProject.ConvertIntToExt();
         }
     }
 
-    public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode)
     {
         _logger.Info(
-            $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, LocalBasepath: {localBasepath}");
+            $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, PermanentStoragePath: {permanentStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+            var clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
             return clusterProject.ConvertIntToExt();
         }
     }

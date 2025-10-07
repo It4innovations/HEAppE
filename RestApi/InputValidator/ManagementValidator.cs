@@ -252,7 +252,7 @@ public class ManagementValidator : AbstractValidator
         var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
-        var validationResult = new PathValidator(ext.LocalBasepath).Validate();
+        var validationResult = new PathValidator(ext.ScratchStoragePath).Validate();
         if (!validationResult.IsValid) _messageBuilder.AppendLine(validationResult.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
@@ -267,8 +267,11 @@ public class ManagementValidator : AbstractValidator
         var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
         if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
 
-        var validationResult = new PathValidator(ext.LocalBasepath).Validate();
-        if (!validationResult.IsValid) _messageBuilder.AppendLine(validationResult.Message);
+        var validationResult1 = new PathValidator(ext.ScratchStoragePath).Validate();
+        if (!validationResult1.IsValid) _messageBuilder.AppendLine(validationResult1.Message);
+        
+        var validationResult2 = new PathValidator(ext.PermanentStoragePath).Validate();
+        if (!validationResult2.IsValid) _messageBuilder.AppendLine(validationResult2.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
 

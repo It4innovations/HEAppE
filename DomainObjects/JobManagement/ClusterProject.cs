@@ -15,7 +15,8 @@ public class ClusterProject : IdentifiableDbEntity //, ISoftDeletableEntity
     public long ProjectId { get; set; }
     public virtual Project Project { get; set; }
 
-    [Required] [StringLength(100)] public string LocalBasepath { get; set; }
+    [Required] [StringLength(100)] public string ScratchStoragePath { get; set; }
+    [Required] [StringLength(100)] public string PermanentStoragePath { get; set; }
 
     [Required] public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -28,6 +29,6 @@ public class ClusterProject : IdentifiableDbEntity //, ISoftDeletableEntity
     public override string ToString()
     {
         return
-            $"""ClusterProject: Cluster={Cluster}, Project={Project}, LocalBasepath={LocalBasepath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
+            $"""ClusterProject: Cluster={Cluster}, Project={Project}, ScratchStoragePath={ScratchStoragePath}, PermanentStoragePath={PermanentStoragePath}; CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}, IsDeleted={IsDeleted}" """;
     }
 }

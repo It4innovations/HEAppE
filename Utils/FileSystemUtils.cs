@@ -16,7 +16,7 @@ public class FileSystemUtils
     public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.LocalBasepath;
+            ?.ScratchStoragePath;
         var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));

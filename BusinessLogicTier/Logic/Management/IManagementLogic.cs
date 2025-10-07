@@ -50,8 +50,10 @@ public interface IManagementLogic
     void RemoveSecureShellKeyByPublicKey(string publicKey, long projectId);
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
-    ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
-    ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath);
+    ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
+        string permanentStoragePath);
+    ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
+        string permanentStoragePath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
 
     List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,

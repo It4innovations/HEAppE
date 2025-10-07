@@ -27,10 +27,18 @@ public class CreateProjectAssignmentToClusterModel : SessionCodeModel
     public long ClusterId { get; set; }
 
     /// <summary>
-    /// Local base path
+    /// Scratch storage path
     /// </summary>
-    [DataMember(Name = "LocalBasepath", IsRequired = true)]
+    [DataMember(Name = "ScratchStoragePath", IsRequired = true)]
     [StringLength(100)]
-    [Description("Local base path")]
-    public string LocalBasepath { get; set; }
+    [Description("Scratch Storage Path")]
+    public string ScratchStoragePath { get; set; }
+    
+    /// <summary>
+    /// Permanent storage path
+    /// </summary>
+    [DataMember(Name = "PermanentStoragePath", IsRequired = true)]
+    [StringLength(100)]
+    [Description("Permanent Storage Path")]
+    public string PermanentStoragePath { get; set; }
 }

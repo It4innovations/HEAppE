@@ -167,7 +167,7 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
         }
 
         var localBasePath = $"{jobSpecification.Cluster.ClusterProjects
-            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath}";
+            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath}";
         
         var jobDir = Path.Join(localBasePath, _scripts.InstanceIdentifierPath, 
             HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath,
