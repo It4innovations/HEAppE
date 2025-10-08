@@ -190,8 +190,17 @@ public class Startup
                     {
                         OnTokenValidated = async context =>
                         {
-                            await HttpContextKeys.Authorize(context.SecurityToken, 
-                                context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>());
+                            try
+                            {
+                                await HttpContextKeys.Authorize(context.SecurityToken, 
+                                    context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>());
+                            }
+                            catch (Exception ex)
+                            {
+                                context.Fail("Unauthorized");
+                                return;
+                            }
+                            
                             var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                             var client = httpClientFactory.CreateClient();
                             client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
