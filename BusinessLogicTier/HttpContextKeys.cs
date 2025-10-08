@@ -1,5 +1,7 @@
+using System;
 using System.Collections.Generic;
 using System.Net.Http;
+using System.Reflection;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Factory;
@@ -8,6 +10,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using IdentityModel.Client;
+using log4net;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier;
@@ -16,26 +19,37 @@ public static class HttpContextKeys
     public static AdaptorUser AdaptorUser;
     public static string SshCaToken;
     public static string FIPToken;
+    private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
     public static async Task<AdaptorUser> Authorize(string token, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
+        _log.Info($"Authorizing with UserOrg");
         FIPToken = token;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, sshCertificateAuthorityService);
 
-            var user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
+            try
             {
-                OpenIdLexisAccessToken = token
-            });
-
-            AdaptorUser = user;
-            return user;
+                var user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
+                {
+                    OpenIdLexisAccessToken = token
+                });
+                
+                AdaptorUser = user;
+                return user;
+            }
+            catch(Exception ex)
+            {
+                _log.Error("Error during authorization", ex);
+                throw;
+            }
         }
     }
 
     public static async Task<string> ExchangeSshCaToken(string accessToken, string tokenExchangeAddress, HttpClient httpClient)
     {
+        _log.Info($"Exchanging token for SSH CA token from {tokenExchangeAddress}");
         var clientId = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientId;
         var clientSecret = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientSecret;
 
