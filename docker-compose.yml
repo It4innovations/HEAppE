@@ -7,6 +7,7 @@ services:
       dockerfile: SshAgent/Dockerfile
     restart: unless-stopped
     volumes:
+      - "${HOST_SSHAGENT_HOST_MAP_FOLD_PATH}:${HOST_SSHAGENT_CONTAINER_MAP_FOLD_PATH}"
       - app_volume:/app/shared
     environment:
       TZ: "Europe/Prague"
