@@ -383,34 +383,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
-    private static string PrepareSbatchCommand(
-    string script_name,
-    string job_name, string account, string partition,
-    int nodes, int ntasks_per_node, TimeSpan? time,
-    string output, string error
-)
-    {
-        if (time == null)
-            time = TimeSpan.FromMinutes(1);
-        var result = "sbatch";
-        result += " --job-name=" + job_name;
-        result += " --account=" + account;
-        result += " --partition=" + partition;
-        result += " --nodes=" + nodes;
-        result += " --ntasks-per-node=" + ntasks_per_node;
-        result += " --time=" + $"{time:hh\\:mm\\:ss}";
-        result += " --output=" + output;
-        result += " --error=" + error;
-        result += " --test-only " + script_name;
-        return result;
-    }
-
     public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
         await Task.Delay(1);
 
         SshCommandWrapper command;
-        
         Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
         Project project = clusterProjectCredential.ClusterProject.Project;
         ClusterAuthenticationCredentials authCreds = clusterProjectCredential.ClusterAuthenticationCredentials;
@@ -421,23 +398,12 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         foreach (var nodeType in cluster.NodeTypes)
         {
             var partition = nodeType.Queue;
-
-            var testCommand = PrepareSbatchCommand(
-                script_name :$"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName}",
-                job_name: "dryrun",
-                account: project.AccountingString,
-                partition: partition,
-                nodes: 1,
-                ntasks_per_node: 1,
-                time: TimeSpan.FromSeconds(1),
-                output: "dummy.out",
-                error: "dummy.err"
-            ) + "\n";
+            var script_name = $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName}";
+            var testCommand = $"[ -f {script_name} ]"; // just check that file exists
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
-
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
-            {
+            {                
                 command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
                 checkLog.VaultCredentialOk = true;
                 checkLog.ClusterConnectionOk = true;
