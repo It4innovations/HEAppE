@@ -384,11 +384,11 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     }
 
     private static string PrepareSbatchCommand(
-        string script_name,
-        string job_name, string account, string partition,
-        int nodes, int ntasks_per_node, TimeSpan? time,
-        string output, string error
-    )
+    string script_name,
+    string job_name, string account, string partition,
+    int nodes, int ntasks_per_node, TimeSpan? time,
+    string output, string error
+)
     {
         if (time == null)
             time = TimeSpan.FromMinutes(1);
@@ -401,7 +401,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         result += " --time=" + $"{time:hh\\:mm\\:ss}";
         result += " --output=" + output;
         result += " --error=" + error;
-        result += " --test-only ~/tmp/" + script_name;
+        result += " --test-only " + script_name;
         return result;
     }
 
@@ -414,8 +414,6 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
         Project project = clusterProjectCredential.ClusterProject.Project;
         ClusterAuthenticationCredentials authCreds = clusterProjectCredential.ClusterAuthenticationCredentials;
-        
-        var script_name = "dummy_job_" + authCreds.Username + ".sh";
 
         int clusterConnectionFailedCount = 0;
         int dryRunJobFailedCount = 0;
@@ -424,51 +422,46 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         {
             var partition = nodeType.Queue;
 
-            var testCommand = @"eval `(mkdir -p ~/tmp)` &&
-cat <<EOF > ~/tmp/" + script_name + @"
-#!/bin/bash
-srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 1; echo ""Task $SLURM_PROCID finished""'
-EOF
-chmod +x ~/tmp/" + script_name + @" && " + PrepareSbatchCommand(
-            script_name,
-            job_name: "dryrun",
-            account: project.AccountingString,
-            partition: partition,
-            nodes: 1,
-            ntasks_per_node: 1,
-            time: TimeSpan.FromSeconds(1),
-            output: "dummy.out",
-    error: "dummy.err"
-) + "\n";
+            var testCommand = PrepareSbatchCommand(
+                script_name :$"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName}",
+                job_name: "dryrun",
+                account: project.AccountingString,
+                partition: partition,
+                nodes: 1,
+                ntasks_per_node: 1,
+                time: TimeSpan.FromSeconds(1),
+                output: "dummy.out",
+                error: "dummy.err"
+            ) + "\n";
+            var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
 
-        var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
-        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
-        try
-        {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            checkLog.VaultCredentialOk = true;
-            checkLog.ClusterConnectionOk = true;
-            if (command.ExitStatus == 0)
+            sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+            try
             {
-                checkLog.DryRunJobOk = true;
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                checkLog.VaultCredentialOk = true;
+                checkLog.ClusterConnectionOk = true;
+                if (command.ExitStatus == 0)
+                {
+                    checkLog.DryRunJobOk = true;
+                }
+                else
+                {
+                    checkLog.DryRunJobOk = false;
+                    checkLog.ErrorMessage += command.Error + "\n";
+                        ++dryRunJobFailedCount;
+                }
             }
-            else
-            {
-                checkLog.DryRunJobOk = false;
-                checkLog.ErrorMessage += command.Error + "\n";
-                    ++dryRunJobFailedCount;
-            }
-        }
             catch (SshCommandException e)
             {
                 ++clusterConnectionFailedCount;
                 
                 checkLog.ErrorMessage += e.Message + "\n";
             }
-        catch (Exception e)
-        {
-            checkLog.ErrorMessage += e.Message + "\n";
-        }
+            catch (Exception e)
+            {
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
         }
 
         if (clusterConnectionFailedCount > 0)

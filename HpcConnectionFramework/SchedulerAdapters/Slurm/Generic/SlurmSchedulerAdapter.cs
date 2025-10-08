@@ -433,7 +433,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         result += " --time=" + $"{time:hh\\:mm\\:ss}";
         result += " --output=" + output;
         result += " --error=" + error;
-        result += " --test-only ~/tmp/" + script_name;
+        result += " --test-only " + script_name;
         return result;
     }
 
@@ -446,8 +446,6 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
         Project project = clusterProjectCredential.ClusterProject.Project;
         ClusterAuthenticationCredentials authCreds = clusterProjectCredential.ClusterAuthenticationCredentials;
-        
-        var script_name = "dummy_job_" + authCreds.Username + ".sh";
 
         int clusterConnectionFailedCount = 0;
         int dryRunJobFailedCount = 0;
@@ -455,25 +453,18 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         foreach (var nodeType in cluster.NodeTypes)
         {
             var partition = nodeType.Queue;
-
-            var testCommand = @"eval `(mkdir -p ~/tmp)` &&
-cat <<EOF > ~/tmp/" + script_name + @"
-#!/bin/bash
-srun bash -c 'echo ""Task $SLURM_PROCID on node $(hostname) sleeping...""; sleep 1; echo ""Task $SLURM_PROCID finished""'
-EOF
-chmod +x ~/tmp/" + script_name + @" && " + PrepareSbatchCommand(
-    script_name,
-    job_name: "dryrun",
-    account: project.AccountingString,
-    partition: partition,
-    nodes: 1,
-    ntasks_per_node: 1,
-    time: TimeSpan.FromSeconds(1),
-    output: "dummy.out",
-    error: "dummy.err"
-) + "\n";
-
-            var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
+            var testCommand = PrepareSbatchCommand(
+                HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(project.AccountingString),
+                job_name: "dryrun",
+                account: project.AccountingString,
+                partition: partition,
+                nodes: 1,
+                ntasks_per_node: 1,
+                time: TimeSpan.FromSeconds(1),
+                output: "dummy.out",
+                error: "dummy.err"
+            ) + "\n";
+            var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
             try
             {
