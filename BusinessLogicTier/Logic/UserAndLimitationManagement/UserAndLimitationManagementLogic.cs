@@ -335,10 +335,12 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
             _userOrgHttpClient.DefaultRequestHeaders.Clear();
             _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
+            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", HttpContextKeys.FIPToken);
+            
             var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
             return GetOrRegisterLexisCredentials(result);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
             throw new AuthenticationTypeException("InvalidToken");
         }

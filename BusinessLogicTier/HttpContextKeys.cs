@@ -15,9 +15,11 @@ public static class HttpContextKeys
 {
     public static AdaptorUser AdaptorUser;
     public static string SshCaToken;
+    public static string FIPToken;
 
     public static async Task<AdaptorUser> Authorize(string token, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
+        FIPToken = token;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, sshCertificateAuthorityService);
