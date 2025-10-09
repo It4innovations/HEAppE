@@ -17,6 +17,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
 using log4net;
+using log4net.Repository.Hierarchy;
 using Microsoft.EntityFrameworkCore;
 using Org.BouncyCastle.Security;
 using System;
@@ -2287,7 +2288,6 @@ public class ManagementLogic : IManagementLogic
 
     public async Task<dynamic> CheckClusterProjectCredentialsStatus()
     {
-        //await Task.Delay(1);
         var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsUntracked();
 
         List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
@@ -2311,10 +2311,10 @@ public class ManagementLogic : IManagementLogic
         }
         catch (Exception e)
         {
-           e = e;
+            _logger.Error("An error has occured.", e);
         }
         _unitOfWork.Save();
-        
+
         return null;
     }
 

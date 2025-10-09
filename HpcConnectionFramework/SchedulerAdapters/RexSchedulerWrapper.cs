@@ -418,8 +418,6 @@ public class RexSchedulerWrapper : IRexScheduler
 
     public async Task<ClusterProjectCredentialCheckLog> CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential)
     {
-        //await Task.Delay(1);
-        
         ClusterProject clusterProject = clusterProjectCredential.ClusterProject;
         ClusterAuthenticationCredentials clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
         Cluster cluster = clusterProject.Cluster;

@@ -439,13 +439,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
     public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
-        await Task.Delay(1);
-
         SshCommandWrapper command;
         
         Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
         Project project = clusterProjectCredential.ClusterProject.Project;
-        ClusterAuthenticationCredentials authCreds = clusterProjectCredential.ClusterAuthenticationCredentials;
 
         int clusterConnectionFailedCount = 0;
         int dryRunJobFailedCount = 0;
@@ -485,7 +482,6 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             catch (SshCommandException e)
             {
                 ++clusterConnectionFailedCount;
-                
                 checkLog.ErrorMessage += e.Message + "\n";
             }
             catch (Exception e)
@@ -500,6 +496,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         if (dryRunJobFailedCount > 0)
             checkLog.DryRunJobOk = false;
 
+        await Task.Delay(1);
         return null;
     }
 

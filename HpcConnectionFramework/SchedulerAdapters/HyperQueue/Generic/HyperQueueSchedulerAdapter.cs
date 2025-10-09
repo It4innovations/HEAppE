@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.Exceptions.Internal;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
@@ -234,32 +235,52 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
 
     public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
     {
+        int clusterConnectionFailedCount = 0;
+        int dryRunJobFailedCount = 0;
+
+        Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
+        Project project = clusterProjectCredential.ClusterProject.Project;
+
+        foreach (var nodeType in cluster.NodeTypes)
+        {
+            // Dummy solution for HyperQueue: just test that the command is available
+            var testCommand = @$"echo ""{project.AccountingString}"" && ml HyperQueue && hq --version";
+            var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
+            sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+            try
+            {
+                SshCommandWrapper command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                checkLog.VaultCredentialOk = true;
+                checkLog.ClusterConnectionOk = true;
+                if (command.ExitStatus == 0)
+                {
+                    checkLog.DryRunJobOk = true;
+                }
+                else
+                {
+                    checkLog.DryRunJobOk = false;
+                    checkLog.ErrorMessage += command.Error + "\n";
+                    ++dryRunJobFailedCount;
+                }
+            }
+            catch (SshCommandException e)
+            {
+                ++clusterConnectionFailedCount;
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
+            catch (Exception e)
+            {
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
+        }
+
+        if (clusterConnectionFailedCount > 0)
+            checkLog.ClusterConnectionOk = false;
+
+        if (dryRunJobFailedCount > 0)
+            checkLog.DryRunJobOk = false;
+
         await Task.Delay(1);
-
-        // Dummy solution for HyperQueue: just test that we can connect to the server and run some command...
-        var testCommand = @"echo OK";
-        var sshCommand = $"{_commands.InterpreterCommand} " + testCommand;
-        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
-        try
-        {
-            SshCommandWrapper command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            checkLog.VaultCredentialOk = true;
-            checkLog.ClusterConnectionOk = true;
-            if (command.ExitStatus == 0)
-            {
-                checkLog.DryRunJobOk = true;
-            }
-            else
-            {
-                checkLog.DryRunJobOk = false;
-                checkLog.ErrorMessage += command.Error + "\n";
-            }
-        }
-        catch (Exception e)
-        {
-            checkLog.ErrorMessage += e.Message + "\n";
-        }
-
         return null;
     }
 
