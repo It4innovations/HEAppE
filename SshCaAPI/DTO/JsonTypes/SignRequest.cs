@@ -4,5 +4,6 @@
     {
         public string PublicKey { get; set; } = null!;
         public string Ott { get; set; } = null!;
+        public string Resource { get; set; } = null!;
     }
 }

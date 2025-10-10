@@ -60,11 +60,12 @@ namespace SshCaAPI
         /// </summary>
         /// <param name="publicKey"></param>
         /// <param name="ott"></param>
+        /// <param name="resource"></param>
         /// <returns>SSH certificate in OpenSSH certificate format.</returns>
         /// <exception cref="SshCAServiceTypeException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
-        public async Task<string> SignAsync(string publicKey, string ott)
+        public async Task<string> SignAsync(string publicKey, string ott, string resource)
         {
-            var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott },
+            var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
                 IgnoreNullSerializer.Instance);
 
             var request = new RestRequest($"sign", Method.Post)

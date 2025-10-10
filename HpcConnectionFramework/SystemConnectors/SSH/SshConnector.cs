@@ -331,13 +331,12 @@ public class SshConnector : IPoolableAdapter
     {
         try
         {
-            credentials.Username = "d3d98370-2b72-4a94-9b17-29cb08c29271@acc.myaccessid.org";
             string publicKey = credentials.PublicKey;
             if (string.IsNullOrEmpty(credentials.PublicKey))
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken)
+            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
@@ -375,7 +374,7 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken)
+            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
