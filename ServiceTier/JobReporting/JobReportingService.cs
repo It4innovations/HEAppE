@@ -142,7 +142,7 @@ public class JobReportingService : IJobReportingService
         }
     }
 
-    public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, string sessionCode)
+    public IEnumerable<ProjectDetailedReportExt> JobsDetailedReport(string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -156,7 +156,7 @@ public class JobReportingService : IJobReportingService
             var reportAllowedGroupIds = userGroupIds.Where(g => projects.Any(project =>
                 project.Id == loggedUser.Groups.FirstOrDefault(group => group.Id == g).ProjectId)).ToList();
 
-            return reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects)
+            return reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, timeFrom, timeTo)
                 .Where(s => s != null)
                 .Select(s => s.ConvertIntToDetailedExt());
         }

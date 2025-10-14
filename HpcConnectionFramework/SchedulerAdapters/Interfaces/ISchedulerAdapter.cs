@@ -16,7 +16,7 @@ public interface ISchedulerAdapter
         ClusterAuthenticationCredentials credentials);
 
     IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<SubmittedTaskInfo> submitedTasksInfo);
+        IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key);
 
     void CancelJob(object connectorClient, IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string message);
 
@@ -28,7 +28,7 @@ public interface ISchedulerAdapter
 
     void AllowDirectFileTransferAccessForUserToJob(object connectorClient, string publicKey, SubmittedJobInfo jobInfo);
 
-    void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys);
+    void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString);
 
     void CreateJobDirectory(object connectorClient, SubmittedJobInfo jobInfo, string localBasePath,
         bool sharedAccountsPoolMode);
@@ -47,7 +47,7 @@ public interface ISchedulerAdapter
     IEnumerable<TunnelInfo> GetTunnelsInfos(SubmittedTaskInfo taskInfo, string nodeHost);
 
     bool InitializeClusterScriptDirectory(object schedulerConnectionConnection, string clusterProjectRootDirectory,
-        string localBasepath, bool isServiceAccount);
+        bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount);
 
     bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
 }

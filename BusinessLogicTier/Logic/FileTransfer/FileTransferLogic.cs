@@ -79,7 +79,8 @@ public class FileTransferLogic : IFileTransferLogic
             var clusterUserActiveTempKey = activeTemporaryKeyGroup.GroupBy(g =>
                     new
                     {
-                        g.SubmittedJob.Specification.ClusterUser, g.SubmittedJob.Specification.Cluster,
+                        g.SubmittedJob.Specification.ClusterUser,
+                        g.SubmittedJob.Specification.Cluster,
                         g.SubmittedJob.Specification.Project
                     })
                 .ToList();
@@ -88,10 +89,11 @@ public class FileTransferLogic : IFileTransferLogic
             {
                 _log.Info(
                     $"Removing file transfer key for user \"{tempKey.Key.ClusterUser.Username}\" in cluster \"{tempKey.Key.Cluster.Name}\"");
+                long? adaptorUserId = tempKey.Key.Project.IsOneToOneMapping ? tempKey.Key.ClusterUser.ClusterProjectCredentials.FirstOrDefault().AdaptorUser.Id : null;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, tempKey.Key.Project);
+                    .CreateScheduler(cluster, tempKey.Key.Project, adaptorUserId: adaptorUserId);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
-                    tempKey.Key.ClusterUser, tempKey.Key.Cluster);
+                    tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project);
             }
 
             activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
@@ -117,7 +119,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath),
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath),
             Credentials = new FileTransferKeyCredentials
             {
                 Username = clusterUserAuthCredentials.Username,
@@ -151,7 +153,7 @@ public class FileTransferLogic : IFileTransferLogic
             Cluster = jobInfo.Specification.Cluster,
             ServerHostname = jobInfo.Specification.FileTransferMethod.ServerHostname,
             SharedBasePath =
-                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.SubExecutionsPath)
+                FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath)
         };
 
         _log.Info($"Auth type: {jobInfo.Specification.ClusterUser.AuthenticationType}");
@@ -174,19 +176,19 @@ public class FileTransferLogic : IFileTransferLogic
 
 
         var certGenerator = new SSHGenerator();
-        publicKey = certGenerator.ToPuTTYPublicKey();
+        publicKey = certGenerator.ToPuTTYPublicKey("");
 
         while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
         {
             certGenerator.Regenerate();
-            publicKey = certGenerator.ToPuTTYPublicKey();
+            publicKey = certGenerator.ToPuTTYPublicKey("");
         }
 
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
             Username = jobInfo.Specification.ClusterUser.Username,
             FileTransferCipherType = certGenerator.CipherType,
-            PrivateKey = certGenerator.ToPrivateKey(),
+            PrivateKey = certGenerator.CipherType != FileTransferCipherType.Ed25519 ? certGenerator.ToPrivateKey() : certGenerator.ToPrivateKeyInPEM(),
             CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, PublicKey = publicKey
         };
 
@@ -198,7 +200,7 @@ public class FileTransferLogic : IFileTransferLogic
                 PublicKey = publicKey
             });
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project)
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
             .AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
 
         _unitOfWork.Save();
@@ -220,10 +222,10 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (temporaryKey is null) throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project)
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
             .RemoveDirectFileTransferAccessForUser(
                 new[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser,
-                jobInfo.Specification.Cluster);
+                jobInfo.Specification.Cluster, jobInfo.Project);
 
         temporaryKey.IsDeleted = true;
         _unitOfWork.Save();
@@ -254,13 +256,13 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.JobLogArchiveSubPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath);
                 }
                 else
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.SubExecutionsPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
                 }
 
                 if (contents != null)
@@ -322,13 +324,13 @@ public class FileTransferLogic : IFileTransferLogic
 
         if(jobInfo.State == JobState.Deleted)
         {
-            return fileManager.ListArchivedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
+            return fileManager.ListArchivedFilesForJob(jobInfo, jobInfo.CreationTime);
         }
         
         if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
             return null;
        
-        return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.SubmitTime.Value);
+        return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.CreationTime);
     }
     public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
@@ -408,8 +410,13 @@ public class FileTransferLogic : IFileTransferLogic
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
                 
                 var basePath = jobInfo.Specification.Cluster.ClusterProjects
-                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
-                var localBasePath = Path.Combine(basePath, _scripts.JobLogArchiveSubPath.TrimStart('/'));
+                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.PermanentStoragePath;
+                if (string.IsNullOrEmpty(basePath))
+                {
+                    basePath = jobInfo.Specification.Cluster.ClusterProjects
+                        .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
+                }
+                var localBasePath = Path.Combine(basePath, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username);
  
                 if (relativeFilePath.StartsWith(start1))
                 {

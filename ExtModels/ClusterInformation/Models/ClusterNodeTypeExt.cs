@@ -31,6 +31,13 @@ public class ClusterNodeTypeExt
     [DataMember(Name = "Description")]
     [Description("Description")]
     public string Description { get; set; }
+    
+    /// <summary>
+    /// Cluster id
+    /// </summary>
+    [DataMember(Name = "ClusterId")]
+    [Description("Cluster id")]
+    public long? ClusterId { get; set; }
 
     /// <summary>
     /// Number of nodes
@@ -101,7 +108,7 @@ public class ClusterNodeTypeExt
     [DataMember(Name = "Projects")]
     [Description("Array of projects")]
     public ProjectExt[] Projects { get; set; }
-
+    
     public override string ToString()
     {
         return

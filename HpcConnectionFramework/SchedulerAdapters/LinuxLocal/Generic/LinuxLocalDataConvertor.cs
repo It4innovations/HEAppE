@@ -1,16 +1,17 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Text.Json;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime;
+using System.Text;
+using System.Text.Json;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 
@@ -166,9 +167,11 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
         }
 
         var localBasePath = $"{jobSpecification.Cluster.ClusterProjects
-            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath}";
-
-        var jobDir = Path.Join(localBasePath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath,
+            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath}";
+        
+        var jobDir = Path.Join(localBasePath, _scripts.InstanceIdentifierPath, 
+            HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath,
+            jobSpecification.ClusterUser.Username,
             jobSpecification.Id.ToString()).Replace('\\', '/');
         //preparation script, prepares job info file to the job directory at local linux "cluster"
         return

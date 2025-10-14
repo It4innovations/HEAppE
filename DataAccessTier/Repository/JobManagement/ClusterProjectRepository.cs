@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
 using HEAppE.DomainObjects.JobManagement;
 
@@ -21,6 +22,12 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     {
         return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId)
             .FirstOrDefault();
+    }
+    
+    public List<ClusterProject> GetClusterProjectForProject(long projectId)
+    {
+        return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId)
+            .ToList();
     }
 
     #endregion

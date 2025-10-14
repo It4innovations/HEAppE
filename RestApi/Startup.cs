@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using AspNetCoreRateLimit;
 using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
@@ -17,9 +19,11 @@ using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Configuration;
+using HEAppE.RestApi.Logging;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
@@ -29,6 +33,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
+using Newtonsoft.Json;
 
 namespace HEAppE.RestApi;
 
@@ -97,12 +102,20 @@ public class Startup
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
+        Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+        services.AddSingleton<SqlServerHealthCheck>();
+        services.AddSingleton<VaultHealthCheck>();
+
+        services.AddControllers(options =>
+        {
+            options.Filters.Add<LogRequestModelFilter>();
+        });
 
         //UserOrgHttpClient
         //services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
@@ -230,6 +243,10 @@ public class Startup
             options.DefaultRequestCulture = new RequestCulture("en");
             options.SupportedCultures = supportedCultures;
         });
+
+        services.AddHealthChecks()
+            .AddCheck<SqlServerHealthCheck>("sql")
+            .AddCheck<VaultHealthCheck>("vault");
     }
 
     /// <summary>
@@ -274,8 +291,22 @@ public class Startup
                 };
             });
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
-            // TODO - delete this after sphinx OpenApi package be able to use V3 version of OpenApi documentation
-            // now we need to serialize it as V2 see - https://github.com/sphinx-contrib/openapi/issues/107
+            //swagger.SerializeAsV2 = true;
+        });
+        
+        app.UseSwagger(swagger =>
+        {
+            swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+            {
+                swaggerDoc.Servers = new List<OpenApiServer>
+                {
+                    new()
+                    {
+                        Url = $"{SwaggerConfiguration.Host}/{SwaggerConfiguration.HostPostfix}"
+                    }
+                };
+            });
+            swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/v2/swagger.json";
             swagger.SerializeAsV2 = true;
         });
 
@@ -311,7 +342,13 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
+
+        //app.UseHealthChecks("/health", new HealthCheckOptions() {
+        //    ResponseWriter = HEAppEHealth.ResponseWriter,
+        //    AllowCachingResponses = false, // use custom caching
+        //});
     }
 
     #endregion
+
 }

@@ -73,4 +73,11 @@ public class CreateProjectModel : SessionCodeModel
     [StringLength(255)]
     [Description("PIEmail")]
     public string PIEmail { get; set; }
+
+    /// <summary>
+    /// Map user account to exact robot account
+    /// </summary>
+    [DataMember(Name = "IsOneToOneMapping", IsRequired = false)]
+    [Description("Map user account to exact robot account")]
+    public bool? IsOneToOneMapping { get; set; } = false;
 }

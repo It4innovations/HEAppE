@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Text;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -14,6 +9,12 @@ using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
 using Renci.SshNet;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Runtime;
+using System.Text;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 
@@ -45,15 +46,16 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="connectorClient">Connector</param>
     /// <param name="cluster">Cluster</param>
     /// <param name="scheduledJobIds">Scheduled Job ID collection</param>
+    /// <param name="account">Username name</param>
     /// <returns></returns>
     private IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<string> scheduledJobIds)
+        IEnumerable<string> scheduledJobIds, string account)
     {
         var submittedTaskInfos = new List<SubmittedTaskInfo>();
         var scheduledJobIdsList = scheduledJobIds.Select(x => x).Distinct();
         foreach (var jobId in scheduledJobIdsList)
         {
-            var jobDirPath = Path.Combine(HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, jobId)
+            var jobDirPath = Path.Combine(_scripts.InstanceIdentifierPath, HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath, account, jobId)
                 .Replace('\\', '/');
             var cliCommand =
                 $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.GetJobInfoCmdScriptName} {jobDirPath}";
@@ -130,32 +132,34 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         var shellCommandSb = new StringBuilder();
         SshCommandWrapper command = null;
 
+        string account = jobSpecification.ClusterUser.Username;
+
         var shellCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, null);
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{shellCommand}\"");
         var sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
 
         command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{_scripts.ScriptsBasePath}/{_commandScripts.ExecuteCmdScriptName} {sshCommandBase64}");
+            $"{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {sshCommandBase64}");
 
         shellCommandSb.Clear();
         var localBasePath = jobSpecification.Cluster.ClusterProjects
-            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
+            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath;
 
         //compose command with parameters of job and task IDs
         shellCommandSb.Append(
-            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{jobSpecification.Id}/");
+            $"{_scripts.LinuxLocalCommandScriptPathSettings.ScriptsBasePath}/{_linuxLocalCommandScripts.RunLocalCmdScriptName} {localBasePath}/{_scripts.InstanceIdentifierPath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{account}/{jobSpecification.Id}/");
         jobSpecification.Tasks.ForEach(task => shellCommandSb.Append($" {task.Id}"));
 
         //log local HPC Run script to log file
         shellCommandSb.Append(
-            $" >> {localBasePath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{jobSpecification.Id}/job_log.txt");
+            $" >> {localBasePath}/{_scripts.InstanceIdentifierPath}/{HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath}/{account}/{jobSpecification.Id}/job_log.txt");
         shellCommand = shellCommandSb.ToString();
 
         sshCommandBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(shellCommand));
         command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient),
-            $"{HPCConnectionFrameworkConfiguration.ScriptsSettings.ScriptsBasePath}/run_background_command.sh {sshCommandBase64}");
+            $"{HPCConnectionFrameworkConfiguration.GetPathToScript(jobSpecification.Project.AccountingString, "run_background_command.sh")} {sshCommandBase64}");
 
-        return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" });
+        return GetActualTasksInfo(connectorClient, jobSpecification.Cluster, new[] { $"{jobSpecification.Id}" }, jobSpecification.ClusterUser.Username);
     }
 
     /// <summary>
@@ -166,11 +170,12 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <param name="submitedTasksInfo">Submitted tasks ids</param>
     /// <returns></returns>
     public virtual IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
-        IEnumerable<SubmittedTaskInfo> submitedTasksInfo)
+        IEnumerable<SubmittedTaskInfo> submitedTasksInfo, string key)
     {
         var localClusterJobIds = submitedTasksInfo.Select(s => s.Specification.JobSpecification.Id.ToString())
             .Distinct();
-        return GetActualTasksInfo(connectorClient, cluster, localClusterJobIds);
+
+        return GetActualTasksInfo(connectorClient, cluster, localClusterJobIds,  key);
     }
 
     /// <summary>
@@ -267,9 +272,10 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="connectorClient">Connector</param>
     /// <param name="publicKeys">Public keys</param>
-    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys)
+    ///  <param name="projectAccountingString">Project accounting string</param>
+    public void RemoveDirectFileTransferAccessForUser(object connectorClient, IEnumerable<string> publicKeys, string projectAccountingString)
     {
-        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys);
+        _commands.RemoveDirectFileTransferAccessForUser(connectorClient, publicKeys, projectAccountingString);
     }
 
     /// <summary>
@@ -358,13 +364,15 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// </summary>
     /// <param name="schedulerConnectionConnection">Connector</param>
     /// <param name="clusterProjectRootDirectory">Cluster project root path</param>
+    /// <param name="overwriteExistingProjectRootDirectory">Cluster project root path</param>
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
+    /// <param name="account">Cluster username</param>
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, string localBasepath, bool isServiceAccount)
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         return _commands.InitializeClusterScriptDirectory(schedulerConnectionConnection, clusterProjectRootDirectory,
-            localBasepath, isServiceAccount);
+            overwriteExistingProjectRootDirectory, localBasepath, account, isServiceAccount);
     }
 
     #endregion

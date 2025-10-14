@@ -114,7 +114,7 @@ public static class JobManagementConverts
                 .ToList(),
             CpuHyperThreading = taskSpecificationExt.CpuHyperThreading,
             JobSpecification = jobSpecification,
-            TaskParalizationSpecifications = taskSpecificationExt.TaskParalizationParameters?
+            TaskParalizationSpecifications = taskSpecificationExt.TaskParallelizationParameters?
                 .Select(s => s.ConvertExtToInt())
                 .ToList(),
             CommandParameterValues = taskSpecificationExt.TemplateParameterValues?
@@ -225,6 +225,7 @@ public static class JobManagementConverts
             EndTime = task.EndTime,
             CpuHyperThreading = task.CpuHyperThreading,
             ErrorMessage = task.ErrorMessage,
+            Reason = task.Reason,
             NodeType = task.NodeType == null
                 ? null
                 : task.NodeType?.ConvertIntToExt(task.Project, task.Specification.CommandTemplate)
@@ -244,6 +245,7 @@ public static class JobManagementConverts
             EndDate = project.EndDate,
             UsageType = project.UsageType.ConvertIntToExt(),
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
+            IsOneToOneMapping = project.IsOneToOneMapping,
             CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
         };
         return convert;

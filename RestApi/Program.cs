@@ -7,6 +7,7 @@ using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
+using HEAppE.Utils;
 
 namespace HEAppE.RestApi;
 
@@ -34,13 +35,25 @@ public class Program
                 .UseKestrel()
                 .UseStartup<Startup>();
         else
-            // Run w/o docker
+            // Run w/o docker - local development
             builder = WebHost.CreateDefaultBuilder()
                 .UseUrls("http://*:5000")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
-                    config.AddJsonFile("P:\\source\\localHEAppE\\confs/appsettings.json", false, true);
-                    config.AddNotJson("P:\\source\\localHEAppE\\confs/seed.njson");
+                    if (!FileSystemUtils.AddConfigurationFiles(
+                        confsDirs: [
+                            Directory.GetCurrentDirectory(),
+                            "/opt/heappe/confs",
+                            "P:\\source\\localHEAppE\\confs"
+                        ],
+                        confFiles: [
+                            "appsettings.json",
+                            "seed.njson"
+                        ],
+                        addJsonFile: confPath => config.AddJsonFile(confPath, false, true),
+                        addNotJson: confPath => config.AddNotJson(confPath))
+                    )
+                        throw new Exception("Configuration files not found!");
                 })
                 .UseStartup<Startup>();
         return builder;

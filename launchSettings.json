@@ -3,10 +3,13 @@
     "Docker Compose": {
       "commandName": "DockerCompose",
       "commandVersion": "1.0",
-      "serviceActions": {
-        "heappe": "StartDebugging",
-        "mssql": "StartWithoutDebugging",
-        "sshagent": "StartWithoutDebugging"
+      "composeProfile": {
+        "includes": [
+          "db",
+          "initVault",
+          "sshagent",
+          "staging"
+        ]
       }
     }
   }

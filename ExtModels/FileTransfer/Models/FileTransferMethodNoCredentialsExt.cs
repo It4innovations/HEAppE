@@ -33,6 +33,14 @@ public class FileTransferMethodNoCredentialsExt
     [StringLength(200)]
     [Description("Shared base path")]
     public string SharedBasepath { get; set; }
+    
+    /// <summary>
+    /// Cluster id
+    /// </summary>
+    [DataMember(Name = "ClusterId")]
+    [Description("Cluster id")]
+    public long ClusterId { get; set; }
+    
 
     /// <summary>
     /// Protocol

@@ -157,27 +157,34 @@ public class ECDsaCertGeneratorV2 : GenericCertGeneratorV2
     public static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
         string passphrase, string comment = null)
     {
-        using var fileStream = new StringReader(privateKey);
-        var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
-        var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
-        var publicKey = keyPair.Public;
-        var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
-        var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
+        try
+        {
+            using var fileStream = new StringReader(privateKey);
+            var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
+            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
+            var publicKey = keyPair.Public;
+            var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+            var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
 
-        //get key size from private key
-        var privateKeyFromPair = keyPair.Private;
-        var privateKeyParams = privateKeyFromPair as ECPrivateKeyParameters;
-        var keySize = privateKeyParams.Parameters.Curve.FieldSize;
+            //get key size from private key
+            var privateKeyFromPair = keyPair.Private;
+            var privateKeyParams = privateKeyFromPair as ECPrivateKeyParameters;
+            var keySize = privateKeyParams.Parameters.Curve.FieldSize;
 
-        var formattedPublicKey = new StringBuilder();
-        formattedPublicKey.Append($"ecdsa-sha2-nistp{keySize} ");
-        formattedPublicKey.Append(base64PublicKey);
+            var formattedPublicKey = new StringBuilder();
+            formattedPublicKey.Append($"ecdsa-sha2-nistp{keySize} ");
+            formattedPublicKey.Append(base64PublicKey);
 
-        if (!string.IsNullOrEmpty(comment))
-            formattedPublicKey.Append($" {comment}");
-        else
-            formattedPublicKey.Append($" {_publicComment}");
+            if (!string.IsNullOrEmpty(comment))
+                formattedPublicKey.Append($" {comment}");
+            else
+                formattedPublicKey.Append($" {_publicComment}");
 
-        return formattedPublicKey.ToString();
+            return formattedPublicKey.ToString();
+        }catch(Exception e)
+        {
+            return "Unable to convert";
+        }
+        
     }
 }

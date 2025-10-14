@@ -13,18 +13,31 @@ public class FileSystemUtils
 {
     private const int WAITING_TIME_FOR_SCHEDULER_CLOSING_OUTPUT_AND_ERROR_FILE_STREAMS = 1500;
 
-    public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string subExecutionsPath)
+    public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.LocalBasepath;
-        var localBasePath = $"{basePath}/{subExecutionsPath}";
+            ?.ScratchStoragePath;
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
     }
 
-    public static string GetTaskClusterDirectoryPath(TaskSpecification taskSpecification, string subExecutionsPath)
+    public static string GetJobClusterArchiveDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
-        var basePath = GetJobClusterDirectoryPath(taskSpecification.JobSpecification, subExecutionsPath);
+        var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
+            ?.PermanentStoragePath;
+        if (string.IsNullOrEmpty(basePath))
+        {
+            basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
+                ?.ScratchStoragePath;
+        }
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
+
+        return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
+    }
+    public static string GetTaskClusterDirectoryPath(TaskSpecification taskSpecification, string instanceIdentifierPath, string subExecutionsPath)
+    {
+        var basePath = GetJobClusterDirectoryPath(taskSpecification.JobSpecification, instanceIdentifierPath, subExecutionsPath);
         var taskSubdirectory = !string.IsNullOrEmpty(taskSpecification.ClusterTaskSubdirectory)
             ? $"{taskSpecification.Id}/{taskSpecification.ClusterTaskSubdirectory}"
             : $"{taskSpecification.Id}";
@@ -32,6 +45,15 @@ public class FileSystemUtils
         return ConcatenatePaths(basePath, taskSubdirectory);
     }
 
+    public static string GetTaskClusterArchiveDirectoryPath(TaskSpecification taskSpecification, string instanceIdentifierPath, string subExecutionsPath)
+    {
+        var basePath = GetJobClusterArchiveDirectoryPath(taskSpecification.JobSpecification, instanceIdentifierPath, subExecutionsPath);
+        var taskSubdirectory = !string.IsNullOrEmpty(taskSpecification.ClusterTaskSubdirectory)
+            ? $"{taskSpecification.Id}/{taskSpecification.ClusterTaskSubdirectory}"
+            : $"{taskSpecification.Id}";
+
+        return ConcatenatePaths(basePath, taskSubdirectory);
+    }
 
     public static string ReadStreamContentFromSpecifiedOffset(Stream stream, long offset)
     {
@@ -144,5 +166,37 @@ public class FileSystemUtils
             }
 
         return subdirExcludedFiles.ToArray();
+    }
+
+    public static bool AddConfigurationFiles(string[] confsDirs, string[] confFiles, Action<string> addJsonFile = null, Action<string> addNotJson = null)
+    {
+        foreach (var confDir in confsDirs)
+        {
+            bool configFound = true;
+            foreach (var confFile in confFiles)
+            {
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                if (!File.Exists(confPath))
+                {
+                    configFound = false;
+                    break;
+                }
+            }
+            if (!configFound)
+                continue;
+
+            foreach (var confFile in confFiles)
+            {
+                var confPath = $"{confDir}{Path.DirectorySeparatorChar}{confFile}";
+                if (confPath.EndsWith(".json"))
+                    addJsonFile?.Invoke(confPath);
+                else if (confPath.EndsWith(".njson"))
+                    addNotJson?.Invoke(confPath);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 }

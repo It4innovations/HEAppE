@@ -1,9 +1,16 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+﻿using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.Exceptions.External;
 using log4net;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 
@@ -31,6 +38,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         foreach (var item in credentials)
         {
+            if(item == null) continue;
             _log.Debug($"Importing VaultInfo for id:{item.Id}");
             var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
             item.ImportVaultData(vaultData);
@@ -90,41 +98,74 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForClusterAndProject(
-        long clusterId, long projectId)
+        long clusterId, long projectId,  bool requireIsInitialized, long? adaptorUserId)
     {
+        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
             _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
-        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount);
+        
+        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => !cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized));
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).ToList();
+        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+        {
+            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
+        }
         return WithVaultData(credentials);
     }
 
     public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForUsernameAndProject(
-        string username, long projectId)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
-        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cpc =>
-            cpc.Username == username &&
-            cpc.ClusterProjectCredentials.Any(c => c.ClusterProject.ProjectId == projectId));
+        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
+            cac.Username == username &&
+            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
         return WithVaultData(credentials).ToList();
     }
 
-    public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId)
+    public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
-        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cpc =>
-            cpc.ClusterProjectCredentials.Any(c => c.ClusterProject.ProjectId == projectId));
+        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
+            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
-
+        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+        {
+            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
+        }
+        return WithVaultData(credentials);
+    }
+    
+    public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(string username, long projectId, bool requireIsInitialized, long? adaptorUserId)
+    {
+        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac => cac.Username == username &&
+            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
+        var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
+        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+        {
+            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
+        }
         return WithVaultData(credentials);
     }
 
-    public ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId)
+    public ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {
+        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
             _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
-        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount);
+        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized));
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials);
         var cred = credentials?.FirstOrDefault();
+        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+        {
+            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
+        }
         return WithVaultData(cred);
     }
 
@@ -132,7 +173,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         long projectId)
     {
         var credentials = _context.ClusterAuthenticationCredentials
-            .Where(x => x.IsGenerated && x.PublicKeyFingerprint == fingerprint &&
+            .Where(x => x.PublicKeyFingerprint == fingerprint &&
                         x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
         return WithVaultData(credentials);
@@ -141,7 +182,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     public IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId)
     {
         var credentials = _context.ClusterAuthenticationCredentials
-            .Where(x => x.IsGenerated && x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
+            .Where(x => x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
         return WithVaultData(credentials);
     }

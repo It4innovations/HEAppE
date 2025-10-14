@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
@@ -44,7 +44,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("CreateJob")]
-    [RequestSizeLimit(50000)]
+    [RequestSizeLimit(250000)]
     [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -205,7 +205,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _service.CopyJobDataToTemp(model.SubmittedJobInfoId, model.SessionCode, model.Path);
+        _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
         return Ok("Data were copied to Temp");
     }
 

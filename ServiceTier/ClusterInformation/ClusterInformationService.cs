@@ -1,17 +1,20 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
+using System.Data.SqlTypes;
 using System.Linq;
 using System.Reflection;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using log4net;
-using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
 
@@ -24,76 +27,105 @@ public class ClusterInformationService : IClusterInformationService
     }
 
     public IEnumerable<ClusterExt> ListAvailableClusters(string sessionCode, string clusterName, string nodeTypeName,
-        string projectName,
-        string[] accountingString, string commandTemplateName)
+    string projectName, string[] accountingString, string commandTemplateName, bool forceRefresh)
+    {
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
+
+        var roles = new List<AdaptorUserRoleType>
+        {
+            AdaptorUserRoleType.Reporter,
+            AdaptorUserRoleType.ManagementAdmin,
+            AdaptorUserRoleType.Manager
+        };
+
+        var (loggedUser, projects) = UserAndLimitationManagementService
+            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, roles);
+
+        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
+        if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
+        {
+            _log.Info($"Using Memory Cache to get value for key.");
+        }
+        else
+        {
+            _log.Info($"Reloading Memory Cache value for key.");
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
+            cachedClusters = clusterLogic.ListAvailableClusters()
+                .Select(c => c.ConvertIntToExt(projects, true))
+                .ToArray();
+            _cacheProvider.Set(memoryCacheKey, cachedClusters, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
+        }
+
+        // Pokud nejsou žádné filtry, vrať cache rovnou
+        if (clusterName == null && nodeTypeName == null && projectName == null && accountingString == null && commandTemplateName == null)
+            return cachedClusters;
+
+        HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
+
+        var filteredClusters = cachedClusters
+            .Where(c => clusterName == null || c.Name == clusterName)
+            .Select(cl =>
+            {
+                cl.NodeTypes = cl.NodeTypes
+                    .Where(nt => nodeTypeName == null || nt.Name == nodeTypeName)
+                    .Select(nt =>
+                    {
+                        nt.Projects = nt.Projects
+                            .Where(p =>
+                                (projectName == null || p.Name == projectName) &&
+                                (accountingSet == null || accountingSet.Contains(p.AccountingString)) &&
+                                (commandTemplateName == null || p.CommandTemplates.Any(ct => ct.Name == commandTemplateName))
+                            )
+                            .Select(p =>
+                            {
+                                if (commandTemplateName != null)
+                                    p.CommandTemplates = p.CommandTemplates
+                                        .Where(ct => ct.Name == commandTemplateName)
+                                        .ToArray();
+                                return p;
+                            })
+                            .Where(p => p.CommandTemplates.Length > 0)
+                            .ToArray();
+                        return nt;
+                    })
+                    .Where(nt => nt.Projects.Length > 0)
+                    .ToArray();
+                return cl;
+            })
+            .Where(cl => cl.NodeTypes.Length > 0)
+            .ToArray();
+
+        return filteredClusters;
+    }
+
+
+    public ClusterClearCacheInfoExt ListAvailableClustersClearCache(string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            (var loggedUser, var projectsReporter) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.Reporter);
-            (_, var projectsManagementAdmin) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin);
-            (_, var projectsManager) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.Manager);
-            var projects = projectsReporter
-                .Union(projectsManagementAdmin)
-                .Union(projectsManager);
-            ClusterExt[] value;
-            var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
-
-            if (_cacheProvider.TryGetValue(memoryCacheKey, out value))
-            {
-                _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
-            }
-            else
-            {
-                _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
-                var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
-                var c = projects.ToList();
-                value = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExt(projects, true)).ToArray();
-                _cacheProvider.Set(memoryCacheKey, value, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
-            }
-
-            if (clusterName is null && nodeTypeName is null && projectName is null && accountingString is null &&
-                commandTemplateName is null)
-                return value;
-
-            var clusters = JsonConvert.DeserializeObject<ClusterExt[]>(JsonConvert.SerializeObject(value));
-
-            clusters = clusters.Where(x => clusterName is null || x.Name == clusterName).ToArray();
-            foreach (var cl in clusters)
-            {
-                if (nodeTypeName is not null)
-                    cl.NodeTypes = cl.NodeTypes.Where(x => x.Name == nodeTypeName).ToArray();
-
-                foreach (var nt in cl.NodeTypes)
-                {
-                    if (projectName is not null)
-                        nt.Projects = nt.Projects.Where(x => x.Name == projectName).ToArray();
-
-                    if (accountingString is not null)
-                        nt.Projects = nt.Projects.Where(x => accountingString.Contains(x.AccountingString)).ToArray();
-
-                    if (commandTemplateName is not null)
-                    {
-                        foreach (var pr in nt.Projects)
-                            pr.CommandTemplates =
-                                pr.CommandTemplates.Where(x => x.Name == commandTemplateName).ToArray();
-
-                        nt.Projects = nt.Projects.Where(x => x.CommandTemplates.Length > 0).ToArray();
-                    }
-                }
-
-                if (commandTemplateName is not null || projectName is not null || accountingString is not null)
-                    cl.NodeTypes = cl.NodeTypes.Where(x => x.Projects.Length > 0).ToArray();
-            }
-
-            if (commandTemplateName is not null || projectName is not null || accountingString is not null ||
-                nodeTypeName is not null)
-                clusters = clusters.Where(x => x.NodeTypes.Length > 0).ToArray();
-
-            return clusters;
+            var (loggedUser, projectIds) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager);
+            if (loggedUser is null || !projectIds.Any())
+                throw new Exception("Operation permission denied.");
         }
+
+        var clearedKeysCount = 0;
+        var collection = (_cacheProvider as MemoryCache).Keys;
+        foreach (var item in collection ?? [])
+        {
+            var memoryCacheKey = item.ToString();
+            if (memoryCacheKey.StartsWith($"{nameof(ListAvailableClusters)}_"))
+            {
+                _cacheProvider.Remove(memoryCacheKey);
+                ++clearedKeysCount;
+            }
+        }
+
+        return new ClusterClearCacheInfoExt
+        {
+            ClearedKeysCount = clearedKeysCount,
+            Timestamp = new SqlDateTime(DateTime.UtcNow).Value,
+            Description = "Cache cleared",
+        };
     }
 
     public IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
@@ -116,11 +148,11 @@ public class ClusterInformationService : IClusterInformationService
 
             if (_cacheProvider.TryGetValue(memoryCacheKey, out IEnumerable<string> value))
             {
-                _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                _log.Info($"Using Memory Cache to get value for key.");
                 return value;
             }
 
-            _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+            _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
             var result =
                 clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
@@ -149,11 +181,11 @@ public class ClusterInformationService : IClusterInformationService
 
             if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterNodeUsageExt value))
             {
-                _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                _log.Info($"Using Memory Cache to get value for key.");
                 return value;
             }
 
-            _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+            _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
             var nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
             _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(),

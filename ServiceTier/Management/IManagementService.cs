@@ -30,24 +30,28 @@ public interface IManagementService
 
     void RemoveCommandTemplate(long commandTemplateId, string sessionCode);
 
+    List<ProjectExt> ListProjects(string sessionCode);
+
     ProjectExt GetProjectByAccountingString(string accountingString, string sessionCode);
+
     ProjectExt GetProjectById(long id, string sessionCode);
 
     ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
-        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail,
+        DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping,
         string sessionCode);
 
     ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate,
-        DateTime endDate, bool? useAccountingStringForScheduler, string sessionCode);
+        DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, string sessionCode);
 
     void RemoveProject(long id, string sessionCode);
 
     ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode);
+    ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode);
 
-    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode);
 
-    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode);
 
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
@@ -62,10 +66,13 @@ public interface IManagementService
 
     void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
-    List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId, string clusterProjectRootDirectory,
-        string sessionCode);
+    public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
+        bool overwriteExistingProjectRootDirectory, string sessionCode, string username);
 
-    bool TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username);
+    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
+        string username);
+    public List<ClusterAccountStatusExt> ClusterAccountStatus(long modelProjectId, string modelSessionCode,
+        string username);
 
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
 
@@ -102,6 +109,9 @@ public interface IManagementService
         string sessionCode);
 
     void RemoveCluster(long id, string sessionCode);
+
+    List<ClusterNodeTypeExt> ListClusterNodeTypes(string sessionCode);
+
     ClusterNodeTypeExt GetClusterNodeTypeById(long clusterId, string sessionCode);
 
     ClusterNodeTypeExt CreateClusterNodeType(string name, string description, int? numberOfNodes, int coresPerNode,
@@ -116,6 +126,7 @@ public interface IManagementService
 
     void RemoveClusterNodeType(long id, string sessionCode);
     ClusterProxyConnectionExt GetClusterProxyConnectionById(long clusterProxyConnectionId, string sessionCode);
+    List<ClusterProxyConnectionExt> GetClusterProxyConnections(string sessionCode);
 
     ClusterProxyConnectionExt CreateClusterProxyConnection(string host, int port, string username, string password,
         ProxyType type, string sessionCode);
@@ -124,6 +135,9 @@ public interface IManagementService
         string password, ProxyType type, string sessionCode);
 
     void RemoveClusterProxyConnection(long id, string sessionCode);
+
+    List<FileTransferMethodNoCredentialsExt> ListFileTransferMethods(string sessionCode);
+
     FileTransferMethodNoCredentialsExt GetFileTransferMethodById(long fileTransferMethodId, string sessionCode);
 
     FileTransferMethodNoCredentialsExt CreateFileTransferMethod(string serverHostname, FileTransferProtocol protocol, long clusterId,
@@ -146,6 +160,8 @@ public interface IManagementService
 
     void RemoveClusterNodeTypeAggregation(long id, string sessionCode);
 
+    List<ClusterNodeTypeAggregationAccountingExt> ListClusterNodeTypeAggregationAccountings(string sessionCode);
+
     ClusterNodeTypeAggregationAccountingExt GetClusterNodeTypeAggregationAccountingById(
         long clusterNodeTypeAggregationId, long accountingId, string sessionCode);
 
@@ -155,7 +171,10 @@ public interface IManagementService
     void RemoveClusterNodeTypeAggregationAccounting(long clusterNodeTypeAggregationId, long accountingId,
         string sessionCode);
 
+    List<AccountingExt> ListAccountings(string sessionCode);
+
     AccountingExt GetAccountingById(long id, string sessionCode);
+
     AccountingExt CreateAccounting(string formula, DateTime validityFrom, DateTime? validityTo, string sessionCode);
 
     AccountingExt ModifyAccounting(long id, string formula, DateTime validityFrom, DateTime? validityTo,
@@ -166,6 +185,8 @@ public interface IManagementService
     ProjectClusterNodeTypeAggregationExt GetProjectClusterNodeTypeAggregationById(long projectId,
         long clusterNodeTypeAggregationId, string sessionCode);
 
+    List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregations(
+        string sessionCode);
     List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId,
         string sessionCode);
 
@@ -178,4 +199,8 @@ public interface IManagementService
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
+
+    public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
+        string newPassword, long projectId,
+        string sessionCode);
 }

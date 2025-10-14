@@ -12,8 +12,15 @@ namespace HEAppE.RestApiModels.DataTransfer;
 /// </summary>
 [DataContract(Name = "HttpGetToJobNodeModel")]
 [Description("Model for sending HTTP GET request to job node")]
-public class HttpGetToJobNodeModel : SubmittedJobInfoModel
+public class HttpGetToJobNodeModel : SessionCodeModel
 {
+    /// <summary>
+    /// Submitted task info id
+    /// </summary>
+    [DataMember(Name = "SubmittedTaskInfoId")]
+    [Description("Submitted task info id")]
+    public long SubmittedTaskInfoId { get; set; }
+
     /// <summary>
     /// Http request
     /// </summary>
@@ -47,6 +54,6 @@ public class HttpGetToJobNodeModel : SubmittedJobInfoModel
     public override string ToString()
     {
         return
-            $"HttpGetToJobNodeModel({base.ToString()}; HttpRequest: {HttpRequest}; HttpHeaders: {string.Join("; ", HttpHeaders)}; NodeIPAddress: {NodeIPAddress}; NodePort: {NodePort})";
+            $"HttpGetToJobNodeModel({base.ToString()}; SubmittedTaskInfoId: {SubmittedTaskInfoId}); HttpRequest: {HttpRequest}; HttpHeaders: {string.Join("; ", HttpHeaders)}; NodeIPAddress: {NodeIPAddress}; NodePort: {NodePort})";
     }
 }

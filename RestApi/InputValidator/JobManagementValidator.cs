@@ -1,4 +1,4 @@
-﻿using System.Linq;
+using System.Linq;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApiModels.JobManagement;
 using HEAppE.Utils.Validation;
@@ -54,7 +54,7 @@ public class JobManagementValidator : AbstractValidator
 
     private string ValidateCopyJobDataToTempModel(CopyJobDataToTempModel validationObj)
     {
-        ValidateId(validationObj.SubmittedJobInfoId, nameof(validationObj.SubmittedJobInfoId));
+        ValidateId(validationObj.CreatedJobInfoId, nameof(validationObj.CreatedJobInfoId));
 
         var validationResult = new SessionCodeValidator(validationObj.SessionCode).Validate();
         if (!validationResult.IsValid) _messageBuilder.AppendLine(validationResult.Message);
@@ -223,7 +223,7 @@ public class JobManagementValidator : AbstractValidator
             }
         }
 
-        if (task.TaskParalizationParameters?.Sum(s => s.MaxCores) > task.MaxCores)
+        if (task.TaskParallelizationParameters?.Sum(s => s.MaxCores) > task.MaxCores)
             _messageBuilder.AppendLine(
                 $"TaskParalizationSpecifications count of maximal cores for task \"{task.Name}\" must be lower or equals to Maximal number of cores in task.");
 

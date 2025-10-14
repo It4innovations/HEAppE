@@ -18,6 +18,7 @@ using HEAppE.Utils;
 using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace HEAppE.DataAccessTier;
 
@@ -251,6 +252,7 @@ internal class MiddlewareContext : DbContext
                 parameter);
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+            modelBuilder.Entity(entityType.ClrType).HasIndex([nameof(ISoftDeletableEntity.IsDeleted)]);
         }
     }
 
@@ -492,7 +494,7 @@ internal class MiddlewareContext : DbContext
                 UpdateEntityOrAddItem((T)(object)entity, item);
                 var entity_after_update = Set<T>().Find(identifiableItem.Id);
 
-                if (entity is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
+                if (entity_after_update is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
                     var vaultConnector = new VaultConnector();
                     var vaultData = vaultConnector
