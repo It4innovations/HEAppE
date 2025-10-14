@@ -2270,6 +2270,18 @@ public class ManagementLogic : IManagementLogic
                     FailCount = groupedLogs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == false).Count()
                 }
             };
+
+            var errors = groupedLogs.Where(x => !x.VaultCredentialOk.Value || !x.ClusterConnectionOk.Value || !x.DryRunJobOk.Value);
+            foreach (var err in errors)
+                detail.Errors.Add(new()
+                {
+                    CheckTimestamp = err.CheckTimestamp,
+                    VaultCredentialOk = err.VaultCredentialOk,
+                    ClusterConnectionOk = err.ClusterConnectionOk,
+                    DryRunJobOk = err.DryRunJobOk,
+                    ErrorMessage = err.ErrorMessage
+                });
+
             //details.Add(detail);
             //statistics.Add(detail);
         }
@@ -2293,7 +2305,6 @@ public class ManagementLogic : IManagementLogic
         List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
         foreach (var clusterProjectCredential in clusterProjectCredentials)
         {
-            // preload all dependencies to prevent database race condition in tasks
             var clusterProject = clusterProjectCredential.ClusterProject;
             var cluster = clusterProject.Cluster;
             var project = clusterProject.Project;

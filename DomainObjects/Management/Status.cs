@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 
 namespace HEAppE.DomainObjects.Management;
@@ -196,6 +197,8 @@ public class Status
         [Description("DryRunJob")]
         public DryRunJobCounts_ DryRunJob { get; set; }
 
+        public List<CheckLog_> Errors { get; set; } = new();
+
         public class ClusterAuthenticationCredential_
         {
             /// <summary>
@@ -212,6 +215,44 @@ public class Status
             [Description("Username")]
             public string Username { get; set; }
 
+        }
+
+        public class CheckLog_
+        {
+            /// <summary>
+            /// CheckTimestamp
+            /// </summary>
+            [DataMember(Name = "CheckTimestamp")]
+            [Description("CheckTimestamp")]
+            public DateTime CheckTimestamp { get; set; }
+
+            /// <summary>
+            /// VaultCredentialOk
+            /// </summary>
+            [DataMember(Name = "VaultCredentialOk")]
+            [Description("VaultCredentialOk")]
+            public bool? VaultCredentialOk { get; set; }
+
+            /// <summary>
+            /// ClusterConnectionOk
+            /// </summary>
+            [DataMember(Name = "ClusterConnectionOk")]
+            [Description("ClusterConnectionOk")]
+            public bool? ClusterConnectionOk { get; set; }
+
+            /// <summary>
+            /// DryRunJobOk
+            /// </summary>
+            [DataMember(Name = "DryRunJobOk")]
+            [Description("DryRunJobOk")]
+            public bool? DryRunJobOk { get; set; }
+
+            /// <summary>
+            /// ErrorMessage
+            /// </summary>
+            [DataMember(Name = "ErrorMessage")]
+            [Description("ErrorMessage")]
+            public string ErrorMessage { get; set; }
         }
     }
 

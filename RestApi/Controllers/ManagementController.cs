@@ -2182,8 +2182,8 @@ public class ManagementController : BaseController<ManagementController>
     #endregion
 
     #region Status
-    [HttpGet("Status")]
-    [RequestSizeLimit(200)]
+    [HttpPost("Status")]
+    [RequestSizeLimit(500)]
     [ProducesResponseType(typeof(StatusExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -2193,6 +2193,13 @@ public class ManagementController : BaseController<ManagementController>
     public async Task<IActionResult> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
+        var model = new StatusModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(await _managementService.Status(projectId, timeFrom, timeTo, sessionCode));
     }
 
