@@ -44,11 +44,11 @@ public class ClusterInformationService : IClusterInformationService
         var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
         if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
         {
-            _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+            _log.Info($"Using Memory Cache to get value for key.");
         }
         else
         {
-            _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+            _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
             cachedClusters = clusterLogic.ListAvailableClusters()
                 .Select(c => c.ConvertIntToExt(projects, true))
@@ -148,11 +148,11 @@ public class ClusterInformationService : IClusterInformationService
 
             if (_cacheProvider.TryGetValue(memoryCacheKey, out IEnumerable<string> value))
             {
-                _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                _log.Info($"Using Memory Cache to get value for key.");
                 return value;
             }
 
-            _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+            _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
             var result =
                 clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
@@ -181,11 +181,11 @@ public class ClusterInformationService : IClusterInformationService
 
             if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterNodeUsageExt value))
             {
-                _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                _log.Info($"Using Memory Cache to get value for key.");
                 return value;
             }
 
-            _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+            _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork);
             var nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
             _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(),

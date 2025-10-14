@@ -113,11 +113,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
                 if (_cacheProvider.TryGetValue(memoryCacheKey, out OpenStackApplicationCredentialsExt value))
                 {
-                    _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    _log.Info($"Using Memory Cache to get value for key.");
                     return value;
                 }
 
-                _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                _log.Info($"Reloading Memory Cache value for key.");
                 var appCreds = await userLogic.AuthenticateOpenIdUserToOpenStackAsync(user, projectId);
                 _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(),
                     TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
