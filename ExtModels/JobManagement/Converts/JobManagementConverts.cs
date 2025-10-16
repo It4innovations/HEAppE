@@ -389,6 +389,9 @@ public static class JobManagementConverts
         };
 
         foreach (var detail in status.Details)
+        {
+            List<StatusExt.DetailExt_.CheckLogExt_> errors = null;
+
             (convert.Details as List<StatusExt.DetailExt_>).Add(new StatusExt.DetailExt_()
             {
                 CheckTimestamp = detail.CheckTimestamp,
@@ -411,8 +414,10 @@ public static class JobManagementConverts
                 {
                     OkCount = detail.DryRunJob.OkCount,
                     FailCount = detail.DryRunJob.FailCount
-                }
+                },
+                Errors = errors
             });
+        }
 
         return convert;
     }

@@ -121,7 +121,7 @@ public class Status
             ClusterConnection.Add(detail.ClusterConnection);
             DryRunJob.Add(detail.DryRunJob);
         }
-        
+
         #endregion
     }
 
@@ -197,8 +197,6 @@ public class Status
         [Description("DryRunJob")]
         public DryRunJobCounts_ DryRunJob { get; set; }
 
-        public List<CheckLog_> Errors { get; set; } = new();
-
         public class ClusterAuthenticationCredential_
         {
             /// <summary>
@@ -214,46 +212,91 @@ public class Status
             [DataMember(Name = "Username")]
             [Description("Username")]
             public string Username { get; set; }
-
         }
+    }
 
-        public class CheckLog_
+    public class StatusCheckLogs
+    {
+        /// <summary>
+        /// Errors
+        /// </summary>
+        [DataMember(Name = "Errors")]
+        [Description("Errors")]
+        public IEnumerable<ByClusterAuthenticationCredential_> Errors { get; set; }
+
+        public class ByClusterAuthenticationCredential_
         {
             /// <summary>
-            /// CheckTimestamp
+            /// ClusterAuthenticationCredential
             /// </summary>
-            [DataMember(Name = "CheckTimestamp")]
-            [Description("CheckTimestamp")]
-            public DateTime CheckTimestamp { get; set; }
+            [DataMember(Name = "ClusterAuthenticationCredential")]
+            [Description("ClusterAuthenticationCredential")]
+            public ClusterAuthenticationCredential_ ClusterAuthenticationCredential { get; set; }
 
             /// <summary>
-            /// VaultCredentialOk
+            /// Errors
             /// </summary>
-            [DataMember(Name = "VaultCredentialOk")]
-            [Description("VaultCredentialOk")]
-            public bool? VaultCredentialOk { get; set; }
+            [DataMember(Name = "CheckLogs")]
+            [Description("CheckLogs")]
+            public IEnumerable<CheckLog_> CheckLogs;
 
-            /// <summary>
-            /// ClusterConnectionOk
-            /// </summary>
-            [DataMember(Name = "ClusterConnectionOk")]
-            [Description("ClusterConnectionOk")]
-            public bool? ClusterConnectionOk { get; set; }
+            public class ClusterAuthenticationCredential_
+            {
+                /// <summary>
+                /// Id
+                /// </summary>
+                [DataMember(Name = "Id")]
+                [Description("Id")]
+                public long Id { get; set; }
 
-            /// <summary>
-            /// DryRunJobOk
-            /// </summary>
-            [DataMember(Name = "DryRunJobOk")]
-            [Description("DryRunJobOk")]
-            public bool? DryRunJobOk { get; set; }
+                /// <summary>
+                /// Username
+                /// </summary>
+                [DataMember(Name = "Username")]
+                [Description("Username")]
+                public string Username { get; set; }
+            }
 
-            /// <summary>
-            /// ErrorMessage
-            /// </summary>
-            [DataMember(Name = "ErrorMessage")]
-            [Description("ErrorMessage")]
-            public string ErrorMessage { get; set; }
+            public class CheckLog_
+            {
+                /// <summary>
+                /// CheckTimestamp
+                /// </summary>
+                [DataMember(Name = "CheckTimestamp")]
+                [Description("CheckTimestamp")]
+                public DateTime CheckTimestamp { get; set; }
+
+                /// <summary>
+                /// VaultCredentialOk
+                /// </summary>
+                [DataMember(Name = "VaultCredentialOk")]
+                [Description("VaultCredentialOk")]
+                public bool? VaultCredentialOk { get; set; }
+
+                /// <summary>
+                /// ClusterConnectionOk
+                /// </summary>
+                [DataMember(Name = "ClusterConnectionOk")]
+                [Description("ClusterConnectionOk")]
+                public bool? ClusterConnectionOk { get; set; }
+
+                /// <summary>
+                /// DryRunJobOk
+                /// </summary>
+                [DataMember(Name = "DryRunJobOk")]
+                [Description("DryRunJobOk")]
+                public bool? DryRunJobOk { get; set; }
+
+                /// <summary>
+                /// ErrorMessage
+                /// </summary>
+                [DataMember(Name = "ErrorMessage")]
+                [Description("ErrorMessage")]
+                public string ErrorMessage { get; set; }
+            }
         }
+
+        
     }
 
     #endregion

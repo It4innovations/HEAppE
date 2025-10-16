@@ -1,8 +1,8 @@
-﻿using HEAppE.ExtModels.JobManagement.Models;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
+
 
 namespace HEAppE.ExtModels.Management.Models;
 
@@ -175,11 +175,18 @@ public class StatusExt
         public ClusterConnectionCountsExt_ ClusterConnection { get; set; }
 
         /// <summary>
-        /// ClusterConnection
+        /// DryRunJob
         /// </summary>
         [DataMember(Name = "DryRunJob")]
         [Description("DryRunJob")]
         public DryRunJobCountsExt_ DryRunJob { get; set; }
+
+        /// <summary>
+        /// Errors
+        /// </summary>
+        [DataMember(Name = "Errors")]
+        [Description("Errors")]
+        public List<CheckLogExt_> Errors { get; set; } = null;
 
         public class ClusterAuthenticationCredentialExt_
         {
@@ -197,6 +204,44 @@ public class StatusExt
             [Description("Username")]
             public string Username { get; set; }
 
+        }
+
+        public class CheckLogExt_
+        {
+            /// <summary>
+            /// CheckTimestamp
+            /// </summary>
+            [DataMember(Name = "CheckTimestamp")]
+            [Description("CheckTimestamp")]
+            public DateTime CheckTimestamp { get; set; }
+
+            /// <summary>
+            /// VaultCredentialOk
+            /// </summary>
+            [DataMember(Name = "VaultCredentialOk")]
+            [Description("VaultCredentialOk")]
+            public bool? VaultCredentialOk { get; set; }
+
+            /// <summary>
+            /// ClusterConnectionOk
+            /// </summary>
+            [DataMember(Name = "ClusterConnectionOk")]
+            [Description("ClusterConnectionOk")]
+            public bool? ClusterConnectionOk { get; set; }
+
+            /// <summary>
+            /// DryRunJobOk
+            /// </summary>
+            [DataMember(Name = "DryRunJobOk")]
+            [Description("DryRunJobOk")]
+            public bool? DryRunJobOk { get; set; }
+
+            /// <summary>
+            /// ErrorMessage
+            /// </summary>
+            [DataMember(Name = "ErrorMessage")]
+            [Description("ErrorMessage")]
+            public string ErrorMessage { get; set; }
         }
     }
 
