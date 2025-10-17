@@ -2203,5 +2203,26 @@ public class ManagementController : BaseController<ManagementController>
         return Ok(await _managementService.Status(projectId, timeFrom, timeTo, sessionCode));
     }
 
+    [HttpPost("StatusCheckLogs")]
+    [RequestSizeLimit(500)]
+    [ProducesResponseType(typeof(StatusCheckLogsExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult StatusCheckLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
+        var model = new StatusModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        return Ok(_managementService.StatusCheckLogs(projectId, timeFrom, timeTo, sessionCode));
+    }
+
     #endregion
 }

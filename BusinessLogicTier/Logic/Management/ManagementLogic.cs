@@ -2281,7 +2281,6 @@ public class ManagementLogic : IManagementLogic
         return result;
     }
 
-
     public StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo)
     {
         var resultErrors = new List<StatusCheckLogs.ByClusterAuthenticationCredential_>();

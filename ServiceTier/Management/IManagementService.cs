@@ -197,4 +197,7 @@ public interface IManagementService
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
 
     Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
+
+    StatusCheckLogsExt StatusCheckLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
+    
 }

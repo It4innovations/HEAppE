@@ -1178,5 +1178,18 @@ public class ManagementService : IManagementService
         }
     }
 
+    public StatusCheckLogsExt StatusCheckLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (var loggedUser, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var result = managementLogic.StatusErrorLogs(projectId, timeFrom, timeTo);
+            return result.ConvertIntToExt();
+        }
+    }
+
     #endregion
 }

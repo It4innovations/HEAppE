@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.Serialization;
 
-
 namespace HEAppE.ExtModels.Management.Models;
 
 /// <summary>
@@ -246,4 +245,89 @@ public class StatusExt
     }
 
     #endregion
+}
+
+
+public class StatusCheckLogsExt
+{
+    /// <summary>
+    /// Errors
+    /// </summary>
+    [DataMember(Name = "Errors")]
+    [Description("Errors")]
+    public IEnumerable<ByClusterAuthenticationCredentialExt> Errors { get; set; }
+
+    public class ByClusterAuthenticationCredentialExt
+    {
+        /// <summary>
+        /// ClusterAuthenticationCredential
+        /// </summary>
+        [DataMember(Name = "ClusterAuthenticationCredential")]
+        [Description("ClusterAuthenticationCredential")]
+        public ClusterAuthenticationCredentialExt ClusterAuthenticationCredential { get; set; }
+
+        /// <summary>
+        /// CheckLogs
+        /// </summary>
+        [DataMember(Name = "CheckLogs")]
+        [Description("CheckLogs")]
+        public IEnumerable<CheckLogExt> CheckLogs { get; set; }
+
+        public class ClusterAuthenticationCredentialExt
+        {
+            /// <summary>
+            /// Id
+            /// </summary>
+            [DataMember(Name = "Id")]
+            [Description("Id")]
+            public long Id { get; set; }
+
+            /// <summary>
+            /// Username
+            /// </summary>
+            [DataMember(Name = "Username")]
+            [Description("Username")]
+            public string Username { get; set; }
+        }
+
+        public class CheckLogExt
+        {
+            /// <summary>
+            /// CheckTimestamp
+            /// </summary>
+            [DataMember(Name = "CheckTimestamp")]
+            [Description("CheckTimestamp")]
+            public DateTime CheckTimestamp { get; set; }
+
+            /// <summary>
+            /// VaultCredentialOk
+            /// </summary>
+            [DataMember(Name = "VaultCredentialOk")]
+            [Description("VaultCredentialOk")]
+            public bool? VaultCredentialOk { get; set; }
+
+            /// <summary>
+            /// ClusterConnectionOk
+            /// </summary>
+            [DataMember(Name = "ClusterConnectionOk")]
+            [Description("ClusterConnectionOk")]
+            public bool? ClusterConnectionOk { get; set; }
+
+            /// <summary>
+            /// DryRunJobOk
+            /// </summary>
+            [DataMember(Name = "DryRunJobOk")]
+            [Description("DryRunJobOk")]
+            public bool? DryRunJobOk { get; set; }
+
+            /// <summary>
+            /// ErrorMessage
+            /// </summary>
+            [DataMember(Name = "ErrorMessage")]
+            [Description("ErrorMessage")]
+            public string ErrorMessage { get; set; }
+        }
+    }
+
+
 }

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -13,6 +10,12 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using static HEAppE.DomainObjects.Management.Status;
+using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt;
+using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt.ByClusterAuthenticationCredentialExt;
 
 namespace HEAppE.ExtModels.JobManagement.Converts;
 
@@ -417,6 +420,41 @@ public static class JobManagementConverts
                 },
                 Errors = errors
             });
+        }
+
+        return convert;
+    }
+
+    public static StatusCheckLogsExt ConvertIntToExt(this StatusCheckLogs status)
+    {
+        var errorsExt = new List<ByClusterAuthenticationCredentialExt>();
+        var convert = new StatusCheckLogsExt()
+        {
+            Errors = errorsExt
+        };
+        
+        foreach (var error in status.Errors)
+        {
+            var checkLogsExt = new List<CheckLogExt>();
+            foreach (var checkLog in error.CheckLogs)
+                checkLogsExt.Add(new CheckLogExt()
+                {
+                    CheckTimestamp = checkLog.CheckTimestamp,
+                    ClusterConnectionOk = checkLog.ClusterConnectionOk,
+                    DryRunJobOk = checkLog.DryRunJobOk,
+                    VaultCredentialOk = checkLog.VaultCredentialOk,
+                    ErrorMessage = checkLog.ErrorMessage
+                });
+            var errorExt = new ByClusterAuthenticationCredentialExt()
+            {
+                ClusterAuthenticationCredential = new ClusterAuthenticationCredentialExt()
+                {
+                    Id = error.ClusterAuthenticationCredential.Id,
+                    Username = error.ClusterAuthenticationCredential.Username
+                },
+                CheckLogs = checkLogsExt
+            };
+            errorsExt.Add(errorExt);
         }
 
         return convert;
