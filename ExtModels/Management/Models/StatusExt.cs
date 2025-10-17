@@ -247,15 +247,14 @@ public class StatusExt
     #endregion
 }
 
-
 public class StatusCheckLogsExt
 {
     /// <summary>
-    /// Errors
+    /// ByClusterAuthenticationCredential
     /// </summary>
-    [DataMember(Name = "Errors")]
-    [Description("Errors")]
-    public IEnumerable<ByClusterAuthenticationCredentialExt> Errors { get; set; }
+    [DataMember(Name = "ByClusterAuthenticationCredential")]
+    [Description("ByClusterAuthenticationCredential")]
+    public IEnumerable<ByClusterAuthenticationCredentialExt> ByClusterAuthenticationCredential { get; set; }
 
     public class ByClusterAuthenticationCredentialExt
     {
