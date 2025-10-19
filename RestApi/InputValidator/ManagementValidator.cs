@@ -77,6 +77,7 @@ public class ManagementValidator : AbstractValidator
             RemoveProjectClusterNodeTypeAggregationModel ext =>
                 ValidateRemoveProjectClusterNodeTypeAggregationModel(ext),
             AccountingStateModel ext => ValidateAccountingStateModel(ext),
+            ListDatabaseBackupsModel ext => ValidateListDatabaseBackupsModel(ext),
             _ => string.Empty
         };
 
@@ -742,6 +743,17 @@ public class ManagementValidator : AbstractValidator
 
         ValidateId(model.ProjectId, "ProjectId");
         ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateListDatabaseBackupsModel(ListDatabaseBackupsModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (model.ToDateTime.HasValue && model.ToDateTime < model.FromDateTime)
+            _messageBuilder.AppendLine($"{model.ToDateTime} must be greater than {model.FromDateTime}");
 
         return _messageBuilder.ToString();
     }

@@ -202,4 +202,5 @@ public interface IManagementService
 
     string BackupDatabase(string sessionCode);
     string BackupDatabaseTransactionLogs(string sessionCode);
+    List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode);
 }

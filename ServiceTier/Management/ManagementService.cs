@@ -1238,5 +1238,19 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+
+            var backups = managementLogic.ListDatabaseBackups(fromDateTime, toDateTime, type.ConvertExtToInt());
+            return backups.Select(b => b.ConvertIntToExt()).ToList();
+        }
+    }
+
     #endregion
 }

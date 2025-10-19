@@ -555,4 +555,7 @@
   <data name="DatabaseBackupException_TransactionLogsBackupException" xml:space="preserve">
     <value>Při provádění zálohy transakčních logů došlo k výjimce.</value>
   </data>
+  <data name="DatabaseBackupException_ListDatabaseBackupsException" xml:space="preserve">
+    <value>Výjimka vyvolána při získávání databázových zaloh.</value>
+  </data>
 </root>

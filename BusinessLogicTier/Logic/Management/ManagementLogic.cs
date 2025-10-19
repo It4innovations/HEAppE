@@ -2266,6 +2266,11 @@ public class ManagementLogic : IManagementLogic
         return _unitOfWork.DatabaseBackupService.BackupDatabaseTransactionLogs();
     }
 
+    public List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type)
+    {
+        return _unitOfWork.DatabaseBackupService.ListDatabaseBackups(fromDateTime, toDateTime, type);
+    }
+
     #endregion
 
     #region Private methods

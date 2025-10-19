@@ -552,4 +552,7 @@
   <data name="DatabaseBackupException_TransactionLogsBackupException" xml:space="preserve">
     <value>An exception occured during execution of the transaction logs backup.</value>
   </data>
+  <data name="DatabaseBackupException_ListDatabaseBackupsException" xml:space="preserve">
+    <value>Exception thrown when retrieving database backups.</value>
+  </data>
 </root>

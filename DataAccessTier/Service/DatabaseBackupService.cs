@@ -1,7 +1,10 @@
 ﻿using HEAppE.DataAccessTier.Configuration;
+using HEAppE.DomainObjects.Management;
 using HEAppE.Exceptions.Internal;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 
@@ -89,6 +92,50 @@ internal class DatabaseBackupService : IDatabaseBackupService
         catch (Exception ex)
         {
             throw new DatabaseBackupException("TransactionLogsBackupException", ex);
+        }
+    }
+
+    /// <summary>
+    ///     List database backups.
+    /// </summary>
+    /// <param name="fromDateTime"></param>
+    /// <param name="toDateTime"></param>
+    /// <param name="type"></param>
+    /// <returns></returns>
+    public List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type)
+    {
+        try
+        {
+            return _context.Database.SqlQueryRaw<DatabaseBackup>(
+            @"SELECT 
+                  mf.physical_device_name AS Path,
+                  CASE
+                      WHEN mf.physical_device_name IS NULL THEN NULL
+                      WHEN CHARINDEX('\', mf.physical_device_name) > 0
+                          THEN RIGHT(mf.physical_device_name, CHARINDEX('\', REVERSE(mf.physical_device_name)) - 1)
+                      WHEN CHARINDEX('/', mf.physical_device_name) > 0
+                          THEN RIGHT(mf.physical_device_name, CHARINDEX('/', REVERSE(mf.physical_device_name)) - 1)
+                      ELSE mf.physical_device_name
+                  END AS FileName,
+                  b.backup_finish_date AS TimeStamp,
+                  CAST(b.backup_size / 1024 / 1024 AS DECIMAL(10,2)) AS FileSizeMB,
+                  CASE b.type WHEN 'D' THEN 0 WHEN 'L' THEN 1 END AS Type
+              FROM msdb.dbo.backupset b
+              JOIN msdb.dbo.backupmediafamily mf 
+                  ON b.media_set_id = mf.media_set_id
+              WHERE
+                  (@From IS NULL OR b.backup_finish_date >= @From) AND
+                  (@To   IS NULL OR b.backup_finish_date <= @To) AND
+                  b.type = @Type
+              ORDER BY b.backup_finish_date DESC;",
+            new SqlParameter("@Type", type == DatabaseBackupType.Full ? "D" : "L"),
+            new SqlParameter("@From", (object)fromDateTime ?? DBNull.Value),
+            new SqlParameter("@To", (object)toDateTime ?? DBNull.Value))
+            .ToList();
+        }
+        catch (Exception ex)
+        {
+            throw new DatabaseBackupException("ListDatabaseBackupsException", ex);
         }
     }
 
