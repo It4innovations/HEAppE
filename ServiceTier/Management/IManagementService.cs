@@ -207,5 +207,5 @@ public interface IManagementService
 
     Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 
-    StatusCheckLogsExt StatusCheckLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
+    StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 }

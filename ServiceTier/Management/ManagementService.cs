@@ -1297,7 +1297,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public StatusCheckLogsExt StatusCheckLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    public StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {

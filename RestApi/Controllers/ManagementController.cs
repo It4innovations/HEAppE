@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
@@ -2286,7 +2286,7 @@ public class ManagementController : BaseController<ManagementController>
         return Ok(await _managementService.Status(projectId, timeFrom, timeTo, sessionCode));
     }
 
-    [HttpPost("StatusCheckLogs")]
+    [HttpPost("StatusErrorLogs")]
     [RequestSizeLimit(500)]
     [ProducesResponseType(typeof(StatusCheckLogsExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
@@ -2294,7 +2294,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult StatusCheckLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    public IActionResult StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
         var model = new StatusModel
@@ -2304,7 +2304,7 @@ public class ManagementController : BaseController<ManagementController>
         };
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        return Ok(_managementService.StatusCheckLogs(projectId, timeFrom, timeTo, sessionCode));
+        return Ok(_managementService.StatusErrorLogs(projectId, timeFrom, timeTo, sessionCode));
     }
 
     #endregion
