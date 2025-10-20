@@ -427,10 +427,10 @@ public static class JobManagementConverts
 
     public static StatusCheckLogsExt ConvertIntToExt(this StatusCheckLogs status)
     {
-        var errorsExt = new List<ByClusterAuthenticationCredentialExt>();
+        var byClusterAuthenticationCredentialExt = new List<ByClusterAuthenticationCredentialExt>();
         var convert = new StatusCheckLogsExt()
         {
-            Errors = errorsExt
+            ByClusterAuthenticationCredential = byClusterAuthenticationCredentialExt
         };
         
         foreach (var error in status.Errors)
@@ -454,7 +454,7 @@ public static class JobManagementConverts
                 },
                 CheckLogs = checkLogsExt
             };
-            errorsExt.Add(errorExt);
+            byClusterAuthenticationCredentialExt.Add(errorExt);
         }
 
         return convert;

@@ -200,7 +200,7 @@ public interface IManagementService
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
-
+    
     public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
         string newPassword, long projectId,
         string sessionCode);
