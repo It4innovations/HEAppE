@@ -94,7 +94,7 @@ internal class JobReportingLogic : IJobReportingLogic
     public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects)
     {
         return _unitOfWork.SubmittedJobInfoRepository.GetAll()
-            .Where(x => projects.Any(y => y.Id == x.Project.Id))
+            .Where(x => x.Project != null && projects.Any(y => y.Id == x.Project.Id))
             .GroupBy(g => g.State)
             .Select(s => new JobStateAggregationReport
             {
@@ -107,10 +107,13 @@ internal class JobReportingLogic : IJobReportingLogic
     ///     Returns Resource Usage Report for all Jobs
     /// </summary>
     /// <returns></returns>
-    public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects)
+    public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo)
     {
+        DateTime _timeFrom = timeFrom.HasValue ? timeFrom.Value : DateTime.MinValue;
+        DateTime _timeTo = timeTo.HasValue ? timeTo.Value : DateTime.UtcNow;
+        
         return groupIds.Select(groupId =>
-            UserGroupResourceUsageReport(groupId, DateTime.MinValue, DateTime.UtcNow, subProjects)).ToList();
+            UserGroupResourceUsageReport(groupId, _timeFrom, _timeTo, subProjects)).ToList();
     }
 
     /// <summary>

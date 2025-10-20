@@ -358,6 +358,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
     }
 
+    #endregion
+
     #region SSH tunnel methods
 
     /// <summary>
@@ -393,6 +395,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     }
 
     #endregion
+
+    #region Other methods
 
     /// <summary>
     ///     Initialize Cluster Script Directory

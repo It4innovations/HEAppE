@@ -1,11 +1,12 @@
-﻿using HEAppE.DataAccessTier.IRepository.JobManagement;
-using HEAppE.DomainObjects.JobManagement;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
+using HEAppE.DataAccessTier.IRepository.JobManagement;
+using HEAppE.DomainObjects.JobManagement;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace HEAppE.DataAccessTier.Repository.JobManagement;
 
@@ -26,6 +27,12 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
     {
         return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId && cp.ClusterId == clusterId)
             .FirstOrDefault();
+    }
+    
+    public List<ClusterProject> GetClusterProjectForProject(long projectId)
+    {
+        return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId)
+            .ToList();
     }
 
     public IQueryable<ClusterProject> GetAllClusterProjectsForProject(long projectId)

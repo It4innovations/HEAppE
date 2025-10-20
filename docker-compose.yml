@@ -7,6 +7,7 @@ services:
       dockerfile: SshAgent/Dockerfile
     restart: unless-stopped
     volumes:
+      - "${HOST_SSHAGENT_HOST_MAP_FOLD_PATH}:${HOST_SSHAGENT_CONTAINER_MAP_FOLD_PATH}"
       - app_volume:/app/shared
     environment:
       TZ: "Europe/Prague"
@@ -84,7 +85,7 @@ services:
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - vault_unseal
+      - mssql
 
   vault:
     image: hashicorp/vault:1.17.3
@@ -141,8 +142,7 @@ services:
       - vaultNet
     profiles:
       - initVault
-    depends_on:
-      - vault
+
   
   vault_unseal:
     build:

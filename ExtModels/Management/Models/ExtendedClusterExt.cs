@@ -1,4 +1,5 @@
-﻿using System.ComponentModel;
+﻿using System.Collections.Generic;
+using System.ComponentModel;
 using System.Runtime.Serialization;
 using HEAppE.ExtModels.ClusterInformation.Models;
 
@@ -87,6 +88,13 @@ public class ExtendedClusterExt
     [DataMember(Name = "ProxyConnection")]
     [Description("Proxy connection")]
     public virtual ClusterProxyConnectionExt ProxyConnection { get; set; }
+    
+    /// <summary>
+    /// File transfer id
+    /// </summary>
+    [DataMember(Name = "FileTransferMethodIds")]
+    [Description("File transfer ids")]
+    public List<long> FileTransferMethodIds { get; set; }
 
     /// <summary>
     /// Array of node types

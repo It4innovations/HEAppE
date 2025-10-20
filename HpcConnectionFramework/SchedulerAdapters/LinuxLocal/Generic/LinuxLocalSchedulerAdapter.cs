@@ -144,7 +144,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
 
         shellCommandSb.Clear();
         var localBasePath = jobSpecification.Cluster.ClusterProjects
-            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.LocalBasepath;
+            .Find(cp => cp.ProjectId == jobSpecification.ProjectId)?.ScratchStoragePath;
 
         //compose command with parameters of job and task IDs
         shellCommandSb.Append(

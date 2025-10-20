@@ -30,7 +30,6 @@ using Microsoft.AspNetCore.Localization;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
@@ -292,9 +291,23 @@ public class Startup
                 };
             });
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
-            // TODO - delete this after sphinx OpenApi package be able to use V3 version of OpenApi documentation
-            // now we need to serialize it as V2 see - https://github.com/sphinx-contrib/openapi/issues/107
             //swagger.SerializeAsV2 = true;
+        });
+        
+        app.UseSwagger(swagger =>
+        {
+            swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+            {
+                swaggerDoc.Servers = new List<OpenApiServer>
+                {
+                    new()
+                    {
+                        Url = $"{SwaggerConfiguration.Host}/{SwaggerConfiguration.HostPostfix}"
+                    }
+                };
+            });
+            swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/v2/swagger.json";
+            swagger.SerializeAsV2 = true;
         });
 
         app.UseSwaggerUI(swaggerUI =>
@@ -330,10 +343,10 @@ public class Startup
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
 
-        app.UseHealthChecks("/health", new HealthCheckOptions() {
-            ResponseWriter = HEAppEHealth.ResponseWriter,
-            AllowCachingResponses = false, // use custom caching
-        });
+        //app.UseHealthChecks("/health", new HealthCheckOptions() {
+        //    ResponseWriter = HEAppEHealth.ResponseWriter,
+        //    AllowCachingResponses = false, // use custom caching
+        //});
     }
 
     #endregion

@@ -465,8 +465,19 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId)
     {
-        return _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
-               ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
+                                         ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
+        return projectAssignmentToCluster.IsDeleted ?
+            throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId) :
+            projectAssignmentToCluster;
+
+    }
+    
+    public List<ClusterProject> GetProjectAssignmentToClusters(long projectId)
+    {
+        var projectAssignmentToCluster = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId).Where(x=> !x.IsDeleted).ToList();
+        return projectAssignmentToCluster;
+
     }
 
     /// <summary>
@@ -478,7 +489,8 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     /// <exception cref="InputValidationException"></exception>
-    public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
+    public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
+        string permanentStoragePath)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -490,7 +502,7 @@ public class ManagementLogic : IManagementLogic
             //Cluster to project is marked as deleted, update it
             return !cp.IsDeleted
                 ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
-                : ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+                : ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
 
 
         //Create cluster to project mapping
@@ -499,12 +511,33 @@ public class ManagementLogic : IManagementLogic
         {
             ClusterId = clusterId,
             ProjectId = projectId,
-            LocalBasepath = localBasepath
+            ScratchStoragePath = scratchStoragePath
                 .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
+                .TrimEnd('\\', '/'),
+            PermanentStoragePath = permanentStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
             CreatedAt = modified,
             IsDeleted = false
         };
+
+        var cps = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
+        foreach (var c in cps)
+        {
+            foreach(var cpc in c.ClusterProjectCredentials)
+            {
+                var newCpc = new ClusterProjectCredential
+                {
+                    ClusterProject = clusterProject,
+                    ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
+                    IsServiceAccount = cpc.IsServiceAccount,
+                    CreatedAt = modified,
+                    IsDeleted = cpc.IsServiceAccount,
+                    IsInitialized = false,
+                    AdaptorUserId = cpc.AdaptorUserId,
+                };
+                clusterProject.ClusterProjectCredentials.Add(newCpc);
+            }
+        }
 
         project.ModifiedAt = modified;
         _unitOfWork.ProjectRepository.Update(project);
@@ -523,14 +556,17 @@ public class ManagementLogic : IManagementLogic
     /// <param name="localBasepath"></param>
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
-    public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath)
+    public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
+        string permanentStoragePath)
     {
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
             ?? throw new InputValidationException("ProjectNoReferenceToCluster", projectId, clusterId);
 
         var modified = DateTime.UtcNow;
-        clusterProject.LocalBasepath = localBasepath
+        clusterProject.ScratchStoragePath = scratchStoragePath
+            .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
+        clusterProject.PermanentStoragePath = permanentStoragePath
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
         clusterProject.ModifiedAt = modified;
         clusterProject.IsDeleted = false;
@@ -605,10 +641,42 @@ public class ManagementLogic : IManagementLogic
         }
         
         return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId)
-            .Where(x => !x.IsDeleted && x.IsGenerated && !string.IsNullOrEmpty(x.PrivateKey))
+            .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
             .ToList();
+    }
+    
+    public List<SecureShellKey> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername, string newPassword, long projectId, long? adaptorUserId)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        if (project is null || project.EndDate < DateTime.UtcNow)
+        {
+            _logger.Error($"Project with ID {projectId} not found or has already ended.");
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        }
+
+        if (project.IsOneToOneMapping)
+        {
+            _logger.Info($"Project with ID {projectId} is one-to-one mapping, returning only service account credentials for user {adaptorUserId}.");
+        }
+        else
+        {
+            _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
+        }
+        
+        var credentials =  _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId)
+            .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
+            .ToList();
+        foreach (var cred in credentials)
+        {
+            cred.Username = newUsername;
+            cred.Password = newPassword;
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(cred);
+            _logger.Info($"Renamed ClusterAuthenticationCredentials ID '{cred.Id}' username to '{newUsername}'.");
+        }
+        _unitOfWork.Save();
+        return credentials.Select(SSHGenerator.GetPublicKeyFromPrivateKey).DistinctBy(x=>x.Username).ToList();
     }
 
     /// <summary>
@@ -842,18 +910,20 @@ public class ManagementLogic : IManagementLogic
 
         foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.Where(x => string.IsNullOrEmpty(username) || x.Username == username).OrderBy(x => x.Username))
         {
-            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.OrderByDescending(x => x.IsServiceAccount))
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).OrderByDescending(x => x.IsServiceAccount))
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
-                var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+                var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId);
-                var isInitialized = scheduler.InitializeClusterScriptDirectory(project.AccountingString, overwriteExistingProjectRootDirectory,localBasepath,
+                string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
+                var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory,localBasepath,
                     cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
 
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
 
-    clusterProjectCredential.IsInitialized = isInitialized;            if (isInitialized)
+                clusterProjectCredential.IsInitialized = isInitialized;            
+                if (isInitialized)
                 {
                     if (!clusterInitReports.ContainsKey(cluster))
                         clusterInitReports.Add(cluster, new ClusterInitReport
@@ -908,8 +978,8 @@ public class ManagementLogic : IManagementLogic
         if (!clusterAuthenticationCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
 
         List<long> noAccessClusterIds = new();
-        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Username))
-        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.DistinctBy(x =>
+        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.Where(x=>!x.IsDeleted).DistinctBy(x => x.Username))
+        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).DistinctBy(x =>
                      x.ClusterProject))
         {
             var cluster = clusterProjectCredential.ClusterProject.Cluster;
@@ -934,6 +1004,42 @@ public class ManagementLogic : IManagementLogic
         return clusterAccountAccess;
     }
     
+    
+        /// <summary>
+    /// Test cluster access for a specific account in a project.
+    /// </summary>
+    /// <param name="projectId"></param>
+    /// <param name="username"></param>
+    /// <returns></returns>
+    /// <exception cref="InvalidRequestException"></exception>
+    public List<ClusterAccountStatus> ClusterAccountStatus(long projectId, string username, long? adaptorUserId)
+    {
+        List<ClusterAccountStatus> clusterAccountStatusList = new();
+        var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
+            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
+            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId)
+                .Where(w =>
+                    w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+
+        var clusterAuthenticationCredentialsEnumerable = clusterAuthenticationCredentials as ClusterAuthenticationCredentials[] ?? clusterAuthenticationCredentials.ToArray();
+        if (!clusterAuthenticationCredentialsEnumerable.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
+        
+        foreach (var clusterAuthCredentials in clusterAuthenticationCredentialsEnumerable.Where(x=>!x.IsDeleted).DistinctBy(x => x.Username))
+        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).DistinctBy(x =>
+                     x.ClusterProject))
+        {
+            var cluster = clusterProjectCredential.ClusterProject.Cluster;
+            var project = clusterProjectCredential.ClusterProject.Project;
+
+            clusterAccountStatusList.Add(new ClusterAccountStatus()
+            {
+                Cluster = cluster,
+                Project = project,
+                IsInitialized = clusterProjectCredential.IsInitialized
+            });
+        }
+        return clusterAccountStatusList;
+    }
     
 
     /// <summary>
@@ -1968,7 +2074,7 @@ public class ManagementLogic : IManagementLogic
     private SecureShellKey CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
     {
         _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
-        var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id)
+        var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
             .ToList();
         if (!clusterProjects.Any()) throw new InputValidationException("ProjectNoAssignToCluster");
 

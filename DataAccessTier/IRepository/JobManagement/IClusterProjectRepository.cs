@@ -1,4 +1,5 @@
-﻿using HEAppE.DomainObjects.JobManagement;
+﻿using System.Collections.Generic;
+using HEAppE.DomainObjects.JobManagement;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +9,8 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement;
 public interface IClusterProjectRepository : IRepository<ClusterProject>
 {
     ClusterProject GetClusterProjectForClusterAndProject(long clusterId, long projectId);
+    
+    public List<ClusterProject> GetClusterProjectForProject(long projectId);
 
     IQueryable<ClusterProject> GetAllClusterProjectsForProject(long projectId);
 

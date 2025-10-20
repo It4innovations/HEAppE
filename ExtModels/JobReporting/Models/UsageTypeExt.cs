@@ -8,6 +8,6 @@ namespace HEAppE.ExtModels.JobReporting.Models;
 [Description("Usage types")]
 public enum UsageTypeExt
 {
-    CoreHours = 1,
-    NodeHours = 2
+    NodeHours = 1,
+    CoreHours = 2
 }

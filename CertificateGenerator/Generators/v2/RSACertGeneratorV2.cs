@@ -123,22 +123,30 @@ public class RSACertGeneratorV2 : GenericCertGeneratorV2
     public static string ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(string privateKey,
         string passphrase, string comment = null)
     {
-        using var fileStream = new StringReader(privateKey);
-        var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
-        var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
-        var publicKey = keyPair.Public;
-        var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
-        var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
+        try
+        {
+            using var fileStream = new StringReader(privateKey);
+            var pemReader = new PemReader(fileStream, new PasswordFinder(passphrase));
+            var keyPair = pemReader.ReadObject() as AsymmetricCipherKeyPair;
+            var publicKey = keyPair.Public;
+            var publicKeyBytes = OpenSshPublicKeyUtilities.EncodePublicKey(publicKey);
+            var base64PublicKey = Convert.ToBase64String(publicKeyBytes);
 
-        var formattedPublicKey = new StringBuilder();
-        formattedPublicKey.Append("ssh-rsa ");
-        formattedPublicKey.Append(base64PublicKey);
+            var formattedPublicKey = new StringBuilder();
+            formattedPublicKey.Append("ssh-rsa ");
+            formattedPublicKey.Append(base64PublicKey);
 
-        if (!string.IsNullOrEmpty(comment))
-            formattedPublicKey.Append($" {comment}");
-        else
-            formattedPublicKey.Append($" {_publicComment}");
-        return formattedPublicKey.ToString();
+            if (!string.IsNullOrEmpty(comment))
+                formattedPublicKey.Append($" {comment}");
+            else
+                formattedPublicKey.Append($" {_publicComment}");
+            return formattedPublicKey.ToString();
+        }
+        catch (Exception e)
+        {
+            return "Unable to convert";
+        }
+        
     }
 
     /// <summary>

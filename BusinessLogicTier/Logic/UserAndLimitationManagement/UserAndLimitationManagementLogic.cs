@@ -360,11 +360,11 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
                     .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
 
                 DateTime changedTime = DateTime.UtcNow;
-                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByName(lexisUser.UserName);
+                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(lexisUser.UserName);
                 if (user is null)
                 {
                     user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
-                    _log.Info($"LEXIS AAI: Created new HEAppE account for user: \"{user}\"");
+                    _log.Info($"Created new HEAppE account for user: \"{user}\"");
                 }
 
             var hasUserGroup = false;
@@ -383,8 +383,8 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
 
                 if (groupsWithProject is null || !groupsWithProject.Any())
                 {
-                    _log.Warn(
-                        $"LEXIS AAI: User group with prefix \"{LexisAuthenticationConfiguration.HEAppEGroupNamePrefix}\" for Project Short Name \"{lexisProject.ProjectShortName}\" does not exist in HEAppE DB!");
+                    //_log.Warn(
+                    //    $"LEXIS AAI: User group with prefix \"{LexisAuthenticationConfiguration.HEAppEGroupNamePrefix}\" for Project Short Name \"{lexisProject.ProjectShortName}\" does not exist in HEAppE DB!");
                     continue;
                 }
 
@@ -392,8 +392,8 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
                     .Select(s => RoleMapping.MappingRoles[s]);
                 if (roleNames is null || !roleNames.Any())
                 {
-                    _log.Warn(
-                        $"LEXIS AAI: Permissions for mapping is not correctly setup for Project Short Name \"{lexisProject.ProjectShortName}\"!");
+                    //_log.Warn(
+                    //    $"LEXIS AAI: Permissions for mapping is not correctly setup for Project Short Name \"{lexisProject.ProjectShortName}\"!");
                     continue;
                 }
 
@@ -401,12 +401,12 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
                 foreach (var prefixedGroup in groupsWithProject)
                     user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
 
-                    hasUserGroup = true;
-                    _log.Info($"LEXIS AAI: User \"{user.Username}\" for Project Short Name \"{lexisProject.ProjectShortName}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
+                hasUserGroup = true;
+                //_log.Info($"LEXIS AAI: User \"{user.Username}\" for Project Short Name \"{lexisProject.ProjectShortName}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
 
-                }
-                _unitOfWork.Save();
-
+            }
+            _unitOfWork.Save();
+            
             return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
         }
     }

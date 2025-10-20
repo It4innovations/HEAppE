@@ -4,6 +4,7 @@ using HEAppE.DataAccessTier;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    partial class MiddlewareContextModelSnapshot : ModelSnapshot
+    [Migration("20251007101052_DefineScratchAndPermanentProjectPath")]
+    partial class DefineScratchAndPermanentProjectPath
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -514,48 +517,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("IsDeleted");
 
                     b.ToTable("ClusterProjectCredentials");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentialCheckLog", b =>
-                {
-                    b.Property<long>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("bigint");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
-
-                    b.Property<DateTime>("CheckTimestamp")
-                        .HasColumnType("datetime2");
-
-                    b.Property<long>("ClusterAuthenticationCredentialsId")
-                        .HasColumnType("bigint");
-
-                    b.Property<bool?>("ClusterConnectionOk")
-                        .HasColumnType("bit");
-
-                    b.Property<long>("ClusterProjectId")
-                        .HasColumnType("bigint");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool?>("DryRunJobOk")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("ErrorMessage")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<bool?>("VaultCredentialOk")
-                        .HasColumnType("bit");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("ClusterProjectId", "CheckTimestamp");
-
-                    b.HasIndex("ClusterProjectId", "ClusterAuthenticationCredentialsId");
-
-                    b.ToTable("ClusterProjectCredentialsCheckLog");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
@@ -1844,17 +1805,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Navigation("ClusterProject");
                 });
 
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredentialCheckLog", b =>
-                {
-                    b.HasOne("HEAppE.DomainObjects.JobManagement.ClusterProjectCredential", "ClusterProjectCredential")
-                        .WithMany("ClusterProjectCredentialsCheckLog")
-                        .HasForeignKey("ClusterProjectId", "ClusterAuthenticationCredentialsId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("ClusterProjectCredential");
-                });
-
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>
                 {
                     b.HasOne("HEAppE.DomainObjects.ClusterInformation.ClusterNodeType", "ClusterNodeType")
@@ -2342,11 +2292,6 @@ namespace HEAppE.DataAccessTier.Migrations
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProject", b =>
                 {
                     b.Navigation("ClusterProjectCredentials");
-                });
-
-            modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.ClusterProjectCredential", b =>
-                {
-                    b.Navigation("ClusterProjectCredentialsCheckLog");
                 });
 
             modelBuilder.Entity("HEAppE.DomainObjects.JobManagement.CommandTemplate", b =>

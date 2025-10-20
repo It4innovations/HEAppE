@@ -176,19 +176,19 @@ public class FileTransferLogic : IFileTransferLogic
 
 
         var certGenerator = new SSHGenerator();
-        publicKey = certGenerator.ToPuTTYPublicKey();
+        publicKey = certGenerator.ToPuTTYPublicKey("");
 
         while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))
         {
             certGenerator.Regenerate();
-            publicKey = certGenerator.ToPuTTYPublicKey();
+            publicKey = certGenerator.ToPuTTYPublicKey("");
         }
 
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
             Username = jobInfo.Specification.ClusterUser.Username,
             FileTransferCipherType = certGenerator.CipherType,
-            PrivateKey = certGenerator.ToPrivateKey(),
+            PrivateKey = certGenerator.CipherType != FileTransferCipherType.Ed25519 ? certGenerator.ToPrivateKey() : certGenerator.ToPrivateKeyInPEM(),
             CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, PublicKey = publicKey
         };
 
@@ -410,7 +410,12 @@ public class FileTransferLogic : IFileTransferLogic
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
                 
                 var basePath = jobInfo.Specification.Cluster.ClusterProjects
-                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.PermanentStoragePath;
+                if (string.IsNullOrEmpty(basePath))
+                {
+                    basePath = jobInfo.Specification.Cluster.ClusterProjects
+                        .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
+                }
                 var localBasePath = Path.Combine(basePath, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath.TrimStart('/'), jobInfo.Specification.ClusterUser.Username);
  
                 if (relativeFilePath.StartsWith(start1))
