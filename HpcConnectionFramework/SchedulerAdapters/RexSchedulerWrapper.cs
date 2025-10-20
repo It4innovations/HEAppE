@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -413,6 +414,48 @@ public class RexSchedulerWrapper : IRexScheduler
         {
             _connectionPool.ReturnConnection(schedulerConnection);
         }
+    }
+
+    public async Task<ClusterProjectCredentialCheckLog> CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential)
+    {
+        ClusterProject clusterProject = clusterProjectCredential.ClusterProject;
+        ClusterAuthenticationCredentials clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
+        Cluster cluster = clusterProject.Cluster;
+
+        var checkTimestamp = DateTime.UtcNow;
+        var checkLog = new ClusterProjectCredentialCheckLog()
+        {
+            ClusterProjectId = clusterProject.Id,
+            ClusterAuthenticationCredentialsId = clusterAuthCredentials.Id,
+            CheckTimestamp = checkTimestamp,
+            VaultCredentialOk = false,
+            ClusterConnectionOk = false,
+            DryRunJobOk = false,
+            ErrorMessage = "",
+            CreatedAt = checkTimestamp
+        };
+
+        ConnectionInfo schedulerConnection = null;
+        try
+        {
+            schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+            checkLog.ClusterConnectionOk = true;
+            await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
+        }
+        catch (Exception e)
+        {
+            checkLog.ErrorMessage += e.Message + "\n";
+        }
+        finally
+        {
+            if (schedulerConnection != null)
+                _connectionPool.ReturnConnection(schedulerConnection);
+        }
+
+        if (checkLog.ErrorMessage != null && checkLog.ErrorMessage.Length > 500)
+            checkLog.ErrorMessage = checkLog.ErrorMessage[..500];
+
+        return checkLog;
     }
 
     #endregion

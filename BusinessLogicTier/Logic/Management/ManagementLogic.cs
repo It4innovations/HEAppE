@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using System.Transactions;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
@@ -25,6 +26,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
 using log4net;
 using Org.BouncyCastle.Security;
+using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
 
@@ -2312,6 +2314,147 @@ public class ManagementLogic : IManagementLogic
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
         return project.AccountingStates.ToList();
+    }
+
+    public async Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo)
+    {
+        await Task.Delay(1);
+
+        var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
+
+        var statistics = new Status.Statistics_()
+        {
+            TotalChecks = logs.Count(),
+            VaultCredential = new Status.VaultCredentialCounts_()
+            {
+                OkCount = logs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == true).Count(),
+                FailCount = logs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == false).Count()
+            },
+            ClusterConnection = new Status.ClusterConnectionCounts_()
+            {
+                OkCount = logs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == true).Count(),
+                FailCount = logs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == false).Count()
+            },
+            DryRunJob = new Status.ClusterConnectionCounts_()
+            {
+                OkCount = logs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == true).Count(),
+                FailCount = logs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == false).Count()
+            }
+        };
+
+        var details = new List<Status.Detail_>();
+        Status.Detail_ detail;
+        foreach (var groupedLogs in logs.GroupBy(l => l.ClusterAuthenticationCredentialsId).ToList())
+        {
+            var clusterAuthenticationCredentials = groupedLogs.First().ClusterProjectCredential.ClusterAuthenticationCredentials;
+            detail = new()
+            {
+                CheckTimestamp = DateTime.Parse("2025-08-05T10:15:00Z", null, System.Globalization.DateTimeStyles.RoundtripKind),
+                ClusterAuthenticationCredential = new Status.Detail_.ClusterAuthenticationCredential_()
+                {
+                    Id = clusterAuthenticationCredentials.Id,
+                    Username = clusterAuthenticationCredentials.Username,
+                },
+                VaultCredential = new Status.VaultCredentialCounts_()
+                {
+                    OkCount = groupedLogs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == true).Count(),
+                    FailCount = groupedLogs.Where(x => x.VaultCredentialOk.HasValue && x.VaultCredentialOk.Value == false).Count()
+                },
+                ClusterConnection = new Status.ClusterConnectionCounts_()
+                {
+                    OkCount = groupedLogs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == true).Count(),
+                    FailCount = groupedLogs.Where(x => x.ClusterConnectionOk.HasValue && x.ClusterConnectionOk.Value == false).Count()
+                },
+                DryRunJob = new Status.DryRunJobCounts_()
+                {
+                    OkCount = groupedLogs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == true).Count(),
+                    FailCount = groupedLogs.Where(x => x.DryRunJobOk.HasValue && x.DryRunJobOk.Value == false).Count()
+                }
+            };
+
+            details.Add(detail);
+        }
+
+        var result = new Status()
+        {
+            ProjectId = projectId,
+            TimeFrom = timeFrom,
+            TimeTo = timeTo,
+            Statistics = statistics,
+            Details = details
+        };
+
+        return result;
+    }
+
+    public StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo)
+    {
+        var resultErrors = new List<StatusCheckLogs.ByClusterAuthenticationCredential_>();
+        var result = new StatusCheckLogs()
+        {
+            Errors = resultErrors
+        };
+
+        var logs = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsCheckLogForProject(projectId, timeFrom, timeTo);
+        foreach (var groupedLogs in logs.GroupBy(l => l.ClusterAuthenticationCredentialsId).ToList())
+        {
+            var clusterAuthenticationCredentials = groupedLogs.First().ClusterProjectCredential.ClusterAuthenticationCredentials;
+
+            var errors = groupedLogs.Where(x => !x.VaultCredentialOk.Value || !x.ClusterConnectionOk.Value || !x.DryRunJobOk.Value);
+            var checkLogs = new List<StatusCheckLogs.ByClusterAuthenticationCredential_.CheckLog_>();
+            foreach (var err in errors)
+                checkLogs.Add(new()
+                {
+                    CheckTimestamp = err.CheckTimestamp,
+                    VaultCredentialOk = err.VaultCredentialOk,
+                    ClusterConnectionOk = err.ClusterConnectionOk,
+                    DryRunJobOk = err.DryRunJobOk,
+                    ErrorMessage = err.ErrorMessage
+                });
+            var detail = new StatusCheckLogs.ByClusterAuthenticationCredential_()
+            {
+                ClusterAuthenticationCredential = new StatusCheckLogs.ByClusterAuthenticationCredential_.ClusterAuthenticationCredential_
+                {
+                    Id = clusterAuthenticationCredentials.Id,
+                    Username = clusterAuthenticationCredentials.Username
+                },
+                CheckLogs = checkLogs
+            };
+            resultErrors.Add(detail);
+        }
+
+        return result;
+    }
+
+    public async Task<dynamic> CheckClusterProjectCredentialsStatus()
+    {
+        var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsUntracked();
+
+        List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
+        foreach (var clusterProjectCredential in clusterProjectCredentials)
+        {
+            var clusterProject = clusterProjectCredential.ClusterProject;
+            var cluster = clusterProject.Cluster;
+            var project = clusterProject.Project;
+            var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
+            // prepare task
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
+            tasks.Add(scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential));
+        }
+
+        try
+        {
+            var rows = await Task.WhenAll(tasks);
+            foreach (var checkLog in rows.OrderBy(cl => cl.CreatedAt))
+                _unitOfWork.ClusterProjectRepository.AddClusterProjectCredentialCheckLog(checkLog);
+        }
+        catch (Exception e)
+        {
+            _logger.Error("An error has occured.", e);
+        }
+        _unitOfWork.Save();
+
+        return null;
     }
 
     #endregion

@@ -4,6 +4,7 @@ using HEAppE.DataAccessTier;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace HEAppE.DataAccessTier.Migrations
 {
     [DbContext(typeof(MiddlewareContext))]
-    partial class MiddlewareContextModelSnapshot : ModelSnapshot
+    [Migration("20250827174855_ClusterProjectCredentialsCheckLog")]
+    partial class ClusterProjectCredentialsCheckLog
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -77,8 +80,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.HasIndex("ProxyConnectionId");
 
                     b.ToTable("Cluster");
@@ -118,8 +119,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(50)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("ClusterAuthenticationCredentials");
                 });
@@ -189,8 +188,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasIndex("FileTransferMethodId");
 
-                    b.HasIndex("IsDeleted");
-
                     b.ToTable("ClusterNodeType");
                 });
 
@@ -248,8 +245,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.ToTable("ClusterProxyConnection");
                 });
 
@@ -305,8 +300,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ClusterId");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("FileTransferMethod");
                 });
@@ -370,8 +363,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.ToTable("Accounting");
                 });
 
@@ -412,8 +403,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.ToTable("ClusterNodeTypeAggregation");
                 });
 
@@ -431,8 +420,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("ClusterNodeTypeAggregationId", "AccountingId");
 
                     b.HasIndex("AccountingId");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("ClusterNodeTypeAggregationAccounting");
                 });
@@ -454,20 +441,16 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<bool>("IsDeleted")
                         .HasColumnType("bit");
 
-                    b.Property<DateTime?>("ModifiedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("PermanentStoragePath")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<long>("ProjectId")
-                        .HasColumnType("bigint");
-
-                    b.Property<string>("ScratchStoragePath")
+                    b.Property<string>("LocalBasepath")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("ModifiedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<long>("ProjectId")
+                        .HasColumnType("bigint");
 
                     b.HasKey("Id");
 
@@ -510,8 +493,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("AdaptorUserId");
 
                     b.HasIndex("ClusterAuthenticationCredentialsId");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("ClusterProjectCredentials");
                 });
@@ -686,8 +667,8 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.Property<string>("Value")
                         .IsRequired()
-                        .HasMaxLength(100000)
-                        .HasColumnType("nvarchar(max)");
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.HasKey("Id");
 
@@ -724,8 +705,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("Contact");
                 });
@@ -1099,10 +1078,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("AccountingString")
                         .IsUnique();
 
-                    b.HasIndex("EndDate");
-
-                    b.HasIndex("IsDeleted");
-
                     b.ToTable("Project");
                 });
 
@@ -1129,8 +1104,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasKey("ProjectId", "ClusterNodeTypeAggregationId");
 
                     b.HasIndex("ClusterNodeTypeAggregationId");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("ProjectClusterNodeTypeAggregation");
                 });
@@ -1189,8 +1162,6 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("Id");
-
-                    b.HasIndex("IsDeleted");
 
                     b.HasIndex("ProjectId");
 
@@ -1572,8 +1543,6 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("IsDeleted");
-
                     b.ToTable("AdaptorUser");
                 });
 
@@ -1655,8 +1624,6 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.HasIndex("AdaptorUserGroupId");
 
                     b.HasIndex("AdaptorUserRoleId");
-
-                    b.HasIndex("IsDeleted");
 
                     b.ToTable("AdaptorUserUserGroupRole");
                 });

@@ -78,6 +78,7 @@ public class ManagementValidator : AbstractValidator
                 ValidateRemoveProjectClusterNodeTypeAggregationModel(ext),
             AccountingStateModel ext => ValidateAccountingStateModel(ext),
             ModifyClusterAuthenticationCredentialModel ext => ValidateModifyClusterAuthenticationCredentialModel(ext),
+            StatusModel ext => ValidateStatusModel(ext),
             _ => string.Empty
         };
 
@@ -758,6 +759,16 @@ public class ManagementValidator : AbstractValidator
 
         ValidateId(model.ProjectId, "ProjectId");
         ValidateId(model.ClusterNodeTypeAggregationId, "ClusterNodeTypeAggregationId");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateStatusModel(StatusModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        ValidateId(model.ProjectId, "ProjectId");
 
         return _messageBuilder.ToString();
     }

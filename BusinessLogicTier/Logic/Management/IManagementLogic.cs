@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -7,6 +8,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
 
@@ -176,4 +178,10 @@ public interface IManagementLogic
 
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
     List<AccountingState> ListAccountingStates(long projectId);
+
+    Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
+
+    StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo);
+
+    Task<dynamic> CheckClusterProjectCredentialsStatus();
 }

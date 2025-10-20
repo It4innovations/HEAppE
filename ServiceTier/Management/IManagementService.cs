@@ -7,6 +7,7 @@ using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
+using System.Threading.Tasks;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -203,4 +204,8 @@ public interface IManagementService
     public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
         string newPassword, long projectId,
         string sessionCode);
+
+    Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
+
+    StatusCheckLogsExt StatusCheckLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 }
