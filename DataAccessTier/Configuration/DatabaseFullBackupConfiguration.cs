@@ -17,7 +17,7 @@ public sealed class DatabaseFullBackupConfiguration
     /// <summary>
     ///     Path to save database backup file.
     /// </summary>
-    public static string LocalPath { get; set; } = @"C:\Temp";
+    public static string LocalPath { get; set; } = @"/opt/heappe/backups/database";
 
     /// <summary>
     ///     NAS path to save database backup file.
@@ -27,7 +27,7 @@ public sealed class DatabaseFullBackupConfiguration
     /// <summary>
     ///     Backup file name prefix.
     /// </summary>
-    public static string BackupFileNamePrefix { get; set; } = "Heappe";
+    public static string BackupFileNamePrefix { get; set; } = "HEAppE";
 
     /// <summary>
     ///     Retention policy of backup files.
