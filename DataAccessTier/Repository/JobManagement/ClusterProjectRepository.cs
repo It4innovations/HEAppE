@@ -24,7 +24,7 @@ internal class ClusterProjectRepository : GenericRepository<ClusterProject>, ICl
             .FirstOrDefault();
     }
     
-    public List<ClusterProject> GetClusterProjectForCluster(long projectId)
+    public List<ClusterProject> GetClusterProjectForProject(long projectId)
     {
         return _context.ClusterProjects.Where(cp => cp.ProjectId == projectId)
             .ToList();

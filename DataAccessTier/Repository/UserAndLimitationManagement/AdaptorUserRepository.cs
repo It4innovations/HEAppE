@@ -27,6 +27,7 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     public AdaptorUser GetByNameIgnoreQueryFilters(string username)
     {
         return _dbSet
+            .Include(x=>x.AdaptorUserUserGroupRoles)
             .IgnoreQueryFilters() 
             .FirstOrDefault(w => w.Username == username);
     }

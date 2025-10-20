@@ -18,6 +18,7 @@ using HEAppE.Utils;
 using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace HEAppE.DataAccessTier;
 
@@ -251,6 +252,7 @@ internal class MiddlewareContext : DbContext
                 parameter);
 
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
+            modelBuilder.Entity(entityType.ClrType).HasIndex([nameof(ISoftDeletableEntity.IsDeleted)]);
         }
     }
 

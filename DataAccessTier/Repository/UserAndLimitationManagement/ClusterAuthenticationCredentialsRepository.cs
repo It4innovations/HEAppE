@@ -138,6 +138,20 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         }
         return WithVaultData(credentials);
     }
+    
+    public IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(string username, long projectId, bool requireIsInitialized, long? adaptorUserId)
+    {
+        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
+        var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac => cac.Username == username &&
+            cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
+        var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
+        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+        {
+            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
+        }
+        return WithVaultData(credentials);
+    }
 
     public ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)
     {

@@ -22,6 +22,8 @@ public sealed class ScriptsConfiguration
     /// </summary>
     public string ClusterScriptsRepository { get; set; }
 
+    public string ClusterScriptsRepositoryBranch { get; set; } = "master";
+
     /// <summary>
     ///     .key_scripts HEAppE Scripts repository path
     /// </summary>

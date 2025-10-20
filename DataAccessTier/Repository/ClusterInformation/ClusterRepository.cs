@@ -27,8 +27,17 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     /// <returns></returns>
     public IEnumerable<Cluster> GetAllWithActiveProjectFilter()
     {
-        return _dbSet.ToList().Select(c => GetCluster(c)).ToList();
+        return _dbSet
+            .AsNoTracking()
+            .Include(c => c.ClusterProjects.Where(p => p.Project.EndDate >= DateTime.UtcNow))
+            .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.PossibleCommands.Where(p => p.ProjectId == null || p.Project.EndDate >= DateTime.UtcNow))
+            .Include(c => c.FileTransferMethods)
+            .Include(c => c.ProxyConnection)
+            .ToList();
     }
+
+
 
     /// <summary>
     ///     Get all clusters with Cluster Proxy Connection id
@@ -37,7 +46,10 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
     /// <returns></returns>
     public IEnumerable<Cluster> GetAllByClusterProxyConnectionId(long clusterProxyConnectionId)
     {
-        return _dbSet.Where(c => c.ProxyConnectionId == clusterProxyConnectionId).ToList();
+        return _dbSet
+            .AsNoTracking()
+            .Where(c => c.ProxyConnectionId == clusterProxyConnectionId)
+            .ToList();
     }
     
     public Cluster GetByIdWithProxyConnection(long id)

@@ -252,32 +252,32 @@ public class ManagementService : IManagementService
         }
     }
 
-    public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode)
     {
         _logger.Info(
-            $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, LocalBasepath: {localBasepath}");
+            $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, PermanentStoragePath: {permanentStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+            var clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
             return clusterProject.ConvertIntToExt();
         }
     }
 
-    public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode)
     {
         _logger.Info(
-            $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, LocalBasepath: {localBasepath}");
+            $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, PermanentStoragePath: {permanentStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
-            var clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, localBasepath);
+            var clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
             return clusterProject.ConvertIntToExt();
         }
     }
@@ -298,14 +298,59 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             return managementLogic.GetSecureShellKeys(projectId,
                 adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
+    public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername, string newPassword, long projectId,
+        string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
+            
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            return managementLogic.RenameClusterAuthenticationCredentials(oldUsername, newUsername, newPassword, projectId, project.IsOneToOneMapping ? loggedUser.Id : null).
+                Select(x => x.ConvertIntToExt()).
+                ToList();
+            
+        }
+    }
 
     public List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
         string sessionCode)
@@ -341,8 +386,21 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
+
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
             return string.IsNullOrEmpty(username)
                 ? managementLogic.RegenerateSecureShellKeyByPublicKey(publicKey, password, projectId).ConvertIntToExt()
@@ -354,8 +412,21 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
+
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
 
             if (string.IsNullOrEmpty(username))

@@ -113,11 +113,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
                 if (_cacheProvider.TryGetValue(memoryCacheKey, out OpenStackApplicationCredentialsExt value))
                 {
-                    _log.Info($"Using Memory Cache to get value for key: \"{memoryCacheKey}\"");
+                    _log.Info($"Using Memory Cache to get value for key.");
                     return value;
                 }
 
-                _log.Info($"Reloading Memory Cache value for key: \"{memoryCacheKey}\"");
+                _log.Info($"Reloading Memory Cache value for key.");
                 var appCreds = await userLogic.AuthenticateOpenIdUserToOpenStackAsync(user, projectId);
                 _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(),
                     TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
@@ -193,19 +193,56 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         return loggedUser;
     }
 
-    public static (AdaptorUser, IEnumerable<Project> projectIds) GetValidatedUserForSessionCode(string sessionCode,
-        IUnitOfWork unitOfWork, AdaptorUserRoleType allowedRole)
+    public static (AdaptorUser, IEnumerable<Project> projects) GetValidatedUserForSessionCode(
+        string sessionCode, IUnitOfWork unitOfWork, AdaptorUserRoleType allowedRole)
     {
-        var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+        var authenticationLogic = LogicFactory.GetLogicFactory()
+            .CreateUserAndLimitationManagementLogic(unitOfWork);
         var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
-        var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x =>
-                x.AdaptorUserRole.ContainedRoleTypes.Any(a => a == allowedRole) &&
-                x.AdaptorUserGroup.Project != null &&
-                x.AdaptorUserGroup.Project.EndDate > DateTime.UtcNow)
-            .Select(y => y.AdaptorUserGroup.Project);
-        return (loggedUser, projectIds);
+        var now = DateTime.UtcNow;
+
+        var projects = loggedUser.AdaptorUserUserGroupRoles
+            .Where(r =>
+                r.AdaptorUserGroup.Project != null &&
+                r.AdaptorUserGroup.Project.EndDate > now &&
+                r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole)
+            )
+            .Select(r => r.AdaptorUserGroup.Project)
+            .Distinct()
+            .ToList();
+
+        return (loggedUser, projects);
     }
+
+    
+    public static (AdaptorUser User, IEnumerable<Project> Projects) GetValidatedUserForSessionCode(
+        string sessionCode,
+        IUnitOfWork unitOfWork,
+        List<AdaptorUserRoleType> allowedRoles)
+    {
+        var authenticationLogic = LogicFactory.GetLogicFactory()
+            .CreateUserAndLimitationManagementLogic(unitOfWork);
+
+        var user = authenticationLogic.GetUserForSessionCode(sessionCode);
+
+        var now = DateTime.UtcNow;
+
+        var projects = user.AdaptorUserUserGroupRoles
+            .Where(role =>
+                role.AdaptorUserGroup.Project != null &&
+                role.AdaptorUserGroup.Project.EndDate > now &&
+                role.AdaptorUserRole.ContainedRoleTypes
+                    .Any(roleType => allowedRoles.Contains(roleType))
+            )
+            .Select(role => role.AdaptorUserGroup.Project)
+            .Distinct()
+            .ToList();
+
+
+        return (user, projects);
+    }
+
 
     /// <summary>
     ///     Check whether the user has any of the allowed roles to access given functionality.

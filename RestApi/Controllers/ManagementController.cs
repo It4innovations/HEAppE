@@ -649,7 +649,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProject = _managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
-            model.LocalBasepath, model.SessionCode);
+            model.ScratchStoragePath, model.PermanentStoragePath, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProject);
     }
@@ -675,7 +675,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProject = _managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
-            model.LocalBasepath, model.SessionCode);
+            model.ScratchStoragePath, model.PermanentStoragePath, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProject);
     }
@@ -1956,6 +1956,29 @@ public class ManagementController : BaseController<ManagementController>
         List<(string, string)> credentials =
             model.Credentials.Select(credential => (credential.Username, credential.Password)).ToList();
         return Ok(_managementService.CreateSecureShellKey(credentials, model.ProjectId, model.SessionCode));
+    }
+    
+    /// <summary>
+    /// Modify Cluster Authentication Credential 
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPut("ModifyClusterAuthenticationCredential")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public IActionResult ModifyClusterAuthenticationCredential(ModifyClusterAuthenticationCredentialModel model)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyClusterAuthenticationCredential\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = _managementService.ModifyClusterAuthenticationCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
+        return Ok(result);
     }
 
     /// <summary>

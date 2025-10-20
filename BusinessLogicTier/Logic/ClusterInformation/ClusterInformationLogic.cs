@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -53,28 +54,50 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
     public ClusterNodeUsage GetCurrentClusterNodeUsage(long clusterNodeId, AdaptorUser loggedUser, long projectId)
     {
-        
-        var nodeType = GetClusterNodeTypeById(clusterNodeId);
-        var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        if (!nodeType.ClusterId.HasValue) throw new InvalidRequestException("ClusterNodeNoReferenceToCluster");
+        var nodeType = GetClusterNodeTypeById(clusterNodeId)
+            ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", clusterNodeId);
 
-        if (project is null) throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+            ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
 
-        var clusterProjectIds = nodeType.Cluster.ClusterProjects.Where(x => x.ProjectId == projectId)
-            .Select(y => y.ProjectId);
-        var availableProjectIds = loggedUser.Groups.Where(g => clusterProjectIds.Contains(g.ProjectId.Value))
-            .Select(x => x.ProjectId.Value).Distinct().ToList();
+        var cluster = nodeType.Cluster
+            ?? throw new InvalidRequestException("ClusterNodeNoReferenceToCluster", clusterNodeId);
+
+        if (!nodeType.ClusterId.HasValue)
+            throw new InvalidRequestException("ClusterNodeNoReferenceToClusterId", clusterNodeId);
+
+        if (loggedUser?.Groups == null || !loggedUser.Groups.Any())
+            throw new InvalidRequestException("UserHasNoGroups", loggedUser);
+
+        var clusterProjectIds = cluster.ClusterProjects?
+            .Where(x => x.ProjectId == projectId)
+            .Select(y => y.ProjectId)
+            .ToList() ?? new List<long>();
+
+        var availableProjectIds = loggedUser.Groups
+            .Where(g => g.ProjectId.HasValue && clusterProjectIds.Contains(g.ProjectId.Value))
+            .Select(g => g.ProjectId!.Value)
+            .Distinct()
+            .ToList();
+
         if (availableProjectIds.Count == 0)
             throw new InvalidRequestException("UserNoAccessToClusterNode", loggedUser, clusterNodeId);
-        var serviceAccount =
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                nodeType.ClusterId.Value, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
-        return serviceAccount is null
-            ? throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, nodeType.ClusterId.Value)
-            : SchedulerFactory.GetInstance(nodeType.Cluster.SchedulerType)
-                .CreateScheduler(nodeType.Cluster, project, adaptorUserId:loggedUser.Id)
-                .GetCurrentClusterNodeUsage(nodeType, serviceAccount);
+
+        var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository
+            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+
+        if (serviceAccount is null)
+            throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
+
+        var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
+
+        var scheduler = schedulerFactory.CreateScheduler(cluster, project, adaptorUserId:loggedUser.Id)
+            ?? throw new InvalidOperationException("SchedulerInitializationFailed");
+
+        return scheduler.GetCurrentClusterNodeUsage(nodeType, serviceAccount);
     }
+
 
     public IEnumerable<string> GetCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath, AdaptorUser loggedUser)
