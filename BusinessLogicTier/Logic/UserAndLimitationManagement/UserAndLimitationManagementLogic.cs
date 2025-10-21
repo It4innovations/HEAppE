@@ -78,6 +78,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
+        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            return HttpContextKeys.AdaptorUser;
+        }
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null) throw new SessionCodeNotValidException("NotPresent", sessionCode);
 
