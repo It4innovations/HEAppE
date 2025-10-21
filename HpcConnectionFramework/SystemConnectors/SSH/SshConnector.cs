@@ -359,7 +359,7 @@ public class SshConnector : IPoolableAdapter
         }
         catch (Exception e)
         {
-            throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
+            throw e;
         }
         
     }

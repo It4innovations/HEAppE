@@ -389,7 +389,7 @@ public class RexSchedulerWrapper : IRexScheduler
     {
         try
         {
-            var schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster,sshCaToken);
+            var schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster, sshCaToken);
             _connectionPool.ReturnConnection(schedulerConnection);
             return true;
         }
