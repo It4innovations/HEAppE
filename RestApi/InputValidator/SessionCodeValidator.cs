@@ -11,16 +11,19 @@ public class SessionCodeValidator : AbstractValidator
 
     public override ValidationResult Validate()
     {
-        var message = string.Empty;
-        if (_validationObject is null)
-        { 
-            message = "SessionCode cannot be empty.";
-        }
-        else if (_validationObject is string validationObject)
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            message = ValidateSessionCode(validationObject); 
+            var message = string.Empty;
+            if (_validationObject is null)
+            {
+                message = "SessionCode cannot be empty.";
+            }
+            else if (_validationObject is string validationObject)
+            {
+                message = ValidateSessionCode(validationObject);
+            }
         }
-            
+
         return new ValidationResult(string.IsNullOrEmpty(message), message);
     }
 
@@ -31,12 +34,9 @@ public class SessionCodeValidator : AbstractValidator
     /// <returns></returns>
     protected string ValidateSessionCode(string sessionCode)
     {
-        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
-        {
-            if (string.IsNullOrEmpty(sessionCode))
-                _messageBuilder.AppendLine("SessionCode cannot be empty.");
-            else if (!IsSessionCode(sessionCode)) _messageBuilder.AppendLine("SessionCode has wrong format.");
-        }
+        if (string.IsNullOrEmpty(sessionCode))
+            _messageBuilder.AppendLine("SessionCode cannot be empty.");
+        else if (!IsSessionCode(sessionCode)) _messageBuilder.AppendLine("SessionCode has wrong format.");
         return _messageBuilder.ToString();
     }
 }
