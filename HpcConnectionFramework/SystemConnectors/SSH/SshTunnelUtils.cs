@@ -93,7 +93,7 @@ public sealed class SshTunnelUtils
         if (!_jobUsedPorts.ContainsKey(taskId))
             throw new UnableToCreateTunnelException("NoActiveTunnel", taskId);
 
-        var sshClient = (SshClient)connectorClient;
+        var sshClient = ((HEAppE.ConnectionPool.ConnectionInfo)connectorClient).Connection as SshClient;
 
         foreach (var nodeAddress in _jobUsedPorts[taskId].Keys)
         {
