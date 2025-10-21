@@ -288,8 +288,23 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             return managementLogic.GetSecureShellKeys(projectId,
                 adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
@@ -331,8 +346,23 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             return string.IsNullOrEmpty(username)
                 ? managementLogic.RegenerateSecureShellKeyByPublicKey(publicKey, password, projectId).ConvertIntToExt()
@@ -344,8 +374,23 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
 
             if (string.IsNullOrEmpty(username))
@@ -360,22 +405,52 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory,
                 adaptorUserId: loggedUser.Id, username: username).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
-    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode, string username)
+    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long projectId, string sessionCode, string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, AdaptorUserRoleType.ManagementAdmin, modelProjectId, true);
+            var project = unitOfWork.ProjectRepository.GetById(projectId);
+            if (project == null)
+                throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+            AdaptorUser loggedUser = null;
+            if (project.IsOneToOneMapping)
+            {
+                // In one-to-one mapping, the session code is used to identify the user
+                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Submitter, projectId, true);
+            }
+            else
+            {
+                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin, projectId, true);
+            }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
-            return managementLogic.TestClusterAccessForAccount(modelProjectId, username, loggedUser.Id)
+            return managementLogic.TestClusterAccessForAccount(projectId, username, loggedUser.Id)
                 .Select(x => x.ConvertIntToExt())
                 .ToList();
         }
