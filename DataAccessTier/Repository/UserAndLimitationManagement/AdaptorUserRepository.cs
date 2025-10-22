@@ -22,6 +22,14 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
         return GetAll().Where(w => w.Username == username)
             .FirstOrDefault();
     }
+    
+    public AdaptorUser GetByEmail(string email)
+    {
+        return GetAll().Where(w => w.Email == email)
+            .FirstOrDefault();
+    }
+    
+    
 
     #endregion
 }
