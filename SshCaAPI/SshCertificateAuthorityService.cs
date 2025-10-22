@@ -73,7 +73,7 @@ namespace SshCaAPI
 
             var response = await _basicRestClient.ExecuteAsync(request);
             if (response.StatusCode != HttpStatusCode.OK)
-                throw new SshCAServiceTypeException($"Unexpected status {response.StatusCode}");
+                throw new SshCAServiceTypeException($"SshCertificateAuthorityService-Sign: Unexpected status={response.StatusCode}, Content={response.Content}");
 
             var result = response.Content;
             return result ?? throw new SshCAServiceTypeException("Response content is null");
