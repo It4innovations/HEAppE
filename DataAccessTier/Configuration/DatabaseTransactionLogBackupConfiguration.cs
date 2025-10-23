@@ -17,7 +17,7 @@ public sealed class DatabaseTransactionLogBackupConfiguration
     /// <summary>
     ///     Path to save database transaction log backup file.
     /// </summary>
-    public static string LocalPath { get; set; } = @"C:\Temp";
+    public static string LocalPath { get; set; } = @"/opt/heappe/backups/database";
 
     /// <summary>
     ///     NAS path to save database transaction log backup file.
