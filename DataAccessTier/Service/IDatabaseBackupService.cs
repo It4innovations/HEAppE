@@ -9,4 +9,5 @@ public interface IDatabaseBackupService
     string BackupDatabase();
     string BackupDatabaseTransactionLogs();
     List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type);
+    void RestoreDatabase(string backupFileName, bool includeLogs);
 }

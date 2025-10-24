@@ -555,4 +555,10 @@
   <data name="DatabaseBackupException_ListDatabaseBackupsException" xml:space="preserve">
     <value>Exception thrown when retrieving database backups.</value>
   </data>
+  <data name="DatabaseRestoreExternalException_BackupFileNameNotFoundException" xml:space="preserve">
+    <value>Specified backup file '{0}' not found.</value>
+  </data>
+  <data name="DatabaseRestoreException_RestoreDatabaseException" xml:space="preserve">
+    <value>An exception occured during execution of the full database restore from backup.</value>
+  </data>
 </root>

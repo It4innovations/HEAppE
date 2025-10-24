@@ -1323,5 +1323,18 @@ public class ManagementService : IManagementService
         }
     }
 
+    public void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.ManagementAdmin);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+
+            managementLogic.RestoreDatabase(backupFileName, includeLogs);
+        }
+    }
+
     #endregion
 }

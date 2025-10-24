@@ -2270,7 +2270,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListDatabaseBackups([FromQuery] ListDatabaseBackupsModel model)
     {
-        _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListDatabaseBackups\" Parameters: from: \"{model.FromDateTime}\", to: \"{model.ToDateTime}\", type: \"{model.Type}\", SessionCode: \"{model.SessionCode}\"");
+        _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListDatabaseBackups\" Parameters: From: \"{model.FromDateTime}\", To: \"{model.ToDateTime}\", Type: \"{model.Type}\", SessionCode: \"{model.SessionCode}\"");
 
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
@@ -2328,6 +2328,32 @@ public class ManagementController : BaseController<ManagementController>
         var backupFilePath = _managementService.BackupDatabaseTransactionLogs(sessionCode);
 
         return Ok($"Database transaction logs backup was created successfully at '{backupFilePath}'.");
+    }
+
+    /// <summary>
+    ///     Restore database from specified backup file
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("RestoreDatabase")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabase(RestoreDatabaseModel model)
+    {
+        _logger.LogDebug($"Endpoint: \"Management\" Method: \"RestoreDatabase\" Parameters:  BackupFileName : \"{model.BackupFileName}\", IncludeLogs: \"{model.IncludeLogs}\", SessionCode: \"{model.SessionCode}\"");
+
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        _managementService.RestoreDatabase(model.BackupFileName, model.IncludeLogs, model.SessionCode);
+
+        return Ok($"Database was restored successfully from backup '{model.BackupFileName}'.");
     }
 
     #endregion

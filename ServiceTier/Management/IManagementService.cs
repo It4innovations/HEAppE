@@ -203,6 +203,7 @@ public interface IManagementService
     string BackupDatabase(string sessionCode);
     string BackupDatabaseTransactionLogs(string sessionCode);
     List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode);
+    void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode);
 
     public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
         string newPassword, long projectId,

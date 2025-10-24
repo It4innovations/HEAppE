@@ -558,4 +558,10 @@
   <data name="DatabaseBackupException_ListDatabaseBackupsException" xml:space="preserve">
     <value>Výjimka vyvolána při získávání databázových zaloh.</value>
   </data>
+  <data name="DatabaseRestoreExternalException_BackupFileNameNotFoundException" xml:space="preserve">
+    <value>Backup súbor '{0}' neexistuje alebo nie je dostupný.</value>
+  </data>
+  <data name="DatabaseRestoreException_RestoreDatabaseException" xml:space="preserve">
+    <value>Výjimka vyvolána při obnovování databázové zalohy.</value>
+  </data>
 </root>

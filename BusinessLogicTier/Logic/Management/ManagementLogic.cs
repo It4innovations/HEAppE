@@ -2329,6 +2329,11 @@ public class ManagementLogic : IManagementLogic
         return _unitOfWork.DatabaseBackupService.ListDatabaseBackups(fromDateTime, toDateTime, type);
     }
 
+    public void RestoreDatabase(string backupFileName, bool includeLogs)
+    {
+        _unitOfWork.DatabaseBackupService.RestoreDatabase(backupFileName, includeLogs);
+    }
+
     #endregion
 
     #region Private methods

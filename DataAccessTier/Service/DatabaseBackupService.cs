@@ -1,5 +1,6 @@
 ﻿using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DomainObjects.Management;
+using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -139,13 +140,124 @@ internal class DatabaseBackupService : IDatabaseBackupService
         }
     }
 
+    /// <summary>
+    ///     Restore database from speficied backup file name.
+    /// </summary>
+    /// <param name="backupFileName"></param>
+    /// <param name="includeLogs"></param>
+    public void RestoreDatabase(string backupFileName, bool includeLogs)
+    {
+        var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
+
+        // check if backup exists locally or NAS
+        if (!File.Exists(backupPath))
+        {
+            // try to find file in NAS
+            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath)
+                && File.Exists(Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName)))
+            {
+                backupPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
+            }
+            else
+            {
+                throw new DatabaseRestoreExternalException("BackupFileNameNotFoundException", backupFileName);
+            }
+        }
+
+        // need to use master database in order to restore
+        var builder = new SqlConnectionStringBuilder(_context.Database.GetConnectionString())
+        {
+            InitialCatalog = "master"
+        };
+        using var connection = new SqlConnection(builder.ConnectionString);
+        connection.Open();
+
+        var databaseName = _context.Database.GetDbConnection().Database;
+        using var command = connection.CreateCommand();
+        command.CommandTimeout = 0;
+        try
+        {
+            // set single-user (to not block restore from other users)
+            command.CommandText = $@"ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
+            command.ExecuteNonQuery();
+
+            // full restore
+            command.CommandText = $@"
+                RESTORE DATABASE [{databaseName}]
+                FROM DISK = '{backupPath}'
+                WITH REPLACE, {(includeLogs ? "NORECOVERY" : "RECOVERY")};";
+
+            command.ExecuteNonQuery();
+
+            // restore transaction logs
+            if (!includeLogs)
+                return;
+
+            // find time of FULL backup from msdb to find newer transaction log backups
+            command.CommandText = @"
+                SELECT backup_finish_date 
+                FROM msdb.dbo.backupset 
+                WHERE database_name = @db AND type = 'D'
+                ORDER BY backup_finish_date DESC;";
+            command.Parameters.AddWithValue("@db", databaseName);
+            DateTime fullBackupTime = (DateTime)command.ExecuteScalar();
+            command.Parameters.Clear();
+
+            // find all transaction log backups after specified backup
+            command.CommandText = @"
+                SELECT mf.physical_device_name
+                FROM msdb.dbo.backupset b
+                JOIN msdb.dbo.backupmediafamily mf
+                    ON b.media_set_id = mf.media_set_id
+                WHERE b.database_name = @db
+                  AND b.type = 'L'
+                  AND b.backup_finish_date > @fullTime
+                ORDER BY b.backup_finish_date ASC;";
+            command.Parameters.AddWithValue("@db", databaseName);
+            command.Parameters.AddWithValue("@fullTime", fullBackupTime);
+
+            var logFiles = new List<string>();
+            using (var reader = command.ExecuteReader())
+            {
+                while (reader.Read())
+                    logFiles.Add(reader.GetString(0));
+            }
+            command.Parameters.Clear();
+
+            // restore transaction logs in order
+            foreach (var logFile in logFiles)
+            {
+                command.CommandText = $@"
+                    RESTORE LOG [{databaseName}]
+                    FROM DISK = '{logFile}'
+                    WITH NORECOVERY;";
+                command.ExecuteNonQuery();
+            }
+
+            // finalize restore
+            command.CommandText = $@"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
+            command.ExecuteNonQuery();
+
+        }
+        catch (Exception ex)
+        {
+            throw new DatabaseRestoreException("RestoreDatabaseException", ex);
+        }
+        finally
+        {
+            // set database back to MULTI_USER
+            command.CommandText = $@"ALTER DATABASE [{databaseName}] SET MULTI_USER;";
+            command.ExecuteNonQuery();
+        }
+    }
+
     #endregion
 
     #region Private methods
 
     /// <summary>
-    /// Check if full backup can be done
-    /// Database have to be in 'FULL' or 'BULK_LOGGED' recovery mode
+    ///     Check if full backup can be done
+    ///     Database have to be in 'FULL' or 'BULK_LOGGED' recovery mode
     /// </summary>
     /// <returns></returns>
     private bool DatabaseFullBackupCanBeDone()
@@ -164,8 +276,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
     }
 
     /// <summary>
-    /// Check if transaction logs backup can be done
-    /// Database have to be in 'FULL' or 'BULK_LOGGED' recovery mode and full backup needs to be performed first
+    ///     Check if transaction logs backup can be done
+    ///     Database have to be in 'FULL' or 'BULK_LOGGED' recovery mode and full backup needs to be performed first
     /// </summary>
     /// <returns></returns>
     private bool DatabaseLogsBackupCanBeDone()

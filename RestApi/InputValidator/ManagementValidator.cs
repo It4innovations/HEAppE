@@ -78,6 +78,7 @@ public class ManagementValidator : AbstractValidator
                 ValidateRemoveProjectClusterNodeTypeAggregationModel(ext),
             AccountingStateModel ext => ValidateAccountingStateModel(ext),
             ListDatabaseBackupsModel ext => ValidateListDatabaseBackupsModel(ext),
+            RestoreDatabaseModel ext => ValidateRestoreDatabaseModel(ext),
             ModifyClusterAuthenticationCredentialModel ext => ValidateModifyClusterAuthenticationCredentialModel(ext),
             _ => string.Empty
         };
@@ -770,6 +771,20 @@ public class ManagementValidator : AbstractValidator
 
         if (model.ToDateTime.HasValue && model.ToDateTime < model.FromDateTime)
             _messageBuilder.AppendLine($"{model.ToDateTime} must be greater than {model.FromDateTime}");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateRestoreDatabaseModel(RestoreDatabaseModel model)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+
+        if (string.IsNullOrEmpty(model.BackupFileName))
+            _messageBuilder.AppendLine($"BackupFileName can not be null or empty.");
+
+        if(ContainsIllegalCharactersForFileName(model.BackupFileName))
+            _messageBuilder.AppendLine($"BackupFileName contains illegal characters. Provide only file name.");
 
         return _messageBuilder.ToString();
     }
