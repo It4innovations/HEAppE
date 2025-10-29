@@ -95,7 +95,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public override string ToString()
         {
-            return string.Format("AdaptorUser: Id={0}, Username={1}", Id, Username);
+            return string.Format("AdaptorUser: Id={0}, Username={1}, Email={2}", Id, Username, Email);
         }
     }
 }

@@ -373,7 +373,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                     .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
 
                 DateTime changedTime = DateTime.UtcNow;
-                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmail(lexisUser.UserName);
+                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmail(lexisUser.Email);
                 if (user is null)
                 {
                     user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
