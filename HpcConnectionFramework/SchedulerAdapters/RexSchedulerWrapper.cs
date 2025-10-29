@@ -395,7 +395,7 @@ public class RexSchedulerWrapper : IRexScheduler
         }
         catch (Exception ex)
         {
-            _log.Info(
+            _log.Error(
                 $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
             return false;
         }
