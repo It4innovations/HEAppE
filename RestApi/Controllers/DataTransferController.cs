@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApi.InputValidator;
@@ -135,6 +136,54 @@ public class DataTransferController : BaseController<DataTransferController>
         return Ok(await _service.HttpPostToJobNodeAsync(model.HttpRequest, model.HttpHeaders, model.HttpPayload,
             model.SubmittedJobInfoId, model.NodeIPAddress, model.NodePort, model.SessionCode));
     }
+    
+    /// <summary>
+    /// HttpPostToJobNodeStream
+    /// </summary>
+    /// <param name="model"></param>
+    [HttpPost("HttpPostToJobNodeStream")]
+    [RequestSizeLimit(50000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task HttpPostToJobNodeStream([FromBody] HttpPostToJobNodeModel model)
+    {
+        _logger.LogInformation($"Endpoint: \"DataTransfer\" Method: \"HttpPostToJobNodeStream\" Parameters: \"{model}\"");
+        Response.ContentType = "text/plain";
+        var validationResult = new DataTransferValidator(model).Validate();
+        if (!validationResult.IsValid)
+        {
+            _logger.LogInformation("Validation failed: {Message}", validationResult.Message);
+            await Response.WriteAsync($"Validation failed: {validationResult.Message}\n");
+            await Response.Body.FlushAsync();
+            return;
+        }
+
+        try
+        {
+            var result = await _service.HttpPostToJobNodeAsync(
+                model.HttpRequest,
+                model.HttpHeaders,
+                model.HttpPayload,
+                model.SubmittedJobInfoId,
+                model.NodeIPAddress,
+                model.NodePort,
+                model.SessionCode);
+
+            await Response.WriteAsync(result);
+            await Response.Body.FlushAsync();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during HttpPostToJobNodeStream: {Message}", ex.Message);
+            await Response.WriteAsync($"Error: {ex.Message}\n");
+            await Response.Body.FlushAsync();
+        }
+    }
+
 
     #endregion
 }
