@@ -195,7 +195,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         {
             credentials =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                    clusterId, projectId, requireIsInitialized, null);
+                    clusterId, projectId, requireIsInitialized, adaptorUserId);
         }
         catch(NotAllowedException ex)
         {
