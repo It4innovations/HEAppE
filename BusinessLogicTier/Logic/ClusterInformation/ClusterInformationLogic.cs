@@ -129,6 +129,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             throw new RequestedObjectDoesNotExistException("ClusterNotExists", clusterId);
 
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        _unitOfWork.ProjectRepository.Detach(project);
         if (project == null)
             throw new RequestedObjectDoesNotExistException("ProjectNotExists", projectId);
         

@@ -59,6 +59,12 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
         _dbSet.Attach(entityToUpdate);
         _context.Entry(entityToUpdate).State = EntityState.Modified;
     }
+    
+    public virtual void Detach(T entity)
+    {
+        _context.Entry(entity).State = EntityState.Detached;
+    }
+
 
     #endregion
 }
