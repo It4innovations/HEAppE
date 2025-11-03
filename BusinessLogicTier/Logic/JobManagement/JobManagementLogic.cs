@@ -454,7 +454,7 @@ internal class JobManagementLogic : IJobManagementLogic
         specification.ClusterUser = clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
         specification.Submitter = loggedUser;
         specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
-        specification.ProjectId = specification.ProjectId;
+        specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
         if (specification.SubProjectId.HasValue)
             specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
 
