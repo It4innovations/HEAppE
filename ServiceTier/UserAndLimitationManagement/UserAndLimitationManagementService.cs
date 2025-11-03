@@ -202,7 +202,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
         AdaptorUser loggedUser;
         loggedUser = JwtTokenIntrospectionConfiguration.IsEnabled ? 
-            HttpContextKeys.AdaptorUser : 
+            authenticationLogic.GetUserById(HttpContextKeys.AdaptorUserId) : 
             authenticationLogic.GetUserForSessionCode(sessionCode);
 
         var projectIds = loggedUser.AdaptorUserUserGroupRoles.Where(x =>

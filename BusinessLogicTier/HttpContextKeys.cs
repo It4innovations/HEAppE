@@ -16,7 +16,7 @@ using SshCaAPI;
 namespace HEAppE.BusinessLogicTier;
 public static class HttpContextKeys
 {
-    public static AdaptorUser AdaptorUser;
+    public static long AdaptorUserId;
     public static string SshCaToken;
     public static string FIPToken;
     private static readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -36,7 +36,7 @@ public static class HttpContextKeys
                     OpenIdLexisAccessToken = token
                 });
                 
-                AdaptorUser = user;
+                AdaptorUserId = user.Id;
                 return user;
             }
             catch(Exception ex)

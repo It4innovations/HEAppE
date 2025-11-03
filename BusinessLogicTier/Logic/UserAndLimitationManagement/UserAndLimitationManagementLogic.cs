@@ -80,7 +80,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         if (JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            return HttpContextKeys.AdaptorUser;
+            return _unitOfWork.AdaptorUserRepository.GetById(HttpContextKeys.AdaptorUserId);
         }
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null) throw new SessionCodeNotValidException("NotPresent", sessionCode);
@@ -93,6 +93,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         _unitOfWork.SessionCodeRepository.Update(session);
         _unitOfWork.Save();
         return session.User;
+    }
+    
+    public AdaptorUser GetUserById(long id)
+    {
+        return _unitOfWork.AdaptorUserRepository.GetById(id);
     }
 
     public async Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials)

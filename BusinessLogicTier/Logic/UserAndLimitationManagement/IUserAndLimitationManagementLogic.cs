@@ -12,6 +12,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 public interface IUserAndLimitationManagementLogic
 {
     AdaptorUser GetUserForSessionCode(string sessionCode);
+    AdaptorUser GetUserById(long id);
     Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials);
     Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials);
     Task<ApplicationCredentialsDTO> AuthenticateOpenIdUserToOpenStackAsync(AdaptorUser adaptorUser, long projectId);

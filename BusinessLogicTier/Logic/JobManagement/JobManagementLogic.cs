@@ -42,6 +42,7 @@ internal class JobManagementLogic : IJobManagementLogic
         _tasksToDeleteFromSpec = new List<TaskSpecification>();
         _tasksToAddToSpec = new List<TaskSpecification>();
         _extraLongTaskDecomposedDependency = new Dictionary<TaskSpecification, TaskSpecification>();
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
     }
 
     public SubmittedJobInfo CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong)
