@@ -2,6 +2,7 @@
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using SshCaAPI;
 
 namespace HEAppE.FileTransferFramework.Sftp;
 
@@ -16,12 +17,12 @@ public class SftpFileSystemFactory : FileSystemFactory
 
     #region Override Methods
 
-    public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration)
+    public override IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         if (!_managerSingletons.TryGetValue(configuration.ServerHostname, out var fileManager))
         {
             fileManager =
-                new SftpFileSystemManager(_logger, configuration, this, GetSchedulerConnectionPool(configuration));
+                new SftpFileSystemManager(_logger, configuration, this, GetSchedulerConnectionPool(configuration, sshCertificateAuthorityService));
             _managerSingletons.Add(configuration.ServerHostname, fileManager);
         }
 
@@ -38,12 +39,12 @@ public class SftpFileSystemFactory : FileSystemFactory
         };
     }
 
-    protected override IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration)
+    protected override IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         var hostname = configuration.ServerHostname;
         if (!_connectorSingletons.TryGetValue(hostname, out var systemConnector))
         {
-            systemConnector = new SftpFileSystemConnector(_logger);
+            systemConnector = new SftpFileSystemConnector(_logger, sshCertificateAuthorityService);
             _connectorSingletons.Add(hostname, systemConnector);
         }
 

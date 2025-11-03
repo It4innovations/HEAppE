@@ -247,7 +247,7 @@ public class FileTransferLogic : IFileTransferLogic
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
         IList<JobFileContent> result = new List<JobFileContent>();
         
         foreach (var taskInfo in jobInfo.Tasks)
@@ -300,7 +300,7 @@ public class FileTransferLogic : IFileTransferLogic
         foreach (var fileTransferMethodGroup in fileTransferMethodGroups)
         {
             var fileManager = FileSystemFactory.GetInstance(fileTransferMethodGroup.Key.Protocol)
-                .CreateFileSystemManager(fileTransferMethodGroup.Key);
+                .CreateFileSystemManager(fileTransferMethodGroup.Key, _sshCertificateAuthorityService);
             foreach (var jobInfo in fileTransferMethodGroup)
             {
                 var synchronizationTime = DateTime.UtcNow;
@@ -327,7 +327,7 @@ public class FileTransferLogic : IFileTransferLogic
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
 
         if(jobInfo.State == JobState.Deleted)
         {
@@ -346,7 +346,7 @@ public class FileTransferLogic : IFileTransferLogic
         
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
         
         if (jobInfo.State == JobState.Deleted)
         {

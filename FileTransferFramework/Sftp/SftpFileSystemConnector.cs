@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Text;
+using HEAppE.CertificateGenerator;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Exceptions.Internal;
@@ -9,6 +10,7 @@ using HEAppE.Utils;
 using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using SshCaAPI;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 
 namespace HEAppE.FileTransferFramework.Sftp;
@@ -18,14 +20,16 @@ public class SftpFileSystemConnector : IPoolableAdapter
     #region Instances
 
     private readonly ILogger _logger;
+    private ISshCertificateAuthorityService _sshCaService;
 
     #endregion
 
     #region Constructors
 
-    public SftpFileSystemConnector(ILogger logger)
+    public SftpFileSystemConnector(ILogger logger, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _logger = logger;
+        _sshCaService = sshCertificateAuthorityService;
     }
 
     #endregion
@@ -85,6 +89,13 @@ public class SftpFileSystemConnector : IPoolableAdapter
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
                 => CreateConnectionObjectUsingNoAuthentication(masterNodeName, credentials.Username, port),
+            
+            ClusterAuthenticationCredentialsAuthType.SshCertificate => 
+                CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
+            
+            ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy => 
+                CreateConnectionObjectUsingSshCertificateViaProxy(proxy.Host, proxy.Type,
+                    proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
 
             _ => throw new NotImplementedException(
                 "SFTP authentication credentials authentication type is not allowed!")
@@ -92,6 +103,91 @@ public class SftpFileSystemConnector : IPoolableAdapter
         sftpClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
         sftpClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
         return sftpClient;
+    }
+
+    private SftpClient CreateConnectionObjectUsingSshCertificateViaProxy(string proxyHost,
+        ProxyType proxyType, int proxyPort, string proxyUsername, string proxyPassword, string masterNodeName,
+        ClusterAuthenticationCredentials credentials, string sshCaToken, int? port){
+        try
+        {
+            string publicKey = credentials.PublicKey;
+            if (string.IsNullOrEmpty(credentials.PublicKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
+            }
+            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+                .GetAwaiter()
+                .GetResult();
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            var connectionInfo = port switch
+            {
+                null => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    credentials.Username,
+                    proxyType.Map(),
+                    proxyHost,
+                    proxyPort,
+                    proxyUsername ?? string.Empty,
+                    proxyPassword ?? string.Empty,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                _ => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    port.Value,
+                    credentials.Username,
+                    proxyType.Map(),
+                    proxyHost,
+                    proxyPort,
+                    proxyUsername ?? string.Empty,
+                    proxyPassword ?? string.Empty,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+            };
+
+            var client = new SftpClient(connectionInfo);
+            return client;
+        }
+        catch (Exception e)
+        {
+            throw new SshCommandException("NotCorrespondingPasswordForPrivateKey", e, masterNodeName);
+        }
+        
+    }
+
+    private SftpClient CreateConnectionObjectUsingSshCertificate(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
+    {
+        try
+        {
+            string publicKey = credentials.PublicKey;
+            if (string.IsNullOrEmpty(credentials.PublicKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
+            }
+            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+                .GetAwaiter()
+                .GetResult();
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            var connectionInfo = port switch
+            {
+                null => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    credentials.Username,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                _ => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    port.Value,
+                    credentials.Username,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
+            };
+
+            var client = new SftpClient(connectionInfo);
+            return client;
+        }
+        catch (Exception e)
+        {
+            throw e;
+        }
+        
     }
 
     /// <summary>
