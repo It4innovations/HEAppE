@@ -232,7 +232,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         List<AdaptorUserRoleType> allowedRoles)
     {
         var authenticationLogic = LogicFactory.GetLogicFactory()
-            .CreateUserAndLimitationManagementLogic(unitOfWork);
+            .CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService);
 
         var user = authenticationLogic.GetUserForSessionCode(sessionCode);
 

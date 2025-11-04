@@ -151,7 +151,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var credentials =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
                 clusterId, projectId, false, null);
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService);
         foreach (var credential in credentials)
         {
             var status = managementLogic.InitializeClusterScriptDirectory(
@@ -387,7 +387,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             var initProject = clusterProjectCredential.ClusterProject.Project;
             var initCluster = clusterProjectCredential.ClusterProject.Cluster;
-            var localBasepath = clusterProjectCredential.ClusterProject.LocalBasepath;
+            var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
 
             var scheduler = SchedulerFactory
                 .GetInstance(initCluster.SchedulerType)

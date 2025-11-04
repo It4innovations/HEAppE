@@ -249,7 +249,7 @@ public class ManagementService : IManagementService
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             var clusterProject = managementLogic.GetProjectAssignmentToClusters(projectId);
             return clusterProject.Select(x=>x.ConvertIntToExt()).ToArray();
         }
@@ -347,7 +347,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             return managementLogic.RenameClusterAuthenticationCredentials(oldUsername, newUsername, newPassword, projectId, project.IsOneToOneMapping ? loggedUser.Id : null).
                 Select(x => x.ConvertIntToExt()).
                 ToList();
@@ -508,7 +508,7 @@ public class ManagementService : IManagementService
             (var user, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             return managementLogic.ClusterAccountStatus(modelProjectId, username, loggedUser.Id)
                 .Select(x => x.ConvertIntToExt(projects, true))
                 .ToList();
@@ -1250,7 +1250,7 @@ public class ManagementService : IManagementService
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
                     AdaptorUserRoleType.ManagementAdmin);
-            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService);
             List<ProjectClusterNodeTypeAggregation> aggregations = new();
             foreach (var project in projects)
             {

@@ -450,7 +450,7 @@ public class Startup
                 };
             });
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/v2/swagger.json";
-            swagger.SerializeAsV2 = true;
+            swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
         });
 
         app.UseSwaggerUI(swaggerUI =>

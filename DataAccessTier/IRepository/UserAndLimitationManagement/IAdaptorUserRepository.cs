@@ -7,4 +7,5 @@ public interface IAdaptorUserRepository : IRepository<AdaptorUser>
     AdaptorUser GetByName(string username);
     AdaptorUser GetByEmail(string email);
     AdaptorUser GetByNameIgnoreQueryFilters(string username);
+    AdaptorUser GetByEmailIgnoreQueryFilters(string email);
 }
