@@ -120,7 +120,7 @@ public class DataTransferController : BaseController<DataTransferController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("HttpPostToJobNode")]
-    [RequestSizeLimit(50000)]
+    [RequestSizeLimit(5000000)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -142,7 +142,7 @@ public class DataTransferController : BaseController<DataTransferController>
     /// </summary>
     /// <param name="model"></param>
     [HttpPost("HttpPostToJobNodeStream")]
-    [RequestSizeLimit(50000)]
+    [RequestSizeLimit(5000000)]
     [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
