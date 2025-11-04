@@ -94,11 +94,17 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo,
         SynchronizableFiles fileType, long offset, string instancePath, string subPath, string sshCaToken)
     {
-        var jobClusterDirectoryPath =
-            FileSystemUtils.GetJobClusterDirectoryPath(taskInfo.Specification.JobSpecification,
-                instancePath, subPath);
-        var taskClusterDirectoryPath =
-            FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, instancePath, subPath);
+        var taskClusterDirectoryPath = string.Empty;
+        if (taskInfo.State == TaskState.Deleted)
+        {
+            taskClusterDirectoryPath =
+                FileSystemUtils.GetTaskClusterArchiveDirectoryPath(taskInfo.Specification, instancePath, subPath);
+        }
+        else
+        {
+            taskClusterDirectoryPath =
+                FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, instancePath, subPath);
+        }
         var fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
         var synchronizer = CreateFileSynchronizer(fileInfo, taskInfo.Specification.JobSpecification.ClusterUser, sshCaToken);
         synchronizer.Offset = offset;
@@ -143,8 +149,11 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
         foreach (var taskInfo in jobInfo.Tasks)
         {
-            var taskClusterDirectoryPath =
+            string taskClusterDirectoryPath = jobInfo.State == JobState.Deleted ? 
+                FileSystemUtils.GetTaskClusterArchiveDirectoryPath(taskInfo.Specification, instancePath, subPath) : 
                 FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, instancePath, subPath);
+            
+            _logger.LogInformation("Listing files in {0} for task {1}", taskClusterDirectoryPath, taskInfo.Specification.Id);
 
             var changedFiles = ListChangedFilesForTask(
                 jobInfo.Specification.Cluster.TimeZone, 

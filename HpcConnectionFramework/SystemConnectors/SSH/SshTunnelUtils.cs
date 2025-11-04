@@ -158,35 +158,20 @@ public sealed class SshTunnelUtils
     /// <returns></returns>
     private static int GetFirstFreePort()
     {
-        var port = TunnelConfiguration.MinLocalPort;
-        do
+        for (var port = TunnelConfiguration.MinLocalPort; 
+             port < TunnelConfiguration.MaxLocalPort; 
+             port++)
         {
-            var last = _usedLocalPorts.LastOrDefault();
-            if (last is not null)
-            {
-                if (last + 1 < TunnelConfiguration.MaxLocalPort)
-                    port = last.Value + 1;
-                else
-                    for (var i = TunnelConfiguration.MinLocalPort; i < TunnelConfiguration.MaxLocalPort; i++)
-                    {
-                        if (!_usedLocalPorts.Contains(i))
-                        {
-                            port = i;
-                            break;
-                        }
+            if (_usedLocalPorts.Contains(port))
+                continue;
 
-                        if (i + 1 == TunnelConfiguration.MaxLocalPort)
-                            throw new UnableToCreateTunnelException("NoFreeLocalPortForSsh");
-                    }
-            }
-            else
-            {
-                break;
-            }
-        } while (!IsLocalPortFree(port));
+            if (IsLocalPortFree(port))
+                return port;
+        }
 
-        return port;
+        throw new UnableToCreateTunnelException("NoFreeLocalPortForSsh");
     }
+
 
     /// <summary>
     ///     Validate if port is free
@@ -197,9 +182,8 @@ public sealed class SshTunnelUtils
     {
         try
         {
-            var listener = new TcpListener(IPAddress.Parse(TunnelConfiguration.LocalhostName), port);
+            using var listener = new TcpListener(IPAddress.Parse(TunnelConfiguration.LocalhostName), port);
             listener.Start();
-            listener.Stop();
             return true;
         }
         catch (SocketException)

@@ -16,12 +16,25 @@ public class FileSystemUtils
     public static string GetJobClusterDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.LocalBasepath;
+            ?.ScratchStoragePath;
         var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
 
         return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
     }
 
+    public static string GetJobClusterArchiveDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
+    {
+        var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
+            ?.PermanentStoragePath;
+        if (string.IsNullOrEmpty(basePath))
+        {
+            basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
+                ?.ScratchStoragePath;
+        }
+        var localBasePath = $"{basePath}/{instanceIdentifierPath}/{subExecutionsPath}/{jobSpecification.ClusterUser.Username}";
+
+        return ConcatenatePaths(localBasePath, jobSpecification.Id.ToString(CultureInfo.InvariantCulture));
+    }
     public static string GetTaskClusterDirectoryPath(TaskSpecification taskSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var basePath = GetJobClusterDirectoryPath(taskSpecification.JobSpecification, instanceIdentifierPath, subExecutionsPath);
@@ -32,6 +45,15 @@ public class FileSystemUtils
         return ConcatenatePaths(basePath, taskSubdirectory);
     }
 
+    public static string GetTaskClusterArchiveDirectoryPath(TaskSpecification taskSpecification, string instanceIdentifierPath, string subExecutionsPath)
+    {
+        var basePath = GetJobClusterArchiveDirectoryPath(taskSpecification.JobSpecification, instanceIdentifierPath, subExecutionsPath);
+        var taskSubdirectory = !string.IsNullOrEmpty(taskSpecification.ClusterTaskSubdirectory)
+            ? $"{taskSpecification.Id}/{taskSpecification.ClusterTaskSubdirectory}"
+            : $"{taskSpecification.Id}";
+
+        return ConcatenatePaths(basePath, taskSubdirectory);
+    }
 
     public static string ReadStreamContentFromSpecifiedOffset(Stream stream, long offset)
     {

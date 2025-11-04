@@ -50,7 +50,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("CreateJob")]
-    [RequestSizeLimit(50000)]
+    [RequestSizeLimit(250000)]
     [ProducesResponseType(typeof(SubmittedJobInfoExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

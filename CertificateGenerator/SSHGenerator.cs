@@ -113,7 +113,7 @@ public class SSHGenerator
                     Username = existingKey.Username,
                     CipherType = CipherGeneratorConfiguration.Type,
                     PublicKeyPEM = GenericCertGeneratorV2.ToPublicKeyInPEMFromPrivateKey(existingKey.PrivateKey,
-                        existingKey.PrivateKeyPassphrase),
+                        existingKey.PrivateKeyPassphrase) ?? "Unable to convert",
                     PublicKeyInAuthorizedKeysFormat =
                         ECDsaCertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
@@ -141,7 +141,7 @@ public class SSHGenerator
                         RSACertGeneratorV2.ToPublicKeyInAuthorizedKeysFormatFromPrivateKey(existingKey.PrivateKey,
                             existingKey.PrivateKeyPassphrase, existingKey.Username)
                 };
-        };
+        }
     }
 
     /// <summary>
@@ -160,6 +160,13 @@ public class SSHGenerator
     {
         return _key.ToPrivateKey();
     }
+    
+    public string ToPrivateKeyInPEM(string passphrase = "")
+    {
+        return CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519
+            ? _certGeneratorV2.ToPrivateKeyInPEM()
+            : _certGeneratorV2.ToEncryptedPrivateKeyInPEM(passphrase);
+    }
 
     /// <summary>
     ///     Returns the SSH public key
@@ -174,8 +181,11 @@ public class SSHGenerator
     ///     Returns the SSH public key in PuTTY format
     /// </summary>
     /// <returns></returns>
-    public string ToPuTTYPublicKey()
+    public string ToPuTTYPublicKey(string comment)
     {
+        if (CipherGeneratorConfiguration.Type == FileTransferCipherType.Ed25519)
+            return _certGeneratorV2.ToPublicKeyInAuthorizedKeysFormat(comment);
+        
         return _key.ToPuTTYPublicKey();
     }
 

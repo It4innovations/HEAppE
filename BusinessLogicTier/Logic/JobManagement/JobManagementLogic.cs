@@ -96,7 +96,7 @@ internal class JobManagementLogic : IJobManagementLogic
             //Create job directory
             SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                 .CreateScheduler(specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-                .CreateJobDirectory(jobInfo, clusterProject.LocalBasepath, BusinessLogicConfiguration.SharedAccountsPoolMode, HttpContextKeys.SshCaToken);
+                .CreateJobDirectory(jobInfo, clusterProject.ScratchStoragePath, BusinessLogicConfiguration.SharedAccountsPoolMode, HttpContextKeys.SshCaToken);
             return jobInfo;
         }
     }
@@ -199,7 +199,7 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             var isDeleted = SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
                 .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-                .DeleteJobDirectory(jobInfo, clusterProject.LocalBasepath, HttpContextKeys.SshCaToken);
+                .DeleteJobDirectory(jobInfo, clusterProject.ScratchStoragePath, HttpContextKeys.SshCaToken);
             if (isDeleted)
             {
                 jobInfo.State = JobState.Deleted;
@@ -220,7 +220,13 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
-            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
+        var permanentBasePath = jobInfo.Specification.Cluster.ClusterProjects
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.PermanentStoragePath;
+        if (string.IsNullOrEmpty(permanentBasePath))
+        {
+            permanentBasePath = basePath;
+        }
         
         var localBasePath = Path.Combine(
                 basePath, 
@@ -228,7 +234,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'),
                 jobInfo.Specification.ClusterUser.Username);
         var jobLogArchivePath = Path.Combine(
-                basePath, 
+                permanentBasePath, 
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'), 
                 jobInfo.Specification.ClusterUser.Username);
@@ -410,7 +416,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
         SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-            .CopyJobDataToTemp(jobInfo, clusterProject.LocalBasepath, hash, path, HttpContextKeys.SshCaToken);
+            .CopyJobDataToTemp(jobInfo, clusterProject.ScratchStoragePath, hash, path, HttpContextKeys.SshCaToken);
     }
 
 
@@ -426,7 +432,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
         SchedulerFactory.GetInstance(jobInfo.Specification.Cluster.SchedulerType)
             .CreateScheduler(jobInfo.Specification.Cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-            .CopyJobDataFromTemp(jobInfo, clusterProject.LocalBasepath, hash, HttpContextKeys.SshCaToken);
+            .CopyJobDataFromTemp(jobInfo, clusterProject.ScratchStoragePath, hash, HttpContextKeys.SshCaToken);
     }
 
     public IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser)

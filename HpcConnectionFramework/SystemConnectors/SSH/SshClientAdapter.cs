@@ -1,4 +1,6 @@
-﻿using Renci.SshNet;
+﻿using System.IO;
+using System.Text;
+using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
@@ -37,8 +39,11 @@ public class SshClientAdapter
     {
         if (_sshClient is NoAuthenticationSshClient ownSshCommand)
             return ownSshCommand.RunShellCommand(command);
+        
         return new SshCommandWrapper(_sshClient.RunCommand(command));
     }
+
+
 
     /// <summary>
     ///     Connect

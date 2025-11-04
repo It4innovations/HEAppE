@@ -1,4 +1,16 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Data.SqlTypes;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -8,19 +20,14 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using System;
-using System.Collections.Generic;
-using System.Linq;
+using log4net;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
 
@@ -651,7 +658,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProject = _managementService.CreateProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
-            model.LocalBasepath, model.SessionCode);
+            model.ScratchStoragePath, model.PermanentStoragePath, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProject);
     }
@@ -677,7 +684,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         var clusterProject = _managementService.ModifyProjectAssignmentToCluster(model.ProjectId, model.ClusterId,
-            model.LocalBasepath, model.SessionCode);
+            model.ScratchStoragePath, model.PermanentStoragePath, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(clusterProject);
     }
@@ -705,6 +712,22 @@ public class ManagementController : BaseController<ManagementController>
         _managementService.RemoveProjectAssignmentToCluster(model.ProjectId, model.ClusterId, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("Removed assignment of the Project to the Cluster.");
+    }
+    
+    [HttpGet("ProjectAssignmentToClusters")]
+    [RequestSizeLimit(100)]
+    [ProducesResponseType(typeof(ClusterProjectExt[]), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetProjectAssignmentToClusters(long projectId, string sessionCode)
+    {
+        _logger.LogDebug(
+            $"Endpoint: \"Management\" Method: \"GetProjectAssignmentToClusters\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
+
+        var clusterProject = _managementService.GetProjectAssignmentToClusters(projectId, sessionCode);
+        return Ok(clusterProject);
     }
 
     #endregion
@@ -1607,7 +1630,7 @@ public class ManagementController : BaseController<ManagementController>
     }
 
     /// <summary>
-    ///     Get ProjectClusterNodeTypeAggregations by ProjectId
+    /// Get ProjectClusterNodeTypeAggregations by ProjectId
     /// </summary>
     /// <param name="projectId"></param>
     /// <param name="sessionCode"></param>
@@ -1619,15 +1642,27 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetProjectClusterNodeTypeAggregationsByProjectId(long projectId, string sessionCode)
+    public IActionResult GetProjectClusterNodeTypeAggregations(long? projectId, string sessionCode)
     {
         _logger.LogDebug(
             $"Endpoint: \"Management\" Method: \"GetProjectClusterNodeTypeAggregationsByProjectId\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
 
-        var projectClusterNodeTypeAggregations =
-            _managementService.GetProjectClusterNodeTypeAggregationsByProjectId(projectId, sessionCode);
-        return Ok(projectClusterNodeTypeAggregations);
+        if (projectId.HasValue)
+        {
+            var projectClusterNodeTypeAggregations =
+                _managementService.GetProjectClusterNodeTypeAggregationsByProjectId(projectId.Value, sessionCode);
+            return Ok(projectClusterNodeTypeAggregations);
+        }
+        else
+        {
+            var projectClusterNodeTypeAggregations =
+                _managementService.GetProjectClusterNodeTypeAggregations(sessionCode);
+            return Ok(projectClusterNodeTypeAggregations);
+        }
+           
     }
+    
+    
 
     /// <summary>
     ///     Create ProjectClusterNodeTypeAggregation
@@ -1931,6 +1966,29 @@ public class ManagementController : BaseController<ManagementController>
             model.Credentials.Select(credential => (credential.Username, credential.Password)).ToList();
         return Ok(_managementService.CreateSecureShellKey(credentials, model.ProjectId, model.SessionCode));
     }
+    
+    /// <summary>
+    /// Modify Cluster Authentication Credential 
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPut("ModifyClusterAuthenticationCredential")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public IActionResult ModifyClusterAuthenticationCredential(ModifyClusterAuthenticationCredentialModel model)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyClusterAuthenticationCredential\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var result = _managementService.ModifyClusterAuthenticationCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
+        return Ok(result);
+    }
 
     /// <summary>
     ///     Regenerate SSH key
@@ -2123,6 +2181,38 @@ public class ManagementController : BaseController<ManagementController>
         
         if(report.Any(x=> !x.IsClusterAccessible))
             return BadRequest(report);
+        return Ok(report);
+    }
+    
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="projectId"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpGet("ClusterAccountStatus")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(List<ClusterAccountStatusExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ClusterAccountStatus(string username, long projectId, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterAccountStatus\"");
+
+        var validationResult = new ManagementValidator(new TestClusterAccessForAccountModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode,
+            Username = username
+        }).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        List<ClusterAccountStatusExt> report = _managementService.ClusterAccountStatus(projectId, sessionCode, username);
+        
         return Ok(report);
     }
 

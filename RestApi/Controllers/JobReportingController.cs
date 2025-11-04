@@ -221,11 +221,14 @@ public class JobReportingController : BaseController<JobReportingController>
     }
 
     /// <summary>
-    ///     Get job detailed report
+    /// Get job detailed report
     /// </summary>
-    /// <param name="subProjects">SubProjects</param>
-    /// <param name="sessionCode">Session code</param>
+    /// <param name="subProjects"></param>
+    /// <param name="timeFrom"></param>
+    /// <param name="timeTo"></param>
+    /// <param name="sessionCode"></param>
     /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
     [HttpGet("JobsDetailedReport")]
     [ApiExplorerSettings(GroupName = "DetailedJobReporting")]
     [RequestSizeLimit(90)]
@@ -235,14 +238,14 @@ public class JobReportingController : BaseController<JobReportingController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult JobsDetailedReport([FromQuery] string[] subProjects, string sessionCode)
+    public IActionResult JobsDetailedReport([FromQuery] string[] subProjects, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
     {
         _logger.LogDebug(
             $"Endpoint: \"JobReporting\" Method: \"JobsDetailedReport\" Parameters: SessionCode: \"{sessionCode}\"");
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.JobsDetailedReport(subProjects, sessionCode));
+        return Ok(_service.JobsDetailedReport(subProjects, timeFrom, timeTo, sessionCode));
     }
 
     #endregion

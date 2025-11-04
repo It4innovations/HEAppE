@@ -27,12 +27,20 @@ public class ClusterProjectExt
     public long ProjectId { get; set; }
 
     /// <summary>
-    /// Local base path
+    /// Scratch Storage Path
     /// </summary>
-    [DataMember(Name = "LocalBasepath")]
+    [DataMember(Name = "ScratchStoragePath")]
     [StringLength(100)]
-    [Description("Local base path")]
-    public string LocalBasepath { get; set; }
+    [Description("Scratch Storage Path")]
+    public string ScratchStoragePath { get; set; }
+    
+    /// <summary>
+    /// Permanent Storage Path
+    /// </summary>
+    [DataMember(Name = "PermanentStoragePath")]
+    [StringLength(100)]
+    [Description("Permanent Storage Path")]
+    public string PermanentStoragePath { get; set; }
 
     /// <summary>
     /// Created at
@@ -50,6 +58,6 @@ public class ClusterProjectExt
 
     public override string ToString()
     {
-        return $"""ClusterProjectExt: ClusterId={ClusterId}, ProjectId={ProjectId}, LocalBasepath={LocalBasepath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}" """;
+        return $"""ClusterProjectExt: ClusterId={ClusterId}, ProjectId={ProjectId}, ScratchStoragePath={ScratchStoragePath}, CreatedAt={CreatedAt}, ModifiedAt={ModifiedAt}" """;
     }
 }

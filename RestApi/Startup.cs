@@ -5,11 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
-using System.Text;
-using System.Text.Json;
-using System.Threading.Tasks;
 using AspNetCoreRateLimit;
-using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier;
@@ -19,8 +15,6 @@ using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
@@ -39,6 +33,7 @@ using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
@@ -55,6 +50,7 @@ using Microsoft.OpenApi.Models;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
+
 
 namespace HEAppE.RestApi;
 
@@ -124,6 +120,7 @@ public class Startup
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
         Configuration.Bind("SshCaSettings", new SshCaSettings());
+        Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
@@ -136,6 +133,9 @@ public class Startup
             SshCaSettings.ConnectionTimeoutInSeconds
         ));
         
+        services.AddSingleton<SqlServerHealthCheck>();
+        services.AddSingleton<VaultHealthCheck>();
+
         services.AddControllers(options =>
         {
             options.Filters.Add<LogRequestModelFilter>();
@@ -385,6 +385,10 @@ public class Startup
             options.DefaultRequestCulture = new RequestCulture("en");
             options.SupportedCultures = supportedCultures;
         });
+
+        services.AddHealthChecks()
+            .AddCheck<SqlServerHealthCheck>("sql")
+            .AddCheck<VaultHealthCheck>("vault");
     }
 
     /// <summary>
@@ -429,10 +433,24 @@ public class Startup
                 };
             });
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
-            // TODO - delete this after sphinx OpenApi package be able to use V3 version of OpenApi documentation
-            // now we need to serialize it as V2 see - https://github.com/sphinx-contrib/openapi/issues/107
             //swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
             swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
+        });
+        
+        app.UseSwagger(swagger =>
+        {
+            swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
+            {
+                swaggerDoc.Servers = new List<OpenApiServer>
+                {
+                    new()
+                    {
+                        Url = $"{SwaggerConfiguration.Host}/{SwaggerConfiguration.HostPostfix}"
+                    }
+                };
+            });
+            swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/v2/swagger.json";
+            swagger.SerializeAsV2 = true;
         });
 
         app.UseSwaggerUI(swaggerUI =>
@@ -471,8 +489,14 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
+
+        //app.UseHealthChecks("/health", new HealthCheckOptions() {
+        //    ResponseWriter = HEAppEHealth.ResponseWriter,
+        //    AllowCachingResponses = false, // use custom caching
+        //});
     }
     
 
     #endregion
+
 }

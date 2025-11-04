@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
+using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.Management.Models;
 
@@ -91,6 +94,18 @@ public static class ManagementConverts
         };
         return convert;
     }
+    
+    public static ClusterAccountStatusExt ConvertIntToExt(this ClusterAccountStatus status, IEnumerable<Project> projects, bool onlyActive)
+    {
+        var convert = new ClusterAccountStatusExt
+        {
+            Cluster = status.Cluster.ConvertIntToExt(projects, onlyActive),
+            Project = status.Project.ConvertIntToExt(),
+            IsInitialized = status.IsInitialized
+            
+        };
+        return convert;
+    }
 
     public static ClusterProjectExt ConvertIntToExt(this ClusterProject cp)
     {
@@ -98,7 +113,8 @@ public static class ManagementConverts
         {
             ClusterId = cp.ClusterId,
             ProjectId = cp.ProjectId,
-            LocalBasepath = cp.LocalBasepath,
+            ScratchStoragePath = cp.ScratchStoragePath,
+            PermanentStoragePath = cp.PermanentStoragePath,
             CreatedAt = cp.CreatedAt,
             ModifiedAt = cp.ModifiedAt
         };

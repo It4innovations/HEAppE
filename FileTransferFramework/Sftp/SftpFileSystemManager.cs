@@ -43,7 +43,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken)
     {
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
-            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.LocalBasepath;
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
         var localBasePath = Path.Combine(basePath, _scripts.SubExecutionsPath.TrimStart('/'));
 
         var partPath = localBasePath.Replace(basePath, string.Empty);

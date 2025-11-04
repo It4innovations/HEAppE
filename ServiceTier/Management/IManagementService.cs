@@ -46,11 +46,12 @@ public interface IManagementService
     void RemoveProject(long id, string sessionCode);
 
     ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode);
+    ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode);
 
-    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode);
 
-    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string localBasepath,
+    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
         string sessionCode);
 
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
@@ -69,6 +70,8 @@ public interface IManagementService
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username);
 
     public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
+        string username);
+    public List<ClusterAccountStatusExt> ClusterAccountStatus(long modelProjectId, string modelSessionCode,
         string username);
 
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
@@ -182,6 +185,8 @@ public interface IManagementService
     ProjectClusterNodeTypeAggregationExt GetProjectClusterNodeTypeAggregationById(long projectId,
         long clusterNodeTypeAggregationId, string sessionCode);
 
+    List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregations(
+        string sessionCode);
     List<ProjectClusterNodeTypeAggregationExt> GetProjectClusterNodeTypeAggregationsByProjectId(long projectId,
         string sessionCode);
 
@@ -194,4 +199,8 @@ public interface IManagementService
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
+
+    public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
+        string newPassword, long projectId,
+        string sessionCode);
 }
