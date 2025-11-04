@@ -15,6 +15,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -191,12 +192,23 @@ public class FileTransferLogic : IFileTransferLogic
             publicKey = certGenerator.ToPuTTYPublicKey();
         }
 
+        string certificate = string.Empty;
+        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            certificate = _sshCertificateAuthorityService
+                .SignAsync(publicKey, HttpContextKeys.SshCaToken, transferMethod.ServerHostname)
+                .GetAwaiter()
+                .GetResult();
+        }
+
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
             Username = jobInfo.Specification.ClusterUser.Username,
             FileTransferCipherType = certGenerator.CipherType,
             PrivateKey = certGenerator.ToPrivateKey(),
-            CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, PublicKey = publicKey
+            CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, 
+            PublicKey = publicKey,
+            PrivateKeyCertificate = certificate
         };
 
 
