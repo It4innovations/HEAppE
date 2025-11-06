@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.DataTransfer;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -18,6 +20,10 @@ public interface IDataTransferLogic
 
     Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser);
+
+    Task HttpPostToJobNodeStreamAsync(string httpRequest, IEnumerable<HTTPHeader> headers,
+        string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser,
+        Stream responseStream, CancellationToken cancellationToken);
 
     IEnumerable<long> GetTaskIdsWithOpenTunnels();
     void CloseAllTunnelsForTask(SubmittedTaskInfo taskInfo);

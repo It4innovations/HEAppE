@@ -1,9 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Net;
+using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
@@ -365,6 +368,105 @@ public class DataTransferLogic : IDataTransferLogic
         }
 
         return response.Content;
+    }
+    
+    public async Task HttpPostToJobNodeStreamAsync(string httpRequest, IEnumerable<HTTPHeader> headers,
+        string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser,
+        Stream responseStream, CancellationToken cancellationToken)
+    {
+        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+        _logger.Info($"HTTP POST (streaming) from task: \"{submittedTaskInfoId}\" with remote node IP: \"{nodeIPAddress}\"");
+
+        var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
+        var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
+
+        if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))
+            throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
+
+        var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
+        
+        using var httpClient = new HttpClient
+        {
+            Timeout = TimeSpan.FromSeconds(300) // long timeout for streaming
+        };
+
+        var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{allocatedPort}{httpRequest}");
+        
+        foreach (var header in headers)
+        {
+            if (header.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase))
+            {
+                requestMessage.Content = new StringContent(httpPayload ?? "", Encoding.UTF8, header.Value);
+            }
+            else
+            {
+                requestMessage.Headers.TryAddWithoutValidation(header.Name, header.Value);
+            }
+        }
+
+        if (requestMessage.Content == null)
+        {
+            requestMessage.Content = new StringContent(httpPayload ?? "", Encoding.UTF8, "application/json");
+        }
+
+        try
+        {
+            using var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var errorContent = await response.Content.ReadAsStringAsync(cancellationToken);
+                _logger.Error($"HTTP POST failed for task {submittedTaskInfoId}: {response.StatusCode} - {errorContent}");
+                throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
+            }
+
+            var contentType = response.Content.Headers.ContentType?.MediaType ?? "";
+            var isEventStream = contentType.Contains("text/event-stream", StringComparison.OrdinalIgnoreCase);
+
+            _logger.Info($"Response content-type: {contentType}, streaming mode for task {submittedTaskInfoId}");
+
+            await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            using var streamWriter = new StreamWriter(responseStream, new UTF8Encoding(false), bufferSize: 1024, leaveOpen: true)
+            {
+                AutoFlush = true 
+            };
+            
+            var buffer = new byte[1024];
+            int bytesRead;
+            long totalBytes = 0;
+            
+            while ((bytesRead = await contentStream.ReadAsync(buffer, 0, buffer.Length, cancellationToken)) > 0)
+            {
+                totalBytes += bytesRead;
+                var chunk = Encoding.UTF8.GetString(buffer, 0, bytesRead);
+                
+                if (isEventStream)
+                {
+                    await streamWriter.WriteAsync(chunk);
+                }
+                else
+                {
+                    await streamWriter.WriteAsync($"data: {chunk}\n\n");
+                }
+                
+                await streamWriter.FlushAsync();
+                
+                _logger.Debug($"Streamed chunk {bytesRead} bytes (total: {totalBytes}) for task {submittedTaskInfoId}");
+            }
+
+            _logger.Info($"Streaming completed: {totalBytes} bytes for task {submittedTaskInfoId}");
+        }
+        catch (OperationCanceledException)
+        {
+            _logger.Info($"Streaming cancelled for task {submittedTaskInfoId}");
+            throw;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Streaming failed for task {submittedTaskInfoId}: {ex.Message}", ex);
+            throw;
+        }
     }
 
     #endregion
