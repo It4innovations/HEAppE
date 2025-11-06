@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -89,27 +90,31 @@ public sealed class SshTunnelUtils
     /// <param name="taskId">Task Id</param>
     public void RemoveTunnel(object connectorClient, long taskId)
     {
-        if (_jobUsedPorts.ContainsKey(taskId))
-        {
-            foreach (var nodeAddress in _jobUsedPorts[taskId].Keys)
-            {
-                foreach (var s in _jobUsedPorts[taskId][nodeAddress])
-                {
-                    _usedLocalPorts.Remove(s.LocalPort);
-
-                    s.ForwardedPort.Stop();
-                }
-
-                var localPorts = _jobUsedPorts[taskId][nodeAddress].Select(s => _usedLocalPorts.Remove(s.LocalPort));
-            }
-
-            _jobUsedPorts.Remove(taskId);
-        }
-        else
-        {
+        if (!_jobUsedPorts.ContainsKey(taskId))
             throw new UnableToCreateTunnelException("NoActiveTunnel", taskId);
+
+        var sshClient = ((HEAppE.ConnectionPool.ConnectionInfo)connectorClient).Connection as SshClient;
+
+        foreach (var nodeAddress in _jobUsedPorts[taskId].Keys)
+        {
+            foreach (var s in _jobUsedPorts[taskId][nodeAddress])
+            {
+                try
+                {
+                    s.ForwardedPort.Stop();
+                    sshClient.RemoveForwardedPort(s.ForwardedPort);
+                    _usedLocalPorts.Remove(s.LocalPort);
+                }
+                catch (Exception ex)
+                {
+                    // ignored
+                }
+            }
         }
+
+        _jobUsedPorts.Remove(taskId);
     }
+
 
     /// <summary>
     ///     Get tunnels informations
