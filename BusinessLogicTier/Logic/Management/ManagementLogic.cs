@@ -40,11 +40,13 @@ public class ManagementLogic : IManagementLogic
 
     protected IUnitOfWork _unitOfWork;
     protected ISshCertificateAuthorityService _sshCertificateAuthorityService;
-
-    public ManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    private readonly IHttpContextKeys _httpContextKeys;
+    public ManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
+        
     }
 
 
@@ -86,7 +88,7 @@ public class ManagementLogic : IManagementLogic
                 projectId, requireIsInitialized: true, adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
-            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, HttpContextKeys.SshCaToken)
+            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -239,7 +241,7 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
-            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, HttpContextKeys.SshCaToken)
+            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -918,7 +920,7 @@ public class ManagementLogic : IManagementLogic
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId);
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory,localBasepath,
-                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, HttpContextKeys.SshCaToken);
+                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken);
 
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
@@ -987,7 +989,7 @@ public class ManagementLogic : IManagementLogic
             var project = clusterProjectCredential.ClusterProject.Project;
 
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
-            if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials, HttpContextKeys.SshCaToken))
+            if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials, _httpContextKeys.Context.SshCaToken))
             {
                 _logger.Info(
                     $"Test cluster access failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");

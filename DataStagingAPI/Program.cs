@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
+using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
@@ -78,6 +79,9 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
         conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
 });
 
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
+
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
@@ -120,6 +124,33 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
+    if (JwtTokenIntrospectionConfiguration.IsEnabled)
+    {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+            BearerFormat = "JWT"
+        });
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    }
     var key = new OpenApiSecurityScheme
     {
         Reference = new OpenApiReference

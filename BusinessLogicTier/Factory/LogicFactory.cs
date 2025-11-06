@@ -59,19 +59,19 @@ public abstract class LogicFactory
     public abstract IAdminUserManagementLogic CreateAdminUserManagementLogic(IUnitOfWork unitOfWork);
 
     public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);
     public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
 
     public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
 
     #endregion
 }

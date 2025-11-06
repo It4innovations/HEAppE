@@ -6,6 +6,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Reflection;
 using AspNetCoreRateLimit;
+using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier;
@@ -157,83 +158,10 @@ public class Startup
         });
         
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
+        services.AddScoped<IRequestContext, RequestContext>();
+        services.AddScoped<HttpContextKeys>();
         
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
-        {
-            services.AddAuthentication(OAuth2IntrospectionDefaults.AuthenticationScheme)
-                .AddOAuth2Introspection(options =>
-                {
-                    options.Authority = JwtTokenIntrospectionConfiguration.Authority;
-                    options.ClientId = JwtTokenIntrospectionConfiguration.ClientId;
-                    options.ClientSecret = JwtTokenIntrospectionConfiguration.ClientSecret;
-                    options.EnableCaching = true;
-                    options.CacheDuration = TimeSpan.FromMinutes(5);
-                    options.DiscoveryPolicy = new IdentityModel.Client.DiscoveryPolicy
-                    {
-                        ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
-                        RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
-                        ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
-                    };
-                    // Optional: Custom token retrieval
-                    options.TokenRetriever = request =>
-                    {
-                        // Default behavior: look for Bearer token in Authorization header
-                        var authHeader = request.Headers["Authorization"].FirstOrDefault();
-                        if (authHeader?.StartsWith("Bearer ") == true)
-                        {
-                            return authHeader.Substring("Bearer ".Length).Trim();
-                        }
-
-                        return null;
-                    };
-                    options.Events = new OAuth2IntrospectionEvents
-                    {
-                        OnTokenValidated = async context =>
-                        {
-                            try
-                            {
-                                await HttpContextKeys.Authorize(context.SecurityToken, 
-                                    context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>());
-                            }
-                            catch (Exception ex)
-                            {
-                                context.Fail("Unauthorized");
-                                return;
-                            }
-                            
-                            var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
-                            var client = httpClientFactory.CreateClient();
-                            client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
-                            
-                            var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
-                            {
-                                Address = JwtTokenIntrospectionConfiguration.Authority,
-                                Policy = new DiscoveryPolicy
-                                {
-                                    RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
-                                    ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
-                                    ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
-                                }
-                            });
-
-                            if (disco.IsError)
-                            {
-                                throw new Exception($"Discovery error: {disco.Error}");
-                            }
-                            await HttpContextKeys.ExchangeSshCaToken(
-                                context.SecurityToken,
-                                disco.TokenEndpoint,
-                                client);
-                        }
-                    };
-                });
-                services.AddHttpClient(OAuth2IntrospectionDefaults.BackChannelHttpClientName)
-                    .ConfigureHttpClient(client =>
-                    {
-                        client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
-                    });
-
-        }
+        services.AddJwtIntrospectionIfEnabled(Configuration);
 
         //CORS
         services.AddCors(options =>

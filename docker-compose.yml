@@ -84,8 +84,6 @@ services:
       - vaultNet
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - mssql
 
   vault:
     image: hashicorp/vault:1.17.3

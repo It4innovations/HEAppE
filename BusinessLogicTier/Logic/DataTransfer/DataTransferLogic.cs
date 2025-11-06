@@ -31,12 +31,13 @@ public class DataTransferLogic : IDataTransferLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    public DataTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public DataTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _logger = LogManager.GetLogger(typeof(DataTransferLogic));
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
-        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService);
+        _httpContextKeys = httpContextKeys;
+        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
     }
 
     #endregion
@@ -70,6 +71,8 @@ public class DataTransferLogic : IDataTransferLogic
     
     ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
+    private IHttpContextKeys _httpContextKeys;
+
     #endregion
 
     #region IDataTransferLogic Members
@@ -102,7 +105,7 @@ public class DataTransferLogic : IDataTransferLogic
                     throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress,
                         nodePort);
 
-                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, HttpContextKeys.SshCaToken);
+                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken);
                 _taskWithExistingTunnel.Add(submittedTaskInfoId);
                 var tunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).Where(w => w.RemotePort == nodePort)
                     .FirstOrDefault();
@@ -137,7 +140,7 @@ public class DataTransferLogic : IDataTransferLogic
         lock (_lockTunnelObj)
         {
             SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-                .RemoveTunnel(taskInfo, HttpContextKeys.SshCaToken);
+                .RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
             _taskWithExistingTunnel.Remove(taskInfo.Id);
         }
     }
@@ -163,7 +166,7 @@ public class DataTransferLogic : IDataTransferLogic
             .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id);
         lock (_lockTunnelObj)
         {
-            scheduler.RemoveTunnel(taskInfo, HttpContextKeys.SshCaToken);
+            scheduler.RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
             _taskWithExistingTunnel.Remove(taskInfo.Id);
         }
     }
@@ -211,8 +214,8 @@ public class DataTransferLogic : IDataTransferLogic
             lock (_lockTunnelObj)
             {
                 _logger.Info($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
-                scheduler.RemoveTunnel(taskInfo, HttpContextKeys.SshCaToken);
-                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, HttpContextKeys.SshCaToken);
+                scheduler.RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
+                scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken);
                 _taskWithExistingTunnel.Add(submittedTaskInfoId);
                 _logger.Info($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
             }

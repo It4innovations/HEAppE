@@ -36,7 +36,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
@@ -71,6 +71,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
     
     private ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IHttpContextKeys _httpContextKeys;
     
     #endregion
 
@@ -80,7 +81,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         if (JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            return _unitOfWork.AdaptorUserRepository.GetById(HttpContextKeys.AdaptorUserId);
+            return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
         }
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null) throw new SessionCodeNotValidException("NotPresent", sessionCode);
@@ -197,9 +198,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService)
+        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .ListClusterNodeTypes();
 
         IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
@@ -344,7 +345,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
             _userOrgHttpClient.DefaultRequestHeaders.Clear();
             _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
-            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", HttpContextKeys.FIPToken);
+            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", _httpContextKeys.Context.FIPToken);
             
             var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
             return GetOrRegisterLexisCredentials(result);

@@ -24,10 +24,11 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    internal ClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    internal ClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
@@ -49,6 +50,11 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     /// SSH CA service
     /// </summary>
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+
+    /// <summary>
+    /// HTTP context keys
+    /// </summary>
+    private readonly IHttpContextKeys _httpContextKeys;
 
     #endregion
 
@@ -102,7 +108,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId:loggedUser.Id)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
-        return scheduler.GetCurrentClusterNodeUsage(nodeType, serviceAccount, HttpContextKeys.SshCaToken);
+        return scheduler.GetCurrentClusterNodeUsage(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken);
     }
 
 
@@ -138,7 +144,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             var commandTemplateParameters = new List<string> { scriptPath };
             commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-                .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath, HttpContextKeys.SshCaToken).ToList());
+                .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken).ToList());
             return commandTemplateParameters;
         }
 
@@ -151,7 +157,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var credentials =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
                 clusterId, projectId, false, null);
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
         foreach (var credential in credentials)
         {
             var status = managementLogic.InitializeClusterScriptDirectory(
@@ -400,7 +406,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 initCluster,
                 credential,
                 clusterProjectCredential.IsServiceAccount,
-                HttpContextKeys.SshCaToken);
+                _httpContextKeys.Context.SshCaToken);
 
             if (isInitialized)
             {
