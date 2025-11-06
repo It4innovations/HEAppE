@@ -166,7 +166,7 @@ public async Task HttpPostToJobNodeStream([FromBody] HttpPostToJobNodeModel mode
     Response.ContentType = "text/event-stream";
     Response.Headers.Add("Cache-Control", "no-cache");
     Response.Headers.Add("Connection", "keep-alive");
-    Response.Headers.Add("X-Accel-Buffering", "no"); // Zakáže buffering na nginx/proxy
+    Response.Headers.Add("X-Accel-Buffering", "no");
     
     try
     {
