@@ -163,10 +163,14 @@ public class DataTransferController : BaseController<DataTransferController>
             return;
         }
         
-        Response.ContentType = "text/event-stream";
-        Response.Headers.Add("Cache-Control", "no-cache");
-        Response.Headers.Add("Connection", "keep-alive");
-        Response.Headers.Add("X-Accel-Buffering", "no");
+        Response.StatusCode = StatusCodes.Status200OK;
+        Response.ContentType = "text/event-stream; charset=utf-8";
+        Response.Headers.Append("Cache-Control", "no-cache, no-store, must-revalidate");
+        Response.Headers.Append("Pragma", "no-cache");
+        Response.Headers.Append("Expires", "0");
+        Response.Headers.Append("Connection", "keep-alive");
+        Response.Headers.Append("X-Accel-Buffering", "no"); // Nginx
+        Response.Headers.Append("X-Content-Type-Options", "nosniff");
         
         try
         {

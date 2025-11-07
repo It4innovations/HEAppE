@@ -386,9 +386,17 @@ public class DataTransferLogic : IDataTransferLogic
 
         var allocatedPort = getTunnelsInfos.First(f => f.RemotePort == nodePort).LocalPort.Value;
         
-        using var httpClient = new HttpClient
+        var handler = new SocketsHttpHandler
         {
-            Timeout = TimeSpan.FromSeconds(300)
+            PooledConnectionLifetime = TimeSpan.FromMinutes(2),
+            PooledConnectionIdleTimeout = TimeSpan.FromMinutes(1),
+            ConnectTimeout = TimeSpan.FromSeconds(10),
+            ResponseDrainTimeout = TimeSpan.FromSeconds(2)
+        };
+        
+        using var httpClient = new HttpClient(handler)
+        {
+            Timeout = Timeout.InfiniteTimeSpan
         };
 
         var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{allocatedPort}{httpRequest}");
@@ -428,7 +436,7 @@ public class DataTransferLogic : IDataTransferLogic
 
             await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
             
-            var buffer = new byte[1024]; 
+            var buffer = new byte[256];
             int bytesRead;
             long totalBytes = 0;
             
@@ -438,20 +446,22 @@ public class DataTransferLogic : IDataTransferLogic
                 
                 if (isEventStream)
                 {
-                    await responseStream.WriteAsync(buffer, 0, bytesRead, cancellationToken);
+                    await responseStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
                 }
                 else
                 {
-                    // Wrap do SSE formátu
                     var chunk = Encoding.UTF8.GetString(buffer, 0, bytesRead);
                     var sseData = $"data: {chunk}\n\n";
                     var sseBytes = Encoding.UTF8.GetBytes(sseData);
-                    await responseStream.WriteAsync(sseBytes, 0, sseBytes.Length, cancellationToken);
+                    await responseStream.WriteAsync(sseBytes.AsMemory(), cancellationToken);
                 }
                 
                 await responseStream.FlushAsync(cancellationToken);
                 
-                _logger.Debug($"Streamed chunk {bytesRead} bytes (total: {totalBytes}) for task {submittedTaskInfoId}");
+                if (totalBytes % 10240 == 0)
+                {
+                    _logger.Debug($"Streamed {totalBytes} bytes for task {submittedTaskInfoId}");
+                }
             }
 
             _logger.Info($"Streaming completed: {totalBytes} bytes for task {submittedTaskInfoId}");
