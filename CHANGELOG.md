@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `POST /heappe/Management/BackupDatabase` – Perform full database backup
   - `POST /heappe/Management/BackupDatabaseTransactionLogs` – Backup database transaction logs
   - `POST /heappe/Management/RestoreDatabase` – Restore database from a specified backup file
+- Added new DataTransfer endpoint:
+  - `POST /heappe/DataTransfer/HttpPostToJobNodeStream` – Stream large HTTP POST requests to the job node, designed for AI inference use cases
 
 ### Changed
 - Updated Swagger documentation to include new Management endpoints.
