@@ -20,6 +20,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
 using System.Linq;
 
 namespace HEAppE.RestApi.Controllers;
@@ -2293,7 +2294,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult BackupDatabase(string sessionCode)
+    public IActionResult BackupDatabase([Required] string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabase\"");
 

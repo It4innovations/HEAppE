@@ -1289,7 +1289,7 @@ public class ManagementService : IManagementService
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                    AdaptorUserRoleType.ManagementAdmin);
+                    AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
 
            return managementLogic.BackupDatabase();
@@ -1302,7 +1302,7 @@ public class ManagementService : IManagementService
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                    AdaptorUserRoleType.ManagementAdmin);
+                    AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
 
             return managementLogic.BackupDatabaseTransactionLogs();
@@ -1315,7 +1315,7 @@ public class ManagementService : IManagementService
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                    AdaptorUserRoleType.ManagementAdmin);
+                    AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
 
             var backups = managementLogic.ListDatabaseBackups(fromDateTime, toDateTime, type.ConvertExtToInt());
@@ -1329,7 +1329,7 @@ public class ManagementService : IManagementService
         {
             (_, _) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                    AdaptorUserRoleType.ManagementAdmin);
+                    AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
 
             managementLogic.RestoreDatabase(backupFileName, includeLogs);
