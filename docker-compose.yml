@@ -73,6 +73,8 @@ services:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
       - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
+      - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
+      - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
     ports:
       - "${HOST_APP_PORT}:80"
     environment:
@@ -86,8 +88,7 @@ services:
       - vaultNet
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - mssql
+
 
   vault:
     image: hashicorp/vault:1.17.3
