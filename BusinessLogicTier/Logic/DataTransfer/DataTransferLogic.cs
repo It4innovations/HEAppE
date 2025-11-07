@@ -354,7 +354,7 @@ public class DataTransferLogic : IDataTransferLogic
             var logBuilder = new StringBuilder();
             logBuilder.AppendLine($"HTTP POST successful for task ID: {submittedTaskInfoId}");
             logBuilder.AppendLine($"StatusCode: {(int)response.StatusCode} {response.StatusCode}");
-            logBuilder.AppendLine($"Content: {response.Content}");
+            //logBuilder.AppendLine($"Content: {response.Content}");
             logBuilder.AppendLine($"ResponseUri: {response.ResponseUri}");
             logBuilder.AppendLine($"RequestUri (resource): {request.Resource}");
             logBuilder.AppendLine($"AllocatedPort: {allocatedPort}");
