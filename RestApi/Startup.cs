@@ -92,6 +92,9 @@ public class Startup
         //Other configuration
 
         Configuration.Bind("BackGroundThreadSettings", new BackGroundThreadConfiguration());
+        Configuration.Bind("DatabaseFullBackupSettings", new DatabaseFullBackupConfiguration());
+        Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
+        Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());
         Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
         Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());

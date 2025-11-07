@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.1.0
+
+
+### Added
+- Added new Management endpoints for database maintenance:
+  - `GET /heappe/Management/Backups` – List database backups
+  - `POST /heappe/Management/BackupDatabase` – Perform full database backup
+  - `POST /heappe/Management/BackupDatabaseTransactionLogs` – Backup database transaction logs
+  - `POST /heappe/Management/RestoreDatabase` – Restore database from a specified backup file
+- Added new DataTransfer endpoint:
+  - `POST /heappe/DataTransfer/HttpPostToJobNodeStream` – Stream large HTTP POST requests to the job node, designed for AI inference use cases
+
+### Changed
+- Updated Swagger documentation to include new Management endpoints.
+- Extended internal ManagementService with backup and restore functionalities.
+
+### Fixed
+- Minor stability and logging improvements within Management operations.
+
 
 ### Added
 - Status of various part HEAppE and way to obtain error logs

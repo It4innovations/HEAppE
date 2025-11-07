@@ -2457,6 +2457,26 @@ public class ManagementLogic : IManagementLogic
         return null;
     }
 
+    public string BackupDatabase()
+    {
+        return _unitOfWork.DatabaseBackupService.BackupDatabase();
+    }
+
+    public string BackupDatabaseTransactionLogs()
+    {
+        return _unitOfWork.DatabaseBackupService.BackupDatabaseTransactionLogs();
+    }
+
+    public List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type)
+    {
+        return _unitOfWork.DatabaseBackupService.ListDatabaseBackups(fromDateTime, toDateTime, type);
+    }
+
+    public void RestoreDatabase(string backupFileName, bool includeLogs)
+    {
+        _unitOfWork.DatabaseBackupService.RestoreDatabase(backupFileName, includeLogs);
+    }
+
     #endregion
 
     #region Private methods

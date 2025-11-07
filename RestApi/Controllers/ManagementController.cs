@@ -1,14 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Data.SqlTypes;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.Logging;
-using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -21,14 +10,20 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using log4net;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2305,6 +2300,108 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_managementService.StatusErrorLogs(projectId, timeFrom, timeTo, sessionCode));
+    }
+
+    /// <summary>
+    ///     List database backups
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("Backups")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(List<DatabaseBackupExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListDatabaseBackups([FromQuery] ListDatabaseBackupsModel model)
+    {
+        _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListDatabaseBackups\" Parameters: From: \"{model.FromDateTime}\", To: \"{model.ToDateTime}\", Type: \"{model.Type}\", SessionCode: \"{model.SessionCode}\"");
+
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        List<DatabaseBackupExt> report = _managementService.ListDatabaseBackups(model.FromDateTime, model.ToDateTime, model.Type, model.SessionCode);
+
+        return Ok(report);
+    }
+
+    /// <summary>
+    ///     Full backup database
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpPost("BackupDatabase")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabase([Required] string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabase\"");
+
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var backupFilePath = _managementService.BackupDatabase(sessionCode);
+
+        return Ok($"Full backup database was created successfully at '{backupFilePath}'.");
+    }
+
+    /// <summary>
+    ///     Backup database transaction logs
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpPost("BackupDatabaseTransactionLogs")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabaseTransactionLogs(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabaseTransactionLogs\"");
+
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var backupFilePath = _managementService.BackupDatabaseTransactionLogs(sessionCode);
+
+        return Ok($"Database transaction logs backup was created successfully at '{backupFilePath}'.");
+    }
+
+    /// <summary>
+    ///     Restore database from specified backup file
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("RestoreDatabase")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabase(RestoreDatabaseModel model)
+    {
+        _logger.LogDebug($"Endpoint: \"Management\" Method: \"RestoreDatabase\" Parameters:  BackupFileName : \"{model.BackupFileName}\", IncludeLogs: \"{model.IncludeLogs}\", SessionCode: \"{model.SessionCode}\"");
+
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        _managementService.RestoreDatabase(model.BackupFileName, model.IncludeLogs, model.SessionCode);
+
+        return Ok($"Database was restored successfully from backup '{model.BackupFileName}'.");
     }
 
     #endregion

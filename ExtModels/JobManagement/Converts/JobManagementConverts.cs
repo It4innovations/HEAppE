@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -16,6 +13,9 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using static HEAppE.DomainObjects.Management.Status;
 using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt;
 using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt.ByClusterAuthenticationCredentialExt;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.ExtModels.JobManagement.Converts;
 
@@ -329,6 +329,21 @@ public static class JobManagementConverts
         return convert;
     }
 
+    public static DatabaseBackupExt ConvertIntToExt(
+        this DatabaseBackup databaseBackup)
+    {
+        var convert = new DatabaseBackupExt
+        {
+            Type = databaseBackup.Type.ConvertIntToExt(),
+            FileName = databaseBackup.FileName,
+            FileSizeMB = databaseBackup.FileSizeMB,
+            TimeStamp = databaseBackup.TimeStamp,
+            Path = databaseBackup.Path,
+        };
+
+        return convert;
+    }
+
     #endregion
 
     #region Methods for Enums Converts
@@ -342,6 +357,17 @@ public static class JobManagementConverts
         }
 
         return TaskPriority.Average;
+    }
+
+    public static DatabaseBackupType ConvertExtToInt(this DatabaseBackupTypeExt? backupType)
+    {
+        if (backupType.HasValue)
+        {
+            _ = Enum.TryParse(backupType.ToString(), out DatabaseBackupType convert);
+            return convert;
+        }
+
+        return DatabaseBackupType.Full;
     }
 
     public static JobStateExt ConvertIntToExt(this JobState jobState)
@@ -457,6 +483,12 @@ public static class JobManagementConverts
             byClusterAuthenticationCredentialExt.Add(errorExt);
         }
 
+        return convert;
+    }
+
+    public static DatabaseBackupTypeExt ConvertIntToExt(this DatabaseBackupType databaseBackup)
+    {
+        _ = Enum.TryParse(databaseBackup.ToString(), out DatabaseBackupTypeExt convert);
         return convert;
     }
 

@@ -1310,5 +1310,58 @@ public class ManagementService : IManagementService
         }
     }
 
+    public string BackupDatabase(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+
+           return managementLogic.BackupDatabase();
+        }
+    }
+
+    public string BackupDatabaseTransactionLogs(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+
+            return managementLogic.BackupDatabaseTransactionLogs();
+        }
+    }
+
+    public List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+
+            var backups = managementLogic.ListDatabaseBackups(fromDateTime, toDateTime, type.ConvertExtToInt());
+            return backups.Select(b => b.ConvertIntToExt()).ToList();
+        }
+    }
+
+    public void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+
+            managementLogic.RestoreDatabase(backupFileName, includeLogs);
+        }
+    }
+
     #endregion
 }
