@@ -144,6 +144,34 @@ internal class JobManagementLogic : IJobManagementLogic
         throw new InputValidationException("SubmittingJobNotInConfiguringState");
     }
 
+    public SubmittedJobInfo GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser)
+    {
+        _logger.Info($"User {loggedUser.GetLogIdentification()} is getting actual tasks info for the job with info Id {submittedJobInfoId}");
+        var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+        var cluster = jobInfo.Specification.Cluster;
+        var serviceAccount =
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
+                jobInfo.Specification.ClusterId, jobInfo.Specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+
+        var actualUnfinishedSchedulerTasksInfo = SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+            .GetActualTasksInfo(jobInfo.Tasks.Where(w => !w.Specification.DependsOn.Any()).ToList(), serviceAccount, _httpContextKeys.Context.SshCaToken)
+            .ToList();
+
+        foreach (var task in jobInfo.Tasks)
+        {
+            var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo
+                .FirstOrDefault(w => w.ScheduledJobId == task.ScheduledJobId);
+            if (actualUnfinishedSchedulerTaskInfo != null)
+                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
+        }
+
+        UpdateJobStateByTasks(jobInfo);
+        _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
+        _unitOfWork.Save();
+        return jobInfo;
+    }
+
     public virtual SubmittedJobInfo CancelJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _logger.Info(
@@ -711,7 +739,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 jobSpecification.ClusterId, jobSpecification.ProjectId, requireIsInitialized: true, adaptorUserId: jobSpecification.Submitter.Id)
             : jobSpecification.ClusterUser;
         _logger.Info($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
-        return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account, _httpContextKeys.Context.SshCaToken);
+        return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account, null);
     }
 
     private static bool IsWaitingLimitExceeded(SubmittedJobInfo job)

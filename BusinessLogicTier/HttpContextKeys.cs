@@ -8,9 +8,11 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using IdentityModel.Client;
 using log4net;
+using Microsoft.Extensions.Options;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier;

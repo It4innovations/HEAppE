@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Reflection;
+using HEAppE.BusinessLogicTier;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using HEAppE.BusinessLogicTier.Factory;
@@ -14,6 +15,7 @@ using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using log4net;
+using Microsoft.AspNetCore.Http;
 using SshCaAPI;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
@@ -21,9 +23,11 @@ namespace HEAppE.ServiceTier.ClusterInformation;
 public class ClusterInformationService : IClusterInformationService
 {
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
-    public ClusterInformationService(IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    private readonly IHttpContextKeys _httpContextKeys;
+    public ClusterInformationService(IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
+        _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
         _cacheProvider = cacheProvider;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
@@ -41,7 +45,7 @@ public class ClusterInformationService : IClusterInformationService
         };
 
         var (loggedUser, projects) = UserAndLimitationManagementService
-            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, roles);
+            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, roles);
 
         var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
         if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
@@ -51,7 +55,7 @@ public class ClusterInformationService : IClusterInformationService
         else
         {
             _log.Info($"Reloading Memory Cache value for key.");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService);
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             cachedClusters = clusterLogic.ListAvailableClusters()
                 .Select(c => c.ConvertIntToExt(projects, true))
                 .ToArray();
@@ -105,7 +109,7 @@ public class ClusterInformationService : IClusterInformationService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var (loggedUser, projectIds) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, AdaptorUserRoleType.Manager);
+            var (loggedUser, projectIds) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager);
             if (loggedUser is null || !projectIds.Any())
                 throw new Exception("Operation permission denied.");
         }
@@ -135,7 +139,7 @@ public class ClusterInformationService : IClusterInformationService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, projectId);
 
             var memoryCacheKey = StringUtils.CreateIdentifierHash(
@@ -155,7 +159,7 @@ public class ClusterInformationService : IClusterInformationService
             }
 
             _log.Info($"Reloading Memory Cache value for key.");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService);
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var result =
                 clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
             _cacheProvider.Set(memoryCacheKey, result,
@@ -168,7 +172,7 @@ public class ClusterInformationService : IClusterInformationService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Reporter, projectId);
 
             //Memory cache key with personal session code due security purpose of access to cluster reference to project
@@ -188,7 +192,7 @@ public class ClusterInformationService : IClusterInformationService
             }
 
             _log.Info($"Reloading Memory Cache value for key.");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService);
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork,  _sshCertificateAuthorityService, _httpContextKeys);
             var nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
             _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(),
                 TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));

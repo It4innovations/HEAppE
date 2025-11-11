@@ -3,6 +3,7 @@ using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
 using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
@@ -64,6 +65,8 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
     SshCaSettings.CAName,
     SshCaSettings.ConnectionTimeoutInSeconds
 ));
+builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
+builder.Services.AddScoped<IRequestContext, RequestContext>();
 
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
@@ -218,9 +221,16 @@ app.UseMiddleware<RequestSizeMiddleware>();
 
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
-//get ISshCertificateAuthorityService instance from DI
-var sshCertificateAuthorityService = app.Services.GetRequiredService<ISshCertificateAuthorityService>();
-app.RegisterApiRoutes(sshCertificateAuthorityService);
+
+
+using (var scope = app.Services.CreateScope())
+{
+    //get ISshCertificateAuthorityService instance from DI
+    var sshCertificateAuthorityService = scope.ServiceProvider.GetRequiredService<ISshCertificateAuthorityService>();
+    var httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
+    app.RegisterApiRoutes(sshCertificateAuthorityService, httpContextKeys);
+}
+
 
 app.UseSwagger(swagger =>
 {

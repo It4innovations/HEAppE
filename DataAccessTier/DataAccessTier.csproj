@@ -9,6 +9,7 @@
         <Compile Remove="Migrations\20200828083149_OpenStack.Designer.cs" />
     </ItemGroup>
     <ItemGroup>
+        <PackageReference Include="Duende.IdentityModel.OidcClient" Version="6.0.1" />
         <PackageReference Include="log4net" Version="3.1.0" />
         <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.8" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Abstractions" Version="9.0.8" />

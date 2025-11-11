@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
@@ -38,9 +39,9 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority Service</param>
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
-        IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService) : base(logger, memoryCache)
+        IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
     {
-        _service = new UserAndLimitationManagementService(_cacheProvider, sshCertificateAuthorityService);
+        _service = new UserAndLimitationManagementService(_cacheProvider, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

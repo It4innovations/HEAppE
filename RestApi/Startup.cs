@@ -159,7 +159,7 @@ public class Startup
         
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
-        services.AddScoped<HttpContextKeys>();
+        services.AddScoped<IHttpContextKeys, HttpContextKeys>();
         
         services.AddJwtIntrospectionIfEnabled(Configuration);
 

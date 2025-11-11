@@ -4,6 +4,7 @@ using System;
 using System.Linq;
 using System.Net.Http;
 using HEAppE.BusinessLogicTier;
+using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -76,6 +77,8 @@ public static class JwtIntrospectionExtensions
 
                         if (disco.IsError)
                             throw new Exception($"Discovery error: {disco.Error}");
+
+                        
 
                         //await HttpContextKeys.ExchangeSshCaToken(context.SecurityToken, disco.TokenEndpoint, client);
                         var sshCaToken = await services.BuildServiceProvider()

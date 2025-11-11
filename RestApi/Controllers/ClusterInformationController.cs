@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.RestApi.Authentication;
@@ -39,10 +40,10 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// <param name="logger">Logger instance</param>
     /// <param name="cacheProvider">Memory cache instance</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService) :
+    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) :
         base(logger, cacheProvider)
     {
-        _service = new ClusterInformationService(cacheProvider, sshCertificateAuthorityService);
+        _service = new ClusterInformationService(cacheProvider, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

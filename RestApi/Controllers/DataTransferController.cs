@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApi.InputValidator;
@@ -37,10 +38,10 @@ public class DataTransferController : BaseController<DataTransferController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService) : base(logger,
+    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _service = new DataTransferService(sshCertificateAuthorityService);
+        _service = new DataTransferService(sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

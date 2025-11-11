@@ -6,6 +6,9 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
+using HEAppE.ExternalAuthentication.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
@@ -19,28 +22,36 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck);
     protected readonly ILog _log;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    protected readonly IHttpContextKeys _httpContextKeys;
 
-    public UpdateUnfinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public UpdateUnfinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
         _log = LogManager.GetLogger(GetType());
-        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
+        _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService).UpdateCurrentStateOfUnfinishedJobs();
-            }
-            catch (Exception ex)
-            {
-                _log.Error("An error occured during execution of the UpdateUnfinishedJobs background service: ", ex);
-            }
+                try
+                {
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                    LogicFactory.GetLogicFactory()
+                        .CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+                        .UpdateCurrentStateOfUnfinishedJobs();
+                }
+                catch (Exception ex)
+                {
+                    _log.Error("An error occured during execution of the UpdateUnfinishedJobs background service: ",
+                        ex);
+                }
 
-            await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(_interval, stoppingToken);
+            }
         }
     }
 }
