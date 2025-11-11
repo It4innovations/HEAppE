@@ -3,6 +3,7 @@ using IdentityModel.Client;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
@@ -36,10 +37,31 @@ public static class JwtIntrospectionExtensions
 
                 options.TokenRetriever = request =>
                 {
-                    var authHeader = request.Headers["Authorization"].FirstOrDefault();
-                    return authHeader?.StartsWith("Bearer ") == true
-                        ? authHeader["Bearer ".Length..].Trim()
-                        : null;
+                    string authHeader = request.Headers["Authorization"].FirstOrDefault();
+                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+                    {
+                        if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+                            return TokenRetrieval.FromAuthorizationHeader()(request);
+
+                        var httpContext = request.HttpContext;
+                        var lexisTokenService = httpContext.RequestServices.GetRequiredService<ILexisTokenService>();
+
+                        var lexisToken = authHeader?.StartsWith("Bearer ") == true
+                            ? authHeader["Bearer ".Length..].Trim()
+                            : null;
+                        if (lexisToken == null)
+                            return null;
+                        var fipToken = Task.Run(() => lexisTokenService.ExchangeLexisTokenForFipAsync(lexisToken))
+                            .GetAwaiter().GetResult();
+
+                        return fipToken;
+                    }
+                    else
+                    {
+                        return authHeader?.StartsWith("Bearer ") == true
+                            ? authHeader["Bearer ".Length..].Trim()
+                            : null;
+                    }
                 };
 
                 options.Events = new OAuth2IntrospectionEvents

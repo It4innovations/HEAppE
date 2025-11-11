@@ -180,6 +180,12 @@ public class Startup
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
+        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+        {
+            services.AddHttpClient("LexisTokenExchangeClient");
+            services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+        }
+
         services.AddSwaggerGen(gen =>
         {
             

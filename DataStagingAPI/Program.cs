@@ -68,6 +68,12 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
 
+if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+{
+    builder.Services.AddHttpClient("LexisTokenExchangeClient");
+    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+}
+
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
 

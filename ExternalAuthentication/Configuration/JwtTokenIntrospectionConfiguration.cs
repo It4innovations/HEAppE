@@ -5,6 +5,7 @@ namespace HEAppE.ExternalAuthentication.Configuration;
 /// </summary>
 public class JwtTokenIntrospectionConfiguration
 {
+    public static LexisTokenFlowConfiguration LexisTokenFlowConfiguration { get; set; } = new();
     public static bool IsEnabled { get; set; } = false;
     public static string Authority { get; set; } = string.Empty;
     public static string ClientId { get; set; } = string.Empty;
@@ -12,6 +13,5 @@ public class JwtTokenIntrospectionConfiguration
     public static bool RequireHttps { get; set; } = false;
     public static bool ValidateIssuerName { get; set; } = false;
     public static bool ValidateEndpoints { get; set; } = false;
-
     public static TokenExchangeConfiguration TokenExchangeConfiguration { get; set; } = new();
 }
