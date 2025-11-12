@@ -385,7 +385,7 @@ public class DataTransferLogic : IDataTransferLogic
         _logger.Info($"HTTP POST (streaming) from task: \"{submittedTaskInfoId}\" with remote node IP: \"{nodeIPAddress}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project);
+        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
         var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
 
         if (!getTunnelsInfos.Any(f => f.RemotePort == nodePort))

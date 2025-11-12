@@ -89,10 +89,10 @@ public class DataTransferService : IDataTransferService
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
     
-        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
     
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
         await dataTransferLogic.HttpPostToJobNodeStreamAsync(
             httpRequest, 
             httpHeaders.Select(s => s.ConvertExtToInt()),

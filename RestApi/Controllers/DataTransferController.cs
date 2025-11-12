@@ -183,7 +183,7 @@ public class DataTransferController : BaseController<DataTransferController>
                 model.HttpRequest,
                 model.HttpHeaders,
                 model.HttpPayload,
-                model.SubmittedJobInfoId,
+                model.SubmittedTaskInfoId,
                 model.NodeIPAddress,
                 model.NodePort,
                 model.SessionCode,
