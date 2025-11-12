@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using HEAppE.BusinessLogicTier.Configuration;
@@ -10,6 +11,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using log4net;
 using SshCaAPI;
@@ -399,8 +401,10 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 .GetInstance(initCluster.SchedulerType)
                 .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId);
 
+            string path = Path.Combine(initProject.AccountingString,
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
             var isInitialized = scheduler.InitializeClusterScriptDirectory(
-                initProject.AccountingString,
+                path,
                 true,
                 localBasepath,
                 initCluster,

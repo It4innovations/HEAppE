@@ -919,7 +919,7 @@ public class ManagementLogic : IManagementLogic
                 var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId);
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
-                var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory,localBasepath,
+                var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory, localBasepath,
                     cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken);
 
                 if (clusterAuthCredentials.IsGenerated)
