@@ -1,4 +1,16 @@
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using System;
+using System.Collections.Generic;
+using System.Data.SqlTypes;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using HEAppE.DataAccessTier;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -22,6 +34,8 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.Linq;
+using Microsoft.AspNetCore.Authorization;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -37,11 +51,11 @@ public class ManagementController : BaseController<ManagementController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache) : base(logger,
+    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _managementService = new ManagementService();
-        _userAndManagementService = new UserAndLimitationManagementService(memoryCache);
+        _managementService = new ManagementService(sshCertificateAuthorityService, httpContextKeys);
+        _userAndManagementService = new UserAndLimitationManagementService(memoryCache, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

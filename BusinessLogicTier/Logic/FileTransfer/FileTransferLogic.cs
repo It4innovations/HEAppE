@@ -15,6 +15,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.Exceptions.External;
 using HEAppE.Exceptions.Internal;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -22,6 +23,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.DTO.HyperQueueD
 using HEAppE.Utils;
 using log4net;
 using Renci.SshNet.Common;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.logic.FileTransfer;
 
@@ -33,9 +35,11 @@ public class FileTransferLogic : IFileTransferLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    public FileTransferLogic(IUnitOfWork unitOfWork)
+    internal FileTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
@@ -52,6 +56,16 @@ public class FileTransferLogic : IFileTransferLogic
     ///     _logger
     /// </summary>
     private readonly ILog _log;
+    
+    /// <summary>
+    /// Ssh CA service
+    /// </summary>
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    
+    /// <summary>
+    /// HTTP Context Keys
+    /// </summary>
+    private readonly IHttpContextKeys _httpContextKeys;
 
     /// <summary>
     ///     Script Configuration
@@ -91,9 +105,9 @@ public class FileTransferLogic : IFileTransferLogic
                     $"Removing file transfer key for user \"{tempKey.Key.ClusterUser.Username}\" in cluster \"{tempKey.Key.Cluster.Name}\"");
                 long? adaptorUserId = tempKey.Key.Project.IsOneToOneMapping ? tempKey.Key.ClusterUser.ClusterProjectCredentials.FirstOrDefault().AdaptorUser.Id : null;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, tempKey.Key.Project, adaptorUserId: adaptorUserId);
+                    .CreateScheduler(cluster, tempKey.Key.Project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
-                    tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project);
+                    tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project, _httpContextKeys.Context.SshCaToken);
             }
 
             activeTemporaryKeyGroup.ToList().ForEach(f => f.IsDeleted = true);
@@ -105,12 +119,22 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
         var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
         if (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKey))
             throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
+        
+        string certificate = string.Empty;
+        string publicKey = clusterUserAuthCredentials.PrivateKey;
+        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            certificate = _sshCertificateAuthorityService
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, jobInfo.Specification.FileTransferMethod.ServerHostname)
+                .GetAwaiter()
+                .GetResult();
+        }
 
         var transferMethod = new FileTransferMethod
         {
@@ -127,10 +151,11 @@ public class FileTransferLogic : IFileTransferLogic
                 FileTransferCipherType = clusterUserAuthCredentials.CipherType,
                 CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
                 PrivateKey = clusterUserAuthCredentials.PrivateKey,
-                PrivateKeyCertificate = clusterUserAuthCredentials.PrivateKeyCertificate,
+                PrivateKeyCertificate = JwtTokenIntrospectionConfiguration.IsEnabled ? certificate : clusterUserAuthCredentials.PrivateKeyCertificate,
                 Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
             }
         };
+        
         return transferMethod;
     }
 
@@ -138,7 +163,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
 
@@ -184,12 +209,23 @@ public class FileTransferLogic : IFileTransferLogic
             publicKey = certGenerator.ToPuTTYPublicKey("");
         }
 
+        string certificate = string.Empty;
+        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            certificate = _sshCertificateAuthorityService
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, transferMethod.ServerHostname)
+                .GetAwaiter()
+                .GetResult();
+        }
+
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
             Username = jobInfo.Specification.ClusterUser.Username,
             FileTransferCipherType = certGenerator.CipherType,
             PrivateKey = certGenerator.CipherType != FileTransferCipherType.Ed25519 ? certGenerator.ToPrivateKey() : certGenerator.ToPrivateKeyInPEM(),
-            CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, PublicKey = publicKey
+            CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, 
+            PublicKey = publicKey,
+            PrivateKeyCertificate = certificate
         };
 
 
@@ -200,8 +236,8 @@ public class FileTransferLogic : IFileTransferLogic
                 PublicKey = publicKey
             });
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
-            .AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo);
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService,adaptorUserId: loggedUser.Id)
+            .AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo, _httpContextKeys.Context.SshCaToken);
 
         _unitOfWork.Save();
         return transferMethod;
@@ -211,7 +247,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
 
@@ -222,10 +258,10 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (temporaryKey is null) throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, adaptorUserId: loggedUser.Id)
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
             .RemoveDirectFileTransferAccessForUser(
                 new[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser,
-                jobInfo.Specification.Cluster, jobInfo.Project);
+                jobInfo.Specification.Cluster, jobInfo.Project, _httpContextKeys.Context.SshCaToken);
 
         temporaryKey.IsDeleted = true;
         _unitOfWork.Save();
@@ -236,11 +272,11 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Getting part of job files from cluster for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
         IList<JobFileContent> result = new List<JobFileContent>();
         
         foreach (var taskInfo in jobInfo.Tasks)
@@ -256,13 +292,13 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath, _httpContextKeys.Context.SshCaToken);
                 }
                 else
                 {
                     contents =
                         fileManager.DownloadPartOfJobFileFromCluster(taskInfo, currentOffset.FileType,
-                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+                            currentOffset.Offset, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath, _httpContextKeys.Context.SshCaToken);
                 }
 
                 if (contents != null)
@@ -280,7 +316,7 @@ public class FileTransferLogic : IFileTransferLogic
 
     public IList<SynchronizedJobFiles> SynchronizeAllUnfinishedJobFiles()
     {
-        var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetNotFinishedJobInfos().ToList();
 
         var fileTransferMethodGroups =
@@ -293,14 +329,14 @@ public class FileTransferLogic : IFileTransferLogic
         foreach (var fileTransferMethodGroup in fileTransferMethodGroups)
         {
             var fileManager = FileSystemFactory.GetInstance(fileTransferMethodGroup.Key.Protocol)
-                .CreateFileSystemManager(fileTransferMethodGroup.Key);
+                .CreateFileSystemManager(fileTransferMethodGroup.Key, _sshCertificateAuthorityService);
             foreach (var jobInfo in fileTransferMethodGroup)
             {
                 var synchronizationTime = DateTime.UtcNow;
-                var files = fileManager.CopyLogFilesFromCluster(jobInfo);
-                foreach (var file in fileManager.CopyProgressFilesFromCluster(jobInfo)) files.Add(file);
-                foreach (var file in fileManager.CopyStdOutputFilesFromCluster(jobInfo)) files.Add(file);
-                foreach (var file in fileManager.CopyStdErrorFilesFromCluster(jobInfo)) files.Add(file);
+                var files = fileManager.CopyLogFilesFromCluster(jobInfo, _httpContextKeys.Context.SshCaToken);
+                foreach (var file in fileManager.CopyProgressFilesFromCluster(jobInfo, _httpContextKeys.Context.SshCaToken)) files.Add(file);
+                foreach (var file in fileManager.CopyStdOutputFilesFromCluster(jobInfo, _httpContextKeys.Context.SshCaToken)) files.Add(file);
+                foreach (var file in fileManager.CopyStdErrorFilesFromCluster(jobInfo, _httpContextKeys.Context.SshCaToken)) files.Add(file);
                 var fileContents = new SynchronizedJobFiles
                 {
                     SubmittedJobInfoId = jobInfo.Id,
@@ -316,30 +352,30 @@ public class FileTransferLogic : IFileTransferLogic
 
     public ICollection<FileInformation> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
 
         if(jobInfo.State == JobState.Deleted)
         {
-            return fileManager.ListArchivedFilesForJob(jobInfo, jobInfo.CreationTime);
+            return fileManager.ListArchivedFilesForJob(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken);
         }
         
         if (jobInfo.State < JobState.Submitted || jobInfo.State == JobState.WaitingForServiceAccount)
             return null;
        
-        return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.CreationTime);
+        return fileManager.ListChangedFilesForJob(jobInfo, jobInfo.CreationTime, _httpContextKeys.Context.SshCaToken);
     }
     public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod);
+                .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
         
         if (jobInfo.State == JobState.Deleted)
         {
@@ -362,7 +398,7 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     try
                     {
-                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken);
                     }
                     catch (Exception exception)
                     {
@@ -375,7 +411,7 @@ public class FileTransferLogic : IFileTransferLogic
                     try
                     {
                         relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
-                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+                        return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken);
                     }
                     catch (Exception exception)
                     {
@@ -383,7 +419,7 @@ public class FileTransferLogic : IFileTransferLogic
                     }
                 }
             }
-            return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+            return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken);
         }
         catch (SftpPathNotFoundException exception)
         {
@@ -423,7 +459,7 @@ public class FileTransferLogic : IFileTransferLogic
                     try
                     {
                         var file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
-                        return fileManager.DownloadFileFromClusterByAbsolutePath(jobInfo.Specification, file);
+                        return fileManager.DownloadFileFromClusterByAbsolutePath(jobInfo.Specification, file, _httpContextKeys.Context.SshCaToken);
                     }
                     catch (Exception exception)
                     {
@@ -437,7 +473,7 @@ public class FileTransferLogic : IFileTransferLogic
                     {
                         relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
                         var file = Path.Combine(localBasePath, relativeFilePath.TrimStart('/'));
-                        return fileManager.DownloadFileFromClusterByAbsolutePath(jobInfo.Specification, file);
+                        return fileManager.DownloadFileFromClusterByAbsolutePath(jobInfo.Specification, file, _httpContextKeys.Context.SshCaToken);
                     }
                     catch (Exception exception)
                     {
@@ -445,7 +481,7 @@ public class FileTransferLogic : IFileTransferLogic
                     }
                 }
             }
-            return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath);
+            return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken);
         }
         catch (SftpPathNotFoundException exception)
         {

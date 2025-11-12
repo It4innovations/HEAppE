@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
+using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
@@ -14,6 +16,8 @@ using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
+using SshCaAPI;
+using SshCaAPI.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -43,6 +47,8 @@ else
         throw new Exception("Configuration files not found!");
 }
 
+builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
+
 //IPRateLimitation
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
@@ -54,6 +60,19 @@ builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounte
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+    SshCaSettings.BaseUri,
+    SshCaSettings.CAName,
+    SshCaSettings.ConnectionTimeoutInSeconds
+));
+builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
+builder.Services.AddScoped<IRequestContext, RequestContext>();
+
+if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+{
+    builder.Services.AddHttpClient("LexisTokenExchangeClient");
+    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+}
 
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
@@ -68,6 +87,9 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
     if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
         conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
 });
+
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
 
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
@@ -111,6 +133,33 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
+    if (JwtTokenIntrospectionConfiguration.IsEnabled)
+    {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+            BearerFormat = "JWT"
+        });
+
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    }
     var key = new OpenApiSecurityScheme
     {
         Reference = new OpenApiReference
@@ -178,7 +227,16 @@ app.UseMiddleware<RequestSizeMiddleware>();
 
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
-app.RegisterApiRoutes();
+
+
+using (var scope = app.Services.CreateScope())
+{
+    //get ISshCertificateAuthorityService instance from DI
+    var sshCertificateAuthorityService = scope.ServiceProvider.GetRequiredService<ISshCertificateAuthorityService>();
+    var httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
+    app.RegisterApiRoutes(sshCertificateAuthorityService, httpContextKeys);
+}
+
 
 app.UseSwagger(swagger =>
 {

@@ -39,6 +39,10 @@ public class SftpClientAdapter
 
     internal bool Exists(string remotePath)
     {
+        if (remotePath.StartsWith("~/"))
+        {
+            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             return noAuthenticationSftpClient.RunCommand(new Exists(remotePath));
         return _sftpClient.Exists(remotePath);
@@ -46,6 +50,10 @@ public class SftpClientAdapter
 
     internal void DownloadFile(string remotePath, MemoryStream stream)
     {
+        if (remotePath.StartsWith("~/"))
+        {
+            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DownloadFile(remotePath, stream));
         else
@@ -69,16 +77,25 @@ public class SftpClientAdapter
             {
                 try
                 {
+                    bool replacedTilde = false;
+                    if (remotePath.StartsWith("~/"))
+                    {
+                        remotePath = remotePath.Replace("~", sftpClient.WorkingDirectory);
+                        replacedTilde = true;
+                    }
                     var resultItems = sftpClient.ListDirectory(remotePath);
                     foreach (var item in resultItems)
+                    {
                         items.Add(new SftpFile
                         {
-                            FullName = item.FullName,
+                            FullName = replacedTilde ? item.FullName.Replace(sftpClient.WorkingDirectory, "~") : item.FullName,
                             IsDirectory = item.IsDirectory,
                             IsSymbolicLink = item.IsSymbolicLink,
                             LastWriteTime = item.LastWriteTime.Convert(hostTimeZone),
                             Name = item.Name
                         });
+                    }
+                        
                 }
                 catch (SshException exception)
                 {
@@ -114,6 +131,10 @@ public class SftpClientAdapter
 
     internal void Delete(string remotePath)
     {
+        if (remotePath.StartsWith("~/"))
+        {
+            remotePath= remotePath.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteFile(remotePath));
         else
@@ -122,6 +143,10 @@ public class SftpClientAdapter
 
     internal void DeleteFile(string remotePath)
     {
+        if (remotePath.StartsWith("~/"))
+        {
+            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteFile(remotePath));
         else
@@ -130,6 +155,10 @@ public class SftpClientAdapter
 
     internal void DeleteDirectory(string remotePath)
     {
+        if (remotePath.StartsWith("~/"))
+        {
+            remotePath = remotePath.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
             noAuthenticationSftpClient.RunCommand(new DeleteDirectory(remotePath));
         else
@@ -145,6 +174,10 @@ public class SftpClientAdapter
 
     internal void CreateDirectory(string targetPath)
     {
+        if (targetPath.StartsWith("~/"))
+        {
+            targetPath = targetPath.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "create directory");
         _sftpClient.CreateDirectory(targetPath);
@@ -152,6 +185,10 @@ public class SftpClientAdapter
 
     internal void UploadFile(FileStream sourceStream, string targetFilePath, bool v)
     {
+        if (targetFilePath.StartsWith("~/"))
+        {
+            targetFilePath = targetFilePath.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "upload file");
         _sftpClient.UploadFile(sourceStream, targetFilePath, v);
@@ -159,6 +196,10 @@ public class SftpClientAdapter
 
     internal Stream OpenRead(string path)
     {
+        if (path.StartsWith("~/"))
+        {
+            path = path.Replace("~", _sftpClient.WorkingDirectory);
+        }
         if (_sftpClient is NoAuthenticationSftpClient noAuthenticationSftpClient)
         {
             var ms = new MemoryStream();

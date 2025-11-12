@@ -564,4 +564,10 @@
   <data name="DatabaseRestoreException_RestoreDatabaseException" xml:space="preserve">
     <value>Výjimka vyvolána při obnovování databázové zalohy.</value>
   </data>
+  <data name="AuthenticationTypeException_IntrospectionTokenNotValid" xml:space="preserve">
+    <value>Poskytnutý token pro introspekci není platný nebo je neaktivní. Nelze ověřit uživatele podle poskytnutých údajů.</value>
+  </data>
+  <data name="SshCAServiceTypeException_UnableToRetrieveSshkey" xml:space="preserve">
+    <value>Nelze získat klíč z SSH CA.</value>
+  </data>
 </root>

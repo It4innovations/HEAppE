@@ -1,4 +1,5 @@
 ﻿using FluentValidation;
+using HEAppE.BusinessLogicTier;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Validations.AbstractTypes;
 using HEAppE.ExtModels.FileTransfer.Models;
@@ -6,6 +7,7 @@ using HEAppE.ExtModels.General.Models;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.ServiceTier.FileTransfer;
 using Microsoft.AspNetCore.Mvc;
+using SshCaAPI;
 
 namespace HEAppE.DataStagingAPI.API;
 
@@ -14,7 +16,7 @@ namespace HEAppE.DataStagingAPI.API;
 /// </summary>
 public class DataStagingEndpoint : IApiRoute
 {
-    public void Register(RouteGroupBuilder group)
+    public void Register(RouteGroupBuilder group, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         group = group.AddEndpointFilter<AuthorizationKeyFilter>()
             .MapGroup("DataStaging")
@@ -27,7 +29,7 @@ public class DataStagingEndpoint : IApiRoute
                     logger.LogDebug(
                         """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
                     return Results.Ok(
-                        new FileTransferService().TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
+                        new FileTransferService(sshCertificateAuthorityService, httpContextKeys).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
                             model.SessionCode));
                 }).Produces<FileTransferMethodExt>()
             .ProducesValidationProblem()
@@ -50,7 +52,7 @@ public class DataStagingEndpoint : IApiRoute
                 logger.LogDebug(
                     """Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """,
                     model);
-                return Results.Ok(new FileTransferService().DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
+                return Results.Ok(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
                     model.TaskFileOffsets, model.SessionCode));
             }).Produces<JobFileContentExt>()
             .ProducesValidationProblem()
@@ -78,7 +80,7 @@ public class DataStagingEndpoint : IApiRoute
 
                 logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """,
                     model);
-                return Results.Ok(new FileTransferService().ListChangedFilesForJob(submittedJobInfoId, sessionCode));
+                return Results.Ok(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).ListChangedFilesForJob(submittedJobInfoId, sessionCode));
             }).Produces<IEnumerable<FileInformationExt>>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -104,7 +106,7 @@ public class DataStagingEndpoint : IApiRoute
                     logger.LogDebug(
                         """Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """,
                         model);
-                    return Results.Ok(new FileTransferService().DownloadFileFromCluster(model.SubmittedJobInfoId,
+                    return Results.Ok(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).DownloadFileFromCluster(model.SubmittedJobInfoId,
                         model.RelativeFilePath, model.SessionCode));
                 }).Produces<string>()
             .ProducesValidationProblem()

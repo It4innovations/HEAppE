@@ -38,6 +38,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - 1:1 user mapping to SSH key at `Project` level
+- Configurable authentization method by JWT Token introspection and validation
 - Possibility to send `application/json` payload with `HttpPostToJobNode`
 - Support for the `EdDSA - ED25519` SSH key pair generation
 - Options `ConnectionRetryAttempts` and `ConnectionTimeout` for SSH client component are now configurable from `appsettings.json`

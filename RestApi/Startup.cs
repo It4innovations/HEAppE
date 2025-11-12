@@ -3,37 +3,55 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
 using System.Reflection;
-using System.Threading.Tasks;
 using AspNetCoreRateLimit;
+using HEAppE.Authentication;
 using HEAppE.BackgroundThread;
 using HEAppE.BackgroundThread.Configuration;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Vault.Settings;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI.Configuration;
+using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using IdentityModel.AspNetCore.OAuth2Introspection;
+using IdentityModel.Client;
 using log4net;
 using MicroKnights.Log4NetHelper;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Localization;
+using Microsoft.AspNetCore.Mvc.Authorization;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi;
 using Microsoft.OpenApi.Models;
-using Newtonsoft.Json;
+using SshCaAPI;
+using SshCaAPI.Configuration;
+using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
+
 
 namespace HEAppE.RestApi;
 
@@ -105,6 +123,7 @@ public class Startup
         Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
         Configuration.Bind("OpenStackSettings", new OpenStackSettings());
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
+        Configuration.Bind("SshCaSettings", new SshCaSettings());
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
@@ -112,6 +131,12 @@ public class Startup
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
         services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
         services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+        services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+            SshCaSettings.BaseUri,
+            SshCaSettings.CAName,
+            SshCaSettings.ConnectionTimeoutInSeconds
+        ));
+        
         services.AddSingleton<SqlServerHealthCheck>();
         services.AddSingleton<VaultHealthCheck>();
 
@@ -119,15 +144,27 @@ public class Startup
         {
             options.Filters.Add<LogRequestModelFilter>();
         });
-
-        //UserOrgHttpClient
-        //services.AddOptions<ExternalAuthConfiguration>().BindConfiguration("ExternalAuthenticationSettings");
+        
+        services.AddControllers(options =>
+        {
+        
+            if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            {
+                options.Filters.Add(new AuthorizeFilter());
+            }
+        });
 
         services.AddHttpClient("userOrgApi", conf =>
         {
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
         });
+        
+        services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
+        services.AddScoped<IRequestContext, RequestContext>();
+        services.AddScoped<IHttpContextKeys, HttpContextKeys>();
+        
+        services.AddJwtIntrospectionIfEnabled(Configuration);
 
         //CORS
         services.AddCors(options =>
@@ -146,8 +183,43 @@ public class Startup
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
+        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+        {
+            services.AddHttpClient("LexisTokenExchangeClient");
+            services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+        }
+
         services.AddSwaggerGen(gen =>
         {
+            
+            //if introspection is enabled, add JWT Bearer authentication
+            if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            {
+                gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+                {
+                    Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+                    Name = "Authorization",
+                    In = ParameterLocation.Header,
+                    Type = SecuritySchemeType.ApiKey,
+                    Scheme = "Bearer",
+                    BearerFormat = "JWT"
+                });
+
+                gen.AddSecurityRequirement(new OpenApiSecurityRequirement
+                {
+                    {
+                        new OpenApiSecurityScheme
+                        {
+                            Reference = new OpenApiReference
+                            {
+                                Type = ReferenceType.SecurityScheme,
+                                Id = "Bearer"
+                            }
+                        },
+                        Array.Empty<string>()
+                    }
+                });
+            }
             gen.ParameterFilter<PascalCaseParameterFilter>();
             // Default Swagger document (Public API)
             gen.SwaggerDoc(SwaggerConfiguration.Version, new OpenApiInfo
@@ -168,12 +240,15 @@ public class Startup
                     Url = new Uri(SwaggerConfiguration.ContactUrl)
                 }
             });
+            
 
                 // Swagger document for DetailedJobReporting (Private API)
                 gen.SwaggerDoc("DetailedJobReporting", new OpenApiInfo
                 {
                     Version = SwaggerConfiguration.Version,
-                    Title = SwaggerConfiguration.DetailedJobReportingTitle,
+                    Title = string.IsNullOrEmpty(SwaggerConfiguration.DetailedJobReportingTitle)?
+                        "Detailed Job Reporting API" :
+                        SwaggerConfiguration.DetailedJobReportingTitle,
                     Description = SwaggerConfiguration.Description,
                     TermsOfService = new Uri(SwaggerConfiguration.TermOfUsageUrl),
                     License = new OpenApiLicense
@@ -226,7 +301,8 @@ public class Startup
 
                     return false;
                 });
-
+                
+            
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
                 gen.IncludeXmlComments(xmlPath);
@@ -294,7 +370,8 @@ public class Startup
                 };
             });
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
-            //swagger.SerializeAsV2 = true;
+            //swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
+            swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi3_0;
         });
         
         app.UseSwagger(swagger =>
@@ -310,7 +387,7 @@ public class Startup
                 };
             });
             swagger.RouteTemplate = $"/{SwaggerConfiguration.PrefixDocPath}/{{documentname}}/v2/swagger.json";
-            swagger.SerializeAsV2 = true;
+            swagger.OpenApiVersion = OpenApiSpecVersion.OpenApi2_0;
         });
 
         app.UseSwaggerUI(swaggerUI =>
@@ -323,7 +400,9 @@ public class Startup
                 SwaggerConfiguration.Title);
             swaggerUI.SwaggerEndpoint(
                 $"{hostPrefix}/{SwaggerConfiguration.PrefixDocPath}/DetailedJobReporting/swagger.json",
-                SwaggerConfiguration.DetailedJobReportingTitle);
+                string.IsNullOrEmpty(SwaggerConfiguration.DetailedJobReportingTitle)?
+                    "Detailed Job Reporting API" :
+                    SwaggerConfiguration.DetailedJobReportingTitle);
             swaggerUI.RoutePrefix = SwaggerConfiguration.PrefixDocPath;
             swaggerUI.EnableTryItOutByDefault();
         });
@@ -331,6 +410,9 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+        app.UseMiddleware<LexisTokenExchangeMiddleware>();
+        app.UseAuthentication();
+        app.UseAuthorization();
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseEndpoints(endpoints =>
         {
@@ -351,6 +433,7 @@ public class Startup
         //    AllowCachingResponses = false, // use custom caching
         //});
     }
+    
 
     #endregion
 

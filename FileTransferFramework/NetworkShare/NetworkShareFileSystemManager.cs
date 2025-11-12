@@ -34,12 +34,12 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
 
     #region AbstractFileSystemManager Members
 
-    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath)
+    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken)
     {
         throw new NotImplementedException();
     }
 
-    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo)
+    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
@@ -49,20 +49,20 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
 
     protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite,
         DateTime? lastModificationLimit,
-        string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster)
+        string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
     {
         FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles);
     }
 
     protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone,
         string taskClusterDirectoryPath, DateTime? jobSubmitTime,
-        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster)
+        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster, string sshCaToken)
     {
         throw new NotImplementedException();
     }
 
     protected override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
-        ClusterAuthenticationCredentials credentials)
+        ClusterAuthenticationCredentials credentials, string sshCaToken)
     {
         return _synchronizerFactory.CreateFileSynchronizer(fileInfo, credentials);
     }
@@ -85,7 +85,7 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
     }
 
     public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
-        string absoluteFilePath)
+        string absoluteFilePath, string sshCaToken)
     {
         throw new NotImplementedException();
     }

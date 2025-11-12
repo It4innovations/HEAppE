@@ -41,58 +41,58 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     #region Abstract Methods
     
 
-    public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath);
+    public abstract byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken);
 
     public abstract byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
-        string absoluteFilePath);
+        string absoluteFilePath, string sshCaToken);
 
-    public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo);
+    public abstract void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken);
 
     protected abstract void CopyAll(string hostTimeZone, string source, string target, bool overwrite,
         DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials,
-        Cluster cluster);
+        Cluster cluster, string sshCaToken);
 
     protected abstract ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone,
         string taskClusterDirectoryPath, DateTime? jobSubmitTime,
-        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster);
+        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster, string sshCaToken);
 
     protected abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
-        ClusterAuthenticationCredentials credentials);
+        ClusterAuthenticationCredentials credentials, string sshCaToken);
 
     #endregion
 
     #region IRexFileSystemManager Members
 
-    public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory)
+    public virtual void CopyInputFilesToCluster(SubmittedJobInfo jobInfo, string localJobDirectory, string sshCaToken)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
         CopyAll(jobInfo.Specification.Cluster.TimeZone, localJobDirectory, jobClusterDirectoryPath, false, null, null,
-            jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster);
+            jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobInfo)
+    public virtual ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardOutputFile);
+        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardOutputFile, sshCaToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobInfo)
+    public virtual ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardErrorFile);
+        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.StandardErrorFile, sshCaToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobInfo)
+    public virtual ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.ProgressFile);
+        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.ProgressFile, sshCaToken);
     }
 
-    public virtual ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobInfo)
+    public virtual ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
     {
-        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.LogFile);
+        return PerformSynchronizationForType(jobInfo, SynchronizableFiles.LogFile, sshCaToken);
     }
 
     public virtual ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskInfo,
-        SynchronizableFiles fileType, long offset, string instancePath, string subPath)
+        SynchronizableFiles fileType, long offset, string instancePath, string subPath, string sshCaToken)
     {
         var taskClusterDirectoryPath = string.Empty;
         if (taskInfo.State == TaskState.Deleted)
@@ -106,11 +106,11 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
                 FileSystemUtils.GetTaskClusterDirectoryPath(taskInfo.Specification, instancePath, subPath);
         }
         var fileInfo = CreateSynchronizableFileInfoForType(taskInfo.Specification, taskClusterDirectoryPath, fileType);
-        var synchronizer = CreateFileSynchronizer(fileInfo, taskInfo.Specification.JobSpecification.ClusterUser);
+        var synchronizer = CreateFileSynchronizer(fileInfo, taskInfo.Specification.JobSpecification.ClusterUser, sshCaToken);
         synchronizer.Offset = offset;
         synchronizer.SyncFileInfo.DestinationDirectory = null;
         var jobSpecification = taskInfo.Specification.JobSpecification;
-        var result = synchronizer.SynchronizeFiles(jobSpecification.Cluster);
+        var result = synchronizer.SynchronizeFiles(jobSpecification.Cluster, sshCaToken);
 
         if (result != null)
             foreach (var content in result)
@@ -122,7 +122,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         return result;
     }
 
-    public virtual void CopyCreatedFilesFromCluster(SubmittedJobInfo jobInfo, DateTime jobSubmitTime)
+    public virtual void CopyCreatedFilesFromCluster(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken)
     {
         foreach (var taskInfo in jobInfo.Tasks)
         {
@@ -139,11 +139,11 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
             CopyAll(jobInfo.Specification.Cluster.TimeZone, taskClusterDirectoryPath,
                 taskInfo.Specification.LocalDirectory, true, jobSubmitTime, excludedFiles,
                 jobInfo.Specification.ClusterUser,
-                jobInfo.Specification.Cluster);
+                jobInfo.Specification.Cluster, sshCaToken);
         }
     }
 
-    public virtual ICollection<FileInformation> ListFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string instancePath, string subPath)
+    public virtual ICollection<FileInformation> ListFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string instancePath, string subPath, string sshCaToken)
     {
         var result = new List<FileInformation>();
 
@@ -160,7 +160,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
                 taskClusterDirectoryPath,
                 jobSubmitTime, 
                 jobInfo.Specification.ClusterUser, 
-                jobInfo.Specification.Cluster);
+                jobInfo.Specification.Cluster, sshCaToken);
 
             foreach (var changedFile in changedFiles)
             {
@@ -180,14 +180,14 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         return result;
     }
 
-    public virtual ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime)
+    public virtual ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken)
     {
-        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath, sshCaToken);
     }
 
-    public virtual ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime)
+    public virtual ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken)
     {
-        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath);
+        return ListFilesForJob(jobInfo, jobSubmitTime, _scripts.InstanceIdentifierPath, _scripts.JobLogArchiveSubPath, sshCaToken);
     }
 
 
@@ -196,7 +196,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     #region Local Methods
 
     protected virtual ICollection<JobFileContent> PerformSynchronizationForType(SubmittedJobInfo jobInfo,
-        SynchronizableFiles fileType)
+        SynchronizableFiles fileType, string sshCaToken)
     {
         var result = new List<JobFileContent>();
         if (!_fileSynchronizers.ContainsKey(fileType))
@@ -212,9 +212,9 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
             if (!_fileSynchronizers[fileType].ContainsKey(sourceFilePath))
                 _fileSynchronizers[fileType][sourceFilePath] =
-                    CreateFileSynchronizer(fileInfo, jobInfo.Specification.ClusterUser);
+                    CreateFileSynchronizer(fileInfo, jobInfo.Specification.ClusterUser, sshCaToken);
             var jobSpecification = jobInfo.Specification;
-            var subresult = _fileSynchronizers[fileType][sourceFilePath].SynchronizeFiles(jobSpecification.Cluster);
+            var subresult = _fileSynchronizers[fileType][sourceFilePath].SynchronizeFiles(jobSpecification.Cluster, sshCaToken);
             if (subresult != null)
                 foreach (var content in subresult)
                 {
@@ -227,7 +227,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
         return result;
     }
 
-    protected virtual void CreateSynchronizersForType(JobSpecification jobSpecification, SynchronizableFiles fileType)
+    protected virtual void CreateSynchronizersForType(JobSpecification jobSpecification, SynchronizableFiles fileType, string sshCaToken)
     {
         _fileSynchronizers[fileType] = new Dictionary<string, IFileSynchronizer>(jobSpecification.Tasks.Count);
 
@@ -240,7 +240,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
             if (!_fileSynchronizers[fileType].ContainsKey(sourceFilePath))
                 _fileSynchronizers[fileType][sourceFilePath] =
-                    CreateFileSynchronizer(fileInfo, jobSpecification.ClusterUser);
+                    CreateFileSynchronizer(fileInfo, jobSpecification.ClusterUser, sshCaToken);
         }
     }
 

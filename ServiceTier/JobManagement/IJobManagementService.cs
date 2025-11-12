@@ -7,6 +7,7 @@ public interface IJobManagementService
 {
     SubmittedJobInfoExt CreateJob(JobSpecificationExt specification, string sessionCode);
     SubmittedJobInfoExt SubmitJob(long createdJobInfoId, string sessionCode);
+    SubmittedJobInfoExt GetActualTasksInfo(long submittedJobInfoId, string sessionCode);
     SubmittedJobInfoExt CancelJob(long submittedJobInfoId, string sessionCode);
     bool DeleteJob(long submittedJobInfoId, bool archiveLogs, string sessionCode);
     SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null);

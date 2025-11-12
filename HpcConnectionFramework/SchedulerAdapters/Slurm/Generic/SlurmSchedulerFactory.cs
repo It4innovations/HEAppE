@@ -6,6 +6,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using SshCaAPI;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
 
@@ -47,13 +48,13 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <param name="jobInfoProject"></param>
     /// <param name="project"></param>
     /// <returns></returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, adaptorUserId: adaptorUserId),
+                GetSchedulerConnectionPool(configuration, project,sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
                 CreateSchedulerAdapter()
             );
         return _schedulerSingletons[uniqueIdentifier];
@@ -82,11 +83,11 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// </summary>
     /// <param name="configuration">Cluster configuration data</param>
     /// <returns></returns>
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         var masterNodeName = configuration.MasterNodeName;
         if (!_connectorSingletons.ContainsKey(masterNodeName))
-            _connectorSingletons[masterNodeName] = new SshConnector();
+            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService);
 
         return _connectorSingletons[masterNodeName];
     }

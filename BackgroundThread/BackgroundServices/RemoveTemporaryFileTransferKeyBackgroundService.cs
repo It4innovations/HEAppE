@@ -6,6 +6,10 @@ using System.Threading;
 using System;
 using Microsoft.Extensions.Hosting;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
+using HEAppE.ExternalAuthentication.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -16,27 +20,38 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.FileTransferKeyRemovalCheck);
     protected readonly ILog _log;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    protected readonly IHttpContextKeys _httpContextKeys;
 
-    public RemoveTemporaryFileTransferKeyBackgroundService()
+    public RemoveTemporaryFileTransferKeyBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
         _log = LogManager.GetLogger(GetType());
+        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
+        _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork).RemoveJobsTemporaryFileTransferKeys();
-            }
-            catch (Exception ex)
-            {
-                _log.Error("An error occured during execution of the RemoveTemporaryFileTransferKey background service: ", ex);
-            }
+                try
+                {
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                    LogicFactory.GetLogicFactory()
+                        .CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+                        .RemoveJobsTemporaryFileTransferKeys();
+                }
+                catch (Exception ex)
+                {
+                    _log.Error(
+                        "An error occured during execution of the RemoveTemporaryFileTransferKey background service: ",
+                        ex);
+                }
 
-            await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(_interval, stoppingToken);
+            }
         }
     }
 }

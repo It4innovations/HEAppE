@@ -1,4 +1,6 @@
-﻿using HEAppE.DataStagingAPI.Validations.AbstractTypes;
+﻿using HEAppE.BusinessLogicTier;
+using HEAppE.DataStagingAPI.Validations.AbstractTypes;
+using SshCaAPI;
 
 namespace HEAppE.DataStagingAPI.API.AbstractTypes;
 
@@ -10,7 +12,7 @@ public static class AppExtensions
     /// <summary>
     ///     Registration classes into API, that implement IApiRoute
     /// </summary>
-    public static void RegisterApiRoutes(this WebApplication app)
+    public static void RegisterApiRoutes(this WebApplication app, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         var group = app.MapGroup("api");
         group.AddEndpointFilterFactory(ValidationFilter.ValidationFilterFactory);
@@ -21,7 +23,7 @@ public static class AppExtensions
         foreach (var routeType in types)
         {
             var route = (IApiRoute?)Activator.CreateInstance(routeType);
-            route?.Register(group);
+            route?.Register(group, sshCertificateAuthorityService, httpContextKeys);
         }
     }
 }

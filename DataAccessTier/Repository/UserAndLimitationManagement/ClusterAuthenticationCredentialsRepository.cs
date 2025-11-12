@@ -110,6 +110,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         {
             _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
+            
         }
         return WithVaultData(credentials);
     }

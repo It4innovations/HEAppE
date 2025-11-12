@@ -9,13 +9,13 @@
     </PropertyGroup>
     <ItemGroup>
         <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0"/>
-        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="11.11.0"/>
-        <PackageReference Include="log4net" Version="3.0.3"/>
+        <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
+        <PackageReference Include="log4net" Version="3.1.0" />
         <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0"/>
         <PackageReference Include="MicroKnights.Log4NetHelper" Version="2.2.0"/>
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.0"/>
+        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="9.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0"/>
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0"/>
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\ExtModels\ExtModels.csproj"/>

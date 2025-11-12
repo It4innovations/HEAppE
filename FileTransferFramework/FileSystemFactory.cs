@@ -7,6 +7,7 @@ using HEAppE.Exceptions.Internal;
 using HEAppE.FileTransferFramework.NetworkShare;
 using HEAppE.FileTransferFramework.Sftp;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.FileTransferFramework;
 
@@ -39,12 +40,12 @@ public abstract class FileSystemFactory
 
     #region Abstract Methods
 
-    public abstract IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration);
+    public abstract IRexFileSystemManager CreateFileSystemManager(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
 
     internal abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification syncFile,
         ClusterAuthenticationCredentials credentials);
 
-    protected abstract IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration);
+    protected abstract IPoolableAdapter CreateFileSystemConnector(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
 
     #endregion
 
@@ -62,7 +63,7 @@ public abstract class FileSystemFactory
         };
     }
 
-    protected IConnectionPool GetSchedulerConnectionPool(FileTransferMethod configuration)
+    protected IConnectionPool GetSchedulerConnectionPool(FileTransferMethod configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         if (!_schedulerConnPoolSingletons.TryGetValue(configuration, out var connection))
         {
@@ -72,7 +73,7 @@ public abstract class FileSystemFactory
                 ConnectionPoolMaxSize,
                 ConnectionPoolCleaningInterval,
                 ConnectionPoolMaxUnusedInterval,
-                CreateFileSystemConnector(configuration),
+                CreateFileSystemConnector(configuration, sshCertificateAuthorityService),
                 configuration.Cluster.Port);
 
             _schedulerConnPoolSingletons.Add(configuration, connection);

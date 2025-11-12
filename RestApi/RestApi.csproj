@@ -24,17 +24,20 @@
     </ItemGroup>
     <ItemGroup>
         <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
-        <PackageReference Include="log4net" Version="3.0.3" />
+        <PackageReference Include="IdentityModel.AspNetCore.OAuth2Introspection" Version="6.2.0" />
+        <PackageReference Include="log4net" Version="3.1.0" />
         <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0" />
         <PackageReference Include="MicroKnights.Log4NetHelper" Version="2.2.0" />
-        <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
-        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.0" />
-        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
+        <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
+        <PackageReference Include="Microsoft.Extensions.Configuration" Version="9.0.8" />
+        <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="9.0.8" />
         <PackageReference Include="Microsoft.Extensions.Logging.Log4Net.AspNetCore" Version="8.0.0" />
         <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
-        <PackageReference Include="Swashbuckle.AspNetCore" Version="7.1.0" />
+        <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.3" />
     </ItemGroup>
     <ItemGroup>
+        <ProjectReference Include="..\Authentication\Authentication.csproj" />
         <ProjectReference Include="..\BackgroundThread\BackgroundThread.csproj" />
         <ProjectReference Include="..\CertificateGenerator\CertificateGenerator.csproj" />
         <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
@@ -42,6 +45,7 @@
         <ProjectReference Include="..\OpenStackAPI\OpenStackAPI.csproj" />
         <ProjectReference Include="..\RestApiModels\RestApiModels.csproj" />
         <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />
+        <ProjectReference Include="..\SshCaAPI\SshCaAPI.csproj" />
     </ItemGroup>
     <ItemGroup>
         <Content Update="appsettings.default.json">

@@ -25,6 +25,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils;
 using log4net;
 using Org.BouncyCastle.Security;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
 
@@ -38,10 +39,14 @@ public class ManagementLogic : IManagementLogic
     protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;
 
     protected IUnitOfWork _unitOfWork;
-
-    public ManagementLogic(IUnitOfWork unitOfWork)
+    protected ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IHttpContextKeys _httpContextKeys;
+    public ManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
+        
     }
 
 
@@ -82,8 +87,8 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                 projectId, requireIsInitialized: true, adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, adaptorUserId)
-            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
+            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -235,8 +240,8 @@ public class ManagementLogic : IManagementLogic
         var serviceAccount =
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, adaptorUserId)
-            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
+            .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
             .ToList();
 
         List<CommandTemplateParameter> templateParameters = new();
@@ -912,10 +917,10 @@ public class ManagementLogic : IManagementLogic
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
                 var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId);
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId);
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
-                var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory,localBasepath,
-                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount);
+                var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory, localBasepath,
+                    cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken);
 
                 if (clusterAuthCredentials.IsGenerated)
                     clusterProjectCredential.IsInitialized = isInitialized;
@@ -983,8 +988,8 @@ public class ManagementLogic : IManagementLogic
             var cluster = clusterProjectCredential.ClusterProject.Cluster;
             var project = clusterProjectCredential.ClusterProject.Project;
 
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
-            if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials))
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
+            if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials, _httpContextKeys.Context.SshCaToken))
             {
                 _logger.Info(
                     $"Test cluster access failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");

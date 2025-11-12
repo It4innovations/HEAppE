@@ -132,7 +132,7 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = exception.Message is "InvalidToken" or
                     "Expired" or
-                    "NotPresent"
+                    "NotPresent" or "IntrospectionTokenNotValid"
                     ? StatusCodes.Status401Unauthorized
                     : StatusCodes.Status500InternalServerError;
                 logLevel = LogLevel.Warning;

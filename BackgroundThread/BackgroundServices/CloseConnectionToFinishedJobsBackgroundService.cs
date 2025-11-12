@@ -7,6 +7,10 @@ using System.Threading;
 using System;
 using System.Threading.Tasks;
 using System.Linq;
+using HEAppE.BusinessLogicTier;
+using HEAppE.ExternalAuthentication.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -17,32 +21,39 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
     protected readonly ILog _log;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    protected readonly IHttpContextKeys _httpContextKeys;
 
-    public CloseConnectionToFinishedJobsBackgroundService()
+    public CloseConnectionToFinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
         _log = LogManager.GetLogger(GetType());
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork);
+                try
+                {
+                    using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
+                    var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-                var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
-                LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork).GetAllFinishedTaskInfos(taskIds)
-                    .ToList()
-                    .ForEach(f => dataTransferLogic.CloseAllTunnelsForTask(f));
-            }
-            catch (Exception ex)
-            {
-                _log.Error("An error occured during execution of the CloseConnectionToFinishedJobs background service: ", ex);
-            }
+                    var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
+                    LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys).GetAllFinishedTaskInfos(taskIds)
+                        .ToList()
+                        .ForEach(f => dataTransferLogic.CloseAllTunnelsForTask(f));
+                }
+                catch (Exception ex)
+                {
+                    _log.Error("An error occured during execution of the CloseConnectionToFinishedJobs background service: ", ex);
+                }
 
-            await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(_interval, stoppingToken);
+            }
         }
     }
 }

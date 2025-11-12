@@ -9,12 +9,15 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.Utils.Validation;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 
 internal class JobManagementValidator : AbstractValidator
 {
     protected readonly IUnitOfWork _unitOfWork;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IHttpContextKeys _httpContextKeys;
 
     #region Constructors
 
@@ -22,10 +25,12 @@ internal class JobManagementValidator : AbstractValidator
     ///     Constructor
     /// </summary>
     /// <param name="validationObj">Validation Object</param>
-    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork)
+    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
         : base(validationObj)
     {
         _unitOfWork = unitOfWork;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
     }
 
     #endregion
@@ -174,7 +179,7 @@ internal class JobManagementValidator : AbstractValidator
 
     private void ValidateWallTimeLimit(TaskSpecification task)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetClusterNodeTypeById(task.ClusterNodeTypeId);
         if (clusterNodeType == null)
         {
@@ -200,7 +205,7 @@ internal class JobManagementValidator : AbstractValidator
 
     private void ValidateRequestedCluster(JobSpecification job)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetClusterById(job.ClusterId);
 
         if (clusterNodeType == null)
@@ -251,8 +256,8 @@ internal class JobManagementValidator : AbstractValidator
             var serviceAccount =
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                     projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
-            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId)
-                .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath).ToList();
+            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
+                .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken).ToList();
         }
         catch (Exception)
         {

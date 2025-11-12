@@ -14,7 +14,7 @@ public class ClusterAuthenticationCredentials : IdentifiableDbEntity, ISoftDelet
 {
     #region Properties
 
-    [Required] [StringLength(50)] public string Username { get; set; }
+    [Required] [StringLength(300)] public string Username { get; set; }
 
     //VAULT
 
@@ -22,7 +22,7 @@ public class ClusterAuthenticationCredentials : IdentifiableDbEntity, ISoftDelet
 
     public bool IsVaultDataLoaded => _vaultData != ClusterProjectCredentialVaultPart.Empty;
 
-    [StringLength(50)]
+    [StringLength(300)]
     public string Password
     {
         get => _vaultData.Password;
@@ -41,7 +41,7 @@ public class ClusterAuthenticationCredentials : IdentifiableDbEntity, ISoftDelet
         set => _vaultData = _vaultData with { PrivateKeyCertificate = value };
     }
 
-    [StringLength(50)]
+    [StringLength(300)]
     public string PrivateKeyPassphrase
     {
         get => _vaultData.PrivateKeyPassword;
