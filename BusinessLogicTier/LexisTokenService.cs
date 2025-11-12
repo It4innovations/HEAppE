@@ -12,6 +12,8 @@ namespace HEAppE.BusinessLogicTier;
 public interface ILexisTokenService
 {
     Task<string> ExchangeLexisTokenForFipAsync(string lexisAccessToken);
+    string ExchangeLexisTokenForFip(string lexisToken) =>
+        ExchangeLexisTokenForFipAsync(lexisToken).GetAwaiter().GetResult();
 }
 
 public class LexisTokenService : ILexisTokenService
@@ -33,6 +35,7 @@ public class LexisTokenService : ILexisTokenService
         if (string.IsNullOrWhiteSpace(lexisAccessToken))
             throw new ArgumentException("LEXIS access token is required.", nameof(lexisAccessToken));
 
+        
         var client = _httpClientFactory.CreateClient("LexisTokenExchangeClient");
         var cfg = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration;
 
@@ -41,12 +44,12 @@ public class LexisTokenService : ILexisTokenService
         var exchangeRequest = new FormUrlEncodedContent(new Dictionary<string, string>
         {
             ["grant_type"] = "urn:ietf:params:oauth:grant-type:token-exchange",
-            ["client_id"] = cfg.ClientId,                      // "heappe"
-            ["client_secret"] = cfg.ClientSecret,              // secret for heappe client
-            ["subject_token"] = lexisAccessToken,                    // LEXIS token to exchange
+            ["client_id"] = cfg.ClientId,
+            ["client_secret"] = cfg.ClientSecret,
+            ["subject_token"] = lexisAccessToken,
             ["subject_token_type"] = "urn:ietf:params:oauth:token-type:access_token",
             ["requested_token_type"] = "urn:ietf:params:oauth:token-type:access_token",
-            ["scope"] = cfg.Scope                                   // e.g. "openid profile email"
+            ["scope"] = cfg.Scope
         });
 
         var response = await client.PostAsync(tokenEndpoint, exchangeRequest);
@@ -54,6 +57,35 @@ public class LexisTokenService : ILexisTokenService
         {
             var error = await response.Content.ReadAsStringAsync();
             throw new Exception($"Token exchange failed: {response.StatusCode} - {error}");
+        }
+
+        var json = await response.Content.ReadFromJsonAsync<JsonElement>();
+        string exchangedAccessToken = json.GetProperty("access_token").GetString();
+        //call GetFipTokenInfoAsync
+        var fipTokenInfo = await GetFipTokenInfoAsync(exchangedAccessToken);
+        return fipTokenInfo;
+    }
+
+    /// <summary>
+    /// Retrieves FIP token info from EFP broker using the exchanged token.
+    /// </summary>
+    private async Task<string> GetFipTokenInfoAsync(string exchangedLexisAccessToken)
+    {
+        if (string.IsNullOrWhiteSpace(exchangedLexisAccessToken))
+            throw new ArgumentException("FIP access token is required.", nameof(exchangedLexisAccessToken));
+
+        var cfg = JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration;
+        var userinfoUrl = $"{cfg.BaseUrl}/realms/{cfg.Realm}/broker/{cfg.Broker}/token";
+
+        var client = _httpClientFactory.CreateClient("LexisTokenExchangeClient");
+        var request = new HttpRequestMessage(HttpMethod.Get, userinfoUrl);
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", exchangedLexisAccessToken);
+
+        var response = await client.SendAsync(request);
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            throw new Exception($"Failed to retrieve FIP token info: {response.StatusCode} - {error}");
         }
 
         var json = await response.Content.ReadFromJsonAsync<JsonElement>();

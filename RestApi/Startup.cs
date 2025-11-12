@@ -407,6 +407,7 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+        app.UseMiddleware<LexisTokenExchangeMiddleware>();
         app.UseAuthentication();
         app.UseAuthorization();
         app.UseMiddleware<ExceptionMiddleware>();

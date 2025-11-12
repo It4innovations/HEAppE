@@ -38,31 +38,12 @@ public static class JwtIntrospectionExtensions
                 options.TokenRetriever = request =>
                 {
                     string authHeader = request.Headers["Authorization"].FirstOrDefault();
-                    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
-                    {
-                        if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
-                            return TokenRetrieval.FromAuthorizationHeader()(request);
-
-                        var httpContext = request.HttpContext;
-                        var lexisTokenService = httpContext.RequestServices.GetRequiredService<ILexisTokenService>();
-
-                        var lexisToken = authHeader?.StartsWith("Bearer ") == true
-                            ? authHeader["Bearer ".Length..].Trim()
-                            : null;
-                        if (lexisToken == null)
-                            return null;
-                        var fipToken = Task.Run(() => lexisTokenService.ExchangeLexisTokenForFipAsync(lexisToken))
-                            .GetAwaiter().GetResult();
-
-                        return fipToken;
-                    }
-                    else
-                    {
-                        return authHeader?.StartsWith("Bearer ") == true
-                            ? authHeader["Bearer ".Length..].Trim()
-                            : null;
-                    }
+                    if (authHeader?.StartsWith("Bearer ") != true)
+                        return null;
+                    var incomingToken = authHeader["Bearer ".Length..].Trim();
+                    return incomingToken;
                 };
+
 
                 options.Events = new OAuth2IntrospectionEvents
                 {
@@ -71,10 +52,9 @@ public static class JwtIntrospectionExtensions
                         var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
                         try
                         {
-                            //await HttpContextKeys.Authorize(context.SecurityToken, sshCaService);
-                            await services.BuildServiceProvider()
+                            await context.HttpContext.RequestServices
                                 .GetRequiredService<IHttpContextKeys>()
-                                .Authorize(context.SecurityToken, sshCaService);
+                                .Authorize(sshCaService);
                         }
                         catch
                         {
@@ -100,12 +80,9 @@ public static class JwtIntrospectionExtensions
                         if (disco.IsError)
                             throw new Exception($"Discovery error: {disco.Error}");
 
-                        
-
-                        //await HttpContextKeys.ExchangeSshCaToken(context.SecurityToken, disco.TokenEndpoint, client);
-                        var sshCaToken = await services.BuildServiceProvider()
+                        var sshCaToken = await context.HttpContext.RequestServices
                             .GetRequiredService<IHttpContextKeys>()
-                            .ExchangeSshCaToken(context.SecurityToken, disco.TokenEndpoint, client);
+                            .ExchangeSshCaToken(disco.TokenEndpoint, client);
                     }
                 };
             });
@@ -119,4 +96,5 @@ public static class JwtIntrospectionExtensions
 
         return services;
     }
+
 }

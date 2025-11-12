@@ -7,6 +7,7 @@ public class LexisTokenFlowConfiguration
     // Keycloak / LEXIS AAI DEV settings
     public string BaseUrl { get; set; } = string.Empty;      
     public string Realm { get; set; } = string.Empty;
+    public string Broker { get; set; } = string.Empty;
     public string Scope { get; set; } = "openid profile email";
 
     // FIP / HEAppE target

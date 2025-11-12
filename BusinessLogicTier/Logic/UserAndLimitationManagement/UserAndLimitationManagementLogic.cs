@@ -40,6 +40,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
     }
@@ -345,7 +346,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
             _userOrgHttpClient.DefaultRequestHeaders.Clear();
             _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
-            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", _httpContextKeys.Context.FIPToken);
+            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", lexisCredentials.OpenIdLexisAccessToken);
             
             var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
             return GetOrRegisterLexisCredentials(result);

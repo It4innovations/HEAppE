@@ -23,6 +23,7 @@ public interface IRequestContext
     public long AdaptorUserId { get; set; } 
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
+    public string LEXISToken { get; set; }
 }
 
 public class RequestContext : IRequestContext
@@ -30,12 +31,13 @@ public class RequestContext : IRequestContext
     public long AdaptorUserId { get; set; } 
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
+    public string LEXISToken { get; set; }
 }
 
 public interface IHttpContextKeys
 {
-    Task<AdaptorUser> Authorize(string token, ISshCertificateAuthorityService sshCertificateAuthorityService);
-    Task<string> ExchangeSshCaToken(string accessToken, string tokenExchangeAddress, HttpClient httpClient);
+    Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService);
+    Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient);
     
     IRequestContext Context { get;  }
 }
@@ -53,10 +55,9 @@ public class HttpContextKeys : IHttpContextKeys
         _log = LogManager.GetLogger(typeof(HttpContextKeys));
     }
 
-    public async Task<AdaptorUser> Authorize(string token, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
         _log.Info("Authorizing with UserOrg");
-        _context.FIPToken = token;
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, sshCertificateAuthorityService, this);
@@ -65,7 +66,8 @@ public class HttpContextKeys : IHttpContextKeys
         {
             var user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
             {
-                OpenIdLexisAccessToken = token
+                OpenIdLexisAccessToken = (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) ? 
+                    Context.LEXISToken : Context.FIPToken
             });
 
             _context.AdaptorUserId = user.Id;
@@ -78,7 +80,7 @@ public class HttpContextKeys : IHttpContextKeys
         }
     }
 
-    public async Task<string> ExchangeSshCaToken(string accessToken, string tokenExchangeAddress, HttpClient httpClient)
+    public async Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient)
     {
         _log.Info($"Exchanging token for SSH CA token from {tokenExchangeAddress}");
         var clientId = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientId;
@@ -90,7 +92,7 @@ public class HttpContextKeys : IHttpContextKeys
         var form = new Dictionary<string, string>
         {
             ["grant_type"] = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.GrantType,
-            ["subject_token"] = accessToken,
+            ["subject_token"] = Context.FIPToken,
             ["subject_token_type"] = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.SubjectTokenType,
             ["audience"] = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.Audience
         };
