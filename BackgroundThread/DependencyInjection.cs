@@ -18,6 +18,7 @@ namespace HEAppE.BackgroundThread
             services.AddHostedService<UpdateUnfinishedJobsBackgroundService>();
             services.AddHostedService<DatabaseFullBackupBackgroundService>();
             services.AddHostedService<DatabaseTransactionLogBackupService>();
+            services.AddHostedService<ClusterProjectCredentialsCheckLogBackgroundService>();
 
             return services;
         }

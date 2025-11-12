@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -28,6 +29,8 @@ public class ClusterProjectCredential : ISoftDeletableEntity
     public virtual AdaptorUser AdaptorUser { get; set; }
 
     public bool IsInitialized { get; set; }
+
+    public virtual List<ClusterProjectCredentialCheckLog> ClusterProjectCredentialsCheckLog { get; set; } = new();
 
     public override string ToString()
     {

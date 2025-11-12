@@ -11,6 +11,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Vault.Settings;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -36,6 +38,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -2267,6 +2270,51 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_managementService.ListAccountingStates(projectId, sessionCode));
+    }
+
+    #endregion
+
+    #region Status
+    [HttpPost("Status")]
+    [RequestSizeLimit(500)]
+    [ProducesResponseType(typeof(StatusExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
+        var model = new StatusModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        return Ok(await _managementService.Status(projectId, timeFrom, timeTo, sessionCode));
+    }
+
+    [HttpPost("StatusErrorLogs")]
+    [RequestSizeLimit(500)]
+    [ProducesResponseType(typeof(StatusCheckLogsExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
+        var model = new StatusModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        return Ok(_managementService.StatusErrorLogs(projectId, timeFrom, timeTo, sessionCode));
     }
 
     /// <summary>

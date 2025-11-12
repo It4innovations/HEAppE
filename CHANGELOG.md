@@ -25,6 +25,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Minor stability and logging improvements within Management operations.
 
 
+### Added
+- Status of various part HEAppE and way to obtain error logs
+
+### New Endpoints:
+
+POST /heappe/Management/Status
+POST /heappe/Management/StatusErrorLogs
+
 ## V6.0.0
 
 ### Changed

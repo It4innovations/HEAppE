@@ -190,6 +190,14 @@ internal class MiddlewareContext : DbContext
             .WithMany(p => p.ClusterProjectCredentials)
             .HasForeignKey(cp => new { cp.ClusterAuthenticationCredentialsId });
 
+        modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
+            .HasIndex(cpccl => new { cpccl.ClusterProjectId, cpccl.CheckTimestamp });
+
+        modelBuilder.Entity<ClusterProjectCredentialCheckLog>()
+            .HasOne(cpccl => cpccl.ClusterProjectCredential)
+            .WithMany(cpc => cpc.ClusterProjectCredentialsCheckLog)
+            .HasForeignKey(cpccl => new { cpccl.ClusterProjectId, cpccl.ClusterAuthenticationCredentialsId });
+
         //M:N ClusterProjectCredentials ignore Vault properties
         modelBuilder.Entity<ClusterAuthenticationCredentials>()
             //.Ignore(c => c.AuthenticationType)
@@ -634,6 +642,8 @@ internal class MiddlewareContext : DbContext
     public virtual DbSet<SubProject> SubProjects { get; set; }
     public virtual DbSet<Contact> Contacts { get; set; }
     public virtual DbSet<ClusterProject> ClusterProjects { get; set; }
+    public virtual DbSet<ClusterProjectCredential> ClusterProjectCredentials { get; set; }
+    public virtual DbSet<ClusterProjectCredentialCheckLog> ClusterProjectCredentialsCheckLog { get; set; }
 
     #endregion
 
