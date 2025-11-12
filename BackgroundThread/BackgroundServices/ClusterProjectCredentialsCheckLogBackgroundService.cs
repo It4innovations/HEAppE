@@ -7,6 +7,9 @@ using Microsoft.Extensions.Hosting;
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
+using Microsoft.Extensions.DependencyInjection;
+using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -17,10 +20,14 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 {
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IntervalMinutes);
     protected readonly ILog _log;
+    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    protected readonly IHttpContextKeys _httpContextKeys;
 
-    public ClusterProjectCredentialsCheckLogBackgroundService()
+    public ClusterProjectCredentialsCheckLogBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
         _log = LogManager.GetLogger(GetType());
+        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
+        _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -31,7 +38,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
             {
                 using (IUnitOfWork unitOfWork = new DatabaseUnitOfWork())
                 {
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork);
+                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
                     await managementLogic.CheckClusterProjectCredentialsStatus();
                 }
             }

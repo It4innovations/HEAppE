@@ -2443,7 +2443,7 @@ public class ManagementLogic : IManagementLogic
             var project = clusterProject.Project;
             var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
             // prepare task
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, adaptorUserId: null);
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
             tasks.Add(scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential));
         }
 

@@ -438,7 +438,7 @@ public class RexSchedulerWrapper : IRexScheduler
         ConnectionInfo schedulerConnection = null;
         try
         {
-            schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster);
+            schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster, null);
             checkLog.ClusterConnectionOk = true;
             await _adapter.CheckClusterAuthenticationCredentialsStatus(schedulerConnection.Connection, clusterProjectCredential, checkLog);
         }
