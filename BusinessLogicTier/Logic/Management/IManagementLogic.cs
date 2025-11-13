@@ -51,8 +51,6 @@ public interface IManagementLogic
     List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId);
     SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);
     void RemoveSecureShellKey(string publicKey, long projectId);
-    SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId);
-    void RemoveSecureShellKeyByPublicKey(string publicKey, long projectId);
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,

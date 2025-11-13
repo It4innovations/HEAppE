@@ -8,6 +8,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.ExternalAuthentication.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 
@@ -32,22 +33,26 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        while (!stoppingToken.IsCancellationRequested)
+        if (BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IsEnabled && !JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            try
+            while (!stoppingToken.IsCancellationRequested)
             {
-                using (IUnitOfWork unitOfWork = new DatabaseUnitOfWork())
+                try
                 {
-                    IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-                    await managementLogic.CheckClusterProjectCredentialsStatus();
+                    using (IUnitOfWork unitOfWork = new DatabaseUnitOfWork())
+                    {
+                        IManagementLogic managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+                        await managementLogic.CheckClusterProjectCredentialsStatus();
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
-            }
+                catch (Exception ex)
+                {
+                    _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
+                }
 
-            await Task.Delay(_interval, stoppingToken);
+                await Task.Delay(_interval, stoppingToken);
+            }    
         }
+        
     }
 }

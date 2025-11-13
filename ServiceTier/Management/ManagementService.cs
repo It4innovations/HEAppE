@@ -411,9 +411,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return string.IsNullOrEmpty(username)
-                ? managementLogic.RegenerateSecureShellKeyByPublicKey(publicKey, password, projectId).ConvertIntToExt()
-                : managementLogic.RegenerateSecureShellKey(username, password, projectId).ConvertIntToExt();
+            return managementLogic.RegenerateSecureShellKey(username, password, projectId).ConvertIntToExt();
         }
     }
 
@@ -440,10 +438,7 @@ public class ManagementService : IManagementService
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-            if (string.IsNullOrEmpty(username))
-                managementLogic.RemoveSecureShellKeyByPublicKey(publicKey, projectId);
-            else
-                managementLogic.RemoveSecureShellKey(username, projectId);
+            managementLogic.RemoveSecureShellKey(username, projectId);
         }
     }
 

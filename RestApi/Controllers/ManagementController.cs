@@ -1897,33 +1897,6 @@ public class ManagementController : BaseController<ManagementController>
     #region SecureShellKey
 
     /// <summary>
-    ///     Generate SSH key
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpPost("SecureShellKey")]
-    [RequestSizeLimit(300)]
-    [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult CreateSecureShellKeyObsolete(CreateSecureShellKeyModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        List<(string, string)> usernamePasswords = new()
-        {
-            (model.Username, model.Password)
-        };
-
-        return Ok(_managementService.CreateSecureShellKey(usernamePasswords, model.ProjectId, model.SessionCode));
-    }
-
-    /// <summary>
     ///     Get SSH keys for project
     /// </summary>
     /// <param name="projectId"></param>
@@ -2004,30 +1977,6 @@ public class ManagementController : BaseController<ManagementController>
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
-    [HttpPut("SecureShellKey")]
-    [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(PublicKeyExt), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult RecreateSecureShellKey(RegenerateSecureShellKeyModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-
-        return Ok(_managementService.RegenerateSecureShellKey(string.Empty, model.Password, model.PublicKey,
-            model.ProjectId, model.SessionCode));
-    }
-
-    /// <summary>
-    ///     Regenerate SSH key
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
     [HttpPut("RegenerateSecureShellKey")]
     [RequestSizeLimit(1000)]
     [ProducesResponseType(typeof(PublicKeyExt), StatusCodes.Status200OK)]
@@ -2044,30 +1993,6 @@ public class ManagementController : BaseController<ManagementController>
 
         return Ok(_managementService.RegenerateSecureShellKey(model.Username, model.Password, string.Empty,
             model.ProjectId, model.SessionCode));
-    }
-
-    /// <summary>
-    ///     Remove SSH key
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpDelete("SecureShellKey")]
-    [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult RemoveSecureShellKeyObsolete(RemoveSecureShellKeyModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-
-        _managementService.RemoveSecureShellKey(null, model.PublicKey, model.ProjectId, model.SessionCode);
-        return Ok("SecureShellKey revoked");
     }
 
     /// <summary>
@@ -2120,43 +2045,6 @@ public class ManagementController : BaseController<ManagementController>
         if(report.Any(x=> !x.IsClusterInitialized))
             return BadRequest(report);
         return Ok(report);
-    }
-
-    /// <summary>
-    ///     Test cluster access for robot account
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpPost("TestClusterAccessForAccount")]
-    [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult TestClusterAccessForAccountObsolete(TestClusterAccessForAccountModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-
-        List<ClusterAccessReportExt> report =
-            _managementService.TestClusterAccessForAccount(model.ProjectId, model.SessionCode, null);
-
-        if(report.Any(x=> !x.IsClusterAccessible))
-        {
-            var message = "Some of the clusters are not accessible with selected account";
-            _logger.LogWarning(message);
-            return BadRequest(message);
-        }
-        else
-        {
-            var message = "All clusters assigned to project are accessible with selected account.";
-            _logger.LogInformation(message);
-            return Ok(message);
-        }
     }
 
     /// <summary>

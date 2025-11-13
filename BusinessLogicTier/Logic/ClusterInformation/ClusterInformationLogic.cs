@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -171,6 +172,18 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             _log.Info($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
         }
         return credentials;
+    }
+    
+    public ClusterAuthenticationCredentials InitializeCredential(ClusterAuthenticationCredentials credential, long projectId, long? adaptorUserId)
+    {
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var status = managementLogic.InitializeClusterScriptDirectory(
+            projectId,
+            true,
+            adaptorUserId: adaptorUserId.HasValue ? adaptorUserId.Value : null,
+            username: credential.Username);
+        _log.Info($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
+        return credential;
     }
 
     public ClusterAuthenticationCredentials GetNextAvailableUserCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)

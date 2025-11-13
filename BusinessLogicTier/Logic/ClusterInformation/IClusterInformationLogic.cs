@@ -18,4 +18,7 @@ public interface IClusterInformationLogic
     Cluster GetClusterById(long clusterId);
     IEnumerable<ClusterNodeType> ListClusterNodeTypes();
     bool IsUserAvailableToRun(ClusterAuthenticationCredentials user);
+
+    public ClusterAuthenticationCredentials InitializeCredential(ClusterAuthenticationCredentials credential,
+        long projectId, long? adaptorUserId);
 }

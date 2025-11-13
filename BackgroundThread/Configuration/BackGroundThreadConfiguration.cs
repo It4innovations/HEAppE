@@ -27,12 +27,10 @@ public sealed class BackGroundThreadConfiguration
 
     public sealed class ClusterProjectCredentialsCheckConfiguration
     {
-        public static bool Enabled { get; set; } = false;
+        public static bool IsEnabled { get; set; } = false;
 
-        public static int IntervalMinutes { get; set; } = 0;
-
-        public static string DryRunJobScriptPath { get; set; } = "";
+        public static int IntervalMinutes { get; set; } = 60;
     };
 
-    public static ClusterProjectCredentialsCheckConfiguration ClusterProjectCredentialsCheck { get; } = new();
+    public static ClusterProjectCredentialsCheckConfiguration ClusterProjectCredentialsCheckSettings { get; } = new();
 }

@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.CertificateGenerator;
 using HEAppE.CertificateGenerator.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -799,87 +801,7 @@ public class ManagementLogic : IManagementLogic
 
         _unitOfWork.Save();
     }
-
-    /// <summary>
-    ///     Recreates encrypted SSH key for the specified user and saves it to the database.
-    /// </summary>
-    /// <param name="publicKey"></param>
-    /// <param name="password"></param>
-    /// <param name="projectId"></param>
-    /// <returns></returns>
-    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    [Obsolete]
-    public SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId)
-    {
-        var publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
-        var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
-            .ToList();
-        if (!clusterAuthenticationCredentials.Any())
-            throw new RequestedObjectDoesNotExistException("PublicKeyNotFound");
-
-        var username = clusterAuthenticationCredentials.First().Username;
-
-        _logger.Info($"Recreating SSH key for user {username}.");
-
-        var modificationDate = DateTime.UtcNow;
-        SSHGenerator sshGenerator = new();
-        var passphrase = StringUtils.GetRandomString();
-        var secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
-
-        foreach (var credentials in clusterAuthenticationCredentials)
-        {
-            credentials.PrivateKey = secureShellKey.PrivateKeyPEM;
-            credentials.PrivateKeyPassphrase = passphrase;
-            credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
-            credentials.CipherType = secureShellKey.CipherType;
-            credentials.ClusterProjectCredentials.ForEach(cpc =>
-            {
-                cpc.IsDeleted = false;
-                cpc.ModifiedAt = modificationDate;
-                cpc.ClusterProject.Project.ModifiedAt = modificationDate;
-            });
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
-        }
-
-        _unitOfWork.Save();
-        return secureShellKey;
-    }
-
-    /// <summary>
-    ///     Removes encrypted SSH key
-    /// </summary>
-    /// <param name="publicKey"></param>
-    /// <param name="projectId"></param>
-    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    [Obsolete]
-    public void RemoveSecureShellKeyByPublicKey(string publicKey, long projectId)
-    {
-        var publicKeyFingerprint = ComputePublicKeyFingerprint(publicKey);
-        var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository
-            .GetAllGeneratedWithFingerprint(publicKeyFingerprint, projectId)
-            .ToList();
-
-        if (!clusterAuthenticationCredentials.Any())
-            throw new RequestedObjectDoesNotExistException("PublicKeyNotFound");
-
-        var modificationDate = DateTime.UtcNow;
-        _logger.Info($"Removing SSH key for user {clusterAuthenticationCredentials.First().Username}.");
-        foreach (var credentials in clusterAuthenticationCredentials)
-        {
-            credentials.IsDeleted = true;
-            credentials.ClusterProjectCredentials.ForEach(cpc =>
-            {
-                cpc.IsDeleted = true;
-                cpc.ModifiedAt = modificationDate;
-                cpc.ClusterProject.Project.ModifiedAt = modificationDate;
-            });
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
-        }
-
-        _unitOfWork.Save();
-    }
-
+    
     /// <summary>
     ///     Initialize cluster script directory and create symbolic link for user
     /// </summary>
@@ -2434,7 +2356,6 @@ public class ManagementLogic : IManagementLogic
     public async Task<dynamic> CheckClusterProjectCredentialsStatus()
     {
         var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsUntracked();
-
         List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
         foreach (var clusterProjectCredential in clusterProjectCredentials)
         {
@@ -2442,6 +2363,16 @@ public class ManagementLogic : IManagementLogic
             var cluster = clusterProject.Cluster;
             var project = clusterProject.Project;
             var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
+            if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
+            {
+                if (!clusterProjectCredential.IsInitialized)
+                {
+                    //invoke ClusterInformationLogic
+                    var clusterInformationLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+                    clusterInformationLogic.InitializeCredential(clusterAuthCredentials, project.Id, null);
+                    
+                }
+            }
             // prepare task
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
             tasks.Add(scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential));
