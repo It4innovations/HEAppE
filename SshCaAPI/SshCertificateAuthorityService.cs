@@ -68,7 +68,7 @@ namespace SshCaAPI
             var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
                 IgnoreNullSerializer.Instance);
 
-            var request = new RestRequest($"sign", Method.Post)
+            var request = new RestRequest($"signJSON", Method.Post)
                 .AddStringBody(requestBody, DataFormat.Json);
 
             var response = await _basicRestClient.ExecuteAsync(request);

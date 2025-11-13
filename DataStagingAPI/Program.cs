@@ -12,6 +12,7 @@ using HEAppE.DataStagingAPI.Configuration;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
+using HEAppE.HpcConnectionFramework.Configuration;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Localization;
@@ -52,6 +53,8 @@ builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
 //IPRateLimitation
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+
+builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
 
 builder.Services.AddInMemoryRateLimiting();
 

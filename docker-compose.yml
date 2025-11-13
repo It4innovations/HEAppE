@@ -1,6 +1,6 @@
 services:
   sshagent:
-    image: ${DOCKER_REGISTRY-}sshagent
+    image: "${DOCKER_REGISTRY-}sshagent"
     container_name: "${INSTANCE_NAME}_sshagent"
     build:
       context: .
@@ -40,7 +40,7 @@ services:
       - db
 
   datastagingapi:
-    image: ${DOCKER_REGISTRY-}datastagingapi
+    image: "${DOCKER_REGISTRY-}datastagingapi"
     container_name: "${INSTANCE_NAME}_datastagingapi"
     build:
       context: .
@@ -63,7 +63,7 @@ services:
       - staging
 
   heappe:
-    image: ${DOCKER_REGISTRY-}heappe
+    image: "${DOCKER_REGISTRY-}heappe"
     container_name: "${INSTANCE_NAME}_heappe"
     build:
       context: .
@@ -88,21 +88,17 @@ services:
       - vaultNet
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    depends_on:
-      - mssql
 
   vault:
     image: hashicorp/vault:1.17.3
     container_name: "${INSTANCE_NAME}_vault"
-    expose:
-      - 8200:8200
+    ports:
+      - "8200:8200"
     environment:
-      - VAULT_ADDR=http://localhost:8200
+      VAULT_ADDR: "http://localhost:8200"
     volumes:
       - vault-volume:/vault
       - "${BASE_PATH}/vault/vault:/vault/config"
-    healthcheck:
-      retries: 5
     command: server
     cap_add:
       - IPC_LOCK
@@ -112,8 +108,8 @@ services:
   vaultagent:
     image: hashicorp/vault:1.17.3
     container_name: "${INSTANCE_NAME}_vaultagent"
-    expose:
-      - 8100:8100
+    ports:
+      - "8100:8100"
     volumes:
       - vault-agent-volume:/vault/agent
       - "${BASE_PATH}/vault/agent:/vault/config"
@@ -123,8 +119,6 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
-    depends_on:
-      - vault
 
   vault_init:
     build:
@@ -140,14 +134,12 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - "${VAULT_FILE_DIR_PATH}:/opt/ansibleVault/"
       - "${BASE_PATH}:/opt/confs/"
-      # Namapování aktuální cesty na /app uvnitř kontejneru
       - ${PWD}:/app
     networks:
       - vaultNet
     profiles:
       - initVault
 
-  
   vault_unseal:
     build:
       context: .
@@ -162,20 +154,14 @@ services:
       - /var/run/docker.sock:/var/run/docker.sock
       - "${BASE_PATH}:/opt/confs/"
       - "${VAULT_FILE_DIR_PATH}:/opt/ansibleVault/"
-      # Namapování aktuální cesty na /app uvnitř kontejneru
       - ${PWD}:/app
     networks:
       - vaultNet
-    depends_on:
-      - vault
     command: /opt/unsealOrInitHVault.sh
 
-
 volumes:
-  # Shared volumes
   app_volume:
   app_sftp_temp_volume:
-  # Invidual volumes
   sql_volume:
   vault-volume:
   vault-agent-volume:

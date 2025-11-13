@@ -24,6 +24,7 @@ using HEAppE.Utils;
 using log4net;
 using Renci.SshNet.Common;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 
 namespace HEAppE.BusinessLogicTier.logic.FileTransfer;
 
@@ -123,12 +124,14 @@ public class FileTransferLogic : IFileTransferLogic
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
         var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
+        //retrieve credentials from vault
+        clusterUserAuthCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetById(clusterUserAuthCredentials.Id);
         if (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKey))
             throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
         
         string certificate = string.Empty;
         string publicKey = clusterUserAuthCredentials.PrivateKey;
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
             certificate = _sshCertificateAuthorityService
                 .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, jobInfo.Specification.FileTransferMethod.ServerHostname)
@@ -151,7 +154,7 @@ public class FileTransferLogic : IFileTransferLogic
                 FileTransferCipherType = clusterUserAuthCredentials.CipherType,
                 CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
                 PrivateKey = clusterUserAuthCredentials.PrivateKey,
-                PrivateKeyCertificate = JwtTokenIntrospectionConfiguration.IsEnabled ? certificate : clusterUserAuthCredentials.PrivateKeyCertificate,
+                PrivateKeyCertificate = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) ? certificate : clusterUserAuthCredentials.PrivateKeyCertificate,
                 Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
             }
         };
@@ -210,7 +213,7 @@ public class FileTransferLogic : IFileTransferLogic
         }
 
         string certificate = string.Empty;
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
             certificate = _sshCertificateAuthorityService
                 .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, transferMethod.ServerHostname)
