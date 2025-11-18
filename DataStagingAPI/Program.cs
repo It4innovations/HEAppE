@@ -71,7 +71,7 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
 
-if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
 {
     builder.Services.AddHttpClient("LexisTokenExchangeClient");
     builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
@@ -92,7 +92,11 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 });
 
 builder.Services.AddDistributedMemoryCache();
-builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
+if (JwtTokenIntrospectionConfiguration.IsEnabled)
+{
+    builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
+}
+
 
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
@@ -227,6 +231,10 @@ ServiceActivator.Configure(app.Services);
 app.UseCors("HEAppEDefaultOrigins");
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
+if (LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    app.UseMiddleware<LexisAuthMiddleware>();
+}
 
 app.UseStatusCodePages();
 app.UseIpRateLimiting();

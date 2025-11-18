@@ -9,6 +9,7 @@
         <PackageReference Include="Duende.IdentityModel" Version="7.1.0" />
         <PackageReference Include="IdentityModel" Version="6.0.0" />
         <PackageReference Include="log4net" Version="3.1.0" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="9.0.8" />
         <PackageReference Include="Microsoft.Extensions.Http" Version="9.0.8" />
         <PackageReference Include="RestSharp" Version="112.1.0" />
         <PackageReference Include="SSH.NET" Version="2025.0.0" />

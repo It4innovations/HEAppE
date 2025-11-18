@@ -148,7 +148,7 @@ public class Startup
         services.AddControllers(options =>
         {
         
-            if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 options.Filters.Add(new AuthorizeFilter());
             }
@@ -164,7 +164,14 @@ public class Startup
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
         
-        services.AddJwtIntrospectionIfEnabled(Configuration);
+       
+
+        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            services.AddJwtIntrospectionIfEnabled(Configuration);
+        }
+
+
 
         //CORS
         services.AddCors(options =>
@@ -183,7 +190,7 @@ public class Startup
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
-        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             services.AddHttpClient("LexisTokenExchangeClient");
             services.AddSingleton<ILexisTokenService, LexisTokenService>();   
@@ -193,7 +200,7 @@ public class Startup
         {
             
             //if introspection is enabled, add JWT Bearer authentication
-            if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
@@ -410,6 +417,10 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+        if (LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            app.UseMiddleware<LexisAuthMiddleware>();
+        }
         app.UseMiddleware<LexisTokenExchangeMiddleware>();
         app.UseAuthentication();
         app.UseAuthorization();

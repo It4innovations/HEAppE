@@ -64,11 +64,23 @@ public class HttpContextKeys : IHttpContextKeys
 
         try
         {
-            var user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
+            AdaptorUser user = null;
+            if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
-                OpenIdLexisAccessToken = (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) ? 
-                    Context.LEXISToken : Context.FIPToken
-            });
+                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
+                {
+                    OpenIdLexisAccessToken = Context.LEXISToken
+                });
+            }
+            else if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            {
+                user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
+                {
+                    OpenIdLexisAccessToken = (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) ? 
+                        Context.LEXISToken : Context.FIPToken
+                });
+            }
+            
 
             _context.AdaptorUserId = user.Id;
             return user;

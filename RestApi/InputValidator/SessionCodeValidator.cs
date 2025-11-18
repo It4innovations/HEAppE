@@ -12,7 +12,7 @@ public class SessionCodeValidator : AbstractValidator
     public override ValidationResult Validate()
     {
         var message = string.Empty;
-        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (!JwtTokenIntrospectionConfiguration.IsEnabled && !LexisAuthenticationConfiguration.UseBearerAuth)
         {
             if (_validationObject is null)
             {

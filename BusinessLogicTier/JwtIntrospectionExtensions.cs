@@ -3,18 +3,22 @@ using IdentityModel.Client;
 using System;
 using System.Linq;
 using System.Net.Http;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
 using SshCaAPI;
 
 
 public static class JwtIntrospectionExtensions
 {
-    public static IServiceCollection AddJwtIntrospectionIfEnabled(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddJwtIntrospectionIfEnabled(this IServiceCollection services,
+        IConfiguration configuration)
     {
         if (!JwtTokenIntrospectionConfiguration.IsEnabled)
             return services;
@@ -49,7 +53,8 @@ public static class JwtIntrospectionExtensions
                 {
                     OnTokenValidated = async context =>
                     {
-                        var sshCaService = context.HttpContext.RequestServices.GetRequiredService<ISshCertificateAuthorityService>();
+                        var sshCaService = context.HttpContext.RequestServices
+                            .GetRequiredService<ISshCertificateAuthorityService>();
                         try
                         {
                             await context.HttpContext.RequestServices
@@ -62,7 +67,8 @@ public static class JwtIntrospectionExtensions
                             return;
                         }
 
-                        var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+                        var httpClientFactory =
+                            context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                         var client = httpClientFactory.CreateClient();
                         client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
 
@@ -96,5 +102,4 @@ public static class JwtIntrospectionExtensions
 
         return services;
     }
-
 }

@@ -18,7 +18,18 @@ public class LexisTokenExchangeMiddleware
 
     public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService)
     {
-        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled &&
+        if ((LexisAuthenticationConfiguration.UseBearerAuth && 
+            !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) &&
+        context.Request.Headers.TryGetValue("Authorization", out var authHeaderLexis) &&
+        authHeaderLexis.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+        {
+            var incomingToken = authHeaderLexis.ToString()["Bearer ".Length..].Trim();
+            var contextKeysService = context.RequestServices
+                .GetRequiredService<IHttpContextKeys>();
+            contextKeysService.Context.LEXISToken = incomingToken;
+            
+        }
+        else if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled &&
             context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
             authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
