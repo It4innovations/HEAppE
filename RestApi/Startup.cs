@@ -422,9 +422,9 @@ public class Startup
         {
             app.UseMiddleware<LexisAuthMiddleware>();
         }
-        app.UseMiddleware<LexisTokenExchangeMiddleware>();
         if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
+            app.UseMiddleware<LexisTokenExchangeMiddleware>();
             app.UseAuthentication();
             app.UseAuthorization();
         }
