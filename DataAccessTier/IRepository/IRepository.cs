@@ -11,4 +11,5 @@ public interface IRepository<T> where T : IdentifiableDbEntity
     void Delete(long id);
     void Delete(T entityToDelete);
     void Update(T entityToUpdate);
+    void Detach(T entity);
 }

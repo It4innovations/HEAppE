@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -12,6 +13,7 @@ using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
+using Org.BouncyCastle.Tls;
 using Renci.SshNet;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
@@ -355,6 +357,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     {
         _commands.CopyJobDataFromTemp(connectorClient, jobInfo, localBasePath, hash);
     }
+    
+    #endregion
 
     #region SSH tunnel methods
 
@@ -390,6 +394,10 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         return _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
     }
 
+    #endregion
+    
+    #region Other methods
+
     /// <summary>
     ///     Initialize Cluster Script Directory
     /// </summary>
@@ -411,7 +419,90 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         return _commands.CopyJobFiles(schedulerConnectionConnection, jobInfo, sourceDestinations);
     }
 
-    #endregion
+    private static string PrepareSbatchCommand(
+        string script_name,
+        string job_name, string account, string partition,
+        int nodes, int ntasks_per_node, TimeSpan? time,
+        string output, string error
+    )
+    {
+        if (time == null)
+            time = TimeSpan.FromMinutes(1);
+        var result = "sbatch";
+        result += " --job-name=" + job_name;
+        result += " --account=" + account;
+        result += " --partition=" + partition;
+        result += " --nodes=" + nodes;
+        result += " --ntasks-per-node=" + ntasks_per_node;
+        result += " --time=" + $"{time:hh\\:mm\\:ss}";
+        result += " --output=" + output;
+        result += " --error=" + error;
+        result += " --test-only " + script_name;
+        return result;
+    }
+
+    public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
+    {
+        SshCommandWrapper command;
+        
+        Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
+        Project project = clusterProjectCredential.ClusterProject.Project;
+
+        int clusterConnectionFailedCount = 0;
+        int dryRunJobFailedCount = 0;
+
+        foreach (var nodeType in cluster.NodeTypes)
+        {
+            var partition = nodeType.Queue;
+            var testCommand = PrepareSbatchCommand(
+                HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(project.AccountingString),
+                job_name: "dryrun",
+                account: project.AccountingString,
+                partition: partition,
+                nodes: 1,
+                ntasks_per_node: 1,
+                time: TimeSpan.FromSeconds(1),
+                output: "dummy.out",
+                error: "dummy.err"
+            ) + "\n";
+            var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
+            sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                checkLog.VaultCredentialOk = true;
+                checkLog.ClusterConnectionOk = true;
+                if (command.ExitStatus == 0)
+                {
+                    checkLog.DryRunJobOk = true;
+                }
+                else
+                {
+                    checkLog.DryRunJobOk = false;
+                    checkLog.ErrorMessage += command.Error + "\n";
+                    ++dryRunJobFailedCount;
+                }
+            }
+            catch (SshCommandException e)
+            {
+                ++clusterConnectionFailedCount;
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
+            catch (Exception e)
+            {
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
+        }
+
+        if (clusterConnectionFailedCount > 0)
+            checkLog.ClusterConnectionOk = false;
+
+        if (dryRunJobFailedCount > 0)
+            checkLog.DryRunJobOk = false;
+
+        await Task.Delay(1);
+        return null;
+    }
 
     #endregion
 }

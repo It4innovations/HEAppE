@@ -1,16 +1,18 @@
-﻿using System;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using System;
 using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier;
-using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.Vault.Settings;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
@@ -20,14 +22,23 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
-using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.Management;
 using HEAppE.ServiceTier.Management;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using log4net;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
+using System;
+using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using Microsoft.AspNetCore.Authorization;
+using SshCaAPI;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -43,11 +54,11 @@ public class ManagementController : BaseController<ManagementController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache) : base(logger,
+    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _managementService = new ManagementService();
-        _userAndManagementService = new UserAndLimitationManagementService(memoryCache);
+        _managementService = new ManagementService(sshCertificateAuthorityService, httpContextKeys);
+        _userAndManagementService = new UserAndLimitationManagementService(memoryCache, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion
@@ -1886,33 +1897,6 @@ public class ManagementController : BaseController<ManagementController>
     #region SecureShellKey
 
     /// <summary>
-    ///     Generate SSH key
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpPost("SecureShellKey")]
-    [RequestSizeLimit(300)]
-    [ProducesResponseType(typeof(List<PublicKeyExt>), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult CreateSecureShellKeyObsolete(CreateSecureShellKeyModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateSecureShellKey\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        List<(string, string)> usernamePasswords = new()
-        {
-            (model.Username, model.Password)
-        };
-
-        return Ok(_managementService.CreateSecureShellKey(usernamePasswords, model.ProjectId, model.SessionCode));
-    }
-
-    /// <summary>
     ///     Get SSH keys for project
     /// </summary>
     /// <param name="projectId"></param>
@@ -1993,30 +1977,6 @@ public class ManagementController : BaseController<ManagementController>
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
-    [HttpPut("SecureShellKey")]
-    [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(PublicKeyExt), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult RecreateSecureShellKey(RegenerateSecureShellKeyModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-
-        return Ok(_managementService.RegenerateSecureShellKey(string.Empty, model.Password, model.PublicKey,
-            model.ProjectId, model.SessionCode));
-    }
-
-    /// <summary>
-    ///     Regenerate SSH key
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
     [HttpPut("RegenerateSecureShellKey")]
     [RequestSizeLimit(1000)]
     [ProducesResponseType(typeof(PublicKeyExt), StatusCodes.Status200OK)]
@@ -2033,30 +1993,6 @@ public class ManagementController : BaseController<ManagementController>
 
         return Ok(_managementService.RegenerateSecureShellKey(model.Username, model.Password, string.Empty,
             model.ProjectId, model.SessionCode));
-    }
-
-    /// <summary>
-    ///     Remove SSH key
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpDelete("SecureShellKey")]
-    [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult RemoveSecureShellKeyObsolete(RemoveSecureShellKeyModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-
-        _managementService.RemoveSecureShellKey(null, model.PublicKey, model.ProjectId, model.SessionCode);
-        return Ok("SecureShellKey revoked");
     }
 
     /// <summary>
@@ -2109,43 +2045,6 @@ public class ManagementController : BaseController<ManagementController>
         if(report.Any(x=> !x.IsClusterInitialized))
             return BadRequest(report);
         return Ok(report);
-    }
-
-    /// <summary>
-    ///     Test cluster access for robot account
-    /// </summary>
-    /// <param name="model"></param>
-    /// <returns></returns>
-    [HttpPost("TestClusterAccessForAccount")]
-    [RequestSizeLimit(1000)]
-    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
-    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
-    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    [Obsolete]
-    public IActionResult TestClusterAccessForAccountObsolete(TestClusterAccessForAccountModelObsolete model)
-    {
-        _logger.LogDebug("Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
-        var validationResult = new ManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-
-        List<ClusterAccessReportExt> report =
-            _managementService.TestClusterAccessForAccount(model.ProjectId, model.SessionCode, null);
-
-        if(report.Any(x=> !x.IsClusterAccessible))
-        {
-            var message = "Some of the clusters are not accessible with selected account";
-            _logger.LogWarning(message);
-            return BadRequest(message);
-        }
-        else
-        {
-            var message = "All clusters assigned to project are accessible with selected account.";
-            _logger.LogInformation(message);
-            return Ok(message);
-        }
     }
 
     /// <summary>
@@ -2259,6 +2158,153 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_managementService.ListAccountingStates(projectId, sessionCode));
+    }
+
+    #endregion
+
+    #region Status
+    [HttpPost("Status")]
+    [RequestSizeLimit(500)]
+    [ProducesResponseType(typeof(StatusExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public async Task<IActionResult> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
+        var model = new StatusModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        return Ok(await _managementService.Status(projectId, timeFrom, timeTo, sessionCode));
+    }
+
+    [HttpPost("StatusErrorLogs")]
+    [RequestSizeLimit(500)]
+    [ProducesResponseType(typeof(StatusCheckLogsExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"Status\"");
+        var model = new StatusModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        return Ok(_managementService.StatusErrorLogs(projectId, timeFrom, timeTo, sessionCode));
+    }
+
+    /// <summary>
+    ///     List database backups
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("Backups")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(List<DatabaseBackupExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListDatabaseBackups([FromQuery] ListDatabaseBackupsModel model)
+    {
+        _logger.LogDebug($"Endpoint: \"Management\" Method: \"ListDatabaseBackups\" Parameters: From: \"{model.FromDateTime}\", To: \"{model.ToDateTime}\", Type: \"{model.Type}\", SessionCode: \"{model.SessionCode}\"");
+
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        List<DatabaseBackupExt> report = _managementService.ListDatabaseBackups(model.FromDateTime, model.ToDateTime, model.Type, model.SessionCode);
+
+        return Ok(report);
+    }
+
+    /// <summary>
+    ///     Full backup database
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpPost("BackupDatabase")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabase([Required] string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabase\"");
+
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var backupFilePath = _managementService.BackupDatabase(sessionCode);
+
+        return Ok($"Full backup database was created successfully at '{backupFilePath}'.");
+    }
+
+    /// <summary>
+    ///     Backup database transaction logs
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    [HttpPost("BackupDatabaseTransactionLogs")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabaseTransactionLogs(string sessionCode)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabaseTransactionLogs\"");
+
+        var validationResult = new SessionCodeValidator(sessionCode).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        var backupFilePath = _managementService.BackupDatabaseTransactionLogs(sessionCode);
+
+        return Ok($"Database transaction logs backup was created successfully at '{backupFilePath}'.");
+    }
+
+    /// <summary>
+    ///     Restore database from specified backup file
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("RestoreDatabase")]
+    [RequestSizeLimit(1000)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult BackupDatabase(RestoreDatabaseModel model)
+    {
+        _logger.LogDebug($"Endpoint: \"Management\" Method: \"RestoreDatabase\" Parameters:  BackupFileName : \"{model.BackupFileName}\", IncludeLogs: \"{model.IncludeLogs}\", SessionCode: \"{model.SessionCode}\"");
+
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        _managementService.RestoreDatabase(model.BackupFileName, model.IncludeLogs, model.SessionCode);
+
+        return Ok($"Database was restored successfully from backup '{model.BackupFileName}'.");
     }
 
     #endregion

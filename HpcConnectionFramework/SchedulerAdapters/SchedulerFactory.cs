@@ -11,6 +11,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
+using SshCaAPI;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
@@ -56,7 +57,7 @@ public abstract class SchedulerFactory
     /// <param name="clusterConf">Cluster configuration</param>
     /// <param name="project">Project</param>
     /// <returns></returns>
-    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, long? adaptorUserId)
+    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService,long? adaptorUserId)
     {
         if (!project.IsOneToOneMapping)
             adaptorUserId = null;
@@ -88,7 +89,7 @@ public abstract class SchedulerFactory
                 connectionPoolMaxSize,
                 connectionPoolCleaningInterval,
                 connectionPoolMaxUnusedInterval,
-                CreateSchedulerConnector(clusterConf),
+                CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService),
                 clusterConf.Port);
         }
 
@@ -115,7 +116,7 @@ public abstract class SchedulerFactory
     /// <param name="configuration">Cluster configuration</param>
     /// <param name="jobInfoProject"></param>
     /// <returns></returns>
-    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, long? adaptorUserId);
+    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId);
 
     /// <summary>
     ///     Create scheduler adapter
@@ -134,7 +135,7 @@ public abstract class SchedulerFactory
     /// </summary>
     /// <param name="configuration">Cluster configuration</param>
     /// <returns></returns>
-    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration);
+    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
 
     #endregion
 }

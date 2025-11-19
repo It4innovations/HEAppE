@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -7,6 +8,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
 
@@ -49,8 +51,6 @@ public interface IManagementLogic
     List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId);
     SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);
     void RemoveSecureShellKey(string publicKey, long projectId);
-    SecureShellKey RegenerateSecureShellKeyByPublicKey(string publicKey, string password, long projectId);
-    void RemoveSecureShellKeyByPublicKey(string publicKey, long projectId);
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
@@ -176,4 +176,15 @@ public interface IManagementLogic
 
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
     List<AccountingState> ListAccountingStates(long projectId);
+
+    string BackupDatabase();
+    string BackupDatabaseTransactionLogs();
+    List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type);
+    void RestoreDatabase(string backupFileName, bool includeLogs);
+
+    Task<Status> Status(long projectId, DateTime? timeFrom, DateTime? timeTo);
+
+    StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo);
+
+    Task<dynamic> CheckClusterProjectCredentialsStatus();
 }

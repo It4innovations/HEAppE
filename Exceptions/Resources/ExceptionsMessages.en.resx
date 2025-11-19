@@ -309,7 +309,7 @@
   <data name="RequestedObjectDoesNotExistException_ClusterAuthenticationCredentialsNotFound" xml:space="preserve">
     <value>Requested ClusterAuthenticationCredential for cluster Id '{0}' with Project Id '{1}' and AdaptorUser Id '{2}' has no reference in the HEAppE.</value>
   </data>
-    <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
+  <data name="RequestedObjectDoesNotExistException_CommandTemplateNotFound" xml:space="preserve">
     <value>The specified command template is not defined in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_CommandTemplateNotReferencedToProject" xml:space="preserve">
@@ -539,5 +539,32 @@
   </data>
   <data name="NotAllowedException_ClusterAccountNotInitialized" xml:space="preserve">
     <value>No initialized credentials found for project `{0}`. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.</value>
+  </data>
+  <data name="DatabaseBackupException_BackupTransactionLogsCantBeDone" xml:space="preserve">
+    <value>Database transaction logs backup can't be done. There needs to exist full backup and database need to be in 'FULL' or 'BULK_LOGGED' recovery model.</value>
+  </data>
+  <data name="DatabaseBackupException_FullBackupCantBeDone" xml:space="preserve">
+    <value>Database full backup can't be done. Database needs to be in 'FULL' or 'BULK_LOGGED' recovery model.</value>
+  </data>
+  <data name="DatabaseBackupException_FullBackupException" xml:space="preserve">
+    <value>An exception occured during execution of the full database backup.</value>
+  </data>
+  <data name="DatabaseBackupException_TransactionLogsBackupException" xml:space="preserve">
+    <value>An exception occured during execution of the transaction logs backup.</value>
+  </data>
+  <data name="DatabaseBackupException_ListDatabaseBackupsException" xml:space="preserve">
+    <value>Exception thrown when retrieving database backups.</value>
+  </data>
+  <data name="DatabaseRestoreExternalException_BackupFileNameNotFoundException" xml:space="preserve">
+    <value>Specified backup file '{0}' not found.</value>
+  </data>
+  <data name="DatabaseRestoreException_RestoreDatabaseException" xml:space="preserve">
+    <value>An exception occured during execution of the full database restore from backup.</value>
+  </data>
+  <data name="AuthenticationTypeException_IntrospectionTokenNotValid" xml:space="preserve">
+    <value>Invalid or not active token provided for introspection. Unable to authenticate user by provided credentials.</value>
+  </data>
+  <data name="SshCAServiceTypeException_UnableToRetrieveSshkey" xml:space="preserve">
+    <value>Unable to retrieve private key from SSH CA.</value>
   </data>
 </root>

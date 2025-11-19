@@ -2,6 +2,8 @@ using System.Globalization;
 using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
+using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
 using HEAppE.DataStagingAPI;
@@ -10,10 +12,13 @@ using HEAppE.DataStagingAPI.Configuration;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
+using HEAppE.HpcConnectionFramework.Configuration;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
+using SshCaAPI;
+using SshCaAPI.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -43,9 +48,13 @@ else
         throw new Exception("Configuration files not found!");
 }
 
+builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
+
 //IPRateLimitation
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
+
+builder.Configuration.Bind("HPCConnectionFrameworkSettings", new HPCConnectionFrameworkConfiguration());
 
 builder.Services.AddInMemoryRateLimiting();
 
@@ -54,6 +63,19 @@ builder.Services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounte
 builder.Services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
 builder.Services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
 builder.Services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
+    SshCaSettings.BaseUri,
+    SshCaSettings.CAName,
+    SshCaSettings.ConnectionTimeoutInSeconds
+));
+builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
+builder.Services.AddScoped<IRequestContext, RequestContext>();
+
+if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    builder.Services.AddHttpClient("LexisTokenExchangeClient");
+    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+}
 
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
@@ -68,6 +90,22 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
     if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
         conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
 });
+
+builder.Services.AddDistributedMemoryCache();
+if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    builder.Services.AddHttpClient("LexisTokenExchangeClient");
+    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
+    builder.Services.AddAuthentication("Bearer");
+    builder.Services.AddAuthorization();
+}
+if (JwtTokenIntrospectionConfiguration.IsEnabled)
+{
+    builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
+}
+
+
+
 
 //TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
@@ -103,6 +141,7 @@ builder.Services.AddSwaggerGen(options =>
             Url = new Uri(APIAdoptions.SwaggerConfiguration.ContactUrl)
         }
     });
+
     options.AddSecurityDefinition(APIAdoptions.AuthenticationParamHeaderName, new OpenApiSecurityScheme
     {
         Description = $"{APIAdoptions.AuthenticationParamHeaderName} must appear in header",
@@ -111,6 +150,33 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
+
+    if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+    {
+        options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer",
+            BearerFormat = "JWT"
+        });
+        options.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference
+                    {
+                        Type = ReferenceType.SecurityScheme,
+                        Id = "Bearer"
+                    }
+                },
+                Array.Empty<string>()
+            }
+        });
+    }
     var key = new OpenApiSecurityScheme
     {
         Reference = new OpenApiReference
@@ -126,6 +192,7 @@ builder.Services.AddSwaggerGen(options =>
     };
     options.AddSecurityRequirement(requirement);
 });
+
 
 
 //Localization and resources
@@ -164,6 +231,7 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLifetime.Singleton);
 
+
 var app = builder.Build();
 LogicFactory.ServiceProvider = app.Services;
 // Configure the HTTP request pipeline.
@@ -175,10 +243,12 @@ ServiceActivator.Configure(app.Services);
 app.UseCors("HEAppEDefaultOrigins");
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
-
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
+
+
 app.RegisterApiRoutes();
+
 
 app.UseSwagger(swagger =>
 {
@@ -206,5 +276,16 @@ app.UseSwaggerUI(swaggerUI =>
     swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
     swaggerUI.EnableTryItOutByDefault();
 });
+
+if (LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    app.UseMiddleware<LexisAuthMiddleware>();
+}
+if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    app.UseMiddleware<LexisTokenExchangeMiddleware>();
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 
 app.Run();

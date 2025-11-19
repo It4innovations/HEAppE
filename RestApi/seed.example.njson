@@ -148,15 +148,16 @@
          }
       ],
       "ClusterProjects":[
-         {
-            "Id":1,
-            "ClusterId":1,
-            "ProjectId":1,
-            "LocalBasepath":"{LocalBasepath}",
-            "CreatedAt":"{CreatedAt}",
-            "ModifiedAt":null,
-            "IsDeleted":false
-         }
+        {
+            "Id": 1,
+            "ClusterId": 1,
+            "ProjectId": 1,
+            "ScratchStoragePath": "{ScratchStoragePath}",
+            "PermanentStoragePath": "{PermanentStoragePath}",
+            "CreatedAt": "{CreatedAt}",
+            "ModifiedAt": null,
+            "IsDeleted": false
+        }
       ],
       "ClusterProjectCredentials":[
          {

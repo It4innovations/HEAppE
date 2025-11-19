@@ -12,6 +12,7 @@ namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 public interface IUserAndLimitationManagementLogic
 {
     AdaptorUser GetUserForSessionCode(string sessionCode);
+    AdaptorUser GetUserById(long id);
     Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials);
     Task<AdaptorUser> AuthenticateUserToOpenIdAsync(OpenIdCredentials credentials);
     Task<ApplicationCredentialsDTO> AuthenticateOpenIdUserToOpenStackAsync(AdaptorUser adaptorUser, long projectId);
@@ -20,6 +21,7 @@ public interface IUserAndLimitationManagementLogic
     IList<ProjectResourceUsage> CurrentUsageAndLimitationsForUserByProject(AdaptorUser loggedUser,
         IEnumerable<Project> projects);
 
+    public Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials);
     bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo);
     bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo);
     AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser, long projectId);

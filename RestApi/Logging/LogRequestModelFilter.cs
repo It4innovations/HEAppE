@@ -2,25 +2,31 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Text.Json;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Logging;
 
 public class LogRequestModelFilter : ActionFilterAttribute
 {
     private readonly ILogger<LogRequestModelFilter> _logger;
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IHttpContextKeys _httpContextKeys;
     private static readonly HashSet<string> SensitiveProperties = new(StringComparer.OrdinalIgnoreCase)
     {
         "SessionCode", "Password", "Token", "Secret", "Key"
     };
 
-    public LogRequestModelFilter(ILogger<LogRequestModelFilter> logger)
+    public LogRequestModelFilter(ILogger<LogRequestModelFilter> logger, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
+        _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
     }
 
     public override void OnActionExecuting(ActionExecutingContext context)
@@ -175,7 +181,7 @@ public class LogRequestModelFilter : ActionFilterAttribute
         try
         {
             using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-            var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork);
+            var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
             
             return (loggedUser?.Id ?? -1, loggedUser?.Username ?? "Unknown Username");

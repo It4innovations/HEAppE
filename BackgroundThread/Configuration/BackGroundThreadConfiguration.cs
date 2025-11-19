@@ -24,4 +24,13 @@ public sealed class BackGroundThreadConfiguration
     ///     Remove unused temporary file transfer key in seconds
     /// </summary>
     public static int FileTransferKeyRemovalCheck { get; set; } = 10800;
+
+    public sealed class ClusterProjectCredentialsCheckConfiguration
+    {
+        public static bool IsEnabled { get; set; } = false;
+
+        public static int IntervalMinutes { get; set; } = 60;
+    };
+
+    public static ClusterProjectCredentialsCheckConfiguration ClusterProjectCredentialsCheckSettings { get; } = new();
 }

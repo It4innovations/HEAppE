@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -446,6 +447,58 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             combJobIdAndJobArrayIndex.Add(scheduledJobId.Replace("[]", $"[{i}]"));
 
         return combJobIdAndJobArrayIndex;
+    }
+    public async Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog)
+    {
+        SshCommandWrapper command;
+        Cluster cluster = clusterProjectCredential.ClusterProject.Cluster;
+        Project project = clusterProjectCredential.ClusterProject.Project;
+
+        int clusterConnectionFailedCount = 0;
+        int dryRunJobFailedCount = 0;
+
+        foreach (var nodeType in cluster.NodeTypes)
+        {
+            var partition = nodeType.Queue;
+            var script_name = HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(project.AccountingString);
+            var testCommand = $"[ -f {script_name} ]"; // just check that file to run scripts exists
+            var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
+            sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+            try
+            {
+                command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
+                checkLog.VaultCredentialOk = true;
+                checkLog.ClusterConnectionOk = true;
+                if (command.ExitStatus == 0)
+                {
+                    checkLog.DryRunJobOk = true;
+                }
+                else
+                {
+                    checkLog.DryRunJobOk = false;
+                    checkLog.ErrorMessage += command.Error + "\n";
+                    ++dryRunJobFailedCount;
+                }
+            }
+            catch (SshCommandException e)
+            {
+                ++clusterConnectionFailedCount;
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
+            catch (Exception e)
+            {
+                checkLog.ErrorMessage += e.Message + "\n";
+            }
+        }
+
+        if (clusterConnectionFailedCount > 0)
+            checkLog.ClusterConnectionOk = false;
+
+        if (dryRunJobFailedCount > 0)
+            checkLog.DryRunJobOk = false;
+
+        await Task.Delay(1);
+        return null;
     }
 
     #endregion

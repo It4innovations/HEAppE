@@ -1,13 +1,16 @@
 ﻿using System.Collections.Generic;
+using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.ServiceTier.FileTransfer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -18,7 +21,7 @@ public class FileTransferController : BaseController<FileTransferController>
 {
     #region Instances
 
-    private readonly IFileTransferService _service = new FileTransferService();
+    private readonly IFileTransferService _service;
 
     #endregion
 
@@ -29,9 +32,10 @@ public class FileTransferController : BaseController<FileTransferController>
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache) : base(logger,
+    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
+        _service = new FileTransferService(sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

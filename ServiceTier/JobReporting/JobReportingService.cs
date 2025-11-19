@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -12,6 +13,7 @@ using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
+using SshCaAPI;
 
 namespace HEAppE.ServiceTier.JobReporting;
 
@@ -23,6 +25,8 @@ public class JobReportingService : IJobReportingService
     ///     Logger
     /// </summary>
     private static ILog _logger;
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IHttpContextKeys _httpContextKeys;
 
     #endregion
 
@@ -31,8 +35,10 @@ public class JobReportingService : IJobReportingService
     /// <summary>
     ///     Constructor
     /// </summary>
-    public JobReportingService()
+    public JobReportingService(ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
+        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
+        _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
         _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
@@ -43,7 +49,7 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter);
             var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
             return jobReportingLogic.UserGroupListReport(projects, loggedUser.Id)
@@ -58,8 +64,8 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
-                    AdaptorUserRoleType.GroupReporter);
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.GroupReporter); 
             var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
             var projectIds = projects.Select(p => p.Id).ToList();
             var reporterGroups = loggedUser.Groups
@@ -79,7 +85,7 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Reporter);
             var group = loggedUser.Groups.FirstOrDefault(val => val.Id == groupId);
             if (group == null) throw new NotAllowedException("NotAllowedToRequestReport");
@@ -97,7 +103,7 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Reporter);
 
             var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
@@ -118,7 +124,7 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Reporter);
             var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
             var projectIds = projects.Select(p => p.Id).ToList();
@@ -135,7 +141,7 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter);
             var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
             return reportingLogic.AggregatedJobsByStateReport(projects).Select(s => s.ConvertIntToExt());
@@ -147,7 +153,7 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter);
             var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
             var userGroupIds = loggedUser.Groups.Select(val => val.Id).Distinct().ToList();

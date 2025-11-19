@@ -1,17 +1,21 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using HEAppE.DomainObjects.ClusterInformation;
+﻿using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
+using HEAppE.DomainObjects.Management;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using static HEAppE.DomainObjects.Management.Status;
+using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt;
+using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt.ByClusterAuthenticationCredentialExt;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace HEAppE.ExtModels.JobManagement.Converts;
 
@@ -325,6 +329,21 @@ public static class JobManagementConverts
         return convert;
     }
 
+    public static DatabaseBackupExt ConvertIntToExt(
+        this DatabaseBackup databaseBackup)
+    {
+        var convert = new DatabaseBackupExt
+        {
+            Type = databaseBackup.Type.ConvertIntToExt(),
+            FileName = databaseBackup.FileName,
+            FileSizeMB = databaseBackup.FileSizeMB,
+            TimeStamp = databaseBackup.TimeStamp,
+            Path = databaseBackup.Path,
+        };
+
+        return convert;
+    }
+
     #endregion
 
     #region Methods for Enums Converts
@@ -338,6 +357,17 @@ public static class JobManagementConverts
         }
 
         return TaskPriority.Average;
+    }
+
+    public static DatabaseBackupType ConvertExtToInt(this DatabaseBackupTypeExt? backupType)
+    {
+        if (backupType.HasValue)
+        {
+            _ = Enum.TryParse(backupType.ToString(), out DatabaseBackupType convert);
+            return convert;
+        }
+
+        return DatabaseBackupType.Full;
     }
 
     public static JobStateExt ConvertIntToExt(this JobState jobState)
@@ -355,6 +385,110 @@ public static class JobManagementConverts
     public static TaskPriorityExt ConvertIntToExt(this TaskPriority taskPriority)
     {
         _ = Enum.TryParse(taskPriority.ToString(), out TaskPriorityExt convert);
+        return convert;
+    }
+
+    public static StatusExt ConvertIntToExt(this Status status)
+    {
+        var convert = new StatusExt()
+        {
+            ProjectId = status.ProjectId,
+            TimeFrom = status.TimeFrom,
+            TimeTo = status.TimeTo,
+            Statistics = new StatusExt.StatisticsExt_
+            {
+                TotalChecks = status.Statistics.TotalChecks,
+                VaultCredential = new StatusExt.VaultCredentialCountsExt_()
+                {
+                    OkCount = status.Statistics.VaultCredential.OkCount,
+                    FailCount = status.Statistics.VaultCredential.FailCount
+                },
+                ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
+                {
+                    OkCount = status.Statistics.ClusterConnection.OkCount,
+                    FailCount = status.Statistics.ClusterConnection.FailCount
+                },
+                DryRunJob = new StatusExt.ClusterConnectionCountsExt_()
+                {
+                    OkCount = status.Statistics.DryRunJob.OkCount,
+                    FailCount = status.Statistics.DryRunJob.FailCount
+                }
+            },
+            Details = new List<StatusExt.DetailExt_>()
+        };
+
+        foreach (var detail in status.Details)
+        {
+            List<StatusExt.DetailExt_.CheckLogExt_> errors = null;
+
+            (convert.Details as List<StatusExt.DetailExt_>).Add(new StatusExt.DetailExt_()
+            {
+                CheckTimestamp = detail.CheckTimestamp,
+                ClusterAuthenticationCredential = new StatusExt.DetailExt_.ClusterAuthenticationCredentialExt_()
+                {
+                    Id = detail.ClusterAuthenticationCredential.Id,
+                    Username = detail.ClusterAuthenticationCredential.Username,
+                },
+                VaultCredential = new StatusExt.VaultCredentialCountsExt_()
+                {
+                    OkCount = detail.VaultCredential.OkCount,
+                    FailCount = detail.VaultCredential.FailCount
+                },
+                ClusterConnection = new StatusExt.ClusterConnectionCountsExt_()
+                {
+                    OkCount = detail.ClusterConnection.OkCount,
+                    FailCount = detail.ClusterConnection.FailCount
+                },
+                DryRunJob = new StatusExt.DryRunJobCountsExt_()
+                {
+                    OkCount = detail.DryRunJob.OkCount,
+                    FailCount = detail.DryRunJob.FailCount
+                },
+                Errors = errors
+            });
+        }
+
+        return convert;
+    }
+
+    public static StatusCheckLogsExt ConvertIntToExt(this StatusCheckLogs status)
+    {
+        var byClusterAuthenticationCredentialExt = new List<ByClusterAuthenticationCredentialExt>();
+        var convert = new StatusCheckLogsExt()
+        {
+            ByClusterAuthenticationCredential = byClusterAuthenticationCredentialExt
+        };
+        
+        foreach (var error in status.Errors)
+        {
+            var checkLogsExt = new List<CheckLogExt>();
+            foreach (var checkLog in error.CheckLogs)
+                checkLogsExt.Add(new CheckLogExt()
+                {
+                    CheckTimestamp = checkLog.CheckTimestamp,
+                    ClusterConnectionOk = checkLog.ClusterConnectionOk,
+                    DryRunJobOk = checkLog.DryRunJobOk,
+                    VaultCredentialOk = checkLog.VaultCredentialOk,
+                    ErrorMessage = checkLog.ErrorMessage
+                });
+            var errorExt = new ByClusterAuthenticationCredentialExt()
+            {
+                ClusterAuthenticationCredential = new ClusterAuthenticationCredentialExt()
+                {
+                    Id = error.ClusterAuthenticationCredential.Id,
+                    Username = error.ClusterAuthenticationCredential.Username
+                },
+                CheckLogs = checkLogsExt
+            };
+            byClusterAuthenticationCredentialExt.Add(errorExt);
+        }
+
+        return convert;
+    }
+
+    public static DatabaseBackupTypeExt ConvertIntToExt(this DatabaseBackupType databaseBackup)
+    {
+        _ = Enum.TryParse(databaseBackup.ToString(), out DatabaseBackupTypeExt convert);
         return convert;
     }
 

@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.ExtModels.DataTransfer.Models;
 
@@ -16,4 +18,8 @@ public interface IDataTransferService
 
     Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders, string httpPayload,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode);
+
+    Task HttpPostToJobNodeStreamAsync(string httpRequest, IEnumerable<HTTPHeaderExt> httpHeaders,
+        string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, string sessionCode,
+        Stream responseStream, CancellationToken cancellationToken);
 }

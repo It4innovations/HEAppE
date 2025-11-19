@@ -9,6 +9,7 @@ public interface IJobManagementLogic
 {
     SubmittedJobInfo CreateJob(JobSpecification specification, AdaptorUser loggedUser, bool isExtraLong);
     SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser);
+    SubmittedJobInfo GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser);
     SubmittedJobInfo CancelJob(long submittedJobInfoId, AdaptorUser loggedUser);
     bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser);
     bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser);

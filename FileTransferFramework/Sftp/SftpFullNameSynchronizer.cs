@@ -29,9 +29,9 @@ public class SftpFullNameSynchronizer : IFileSynchronizer
 
     #region Methods
 
-    public ICollection<JobFileContent> SynchronizeFiles(Cluster cluster)
+    public ICollection<JobFileContent> SynchronizeFiles(Cluster cluster, string sshCaToken)
     {
-        var connection = ConnectionPool.GetConnectionForUser(_credentials, cluster);
+        var connection = ConnectionPool.GetConnectionForUser(_credentials, cluster, sshCaToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);

@@ -97,6 +97,18 @@ public abstract class AbstractValidator
     }
 
     /// <summary>
+    ///     Contains illegal characters for file name
+    /// </summary>
+    /// <param name="text">text</param>
+    /// <returns></returns>
+    protected static bool ContainsIllegalCharactersForFileName(string text)
+    {
+        if (!string.IsNullOrEmpty(text))
+            return Regex.IsMatch(text, @"[^a-zA-Z0-9_\-.]+", RegexOptions.Compiled);
+        return false;
+    }
+
+    /// <summary>
     ///     Is phone number
     /// </summary>
     /// <param name="text">text</param>

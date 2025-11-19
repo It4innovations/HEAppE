@@ -5,9 +5,9 @@
         <RootNamespace>HEAppE.FileTransferFramework</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.0.3"/>
-        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.0"/>
-        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0"/>
+        <PackageReference Include="log4net" Version="3.1.0" />
+        <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.8"/>
+        <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8"/>
         <PackageReference Include="SshNet.Security.Cryptography" Version="1.3.0"/>
     </ItemGroup>
     <ItemGroup>

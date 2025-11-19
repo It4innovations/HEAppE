@@ -1,20 +1,24 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
 /// <summary>
 ///     User and limitation Endpoint
 /// </summary>
+
 [ApiController]
 [Route("heappe/[controller]")]
 [Produces("application/json")]
@@ -33,10 +37,11 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
+    /// <param name="sshCertificateAuthorityService">SSH Certificate Authority Service</param>
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
-        IMemoryCache memoryCache) : base(logger, memoryCache)
+        IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
     {
-        _service = new UserAndLimitationManagementService(_cacheProvider);
+        _service = new UserAndLimitationManagementService(_cacheProvider, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

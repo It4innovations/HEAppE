@@ -1,15 +1,20 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.ClusterInformation;
 using HEAppE.ServiceTier.ClusterInformation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using SshCaAPI;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -34,10 +39,11 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="cacheProvider">Memory cache instance</param>
-    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider) :
+    /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
+    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) :
         base(logger, cacheProvider)
     {
-        _service = new ClusterInformationService(cacheProvider);
+        _service = new ClusterInformationService(cacheProvider, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion
@@ -62,7 +68,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListAvailableClusters([Required] string sessionCode, string clusterName = null, string nodeTypeName = null,
+    public IActionResult ListAvailableClusters(string sessionCode, string clusterName = null, string nodeTypeName = null,
         string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null, bool? forceRefresh = null)
     {
         _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\", Parameters: \"SessionCode: {sessionCode}, ClusterName: {clusterName}, NodeTypeName: {nodeTypeName}, " +

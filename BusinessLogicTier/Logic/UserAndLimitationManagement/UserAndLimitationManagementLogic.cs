@@ -8,6 +8,7 @@ using System.Security.Authentication;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
+using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -27,16 +28,19 @@ using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using log4net;
+using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 
-internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogic
+public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogic
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
+        _sshCertificateAuthorityService = sshCertificateAuthorityService;
+        _httpContextKeys = httpContextKeys;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
     }
@@ -66,13 +70,20 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
     ///     Session code expiration in seconds
     /// </summary>
     private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
-
+    
+    private ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IHttpContextKeys _httpContextKeys;
+    
     #endregion
 
     #region Methods
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
+        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
+        }
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null) throw new SessionCodeNotValidException("NotPresent", sessionCode);
 
@@ -84,6 +95,11 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
         _unitOfWork.SessionCodeRepository.Update(session);
         _unitOfWork.Save();
         return session.User;
+    }
+    
+    public AdaptorUser GetUserById(long id)
+    {
+        return _unitOfWork.AdaptorUserRepository.GetById(id);
     }
 
     public async Task<string> AuthenticateUserAsync(AuthenticationCredentials credentials)
@@ -183,9 +199,9 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork)
+        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .ListClusterNodeTypes();
 
         IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
@@ -320,18 +336,22 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
         }
     }
 
-    private async Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials)
+    public async Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials)
     {
         try
         {
+            _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
+            
             var requestUri =
                 $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
             _userOrgHttpClient.DefaultRequestHeaders.Clear();
             _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
+            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", lexisCredentials.OpenIdLexisAccessToken);
+            
             var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
             return GetOrRegisterLexisCredentials(result);
         }
-        catch (HttpRequestException)
+        catch (HttpRequestException ex)
         {
             throw new AuthenticationTypeException("InvalidToken");
         }
@@ -360,7 +380,7 @@ internal class UserAndLimitationManagementLogic : IUserAndLimitationManagementLo
                     .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
 
                 DateTime changedTime = DateTime.UtcNow;
-                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(lexisUser.UserName);
+                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
                 if (user is null)
                 {
                     user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);

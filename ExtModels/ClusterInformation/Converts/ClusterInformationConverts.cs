@@ -389,6 +389,10 @@ public static class ClusterInformationConverts
                 ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyViaProxy,
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent =>
                 ClusterAuthenticationCredentialsAuthTypeExt.PrivateKeyInSshAgent,
+            ClusterAuthenticationCredentialsAuthType.SshCertificate =>
+                ClusterAuthenticationCredentialsAuthTypeExt.SshCertificate,
+            ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy =>
+                ClusterAuthenticationCredentialsAuthTypeExt.SshCertificateViaProxy,
             _ => ClusterAuthenticationCredentialsAuthTypeExt.Unknown
         };
     }

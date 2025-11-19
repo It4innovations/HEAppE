@@ -1,4 +1,3 @@
-using System;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -6,6 +5,8 @@ using HEAppE.DataAccessTier.IRepository.JobManagement.Command;
 using HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
+using HEAppE.DataAccessTier.Service;
+using System;
 
 namespace HEAppE.DataAccessTier.UnitOfWork;
 
@@ -61,6 +62,7 @@ public interface IUnitOfWork : IDisposable
     IAdaptorUserRoleRepository AdaptorUserRoleRepository { get; }
     ISessionCodeRepository SessionCodeRepository { get; }
     IOpenStackSessionRepository OpenStackSessionRepository { get; }
+    IDatabaseBackupService DatabaseBackupService { get; }
 
     #endregion
 }
