@@ -96,11 +96,15 @@ if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || 
 {
     builder.Services.AddHttpClient("LexisTokenExchangeClient");
     builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
+    builder.Services.AddAuthentication("Bearer");
+    builder.Services.AddAuthorization();
 }
 if (JwtTokenIntrospectionConfiguration.IsEnabled)
 {
     builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
 }
+
+
 
 
 //TODO Need to be delete after DI rework
@@ -137,6 +141,7 @@ builder.Services.AddSwaggerGen(options =>
             Url = new Uri(APIAdoptions.SwaggerConfiguration.ContactUrl)
         }
     });
+
     options.AddSecurityDefinition(APIAdoptions.AuthenticationParamHeaderName, new OpenApiSecurityScheme
     {
         Description = $"{APIAdoptions.AuthenticationParamHeaderName} must appear in header",
@@ -145,18 +150,18 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
-    if (JwtTokenIntrospectionConfiguration.IsEnabled)
+
+    if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
     {
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
-            Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+            Description = "JWT Authorization header using the Bearer scheme",
             Name = "Authorization",
             In = ParameterLocation.Header,
             Type = SecuritySchemeType.ApiKey,
             Scheme = "Bearer",
             BearerFormat = "JWT"
         });
-
         options.AddSecurityRequirement(new OpenApiSecurityRequirement
         {
             {
@@ -187,6 +192,7 @@ builder.Services.AddSwaggerGen(options =>
     };
     options.AddSecurityRequirement(requirement);
 });
+
 
 
 //Localization and resources
@@ -225,11 +231,6 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLifetime.Singleton);
 
-if( JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    builder.Services.AddAuthorization();
-}
-
 
 var app = builder.Build();
 LogicFactory.ServiceProvider = app.Services;
@@ -242,20 +243,9 @@ ServiceActivator.Configure(app.Services);
 app.UseCors("HEAppEDefaultOrigins");
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
-if (LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    app.UseMiddleware<LexisAuthMiddleware>();
-}
-
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
 
-if(JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    app.UseMiddleware<LexisTokenExchangeMiddleware>();
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
 
 app.RegisterApiRoutes();
 
@@ -286,5 +276,16 @@ app.UseSwaggerUI(swaggerUI =>
     swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
     swaggerUI.EnableTryItOutByDefault();
 });
+
+if (LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    app.UseMiddleware<LexisAuthMiddleware>();
+}
+if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    app.UseMiddleware<LexisTokenExchangeMiddleware>();
+    app.UseAuthentication();
+    app.UseAuthorization();
+}
 
 app.Run();
