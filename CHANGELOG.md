@@ -7,31 +7,68 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## V6.1.0
 
-
 ### Added
-- Added new Management endpoints for database maintenance:
+- Bearer authentication for LEXIS – implemented support for JWT bearer tokens and introspection for federated identity providers.
+- SSH CA support – added API endpoints and authentication mechanism for SSH Certificate Authority (SSH CA) access on clusters.
+- Management automation enhancements:
+  - Background worker now automatically performs database backups according to configured schedule.
+  - Automatic detection and tracking of stored account statuses.
+  - Status checks are performed via dry-run jobs for verification without execution.
+- New Management endpoints for database maintenance:
   - `GET /heappe/Management/Backups` – List database backups
   - `POST /heappe/Management/BackupDatabase` – Perform full database backup
   - `POST /heappe/Management/BackupDatabaseTransactionLogs` – Backup database transaction logs
   - `POST /heappe/Management/RestoreDatabase` – Restore database from a specified backup file
-- Added new DataTransfer endpoint:
-  - `POST /heappe/DataTransfer/HttpPostToJobNodeStream` – Stream large HTTP POST requests to the job node, designed for AI inference use cases
+- DataTransfer endpoint for large payloads:
+  - `POST /heappe/DataTransfer/HttpPostToJobNodeStream` – Stream large HTTP POST requests to the job node, designed for AI inference use cases.
 
 ### Changed
 - Updated Swagger documentation to include new Management endpoints.
 - Extended internal ManagementService with backup and restore functionalities.
 
 ### Fixed
-- Minor stability and logging improvements within Management operations.
+- Minor stability and logging improvements.
 
+### New Endpoints: 7
+--------------------
+POST /heappe/DataTransfer/HttpPostToJobNodeStream  
+POST /heappe/Management/BackupDatabase  
+POST /heappe/Management/BackupDatabaseTransactionLogs  
+GET /heappe/Management/Backups  
+POST /heappe/Management/RestoreDatabase  
+POST /heappe/Management/Status  
+POST /heappe/Management/StatusErrorLogs  
 
-### Added
-- Status of various part HEAppE and way to obtain error logs
+### Deleted Endpoints: 4
+------------------------
+DELETE /heappe/Management/SecureShellKey  
+POST /heappe/Management/SecureShellKey  
+PUT /heappe/Management/SecureShellKey  
+POST /heappe/Management/TestClusterAccessForAccount  
 
-### New Endpoints:
+### Modified Endpoints: 3
+-------------------------
+GET /heappe/ClusterInformation/ListAvailableClusters
+- Modified query param: SessionCode
+  - Required changed from true to false
 
-POST /heappe/Management/Status
-POST /heappe/Management/StatusErrorLogs
+POST /heappe/FileTransfer/RequestFileTransfer
+- Responses changed
+  - Modified response: 200
+    - Content changed
+      - Modified media type: application/json
+        - Schema changed
+          - Properties changed
+            - Modified property: Credentials
+              - Properties changed
+                - Modified property: CredentialsAuthType
+                  - New enum values: [10 11]
+
+GET /heappe/JobManagement/ListJobsForCurrentUser
+- Modified query param: JobStates
+  - Description changed from 'Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed",
+"1,2,Running,Failed" etc.' to 'Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed",
+"1,2,Running,Failed" etc.'
 
 ## V6.0.0
 
