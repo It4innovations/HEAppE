@@ -61,7 +61,7 @@ public static class JwtIntrospectionExtensions
                                 .GetRequiredService<IHttpContextKeys>()
                                 .Authorize(sshCaService);
                         }
-                        catch
+                        catch (Exception ex)
                         {
                             context.Fail("Unauthorized");
                             return;

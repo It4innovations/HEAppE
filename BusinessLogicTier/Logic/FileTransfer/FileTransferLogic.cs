@@ -130,7 +130,7 @@ public class FileTransferLogic : IFileTransferLogic
             throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
         
         string certificate = string.Empty;
-        string publicKey = clusterUserAuthCredentials.PrivateKey;
+        string publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(clusterUserAuthCredentials).PublicKeyInAuthorizedKeysFormat;
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
             certificate = _sshCertificateAuthorityService

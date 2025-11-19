@@ -16,7 +16,7 @@ namespace HEAppE.DataStagingAPI.API;
 /// </summary>
 public class DataStagingEndpoint : IApiRoute
 {
-    public void Register(RouteGroupBuilder group, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public void Register(RouteGroupBuilder group)
     {
         group = group.AddEndpointFilter<AuthorizationKeyFilter>()
             .MapGroup("DataStaging")
@@ -24,7 +24,8 @@ public class DataStagingEndpoint : IApiRoute
 
 
         group.MapPost("GetFileTransferMethod",
-                ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+                ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                    [FromServices] IHttpContextKeys httpContextKeys) =>
                 {
                     logger.LogDebug(
                         """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
@@ -47,7 +48,8 @@ public class DataStagingEndpoint : IApiRoute
 
 
         group.MapPost("DownloadPartsOfJobFilesFromCluster", ([Validate] DownloadPartsOfJobFilesFromClusterModel model,
-                [FromServices] ILogger<DataStagingEndpoint> logger) =>
+                [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                [FromServices] IHttpContextKeys httpContextKeys) =>
             {
                 logger.LogDebug(
                     """Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """,
@@ -70,10 +72,11 @@ public class DataStagingEndpoint : IApiRoute
             });
 
 
-        group.MapGet("ListChangedFilesForJob", ([FromQuery(Name = "SessionCode")] string sessionCode,
+        group.MapGet("ListChangedFilesForJob", ([FromQuery(Name = "SessionCode")] string? sessionCode,
                 [FromQuery(Name = "SubmittedJobInfoId")] long submittedJobInfoId,
                 [FromServices] ILogger<DataStagingEndpoint> logger,
-                [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator) =>
+                [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                [FromServices] IHttpContextKeys httpContextKeys) =>
             {
                 var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
                 validator.ValidateAndThrow(model);
@@ -101,7 +104,8 @@ public class DataStagingEndpoint : IApiRoute
             });
 
         group.MapPost("DownloadFileFromCluster",
-                ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger) =>
+                ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                    [FromServices] IHttpContextKeys httpContextKeys) =>
                 {
                     logger.LogDebug(
                         """Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """,

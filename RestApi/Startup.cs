@@ -417,13 +417,18 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+
         if (LexisAuthenticationConfiguration.UseBearerAuth)
         {
             app.UseMiddleware<LexisAuthMiddleware>();
         }
         app.UseMiddleware<LexisTokenExchangeMiddleware>();
-        app.UseAuthentication();
-        app.UseAuthorization();
+        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            app.UseAuthentication();
+            app.UseAuthorization();
+        }
+
         app.UseMiddleware<ExceptionMiddleware>();
         app.UseEndpoints(endpoints =>
         {

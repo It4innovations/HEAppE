@@ -12,7 +12,7 @@ public static class AppExtensions
     /// <summary>
     ///     Registration classes into API, that implement IApiRoute
     /// </summary>
-    public static void RegisterApiRoutes(this WebApplication app, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public static void RegisterApiRoutes(this WebApplication app)
     {
         var group = app.MapGroup("api");
         group.AddEndpointFilterFactory(ValidationFilter.ValidationFilterFactory);
@@ -23,7 +23,7 @@ public static class AppExtensions
         foreach (var routeType in types)
         {
             var route = (IApiRoute?)Activator.CreateInstance(routeType);
-            route?.Register(group, sshCertificateAuthorityService, httpContextKeys);
+            route?.Register(group);
         }
     }
 }

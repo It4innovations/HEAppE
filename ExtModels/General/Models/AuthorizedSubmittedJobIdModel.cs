@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using System.ComponentModel;
+using HEAppE.ExternalAuthentication.Configuration;
 
 namespace HEAppE.ExtModels.General.Models;
 
@@ -44,7 +45,10 @@ public class AuthorizedSubmittedJobIdModelValidator : AbstractValidator<Authoriz
 {
     public AuthorizedSubmittedJobIdModelValidator()
     {
-        RuleFor(x => x.SessionCode).IsSessionCode();
+        if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled && !LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            RuleFor(x => x.SessionCode).IsSessionCode();
+        }
         RuleFor(x => x.SubmittedJobInfoId).NotEmpty().GreaterThan(0);
     }
 }

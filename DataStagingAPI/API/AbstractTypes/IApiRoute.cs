@@ -8,5 +8,5 @@ namespace HEAppE.DataStagingAPI.API.AbstractTypes;
 /// </summary>
 public interface IApiRoute
 {
-    void Register(RouteGroupBuilder group, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+    void Register(RouteGroupBuilder group);
 }

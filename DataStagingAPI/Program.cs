@@ -92,6 +92,11 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 });
 
 builder.Services.AddDistributedMemoryCache();
+if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    builder.Services.AddHttpClient("LexisTokenExchangeClient");
+    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
+}
 if (JwtTokenIntrospectionConfiguration.IsEnabled)
 {
     builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
@@ -220,6 +225,12 @@ builder.Services.ConfigureHttpJsonOptions(options =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLifetime.Singleton);
 
+if( JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+{
+    builder.Services.AddAuthorization();
+}
+
+
 var app = builder.Build();
 LogicFactory.ServiceProvider = app.Services;
 // Configure the HTTP request pipeline.
@@ -239,14 +250,14 @@ if (LexisAuthenticationConfiguration.UseBearerAuth)
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
 
-
-using (var scope = app.Services.CreateScope())
+if(JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
 {
-    //get ISshCertificateAuthorityService instance from DI
-    var sshCertificateAuthorityService = scope.ServiceProvider.GetRequiredService<ISshCertificateAuthorityService>();
-    var httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
-    app.RegisterApiRoutes(sshCertificateAuthorityService, httpContextKeys);
+    app.UseMiddleware<LexisTokenExchangeMiddleware>();
+    app.UseAuthentication();
+    app.UseAuthorization();
 }
+
+app.RegisterApiRoutes();
 
 
 app.UseSwagger(swagger =>
