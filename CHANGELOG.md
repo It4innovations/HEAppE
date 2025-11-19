@@ -64,12 +64,6 @@ POST /heappe/FileTransfer/RequestFileTransfer
                 - Modified property: CredentialsAuthType
                   - New enum values: [10 11]
 
-GET /heappe/JobManagement/ListJobsForCurrentUser
-- Modified query param: JobStates
-  - Description changed from 'Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed",
-"1,2,Running,Failed" etc.' to 'Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed",
-"1,2,Running,Failed" etc.'
-
 ## V6.0.0
 
 ### Changed
