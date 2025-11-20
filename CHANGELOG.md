@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.1.1
+
+### Fixed
+- Incorrect handling of Slurm status updates for array jobs submitted paralelly under the same account. This caused tasks to be incorrectly marked as failed despite the underlying Slurm jobs being PENDING, RUNNING, or COMPLETED.
+
 ## V6.1.0
 
 ### Added

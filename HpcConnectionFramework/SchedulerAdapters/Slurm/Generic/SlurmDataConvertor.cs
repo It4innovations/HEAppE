@@ -127,7 +127,8 @@ public class SlurmDataConvertor : SchedulerDataConvertor
         var response = ((string)responseMessage).Replace("\n\t", string.Empty)
             .Replace("\n  ", string.Empty);
         var jobSubmitedTasksInfo = new List<SubmittedTaskInfo>();
-        SlurmJobInfo aggregateResultObj = null;
+        Dictionary<string, SlurmJobInfo> aggregateJobResults = new();
+
 
         var jobResponseMessages = Regex.Split(response, @"(?<jobParameters>.*)\n", RegexOptions.Compiled)
             .Where(w => !string.IsNullOrEmpty(w))
@@ -159,24 +160,27 @@ public class SlurmDataConvertor : SchedulerDataConvertor
                 continue;
             }
 
-            if (aggregateResultObj is null)
+            if (!aggregateJobResults.ContainsKey(schedulerResultObj.ArrayJobId))
             {
-                aggregateResultObj = schedulerResultObj;
+                aggregateJobResults.Add(schedulerResultObj.ArrayJobId, schedulerResultObj);
                 continue;
             }
 
-            if (aggregateResultObj.ArrayJobId == schedulerResultObj.ArrayJobId)
+            if (aggregateJobResults.ContainsKey(schedulerResultObj.ArrayJobId))
             {
-                aggregateResultObj.CombineJobs(schedulerResultObj);
+                aggregateJobResults[schedulerResultObj.ArrayJobId].CombineJobs(schedulerResultObj);
+                
                 continue;
             }
 
             jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(schedulerResultObj));
-            aggregateResultObj = schedulerResultObj;
+            aggregateJobResults.Add(schedulerResultObj.ArrayJobId, schedulerResultObj);
         }
 
 
-        if (aggregateResultObj is not null) jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+        //if (aggregateResultObj is not null) jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateResultObj));
+        foreach (var aggregateJobResult in aggregateJobResults.Values)
+            jobSubmitedTasksInfo.Add(ConvertTaskToTaskInfo(aggregateJobResult));
 
         return jobSubmitedTasksInfo.Any()
             ? jobSubmitedTasksInfo
