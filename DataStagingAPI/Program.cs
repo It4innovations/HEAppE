@@ -6,6 +6,7 @@ using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
@@ -81,6 +82,7 @@ if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || 
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
 
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
 
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);

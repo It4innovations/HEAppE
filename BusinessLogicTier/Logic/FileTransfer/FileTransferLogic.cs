@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
 using HEAppE.CertificateGenerator;
+using HEAppE.DataAccessTier.Migrations;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -428,6 +430,100 @@ public class FileTransferLogic : IFileTransferLogic
         {
             throw new InvalidRequestException("NotExistingPath", relativeFilePath, exception.Message);
         }
+    }
+
+    private (FileTransferMethod, FileTransferProtocol?) GetFileTransferMethodForUpload(long clusterId)
+    {
+        FileTransferMethod fileTransferMethod = null;
+        FileTransferProtocol? fileTransferProtocol = null;
+        var clusterFileTransferMethods = GetFileTransferMethodsByClusterId(clusterId);
+        foreach (var protocol in new[] { FileTransferProtocol.LocalSftpScp, FileTransferProtocol.SftpScp, FileTransferProtocol.NetworkShare })
+        {
+            var method = clusterFileTransferMethods.Where(ftm => ftm.Protocol == protocol);
+            if (method.Any())
+            {
+                fileTransferMethod = method.First();
+                fileTransferProtocol = protocol;
+                break;
+            }
+        }
+        return (fileTransferMethod, fileTransferProtocol);
+    }
+
+    public dynamic UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser)
+    {
+        var result = new Dictionary<string, dynamic>();
+        
+        fileName = FileSystemUtils.SanitizeFileName(fileName);
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+        var cluster = clusterProject.Cluster;
+
+        var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
+            clusterId, projectId, false, loggedUser.Id
+        ).First();
+
+        var (fileTransferMethod, fileTransferProtocol) = GetFileTransferMethodForUpload(clusterId);
+        if (fileTransferMethod == null)
+            return result;
+
+        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.PermanentStoragePath, fileName));
+        var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
+        var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken);
+        result.Add("Succeeded", succeeded);
+        result.Add("Path", succeeded ? absoluteFilePath : null);
+        return result;
+    }
+
+    public dynamic UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser)
+    {
+        var result = new Dictionary<string, dynamic>();
+
+        fileName = FileSystemUtils.SanitizeFileName(fileName);
+        var project = _unitOfWork.ProjectRepository.GetById(projectId);
+        var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
+        var cluster = clusterProject.Cluster;
+
+        var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
+            clusterId, projectId, false, loggedUser.Id
+        ).First();
+
+        var (fileTransferMethod, fileTransferProtocol) = GetFileTransferMethodForUpload(clusterId);
+        if (fileTransferMethod == null)
+            return result;
+
+        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.PermanentStoragePath, fileName));
+        var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
+        var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken);
+        bool attributesSet = false;
+        if (succeeded)
+        {
+            attributesSet = fileManager.ModifyAbsolutePathFileAttributes(absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken,
+                ownerCanExecute: true, groupCanExecute: true);
+        }
+        result.Add("Succeeded", succeeded);
+        result.Add("Path", succeeded ? absoluteFilePath : null);
+        result.Add("AttributesSet", attributesSet);
+        return result;
+    }
+
+    public dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, AdaptorUser loggedUser)
+    {
+        var result = new Dictionary<string, dynamic>();
+
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+            .GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+        var jobClusterDirectoryPath = FileSystemUtils
+            .GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+        var absoluteFilePath = FileSystemUtils.ConcatenatePaths(jobClusterDirectoryPath, FileSystemUtils.SanitizeFileName(fileName));
+        absoluteFilePath = FileSystemUtils.SanitizePath(absoluteFilePath);
+
+        var fileManager = FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
+            .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
+        var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, _httpContextKeys.Context.SshCaToken);
+        result.Add("Succeeded", succeeded);
+        result.Add("Path", succeeded ? absoluteFilePath : null);
+        return result;
     }
 
     private byte[] HandleDeletedJobFileDownload(
