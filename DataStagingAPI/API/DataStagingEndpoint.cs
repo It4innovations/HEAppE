@@ -211,7 +211,7 @@ public class DataStagingEndpoint : IApiRoute
             {
                 generatedOperation.Summary = "Upload multiple files.";
                 generatedOperation.Description =
-                    "Upload multiple files to permanent storage directory.";
+                    "Upload multiple files to project storage directory.";
                 return generatedOperation;
             });
 

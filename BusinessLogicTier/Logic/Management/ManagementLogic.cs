@@ -497,7 +497,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     /// <exception cref="InputValidationException"></exception>
     public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath)
+        string projectStoragePath)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -509,7 +509,7 @@ public class ManagementLogic : IManagementLogic
             //Cluster to project is marked as deleted, update it
             return !cp.IsDeleted
                 ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
-                : ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
+                : ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath);
 
 
         //Create cluster to project mapping
@@ -521,7 +521,7 @@ public class ManagementLogic : IManagementLogic
             ScratchStoragePath = scratchStoragePath
                 .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
-            PermanentStoragePath = permanentStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
+            ProjectStoragePath = projectStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
             CreatedAt = modified,
             IsDeleted = false
@@ -564,7 +564,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
     public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath)
+        string projectStoragePath)
     {
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
@@ -573,7 +573,7 @@ public class ManagementLogic : IManagementLogic
         var modified = DateTime.UtcNow;
         clusterProject.ScratchStoragePath = scratchStoragePath
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
-        clusterProject.PermanentStoragePath = permanentStoragePath
+        clusterProject.ProjectStoragePath = projectStoragePath
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
         clusterProject.ModifiedAt = modified;
         clusterProject.IsDeleted = false;

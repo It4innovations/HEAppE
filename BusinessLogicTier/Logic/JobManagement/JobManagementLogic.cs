@@ -251,11 +251,11 @@ internal class JobManagementLogic : IJobManagementLogic
         
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
-        var permanentBasePath = jobInfo.Specification.Cluster.ClusterProjects
-            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.PermanentStoragePath;
-        if (string.IsNullOrEmpty(permanentBasePath))
+        var projectBasePath = jobInfo.Specification.Cluster.ClusterProjects
+            .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ProjectStoragePath;
+        if (string.IsNullOrEmpty(projectBasePath))
         {
-            permanentBasePath = basePath;
+            projectBasePath = basePath;
         }
         
         var localBasePath = Path.Combine(
@@ -264,7 +264,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.SubExecutionsPath.TrimStart('/'),
                 jobInfo.Specification.ClusterUser.Username);
         var jobLogArchivePath = Path.Combine(
-                permanentBasePath, 
+                projectBasePath, 
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath, 
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.JobLogArchiveSubPath.TrimStart('/'), 
                 jobInfo.Specification.ClusterUser.Username);

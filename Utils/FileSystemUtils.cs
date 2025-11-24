@@ -25,7 +25,7 @@ public class FileSystemUtils
     public static string GetJobClusterArchiveDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.PermanentStoragePath;
+            ?.ProjectStoragePath;
         if (string.IsNullOrEmpty(basePath))
         {
             basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)

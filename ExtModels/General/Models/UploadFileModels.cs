@@ -9,9 +9,9 @@ namespace HEAppE.ExtModels.General.Models;
 /// <summary>
 /// Model for upload file to cluster
 /// </summary>
-[DataContract(Name = "UploadFileToPermanentStorageDirModel")]
+[DataContract(Name = "UploadFileToProjectStorageDir")]
 [Description("Model for upload file to cluster")]
-public class UploadFileToPermanentStorageDirModel
+public class UploadFileToProjectStorageDirModel
 {
 
     /// <summary>
@@ -21,7 +21,7 @@ public class UploadFileToPermanentStorageDirModel
     public string SessionCode { get; set; }
     public override string ToString()
     {
-        return $"UploadFileToClusterModel({base.ToString()};)";
+        return $"UploadFileToProjectStorageDirModel({base.ToString()};)";
     }
 }
 
@@ -44,9 +44,9 @@ public class UploadJobScriptsToClusterProjectDirModel
     }
 }
 
-public class UploadFileToPermanentStorageDirModelValidator : AbstractValidator<UploadJobScriptsToClusterProjectDirModel>
+public class UploadFileToProjectStorageDirModelValidator : AbstractValidator<UploadJobScriptsToClusterProjectDirModel>
 {
-    public UploadFileToPermanentStorageDirModelValidator()
+    public UploadFileToProjectStorageDirModelValidator()
     {
         RuleFor(x => x.SessionCode).IsSessionCode();
     }

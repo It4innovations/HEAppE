@@ -467,7 +467,7 @@ public class FileTransferLogic : IFileTransferLogic
         if (fileTransferMethod == null)
             return result;
 
-        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.PermanentStoragePath, fileName));
+        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.ProjectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
         var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken);
         result.Add("Succeeded", succeeded);
@@ -492,7 +492,7 @@ public class FileTransferLogic : IFileTransferLogic
         if (fileTransferMethod == null)
             return result;
 
-        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.PermanentStoragePath, fileName));
+        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.ProjectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
         var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken);
         bool attributesSet = false;
@@ -545,7 +545,7 @@ public class FileTransferLogic : IFileTransferLogic
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
                 
                 var basePath = jobInfo.Specification.Cluster.ClusterProjects
-                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.PermanentStoragePath;
+                    .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ProjectStoragePath;
                 if (string.IsNullOrEmpty(basePath))
                 {
                     basePath = jobInfo.Specification.Cluster.ClusterProjects

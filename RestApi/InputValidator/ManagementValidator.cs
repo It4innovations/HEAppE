@@ -286,7 +286,7 @@ public class ManagementValidator : AbstractValidator
         var validationResult1 = new PathValidator(ext.ScratchStoragePath).Validate();
         if (!validationResult1.IsValid) _messageBuilder.AppendLine(validationResult1.Message);
         
-        var validationResult2 = new PathValidator(ext.PermanentStoragePath).Validate();
+        var validationResult2 = new PathValidator(ext.ProjectStoragePath).Validate();
         if (!validationResult2.IsValid) _messageBuilder.AppendLine(validationResult2.Message);
 
         ValidateId(ext.ProjectId, "ProjectId");
