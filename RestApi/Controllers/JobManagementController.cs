@@ -269,6 +269,27 @@ public class JobManagementController : BaseController<JobManagementController>
 
         return Ok(_service.AllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
     }
+    
+    /// <summary>
+    ///     Dry run job
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("DryRunJob")]
+    [RequestSizeLimit(250000)]
+    [ProducesResponseType(typeof(DryRunJobInfoExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public IActionResult DryRunJob(DryRunJobModel model)
+    {
+        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DryRunJob\" Parameters: \"{model}\"");
+        var validationResult = new JobManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(_service.DryRunJob(model.ProjectId, model.ClusterNodeTypeId, model.Nodes, model.TasksPerNode, model.WallTimeInMinutes, model.SessionCode));
+    }
 
     #endregion
 }

@@ -33,5 +33,14 @@ internal class ProjectRepository : GenericRepository<Project>, IProjectRepositor
         return _context.Projects.FirstOrDefault(p => p.AccountingString == accountingString);
     }
 
+    public Project GetByIdWithClusterProjects(long projectId)
+    {
+        return _context.Projects
+            .Include(p => p.ClusterProjects)
+            //ClusterProjectCredentials
+            .ThenInclude(cp => cp.ClusterProjectCredentials)
+            .FirstOrDefault(p => p.Id == projectId);
+    }
+
     #endregion
 }

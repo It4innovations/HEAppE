@@ -501,5 +501,11 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         return null;
     }
 
+    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    {
+        // Currently not implemented for PBS Pro
+        throw new NotSupportedException("Dry run job is not supported for PBS Pro scheduler.");
+    }
+
     #endregion
 }

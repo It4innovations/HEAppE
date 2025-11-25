@@ -7,4 +7,8 @@ public interface IProjectRepository : IRepository<Project>
 {
     IEnumerable<Project> GetAllActiveProjects();
     Project GetByAccountingString(string accountingString);
+    
+    Project GetByIdWithClusterProjects(long projectId);
+    
+    
 }

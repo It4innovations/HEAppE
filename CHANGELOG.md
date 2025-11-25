@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.0
+
+### Added
+- `POST /heappe/JobManagement/DryRunJob` – Introduced dry-run job submission endpoint allowing users to simulate HPC job scheduling without actual execution (supported only for `Slurm` Scheduler). Returns estimated start time, assigned resources, and system feedback for validation purposes.
+
 ## V6.1.1
 
 ### Fixed

@@ -22,6 +22,20 @@ namespace HEAppE.ExtModels.JobManagement.Converts;
 public static class JobManagementConverts
 {
     #region Methods for Object Converts
+    
+    public static DryRunJobInfoExt ConvertIntToExt(this DryRunJobInfo dryRunJobInfoExt)
+    {
+        var convert = new DryRunJobInfoExt
+        {
+            JobId = dryRunJobInfoExt.JobId,
+            StartTime = dryRunJobInfoExt.StartTime,
+            Processors = dryRunJobInfoExt.Processors,
+            Node = dryRunJobInfoExt.Node,
+            Partition = dryRunJobInfoExt.Partition,
+            Message = dryRunJobInfoExt.Message
+        };
+        return convert;
+    }
 
     public static JobSpecification ConvertExtToInt(this JobSpecificationExt jobSpecification, long projectId,
         long? subProject)
