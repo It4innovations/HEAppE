@@ -458,5 +458,19 @@ public class RexSchedulerWrapper : IRexScheduler
         return checkLog;
     }
 
+    public DryRunJobInfo DryRunJob(DryRunJobSpecification dryRunJobSpecification, string contextSshCaToken)
+    {
+        var schedulerConnection = _connectionPool.GetConnectionForUser(
+            dryRunJobSpecification.ClusterUser, dryRunJobSpecification.ClusterNodeType.Cluster, contextSshCaToken);
+        try
+        {
+            return _adapter.DryRunJob(schedulerConnection.Connection, dryRunJobSpecification);
+        }
+        finally
+        {
+            _connectionPool.ReturnConnection(schedulerConnection);
+        }
+    }
+
     #endregion
 }

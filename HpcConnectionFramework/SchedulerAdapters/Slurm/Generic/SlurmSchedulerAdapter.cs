@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -502,6 +504,58 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
         await Task.Delay(1);
         return null;
+    }
+
+    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    {
+        var sbatchCommand = PrepareSbatchCommand(
+            HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(dryRunJobSpecification.Project
+                .AccountingString),
+            job_name: "dryrun",
+            account: dryRunJobSpecification.Project.AccountingString,
+            partition: dryRunJobSpecification.ClusterNodeType.Queue,
+            nodes: (int)dryRunJobSpecification.Nodes,
+            ntasks_per_node: (int)dryRunJobSpecification.TasksPerNode,
+            time: TimeSpan.FromMinutes(dryRunJobSpecification.WallTimeInMinutes),
+            output: "dummy.out",
+            error: "dummy.err"
+        ) + "\n";
+
+        var sshCommand = $"{_commands.InterpreterCommand} eval `(" + sbatchCommand + ")`";
+        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+
+        //perform dry run
+        SshCommandWrapper command =
+            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), sshCommand);
+        
+        var regex = new Regex(
+            @"Job (\d+) to start at ([0-9T:-]+) using (\d+) processors on nodes (\S+) in partition (\S+)");
+        //result goes to error stream in dry-run mode
+        var match = regex.Match(command.Error);
+
+        if (match.Success)
+        {
+            var info = new DryRunJobInfo
+            {
+                JobId = int.Parse(match.Groups[1].Value),
+                StartTime = DateTime.Parse(match.Groups[2].Value),
+                Processors = int.Parse(match.Groups[3].Value),
+                Node = match.Groups[4].Value,
+                Partition = match.Groups[5].Value,
+                Message = command.Error
+            };
+            return info;
+        }
+        else
+        {
+            var info = new DryRunJobInfo
+            {
+                Message = command.Result
+            };
+            return info;
+        }
+            
+            
     }
 
     #endregion

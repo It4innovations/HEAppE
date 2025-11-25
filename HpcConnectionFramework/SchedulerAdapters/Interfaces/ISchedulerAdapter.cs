@@ -53,4 +53,5 @@ public interface ISchedulerAdapter
     bool MoveJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations);
 
     Task<dynamic> CheckClusterAuthenticationCredentialsStatus(object connectorClient, ClusterProjectCredential clusterProjectCredential, ClusterProjectCredentialCheckLog checkLog);
+    DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification);
 }

@@ -15,4 +15,5 @@ public interface IJobManagementService
     void CopyJobDataToTemp(long createdJobInfoId, string sessionCode, string path);
     void CopyJobDataFromTemp(long createdJobInfoId, string sessionCode, string tempSessionCode);
     IEnumerable<string> AllocatedNodesIPs(long submittedTaskInfoId, string sessionCode);
+    DryRunJobInfoExt DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode, long modelWallTimeInMinutes, string modelSessionCode);
 }

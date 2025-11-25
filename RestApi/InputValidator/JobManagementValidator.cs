@@ -24,10 +24,34 @@ public class JobManagementValidator : AbstractValidator
             CopyJobDataToTempModel model => ValidateCopyJobDataToTempModel(model),
             CopyJobDataFromTempModel model => ValidateCopyJobDataFromTempModel(model),
             AllocatedNodesIPsModel model => ValidateGetAllocatedNodesIPsModel(model),
+            DryRunJobModel model => ValidateDryRunJobModel(model),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateDryRunJobModel(DryRunJobModel model)
+    {
+        var validationResult = new SessionCodeValidator(model.SessionCode).Validate();
+        if (!validationResult.IsValid) _messageBuilder.AppendLine(validationResult.Message);
+
+        if (model.ProjectId <= 0)
+            _messageBuilder.AppendLine("ProjectId must be greater than 0.");
+
+        if (model.ClusterNodeTypeId <= 0)
+            _messageBuilder.AppendLine("ClusterNodeTypeId must be greater than 0.");
+
+        if (model.Nodes <= 0)
+            _messageBuilder.AppendLine("Nodes must be greater than 0.");
+
+        if (model.TasksPerNode <= 0)
+            _messageBuilder.AppendLine("TasksPerNode must be greater than 0.");
+
+        if (model.WallTimeInMinutes <= 0)
+            _messageBuilder.AppendLine("WallTimeInMinutes must be greater than 0.");
+
+        return _messageBuilder.ToString();
     }
 
     private string ValidateGetAllocatedNodesIPsModel(AllocatedNodesIPsModel validationObj)

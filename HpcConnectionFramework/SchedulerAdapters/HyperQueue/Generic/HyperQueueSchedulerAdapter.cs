@@ -284,5 +284,10 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
         return null;
     }
 
+    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    {
+        throw new NotSupportedException("DryRunJob is not supported for HyperQueue");
+    }
+
     #endregion
 }

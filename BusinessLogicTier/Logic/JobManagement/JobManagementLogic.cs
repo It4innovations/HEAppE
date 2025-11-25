@@ -477,6 +477,32 @@ internal class JobManagementLogic : IJobManagementLogic
         return stringIPs;
     }
 
+    public DryRunJobInfo DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode,
+        long modelWallTimeInMinutes, AdaptorUser loggedUser)
+    {
+        var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(modelProjectId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingProject", modelProjectId);
+        var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
+                              ?? throw new RequestedObjectDoesNotExistException("NotExistingClusterNodeType",
+                                  modelClusterNodeTypeId);
+        var cluster = clusterNodeType.Cluster;
+
+        var dryRunJobSpecification = new DryRunJobSpecification
+        {
+            Project = project,
+            ClusterNodeType = clusterNodeType,
+            Nodes = modelNodes,
+            TasksPerNode = modelTasksPerNode,
+            WallTimeInMinutes = modelWallTimeInMinutes,
+            ClusterUser = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+                .GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id)
+        };
+        
+        return SchedulerFactory.GetInstance(cluster.SchedulerType)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+            .DryRunJob(dryRunJobSpecification, _httpContextKeys.Context.SshCaToken);
+    }
+
     protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser,
         IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
     {

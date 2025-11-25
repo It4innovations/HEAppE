@@ -211,5 +211,19 @@ public class JobManagementService : IJobManagementService
         }
     }
 
+    public DryRunJobInfoExt DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode,
+        long modelWallTimeInMinutes, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                AdaptorUserRoleType.Submitter, modelProjectId);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+            var dryRunResult = jobLogic.DryRunJob(modelProjectId, modelClusterNodeTypeId, modelNodes,
+                modelTasksPerNode, modelWallTimeInMinutes, loggedUser).ConvertIntToExt();
+            return dryRunResult;
+        }
+    }
+
     #endregion
 }
