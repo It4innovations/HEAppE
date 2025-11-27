@@ -16,6 +16,7 @@ using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using log4net;
 using MicroKnights.Log4NetHelper;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
 using SshCaAPI;
@@ -48,6 +49,16 @@ else
     )
         throw new Exception("Configuration files not found!");
 }
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 2L * 1024 * 1024 * 1024; // 2 GB
+});
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = long.MaxValue;
+});
 
 builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
 

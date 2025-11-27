@@ -170,10 +170,10 @@ public class DataStagingEndpoint : IApiRoute
 
         group.MapPost("UploadFilesToProjectDir",
                 (
-                    IFormFileCollection files,
                     [FromQuery(Name = "SessionCode")] string sessionCode,
                     [FromQuery(Name = "ProjectId")] long projectId,
                     [FromQuery(Name = "ClusterId")] long clusterId,
+                    [FromForm] IFormFileCollection files,
                     [FromServices] ILogger<DataStagingEndpoint> logger,
                     [FromServices] IValidator<UploadFileToClusterModel> validator,
                     [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
@@ -205,6 +205,7 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .DisableRequestTimeout()
             .RequestSizeLimit(2_000_000_000)
             .DisableAntiforgery()
             .WithOpenApi(generatedOperation =>
@@ -217,10 +218,10 @@ public class DataStagingEndpoint : IApiRoute
 
             group.MapPost("UploadJobScriptsToProjectDir",
                 (
-                    IFormFileCollection files,
                     [FromQuery(Name = "SessionCode")] string sessionCode,
                     [FromQuery(Name = "ProjectId")] long projectId,
                     [FromQuery(Name = "ClusterId")] long clusterId,
+                    [FromForm] IFormFileCollection files,
                     [FromServices] ILogger<DataStagingEndpoint> logger,
                     [FromServices] IValidator<UploadJobScriptsToClusterProjectDirModel> validator,
                     [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
@@ -250,6 +251,7 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .DisableRequestTimeout()
             .RequestSizeLimit(2_000_000_000)
             .DisableAntiforgery()
             .WithOpenApi(generatedOperation =>
@@ -262,9 +264,9 @@ public class DataStagingEndpoint : IApiRoute
 
         group.MapPost("UploadFilesToJobExecutionDir",
                 (
-                    IFormFileCollection files,
                     [FromQuery(Name = "SessionCode")] string sessionCode,
                     [FromQuery(Name = "CreatedJobInfoId")] long createdJobInfoId,
+                    [FromForm] IFormFileCollection files,
                     [FromServices] ILogger<DataStagingEndpoint> logger,
                     [FromServices] IValidator<UploadFileToClusterModel> validator,
                     [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
@@ -294,6 +296,7 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .DisableRequestTimeout()
             .RequestSizeLimit(2_000_000_000)
             .DisableAntiforgery()
             .WithOpenApi(generatedOperation =>
