@@ -467,6 +467,10 @@ public class FileTransferLogic : IFileTransferLogic
         if (fileTransferMethod == null)
             return result;
 
+        var projectStoragePath = clusterProject.ProjectStoragePath;
+        if (string.IsNullOrEmpty(projectStoragePath))
+            throw new Exception("Error: projectStoragePath is not set!");
+
         var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.ProjectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
         var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken);

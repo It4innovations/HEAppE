@@ -290,8 +290,22 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
         try
         {
-            var client = new SftpClientAdapter((SftpClient)connection.Connection);
-            client.UploadFile(fileStream, absoluteFilePath.Replace('\\', '/'), true);
+            var sftpClient = (SftpClient)connection.Connection;
+            var client = new SftpClientAdapter(sftpClient);
+            absoluteFilePath = absoluteFilePath.Replace('\\', '/');
+            try
+            {
+                client.UploadFile(fileStream, absoluteFilePath + ".part", true);
+                client.DeleteFile(absoluteFilePath);
+                sftpClient.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
+            }
+            catch
+            {
+                try {
+                    client.DeleteFile(absoluteFilePath + ".part");
+                } catch {}
+                throw;
+            }
             result = true;
         }
         catch (Exception ex)
