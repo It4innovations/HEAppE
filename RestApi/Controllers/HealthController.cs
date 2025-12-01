@@ -15,6 +15,7 @@ using System.Linq;
 using System.Net;
 using System.Threading.Tasks;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -51,6 +52,7 @@ public class HealthController : BaseController<HealthController>
     #region Methods
 
     [HttpGet]
+    [AllowAnonymous]
     [ProducesResponseType(typeof(HealthExt), StatusCodes.Status200OK)]
     public async Task<ActionResult> Get()
     {

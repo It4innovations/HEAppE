@@ -2,6 +2,8 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier;
@@ -17,17 +19,23 @@ public class LexisAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService)
     {
+        // check if the endpoint allows anonymous access
+        var endpoint = context.GetEndpoint();
+        if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
+        {
+            await _next(context);
+            return;
+        }
+
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         if (authHeader?.StartsWith("Bearer ") == true)
         {
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
 
-            // zde můžeš provést vlastní authorize
             try
             {
-                await keys.Authorize(sshCaService); // předpokládá, že můžeš předat token
-                // případně vytvořit ClaimsPrincipal pro HttpContext.User
+                await keys.Authorize(sshCaService);
                 var identity = new ClaimsIdentity(new[] { new Claim("raw_token", token) }, "Lexis");
                 context.User = new ClaimsPrincipal(identity);
             }

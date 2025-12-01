@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `POST /heappe/JobManagement/DryRunJob` – Introduced dry-run job submission endpoint allowing users to simulate HPC job scheduling without actual execution (supported only for `Slurm` Scheduler). Returns estimated start time, assigned resources, and system feedback for validation purposes.
 
+### Changed
+- `GET /heappe/Health` – Made the health-check endpoint public for setups using Bearer token authentication.
+
+
 ## V6.1.1
 
 ### Fixed
