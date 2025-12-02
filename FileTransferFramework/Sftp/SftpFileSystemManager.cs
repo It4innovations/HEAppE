@@ -296,7 +296,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             try
             {
                 client.UploadFile(fileStream, absoluteFilePath + ".part", true);
-                client.DeleteFile(absoluteFilePath);
+                try { client.DeleteFile(absoluteFilePath); } catch {}
                 sftpClient.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
             }
             catch
