@@ -225,8 +225,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             // partial allocation
             if (isPartialAllocation)
             {
-                int gpuCount = maxCores / minCores;
-                allocationCmdBuilder.Append($" --gpus={gpuCount}");
+                allocationCmdBuilder.Append($" --gpus={maxCores}");
             }
             else
             {
