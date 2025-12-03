@@ -296,14 +296,20 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             try
             {
                 client.UploadFile(fileStream, absoluteFilePath + ".part", true);
-                try { client.DeleteFile(absoluteFilePath); } catch {}
+                try {
+                    if (client.Exists(absoluteFilePath))
+                        client.DeleteFile(absoluteFilePath);
+                } catch {
+                }
                 sftpClient.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
             }
             catch
             {
                 try {
-                    client.DeleteFile(absoluteFilePath + ".part");
-                } catch {}
+                    if (client.Exists(absoluteFilePath + ".part"))
+                        client.DeleteFile(absoluteFilePath + ".part");
+                } catch {
+                }
                 throw;
             }
             result = true;

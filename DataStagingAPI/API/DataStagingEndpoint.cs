@@ -1,12 +1,16 @@
 ﻿using FluentValidation;
 using HEAppE.BusinessLogicTier;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Validations.AbstractTypes;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.General.Models;
 using HEAppE.RestApiModels.AbstractModels;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.ServiceTier.FileTransfer;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.AspNetCore.Mvc;
 using SshCaAPI;
 
@@ -168,6 +172,15 @@ public class DataStagingEndpoint : IApiRoute
             return result;
         }
 
+        static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, AdaptorUserRoleType requiredUserRole)
+        {
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
+                    requiredUserRole, projectId);
+            }
+        }
+
         group.MapPost("UploadFilesToProjectDir",
                 (
                     [FromQuery(Name = "SessionCode")] string sessionCode,
@@ -186,6 +199,8 @@ public class DataStagingEndpoint : IApiRoute
                         """Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """,
                         model);
 
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+
                     var tasks = new List<Task<dynamic>>();
                     foreach (var file in files)
                     {
@@ -196,7 +211,7 @@ public class DataStagingEndpoint : IApiRoute
                     List<FileUploadResultExt> result = doExtractFilesUploadResult(files, tasks);
                     return Results.Ok(result);
 
-                    
+
                 })
             .Accepts<IFormFileCollection>("multipart/form-data")
             .Produces<ICollection<FileUploadResultExt>>()
@@ -206,7 +221,7 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .DisableRequestTimeout()
-            .RequestSizeLimit(2_000_000_000)
+            .RequestSizeLimit(2_200_000_000)
             .DisableAntiforgery()
             .WithOpenApi(generatedOperation =>
             {
@@ -234,6 +249,8 @@ public class DataStagingEndpoint : IApiRoute
                         """Endpoint: "FileTransfer" Method: "UploadJobScriptsToClusterProjectDir" Parameters: "{@model}" """,
                         model);
 
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+
                     var tasks = new List<Task<dynamic>>();
                     foreach (var file in files)
                     {
@@ -252,7 +269,7 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .DisableRequestTimeout()
-            .RequestSizeLimit(2_000_000_000)
+            .RequestSizeLimit(2_200_000_000)
             .DisableAntiforgery()
             .WithOpenApi(generatedOperation =>
             {
@@ -297,7 +314,7 @@ public class DataStagingEndpoint : IApiRoute
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .ProducesProblem(StatusCodes.Status500InternalServerError)
             .DisableRequestTimeout()
-            .RequestSizeLimit(2_000_000_000)
+            .RequestSizeLimit(2_200_000_000)
             .DisableAntiforgery()
             .WithOpenApi(generatedOperation =>
             {

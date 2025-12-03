@@ -12,6 +12,7 @@ using HEAppE.DataAccessTier.Migrations;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
+using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
@@ -496,7 +497,11 @@ public class FileTransferLogic : IFileTransferLogic
         if (fileTransferMethod == null)
             return result;
 
-        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.ProjectStoragePath, fileName));
+        var projectStoragePath = clusterProject.ProjectStoragePath;
+        if (string.IsNullOrEmpty(projectStoragePath))
+            throw new Exception("Error: projectStoragePath is not set!");
+
+        var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(projectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
         var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, credentials, cluster, _httpContextKeys.Context.SshCaToken);
         bool attributesSet = false;
@@ -519,6 +524,9 @@ public class FileTransferLogic : IFileTransferLogic
             .GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var jobClusterDirectoryPath = FileSystemUtils
             .GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+        if (string.IsNullOrEmpty(jobClusterDirectoryPath))
+            throw new Exception("Error: jobClusterDirectoryPath is not set!");
+
         var absoluteFilePath = FileSystemUtils.ConcatenatePaths(jobClusterDirectoryPath, FileSystemUtils.SanitizeFileName(fileName));
         absoluteFilePath = FileSystemUtils.SanitizePath(absoluteFilePath);
 
