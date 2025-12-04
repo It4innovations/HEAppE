@@ -64,6 +64,11 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         scriptBuilder.AppendLine("#!/bin/bash");
         scriptBuilder.AppendLine($"#SBATCH -J {jobSpecification.Name}");
 
+        if (task.ClusterNodeType != null && !string.IsNullOrEmpty(task.ClusterNodeType.Queue))
+        {
+            scriptBuilder.AppendLine($"#SBATCH -p {task.ClusterNodeType.Queue}");
+        }
+
         if (jobSpecification.Project != null && !string.IsNullOrEmpty(jobSpecification.Project.AccountingString))
         {
             scriptBuilder.AppendLine($"#SBATCH -A {jobSpecification.Project.AccountingString}");
@@ -83,14 +88,66 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         if (task.RequiredNodes != null && task.RequiredNodes.Any())
         {
             scriptBuilder.AppendLine($"#SBATCH --nodes={task.RequiredNodes.Count}");
+            var nodeNames = task.RequiredNodes.Where(n => !string.IsNullOrEmpty(n.NodeName)).Select(n => n.NodeName).ToList();
+            if (nodeNames.Any())
+            {
+                scriptBuilder.AppendLine($"#SBATCH --nodelist={string.Join(",", nodeNames)}");
+            }
         }
 
         scriptBuilder.AppendLine($"#SBATCH -o {workingDirectory}/{task.StandardOutputFile}");
         scriptBuilder.AppendLine($"#SBATCH -e {workingDirectory}/{task.StandardErrorFile}");
         scriptBuilder.AppendLine($"#SBATCH -D {workingDirectory}");
+
         if (task.IsExclusive)
         {
             scriptBuilder.AppendLine("#SBATCH --exclusive");
+        }
+
+        scriptBuilder.AppendLine(task.IsRerunnable ? "#SBATCH --requeue" : "#SBATCH --no-requeue");
+
+        if (!string.IsNullOrEmpty(task.StandardInputFile))
+        {
+            scriptBuilder.AppendLine($"#SBATCH -i {workingDirectory}/{task.StandardInputFile}");
+        }
+
+        if (task.EnvironmentVariables != null && task.EnvironmentVariables.Any())
+        {
+            var envVars = string.Join(",", task.EnvironmentVariables.Select(e => $"{e.Name}={e.Value}"));
+            scriptBuilder.AppendLine($"#SBATCH --export={envVars}");
+        }
+
+        if (task.TaskParalizationSpecifications != null && task.TaskParalizationSpecifications.Any())
+        {
+            var parSpec = task.TaskParalizationSpecifications.First();
+            if (parSpec.MPIProcesses.HasValue)
+            {
+                scriptBuilder.AppendLine($"#SBATCH --ntasks-per-node={parSpec.MPIProcesses.Value}");
+            }
+            if (parSpec.OpenMPThreads.HasValue)
+            {
+                scriptBuilder.AppendLine($"#SBATCH --cpus-per-task={parSpec.OpenMPThreads.Value}");
+            }
+        }
+
+        if (task.ClusterNodeType?.ClusterNodeTypeAggregation != null && 
+            (task.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || 
+             task.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")))
+        {
+            if (task.MaxCores.HasValue)
+            {
+                scriptBuilder.AppendLine($"#SBATCH --gpus={task.MaxCores.Value}");
+            }
+        }
+
+        if (!string.IsNullOrEmpty(task.PlacementPolicy))
+        {
+            scriptBuilder.AppendLine($"#SBATCH --constraint={task.PlacementPolicy}");
+        }
+
+        if (task.CommandTemplate != null && !string.IsNullOrEmpty(task.CommandTemplate.ExtendedAllocationCommand))
+        {
+            scriptBuilder.AppendLine($"#SBATCH {task.CommandTemplate.ExtendedAllocationCommand.Trim()}");
         }
 
         scriptBuilder.AppendLine();

@@ -34,7 +34,7 @@ public class ResourceAccountingUtils
 
         logger.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
 
-        if (submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
+        if ((submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0) && !string.IsNullOrEmpty(submittedTaskInfo.AllParameters))
             submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters
                 .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries))
