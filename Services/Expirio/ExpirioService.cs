@@ -7,25 +7,24 @@ using Services.Expirio.Exceptions;
 using Services.Expirio.Models;
 using Microsoft.Extensions.Configuration;
 using System.Net;
+using Services.Expirio.Configuration;
 
 namespace Services.Expirio;
 
 public class ExpirioService : IExpirioService
 {
     private readonly IHttpClientFactory _httpClientFactory;
-    private readonly IConfiguration _configuration;
 
-    public ExpirioService(IHttpClientFactory httpClientFactory, IConfiguration configuration)
+    public ExpirioService(IHttpClientFactory httpClientFactory)
     {
         _httpClientFactory = httpClientFactory;
-        _configuration = configuration;
     }
 
     public async Task<string> ExchangeTokenForKerberosAsync(string providerName, string token, CancellationToken cancellationToken = default)
     {
         var request = new KerberosExchangeRequest { ProviderName = providerName, Token = token };
         var jsonRequest = JsonSerializer.Serialize(request);
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/kerberos/exchange")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, /*ExpirioSettings.BaseUrl +*/ "/kerberos/exchange")
         {
             Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
         };
