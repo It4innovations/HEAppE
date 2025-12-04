@@ -34,12 +34,26 @@ public class ResourceAccountingUtils
 
         logger.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
 
-        if ((submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0) && !string.IsNullOrEmpty(submittedTaskInfo.AllParameters))
-            submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters
-                .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(x => x.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries))
-                .Where(x => x.Length == 2) // Ensure that the split results in exactly two elements
-                .ToDictionary(x => x[0], x => x[1]);
+        if (submittedTaskInfo.ParsedParameters == null)
+        {
+            submittedTaskInfo.ParsedParameters = new Dictionary<string, string>();
+        }
+
+        if (submittedTaskInfo.ParsedParameters.Count == 0)
+        {
+            string parametersToParse = !string.IsNullOrEmpty(submittedTaskInfo.AllParameters)
+                ? submittedTaskInfo.AllParameters
+                : dbTaskInfo?.AllParameters;
+
+            if (!string.IsNullOrEmpty(parametersToParse))
+            {
+                submittedTaskInfo.ParsedParameters = parametersToParse
+                    .Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(x => x.Split(new[] { '=' }, StringSplitOptions.RemoveEmptyEntries))
+                    .Where(x => x.Length == 2) // Ensure that the split results in exactly two elements
+                    .ToDictionary(x => x[0], x => x[1]);
+            }
+        }
 
         var resourceAccountingValue =
             CalculateAllocatedResources(accounting.Formula, submittedTaskInfo.ParsedParameters, logger);
