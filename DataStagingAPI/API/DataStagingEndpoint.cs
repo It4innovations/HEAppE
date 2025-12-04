@@ -295,6 +295,13 @@ public class DataStagingEndpoint : IApiRoute
                     logger.LogDebug(
                         """Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """,
                         model);
+                    using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+                    {
+                        var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
+                                  throw new Exception("NotExistingJob");
+                        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
+                                        AdaptorUserRoleType.Submitter, job.ProjectId);
+                    }
 
                     var tasks = new List<Task<dynamic>>();
                     foreach (var file in files)
