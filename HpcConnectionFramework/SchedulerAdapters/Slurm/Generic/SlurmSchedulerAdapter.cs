@@ -258,8 +258,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         {
             var fullDomain = $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}";
             var nodeId = s.AllocationNodeId;
-            // dig s celou doménou, pokud nic nevrátí, host jen s id
-            cmdBuilder.Append($"dig +short {fullDomain} || host {nodeId} | awk '{{print $NF}}'; ");
+            cmdBuilder.Append($"ip=$(dig +short {fullDomain}); [ -z \"$ip\" ] && ip=$(host {nodeId} | awk '{{print $NF}}'); echo $ip; ");
         });
 
         var sshCommand = cmdBuilder.ToString();
