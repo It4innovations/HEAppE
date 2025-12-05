@@ -252,11 +252,15 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
 
-        var nodeIds = taskInfo.TaskAllocationNodes
-            .Select(s => s.AllocationNodeId)
-            .ToList();
-        
-        nodeIds.ForEach(id => cmdBuilder.Append($"dig +short {id} || host {id} | awk '{{print $NF}}'; "));
+        var cluster = taskInfo.Specification.JobSpecification.Cluster;
+
+        taskInfo.TaskAllocationNodes.ToList().ForEach(s =>
+        {
+            var fullDomain = $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}";
+            var nodeId = s.AllocationNodeId;
+            // dig s celou doménou, pokud nic nevrátí, host jen s id
+            cmdBuilder.Append($"dig +short {fullDomain} || host {nodeId} | awk '{{print $NF}}'; ");
+        });
 
         var sshCommand = cmdBuilder.ToString();
         _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
@@ -266,6 +270,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             return command.Result
                 .Split('\n')
                 .Where(w => !string.IsNullOrEmpty(w))
+                .Distinct()
                 .ToList();
         }
         catch (SlurmException)
@@ -277,6 +282,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             };
         }
     }
+
 
 
     /// <summary>

@@ -228,12 +228,15 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
 
-        var nodeIds = taskInfo.TaskAllocationNodes
-            .Select(s => s.AllocationNodeId)
-            .ToList();
+        var cluster = taskInfo.Specification.JobSpecification.Cluster;
 
-        // pro každý node nejdřív dig, pokud nic nevrátí, host + awk
-        nodeIds.ForEach(id => cmdBuilder.Append($"dig +short {id} || host {id} | awk '{{print $NF}}'; "));
+        taskInfo.TaskAllocationNodes.ToList().ForEach(s =>
+        {
+            var fullDomain = $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}";
+            var nodeId = s.AllocationNodeId;
+            // dig s celou doménou, pokud nic, host jen s id
+            cmdBuilder.Append($"dig +short {fullDomain} || host {nodeId} | awk '{{print $NF}}'; ");
+        });
 
         var sshCommand = cmdBuilder.ToString();
         _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
@@ -255,6 +258,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             };
         }
     }
+
 
 
     /// <summary>
