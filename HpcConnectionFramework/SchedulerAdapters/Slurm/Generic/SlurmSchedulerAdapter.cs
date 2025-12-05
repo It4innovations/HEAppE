@@ -252,21 +252,21 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         SshCommandWrapper command = null;
         StringBuilder cmdBuilder = new();
 
-        var cluster = taskInfo.Specification.JobSpecification.Cluster;
-        var nodeNames = taskInfo.TaskAllocationNodes
-            .Select(s => $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}")
+        var nodeIds = taskInfo.TaskAllocationNodes
+            .Select(s => s.AllocationNodeId)
             .ToList();
-
-        nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
+        
+        nodeIds.ForEach(id => cmdBuilder.Append($"dig +short {id} || host {id} | awk '{{print $NF}}'; "));
 
         var sshCommand = cmdBuilder.ToString();
         _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
+            return command.Result
+                .Split('\n')
+                .Where(w => !string.IsNullOrEmpty(w))
                 .ToList();
-            ;
         }
         catch (SlurmException)
         {
@@ -277,6 +277,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             };
         }
     }
+
 
     /// <summary>
     ///     Get generic command templates parameters from script
