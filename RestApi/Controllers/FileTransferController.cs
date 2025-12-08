@@ -202,6 +202,7 @@ public class FileTransferController : BaseController<FileTransferController>
     /// <returns></returns>
     [HttpPost("UploadFilesToJobExecutionDir")]
     [RequestSizeLimit(2_200_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 2_200_000_000)]
     [DisableRequestSizeLimit]
     [ProducesResponseType(typeof(ICollection<FileUploadResultExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
