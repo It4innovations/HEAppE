@@ -269,16 +269,34 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         {
             if (file.Name == "." || file.Name == "..") continue;
 
+            // Sestavíme plnou cestu k aktuálnímu souboru/složce
+            var fullPath = FileSystemUtils.ConcatenatePaths(currentDirectory, file.Name);
+
             if (file.IsDirectory)
+            {
                 results.AddRange(ListChangedFilesInDirectory(hostTimeZone, rootDirectory,
-                    FileSystemUtils.ConcatenatePaths(currentDirectory, file.Name), lastModificationLimit, credentials,
-                    client));
+                    fullPath, lastModificationLimit, credentials, client));
+            }
             else if (!lastModificationLimit.HasValue || lastModificationLimit.Value <= file.LastWriteTime)
+            {
+                string relativeFileName;
+                int index = fullPath.IndexOf(rootDirectory, StringComparison.Ordinal);
+
+                if (index != -1)
+                {
+                    relativeFileName = fullPath.Substring(index + rootDirectory.Length).TrimStart('/');
+                }
+                else
+                {
+                    relativeFileName = file.Name;
+                }
+
                 results.Add(new FileInformation
                 {
-                    FileName = file.FullName.Replace(rootDirectory, string.Empty),
+                    FileName = relativeFileName,
                     LastModifiedDate = file.LastWriteTime
                 });
+            }
         }
 
         return results;
