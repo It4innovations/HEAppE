@@ -1,9 +1,15 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.IO;
+using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using Renci.SshNet;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Converts;
@@ -123,6 +129,55 @@ public class FileTransferService : IFileTransferService
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             return fileTransferLogic.DownloadFileFromCluster(submittedJobInfoId, relativeFilePath, loggedUser);
+        }
+    }
+    
+    public async Task<dynamic> UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
+    {
+        await Task.Delay(1);
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId)
+            ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                            AdaptorUserRoleType.Manager, projectId);
+
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+            return fileTransferLogic.UploadFileToProjectDir(fileStream, fileName, projectId, clusterId, loggedUser);
+        }
+    }
+    
+    public async Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, string sessionCode)
+    {
+        await Task.Delay(1);
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var project = unitOfWork.ProjectRepository.GetById(projectId)
+            ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                            AdaptorUserRoleType.Manager, projectId);
+
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+            return fileTransferLogic.UploadJobScriptToProjectDir(fileStream, fileName, projectId, clusterId, loggedUser);
+        }
+    }
+    
+    public async Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, string sessionCode)
+    {
+        await Task.Delay(1);
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
+                      throw new InputValidationException("NotExistingJob", createdJobInfoId);
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                            AdaptorUserRoleType.Submitter, job.ProjectId);
+            if (job.Submitter.Id != loggedUser.Id)
+                throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                    loggedUser.GetLogIdentification(), job.Id);
+            var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+            return fileTransferLogic.UploadFileToJobExecutionDir(fileStream, fileName, createdJobInfoId, loggedUser);
         }
     }
 }

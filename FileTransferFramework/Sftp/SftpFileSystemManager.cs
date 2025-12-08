@@ -2,6 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime;
+using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
+using log4net;
+using Renci.SshNet;
+using Renci.SshNet.Sftp;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
@@ -9,8 +15,6 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Utils;
-using Microsoft.Extensions.Logging;
-using Renci.SshNet;
 
 namespace HEAppE.FileTransferFramework.Sftp;
 
@@ -278,6 +282,78 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
 
         return results;
+    }
+
+    public override bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+    {
+        bool result = false;
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+        try
+        {
+            var sftpClient = (SftpClient)connection.Connection;
+            var client = new SftpClientAdapter(sftpClient);
+            absoluteFilePath = absoluteFilePath.Replace('\\', '/');
+            try
+            {
+                client.UploadFile(fileStream, absoluteFilePath + ".part", true);
+                try {
+                    if (client.Exists(absoluteFilePath))
+                        client.DeleteFile(absoluteFilePath);
+                } catch {
+                }
+                sftpClient.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
+            }
+            catch
+            {
+                try {
+                    if (client.Exists(absoluteFilePath + ".part"))
+                        client.DeleteFile(absoluteFilePath + ".part");
+                } catch {
+                }
+                throw;
+            }
+            result = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex.ToString());
+        }
+        finally
+        {
+            _connectionPool.ReturnConnection(connection);
+        }
+
+        return result;
+    }
+    
+    public override bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+        bool? ownerCanExecute = null, bool? groupCanExecute = null)
+    {
+        bool result = false;
+        absoluteFilePath = absoluteFilePath.Replace('\\', '/');
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+        try
+        {
+            var client = new SftpClientAdapter((SftpClient)connection.Connection);
+            
+            var fileAttributes = client.GetFileAttributes(absoluteFilePath);
+            if (ownerCanExecute.HasValue)
+                fileAttributes.OwnerCanExecute = ownerCanExecute.Value;
+            if (groupCanExecute.HasValue)
+                fileAttributes.GroupCanExecute = groupCanExecute.Value;
+            client.SetFileAttributes(absoluteFilePath, fileAttributes);
+            result = true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex.ToString());
+        }
+        finally
+        {
+            _connectionPool.ReturnConnection(connection);
+        }
+
+        return result;
     }
 
     #endregion

@@ -6,6 +6,7 @@ using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
@@ -15,6 +16,7 @@ using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
 using log4net;
 using MicroKnights.Log4NetHelper;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
 using SshCaAPI;
@@ -47,6 +49,16 @@ else
     )
         throw new Exception("Configuration files not found!");
 }
+
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 2L * 1024 * 1024 * 1024; // 2 GB
+});
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = long.MaxValue;
+});
 
 builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
 
@@ -81,6 +93,7 @@ if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || 
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
 
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
 
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);

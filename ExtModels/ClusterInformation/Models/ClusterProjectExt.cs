@@ -35,12 +35,12 @@ public class ClusterProjectExt
     public string ScratchStoragePath { get; set; }
     
     /// <summary>
-    /// Permanent Storage Path
+    /// Project Storage Path
     /// </summary>
-    [DataMember(Name = "PermanentStoragePath")]
+    [DataMember(Name = "ProjectStoragePath")]
     [StringLength(100)]
-    [Description("Permanent Storage Path")]
-    public string PermanentStoragePath { get; set; }
+    [Description("Project Storage Path")]
+    public string ProjectStoragePath { get; set; }
 
     /// <summary>
     /// Created at

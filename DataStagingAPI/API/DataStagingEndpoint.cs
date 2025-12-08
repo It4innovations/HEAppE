@@ -1,11 +1,16 @@
 ﻿using FluentValidation;
 using HEAppE.BusinessLogicTier;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Validations.AbstractTypes;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.General.Models;
+using HEAppE.RestApiModels.AbstractModels;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.ServiceTier.FileTransfer;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
 using Microsoft.AspNetCore.Mvc;
 using SshCaAPI;
 
@@ -126,5 +131,153 @@ public class DataStagingEndpoint : IApiRoute
                     "Get content of the specific file on HPC infrastructure. Content is encoded in BASE64 format.";
                 return generatedOperation;
             });
+
+        static List<FileUploadResultExt> doExtractFilesUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
+        {
+            var result = new List<FileUploadResultExt>();
+            for (var i = 0; i < tasks.Count; i++)
+            {
+                var task = tasks[i];
+                var file = files[i];
+                var item = new FileUploadResultExt() { FileName = file.FileName, Succeeded = false, Path = null };
+                result.Add(item);
+
+                Dictionary<string, dynamic> taskResult = task.Result;
+                if (taskResult == null)
+                    continue;
+                item.Succeeded = taskResult["Succeeded"];
+                item.Path = taskResult["Path"];
+            }
+            return result;
+        }
+
+        static List<JobUploadResultExt> doExtractJobsUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
+        {
+            var result = new List<JobUploadResultExt>();
+            for (var i = 0; i < tasks.Count; i++)
+            {
+                var task = tasks[i];
+                var file = files[i];
+                var item = new JobUploadResultExt() { FileName = file.FileName, Succeeded = false, Path = null, AttributesSet = null };
+                result.Add(item);
+
+                Dictionary<string, dynamic> taskResult = task.Result;
+                if (taskResult == null)
+                    continue;
+                item.Succeeded = taskResult["Succeeded"];
+                item.Path = taskResult["Path"];
+                if (taskResult.TryGetValue("AttributesSet", out dynamic? value))
+                    item.AttributesSet = value;
+            }
+            return result;
+        }
+
+        static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, AdaptorUserRoleType requiredUserRole)
+        {
+            using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+            {
+                var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
+                    requiredUserRole, projectId);
+            }
+        }
+
+        group.MapPost("UploadFilesToProjectDir",
+                (
+                    [FromQuery(Name = "SessionCode")] string sessionCode,
+                    [FromQuery(Name = "ProjectId")] long projectId,
+                    [FromQuery(Name = "ClusterId")] long clusterId,
+                    [FromForm] IFormFileCollection files,
+                    [FromServices] ILogger<DataStagingEndpoint> logger,
+                    [FromServices] IValidator<UploadFileToClusterModel> validator,
+                    [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                    [FromServices] IHttpContextKeys httpContextKeys
+                ) =>
+                {
+                    var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
+                    validator.ValidateAndThrow(model);
+                    logger.LogDebug(
+                        """Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """,
+                        model);
+
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+
+                    var tasks = new List<Task<dynamic>>();
+                    foreach (var file in files)
+                    {
+                        tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode));
+                    }
+                    Task.WaitAll(tasks);
+
+                    List<FileUploadResultExt> result = doExtractFilesUploadResult(files, tasks);
+                    return Results.Ok(result);
+
+
+                })
+            .Accepts<IFormFileCollection>("multipart/form-data")
+            .Produces<ICollection<FileUploadResultExt>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .DisableRequestTimeout()
+            .RequestSizeLimit(2_200_000_000)
+            .DisableAntiforgery()
+            .WithOpenApi(generatedOperation =>
+            {
+                generatedOperation.Summary = "Upload multiple files.";
+                generatedOperation.Description =
+                    "Upload multiple files to project storage directory.";
+                return generatedOperation;
+            });
+
+            group.MapPost("UploadJobScriptsToProjectDir",
+                (
+                    [FromQuery(Name = "SessionCode")] string sessionCode,
+                    [FromQuery(Name = "ProjectId")] long projectId,
+                    [FromQuery(Name = "ClusterId")] long clusterId,
+                    [FromForm] IFormFileCollection files,
+                    [FromServices] ILogger<DataStagingEndpoint> logger,
+                    [FromServices] IValidator<UploadJobScriptsToClusterProjectDirModel> validator,
+                    [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+                    [FromServices] IHttpContextKeys httpContextKeys
+                ) =>
+                {
+                    var model = new UploadJobScriptsToClusterProjectDirModel() { SessionCode = sessionCode };
+                    validator.ValidateAndThrow(model);
+                    logger.LogDebug(
+                        """Endpoint: "FileTransfer" Method: "UploadJobScriptsToClusterProjectDir" Parameters: "{@model}" """,
+                        model);
+
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+
+                    var tasks = new List<Task<dynamic>>();
+                    foreach (var file in files)
+                    {
+                        tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadJobScriptToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode));
+                    }
+                    Task.WaitAll(tasks);
+
+                    List<JobUploadResultExt> result = doExtractJobsUploadResult(files, tasks);
+                    return Results.Ok(result);
+                })
+            .Accepts<IFormFileCollection>("multipart/form-data")
+            .Produces<ICollection<FileUploadResultExt>>()
+            .ProducesValidationProblem()
+            .ProducesProblem(StatusCodes.Status401Unauthorized)
+            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
+            .ProducesProblem(StatusCodes.Status429TooManyRequests)
+            .ProducesProblem(StatusCodes.Status500InternalServerError)
+            .DisableRequestTimeout()
+            .RequestSizeLimit(2_200_000_000)
+            .DisableAntiforgery()
+            .WithOpenApi(generatedOperation =>
+            {
+                generatedOperation.Summary = "Upload multiple files.";
+                generatedOperation.Description =
+                    "Upload multiple job scripts to cluster-project directory.";
+                return generatedOperation;
+            });
+
     }
 }

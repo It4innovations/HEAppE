@@ -54,9 +54,9 @@ public interface IManagementLogic
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath);
+        string  projectStoragePath);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath);
+        string projectStoragePath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
 
     List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,

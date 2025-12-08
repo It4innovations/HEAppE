@@ -7,17 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## V6.2.0
 
-### Added
+## Added
 - `POST /heappe/JobManagement/DryRunJob` – Introduced dry-run job submission endpoint allowing users to simulate HPC job scheduling without actual execution (supported only for `Slurm` Scheduler). Returns estimated start time, assigned resources, and system feedback for validation purposes.
+- New Management endpoints for uploading multiple files (limited to 2GB):
+  - `/api/DataStaging/UploadFilesToProjectDir` - uploads files to project directory (for user with `Manager` Role by `DataStagingAPI`)
+  - `/api/DataStaging/UploadJobScriptsToProjectDir` - upload job scripts to project directory and makes them executable (for user with `Manager` Role by `DataStagingAPI`)
+  - `/heappe/FileTransfer/UploadFilesToJobExecutionDir` - uploadfiles to job execution directory (for user with `Submitter` Role by `RestAPI`)
 
 ### Changed
 - `GET /heappe/Health` – Made the health-check endpoint public for setups using Bearer token authentication.
-
-
-## V6.1.1
-
-### Fixed
-- Incorrect handling of Slurm status updates for array jobs submitted paralelly under the same account. This caused tasks to be incorrectly marked as failed despite the underlying Slurm jobs being PENDING, RUNNING, or COMPLETED.
 
 ## V6.1.0
 
@@ -77,6 +75,17 @@ POST /heappe/FileTransfer/RequestFileTransfer
               - Properties changed
                 - Modified property: CredentialsAuthType
                   - New enum values: [10 11]
+
+## V6.1.0
+
+### Changed
+- Added new endpoints for uploading file to job execution directory:
+
+### New Endpoints: 12
+---------------------
+GET+POST /api/DataStaging/UploadFilesToProjectDir
+GET+POST /api/DataStaging/UploadJobScriptsToProjectDir
+GET+POST /api/DataStaging/UploadFilesToJobExecutionDir
 
 ## V6.0.0
 

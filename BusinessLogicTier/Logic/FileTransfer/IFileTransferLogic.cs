@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 
@@ -19,4 +21,8 @@ public interface IFileTransferLogic
     byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser);
     FileTransferMethod GetFileTransferMethodById(long fileTransferMethodId);
     IEnumerable<FileTransferMethod> GetFileTransferMethodsByClusterId(long clusterId);
+
+    dynamic UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser);
+    dynamic UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser);
+    dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, AdaptorUser loggedUser);
 }
