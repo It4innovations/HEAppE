@@ -255,20 +255,24 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         StringBuilder cmdBuilder = new();
 
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
-        var nodeNames = taskInfo.TaskAllocationNodes
-            .Select(s => $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}")
-            .ToList();
 
-        nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
+        taskInfo.TaskAllocationNodes.ToList().ForEach(s =>
+        {
+            var fullDomain = $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}";
+            var nodeId = s.AllocationNodeId;
+            cmdBuilder.Append($"ip=$(dig +short {fullDomain}); [ -z \"$ip\" ] && ip=$(host {nodeId} | awk '{{print $NF}}'); echo $ip; ");
+        });
 
         var sshCommand = cmdBuilder.ToString();
         _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
+            return command.Result
+                .Split('\n')
+                .Where(w => !string.IsNullOrEmpty(w))
+                .Distinct()
                 .ToList();
-            ;
         }
         catch (SlurmException)
         {
@@ -279,6 +283,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             };
         }
     }
+
+
 
     /// <summary>
     ///     Get generic command templates parameters from script

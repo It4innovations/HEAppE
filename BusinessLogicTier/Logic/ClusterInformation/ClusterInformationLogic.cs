@@ -206,7 +206,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             }
             catch (NotAllowedException ex)
             {
-                if (BusinessLogicConfiguration.AutomaticClusterAccountInitialization)
+                if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
                 {
                     _log.Info($"Automatic initialization of cluster accounts is enabled. Attempting to initialize accounts for project {projectId} on cluster {clusterId} for adaptor user {adaptorUserId}");
                     var initializedCredentials = InitializeCredentials(projectId, clusterId, adaptorUserId);
