@@ -301,6 +301,8 @@ public class DataStagingEndpoint : IApiRoute
                                   throw new Exception("NotExistingJob");
                         var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
                                         AdaptorUserRoleType.Submitter, job.ProjectId);
+                        if (job.Submitter.Id != loggedUser.Id)
+                            throw new Exception("LoggedUserIsNotSubmitterOfJob");
                     }
 
                     var tasks = new List<Task<dynamic>>();
