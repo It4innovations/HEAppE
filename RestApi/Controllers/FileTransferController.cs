@@ -1,10 +1,18 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
+using System.Threading.Tasks;
+using FluentValidation;
 using HEAppE.BusinessLogicTier;
+using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Models;
+using HEAppE.ExtModels.General.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.ServiceTier.FileTransfer;
+using HEAppE.ServiceTier.UserAndLimitationManagement;
+using log4net.Repository.Hierarchy;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -162,6 +170,75 @@ public class FileTransferController : BaseController<FileTransferController>
 
         return Ok(_service.DownloadFileFromCluster(model.SubmittedJobInfoId, model.RelativeFilePath,
             model.SessionCode));
+    }
+
+    static List<FileUploadResultExt> doExtractFilesUploadResult(IFormFileCollection files, List<Task<dynamic>> tasks)
+    {
+        var result = new List<FileUploadResultExt>();
+        for (var i = 0; i < tasks.Count; i++)
+        {
+            var task = tasks[i];
+            var file = files[i];
+            var item = new FileUploadResultExt() { FileName = file.FileName, Succeeded = false, Path = null };
+            result.Add(item);
+
+            Dictionary<string, dynamic> taskResult = task.Result;
+            if (taskResult == null)
+                continue;
+            item.Succeeded = taskResult["Succeeded"];
+            item.Path = taskResult["Path"];
+        }
+        return result;
+    }
+
+    /// <summary>
+    ///     Upload job to file to job execution dir
+    /// </summary>
+    /// <param name="sessionCode">sessionCode</param>
+    /// <param name="createdJobInfoId">createdJobInfoId</param>
+    /// <param name="files">files</param>
+    /// <param name="sshCertificateAuthorityService">sshCertificateAuthorityService</param>
+    /// <param name="httpContextKeys">httpContextKeys</param>
+    /// <returns></returns>
+    [HttpPost("UploadFilesToJobExecutionDir")]
+    [RequestSizeLimit(2_200_000_000)]
+    [DisableRequestSizeLimit]
+    [ProducesResponseType(typeof(ICollection<FileUploadResultExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult UploadFilesToJobExecutionDir(
+        [FromQuery(Name = "SessionCode")] string sessionCode,
+        [FromQuery(Name = "CreatedJobInfoId")] long createdJobInfoId,
+        [FromForm] IFormFileCollection files,
+        [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+        [FromServices] IHttpContextKeys httpContextKeys
+    )
+    {
+        var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
+        var validator = new UploadFileToClusterModelValidator();
+        validator.ValidateAndThrow(model);
+        _logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
+
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
+                      throw new Exception("NotExistingJob");
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
+                            AdaptorUserRoleType.Submitter, job.ProjectId);
+        }
+
+        var tasks = new List<Task<dynamic>>();
+        foreach (var file in files)
+        {
+            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, createdJobInfoId, sessionCode));
+        }
+        Task.WaitAll(tasks);
+
+        List<FileUploadResultExt> result = doExtractFilesUploadResult(files, tasks);
+        return Ok(result);
     }
 
     #endregion
