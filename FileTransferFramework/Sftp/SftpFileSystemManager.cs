@@ -261,6 +261,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         SftpClientAdapter client)
     {
         var results = new List<FileInformation>();
+        _logger.LogInformation($"Listing changed files in directory {currentDirectory}");
         foreach (var file in client.ListDirectory(hostTimeZone, currentDirectory))
         {
             if (file.Name == "." || file.Name == "..") continue;
@@ -275,6 +276,8 @@ public class SftpFileSystemManager : AbstractFileSystemManager
                     FileName = file.FullName.Replace(rootDirectory, string.Empty),
                     LastModifiedDate = file.LastWriteTime
                 });
+            _logger.LogInformation($"Found changed file: {file.FullName}, root: {rootDirectory}, current: {currentDirectory}");
+            
         }
 
         return results;
