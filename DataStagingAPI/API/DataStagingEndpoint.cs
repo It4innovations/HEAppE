@@ -279,59 +279,5 @@ public class DataStagingEndpoint : IApiRoute
                 return generatedOperation;
             });
 
-        group.MapPost("UploadFilesToJobExecutionDir",
-                (
-                    [FromQuery(Name = "SessionCode")] string sessionCode,
-                    [FromQuery(Name = "CreatedJobInfoId")] long createdJobInfoId,
-                    [FromForm] IFormFileCollection files,
-                    [FromServices] ILogger<DataStagingEndpoint> logger,
-                    [FromServices] IValidator<UploadFileToClusterModel> validator,
-                    [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
-                    [FromServices] IHttpContextKeys httpContextKeys
-                ) =>
-                {
-                    var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
-                    validator.ValidateAndThrow(model);
-                    logger.LogDebug(
-                        """Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """,
-                        model);
-                    using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-                    {
-                        var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
-                                  throw new Exception("NotExistingJob");
-                        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
-                                        AdaptorUserRoleType.Submitter, job.ProjectId);
-                        if (job.Submitter.Id != loggedUser.Id)
-                            throw new Exception("LoggedUserIsNotSubmitterOfJob");
-                    }
-
-                    var tasks = new List<Task<dynamic>>();
-                    foreach (var file in files)
-                    {
-                        tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, createdJobInfoId, sessionCode));
-                    }
-                    Task.WaitAll(tasks);
-
-                    List<FileUploadResultExt> result = doExtractFilesUploadResult(files, tasks);
-                    return Results.Ok(result);
-                })
-            .Accepts<IFormFileCollection>("multipart/form-data")
-            .Produces<ICollection<FileUploadResultExt>>()
-            .ProducesValidationProblem()
-            .ProducesProblem(StatusCodes.Status401Unauthorized)
-            .ProducesProblem(StatusCodes.Status413PayloadTooLarge)
-            .ProducesProblem(StatusCodes.Status429TooManyRequests)
-            .ProducesProblem(StatusCodes.Status500InternalServerError)
-            .DisableRequestTimeout()
-            .RequestSizeLimit(2_200_000_000)
-            .DisableAntiforgery()
-            .WithOpenApi(generatedOperation =>
-            {
-                generatedOperation.Summary = "Upload multiple files.";
-                generatedOperation.Description =
-                    "Upload multiple files to job execution directory.";
-                return generatedOperation;
-            });
-
     }
 }
