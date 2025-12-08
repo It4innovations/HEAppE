@@ -10,6 +10,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemCommands;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -28,6 +29,9 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
     protected HttpClient _httpClient;
     protected string _firecrestUrl;
     protected string _baseDirectoryPath;
+    protected string _tokenEndpoint;
+    protected string _clientId;
+    protected string _clientSecret;
     protected static SshTunnelUtils _sshTunnelUtil = new SshTunnelUtils();
 
     #endregion
@@ -40,42 +44,39 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
         _convertor = convertor;
         _commands = new LinuxCommands();
         _httpClient = new HttpClient { Timeout = TimeSpan.FromSeconds(90) };
-        _firecrestUrl = "http://host.docker.internal:8000";
-        _baseDirectoryPath = "/home/fireuser/Identifier/HEAppE/Executions";
+        _firecrestUrl = FireCrestSettings.FireCrestUrl;
+        _baseDirectoryPath = FireCrestSettings.BaseDirectoryPath;
+        _tokenEndpoint = FireCrestSettings.TokenEndpoint;
+        _clientId = FireCrestSettings.ClientId;
+        _clientSecret = FireCrestSettings.ClientSecret;
     }
 
     #endregion
 
     #region Private Methods
 
-    private string GetAuthToken(object connectorClient)
+    private string GetAuthTokenAsync()
     {
         try
         {
-            var tokenEndpoint = "http://host.docker.internal:8080/auth/realms/kcrealm/protocol/openid-connect/token";
-            var clientId = "firecrest-test-client";
-            var clientSecret = "wZVHVIEd9dkJDh9hMKc6DTvkqXxnDttk";
-
             var tokenRequestContent = new FormUrlEncodedContent(new[]
             {
                 new KeyValuePair<string, string>("grant_type", "client_credentials"),
-                new KeyValuePair<string, string>("client_id", clientId),
-                new KeyValuePair<string, string>("client_secret", clientSecret)
+                new KeyValuePair<string, string>("client_id", _clientId),
+                new KeyValuePair<string, string>("client_secret", _clientSecret)
             });
 
-            using var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
+            using var request = new HttpRequestMessage(HttpMethod.Post, _tokenEndpoint);
             request.Content = tokenRequestContent;
 
             var tokenResponse = _httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();
             if (!tokenResponse.IsSuccessStatusCode)
             {
-                var errorContent = tokenResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter()
-                    .GetResult();
+                var errorContent = tokenResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
                 throw new SshCommandException("Failed to obtain OAuth2 token for FireCrest API", errorContent);
             }
 
-            var responseContent = tokenResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter()
-                .GetResult();
+            var responseContent = tokenResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
             var tokenData = JsonSerializer.Deserialize<JsonElement>(responseContent);
 
             if (tokenData.TryGetProperty("access_token", out var accessTokenElement))
@@ -116,7 +117,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
     {
         try
         {
-            var token = GetAuthToken(connectorClient);
+            var token = GetAuthTokenAsync();
             string clusterName = jobSpecification.Cluster.Name;
             string account = jobSpecification.ClusterUser?.Username ?? "default";
 
@@ -213,41 +214,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
             throw;
         }
     }
-
-    private async Task<string> GetAuthTokenAsync()
-    {
-        var tokenEndpoint = "http://host.docker.internal:8080/auth/realms/kcrealm/protocol/openid-connect/token";
-        var clientId = "firecrest-test-client";
-        var clientSecret = "wZVHVIEd9dkJDh9hMKc6DTvkqXxnDttk";
-
-        var tokenRequestContent = new FormUrlEncodedContent(new[]
-        {
-            new KeyValuePair<string, string>("grant_type", "client_credentials"),
-            new KeyValuePair<string, string>("client_id", clientId),
-            new KeyValuePair<string, string>("client_secret", clientSecret)
-        });
-
-        using var request = new HttpRequestMessage(HttpMethod.Post, tokenEndpoint);
-        request.Content = tokenRequestContent;
-
-        var tokenResponse = await _httpClient.SendAsync(request);
-        if (!tokenResponse.IsSuccessStatusCode)
-        {
-            var errorContent = await tokenResponse.Content.ReadAsStringAsync();
-            throw new Exception("Failed to obtain OAuth2 token for FireCrest API: " + errorContent);
-        }
-
-        var responseContent = await tokenResponse.Content.ReadAsStringAsync();
-        var tokenData = JsonSerializer.Deserialize<JsonElement>(responseContent);
-
-        if (tokenData.TryGetProperty("access_token", out var accessTokenElement))
-        {
-            return accessTokenElement.GetString();
-        }
-
-        throw new Exception("Invalid OAuth2 response, access token not found.");
-    }
-
+    
     public IEnumerable<SubmittedTaskInfo> GetActualTasksInfo(object connectorClient, Cluster cluster,
         IEnumerable<SubmittedTaskInfo> submittedTasksInfo, string key)
     {
@@ -258,7 +225,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
 
         Task.Run(async () =>
         {
-            var token = await GetAuthTokenAsync();
+            var token =  GetAuthTokenAsync();
 
             foreach (var task in submittedTasksInfo)
             {
@@ -306,7 +273,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
 
         try
         {
-            var token = GetAuthToken(connectorClient);
+            var token = GetAuthTokenAsync();
 
             var cancellationTasks = submittedTasksInfo
                 .Where(task => !string.IsNullOrEmpty(task.ScheduledJobId))
@@ -344,7 +311,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
     {
         try
         {
-            var token = GetAuthToken(connectorClient);
+            var token = GetAuthTokenAsync();
             string clusterName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
             string jobDirectoryPath = $"{_baseDirectoryPath}/{account}/{jobInfo.Specification.Id}".Replace("\\", "/");
@@ -372,7 +339,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
         try
         {
             _log.Info($"Attempting to delete job directory via FireCrest for Job ID: {jobInfo.Id}");
-            var token = GetAuthToken(connectorClient);
+            var token = GetAuthTokenAsync();
 
             string systemName = jobInfo.Specification.Cluster.Name;
             string account = jobInfo.Specification.ClusterUser.Username;
@@ -443,6 +410,7 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
         _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
 
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+        // another implementation
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
         string account, bool isServiceAccount) => _commands.InitializeClusterScriptDirectory(
         schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,

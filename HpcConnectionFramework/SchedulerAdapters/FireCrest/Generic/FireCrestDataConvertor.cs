@@ -9,6 +9,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.Exceptions.Internal;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.FireCrest.DTO;
@@ -57,7 +58,7 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     {
         var task = (TaskSpecification)schedulerAllocationCmd;
         var scriptBuilder = new StringBuilder();
-        string baseDirectoryPath = "/home/fireuser/Identifier/HEAppE/Executions";
+        string baseDirectoryPath = FireCrestSettings.BaseDirectoryPath;
         string account = jobSpecification.ClusterUser?.Username ?? "default";
         string workingDirectory = $"{baseDirectoryPath}/{account}/{jobSpecification.Id}/{task.Id}".Replace("\\", "/");
 
