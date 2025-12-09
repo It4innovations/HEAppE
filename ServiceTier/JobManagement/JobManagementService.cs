@@ -7,6 +7,7 @@ using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
@@ -125,28 +126,36 @@ public class JobManagementService : IJobManagementService
 
     public SubmittedJobInfoExt[] ListJobsForCurrentUser(string sessionCode, string jobStates = null)
     {
-        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
-        {
-            (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
-                    AdaptorUserRoleType.Submitter);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var jobInfos = jobLogic.GetJobsForUser(loggedUser);
-            var result = jobInfos.Select(s => s.ConvertIntToExt()).ToArray();
-            if (jobStates != null)
-            {
-                var values = Enum.GetValues(typeof(JobStateExt));
-                Array.Reverse(values);
-                foreach (JobStateExt st in values) jobStates = jobStates.Replace(((int)st).ToString(), st.ToString());
-                jobStates = Regex.Replace(jobStates.Replace(" ", ""), @",+", ",").Trim(',');
-                if (!Enum.TryParse(jobStates, true, out JobStateExt statesComb))
-                    throw new InputValidationException("JobStatesInvalid", jobStates);
-                result = result.Where(x => ((int)statesComb & (int)x.State) != 0).ToArray();
-            }
+        using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
 
-            return result;
+        // Validate the user and get associated projects
+        var (loggedUser, projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
+            sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Submitter);
+
+        var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(
+            unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+        // Get IQueryable of jobs for the user (enables DB-side filtering)
+        IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id);
+
+        if (!string.IsNullOrWhiteSpace(jobStates))
+        {
+            // Convert jobStates string into array of integers
+            var stateInts = jobStates.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => int.Parse(s.Trim()))
+                .ToArray();
+
+            // Combine all states into a single bitmask
+            int statesMask = stateInts.Aggregate(0, (acc, val) => acc | val);
+
+            // Apply bitmask filtering directly in SQL
+            query = query.Where(x => ((int)x.State & statesMask) != 0);
         }
+
+        // Fetch from DB and convert to external DTO
+        return query.AsEnumerable().Select(x => x.ConvertIntToExt()).ToArray();
     }
+
 
     public SubmittedJobInfoExt CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
     {

@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -24,4 +25,5 @@ public interface IJobManagementLogic
     void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash);
     IEnumerable<string> GetAllocatedNodesIPs(long submittedTaskInfoId, AdaptorUser loggedUser);
     DryRunJobInfo DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode, long modelWallTimeInMinutes, AdaptorUser loggedUser);
+    IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long loggedUserId);
 }

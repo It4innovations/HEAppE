@@ -503,6 +503,11 @@ internal class JobManagementLogic : IJobManagementLogic
             .DryRunJob(dryRunJobSpecification, _httpContextKeys.Context.SshCaToken);
     }
 
+    public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long loggedUserId)
+    {
+        return _unitOfWork.SubmittedJobInfoRepository.GetJobsForUserQuery(loggedUserId);
+    }
+
     protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser,
         IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
     {

@@ -39,6 +39,14 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return GetAll().Where(w => w.Submitter.Id == submitterId)
             .ToList();
     }
+    
+    public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long submitterId)
+    {
+        return _dbSet.AsQueryable()
+            .Where(j => j.Submitter.Id == submitterId);
+    }
+
+
 
     public IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount()
     {
