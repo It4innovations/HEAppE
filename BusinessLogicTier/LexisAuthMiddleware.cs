@@ -32,13 +32,7 @@ public class LexisAuthMiddleware
         {
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
-
-            if (string.IsNullOrEmpty(token))
-            {
-                //local user, no token to validate
-                await _next(context);
-            }
-
+            
             try
             {
                 await keys.Authorize(sshCaService);
@@ -54,8 +48,12 @@ public class LexisAuthMiddleware
         }
         else
         {
-            context.Response.StatusCode = 401;
-            await context.Response.WriteAsync("Unauthorized");
+            //context.Response.StatusCode = 401;
+            //await context.Response.WriteAsync("Unauthorized");
+            //no token provided, proceed as local user
+            var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "Lexis");
+            context.User = new ClaimsPrincipal(identity);
+            await _next(context);
             return;
         }
 
