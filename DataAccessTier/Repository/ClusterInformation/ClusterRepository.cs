@@ -57,6 +57,17 @@ internal class ClusterRepository : GenericRepository<Cluster>, IClusterRepositor
         return _dbSet.Include(c => c.ProxyConnection).FirstOrDefault(c => c.Id == id);
     }
 
+    public IQueryable<Cluster> AsQueryable()
+    {
+        return _dbSet
+            .AsNoTracking()
+            .Include(c => c.ClusterProjects)
+            .Include(c => c.NodeTypes)
+            .ThenInclude(n => n.PossibleCommands)
+            .Include(c => c.FileTransferMethods)
+            .Include(c => c.ProxyConnection);
+    }
+
     #endregion
 
     #region Private Methods
