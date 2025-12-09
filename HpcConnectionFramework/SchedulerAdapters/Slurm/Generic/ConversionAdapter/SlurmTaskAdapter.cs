@@ -229,7 +229,7 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
             }
             else
             {
-                int gpuCount = maxCores / minCores;
+                int gpuCount = maxCores;
                 var nodeCount = maxCores / coresPerNode;
                 nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
                 allocationCmdBuilder.Append($" --gpus={gpuCount}");
