@@ -15,26 +15,27 @@ public static class JwtIntrospectionExtensions
 {
     public static IServiceCollection AddSmartAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
-        // Default authentication scheme with runtime selection
-        services.AddAuthentication(options =>
-        {
-            options.DefaultScheme = "SmartScheme";
-        })
-        .AddPolicyScheme("SmartScheme", "Local or JWT", options =>
-        {
-            options.ForwardDefaultSelector = context =>
-            {
-                var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-                return string.IsNullOrEmpty(authHeader)
-                    ? "LocalScheme" // no Authorization header → use local auth
-                    : OAuth2IntrospectionDefaults.AuthenticationScheme; // header present → JWT introspection
-            };
-        })
-        .AddScheme<AuthenticationSchemeOptions, LocalAuthenticationHandler>("LocalScheme", null);
-
         // Register OAuth2 Introspection if enabled
         if (JwtTokenIntrospectionConfiguration.IsEnabled)
         {
+            // Default authentication scheme with runtime selection
+            services.AddAuthentication(options =>
+            {
+                options.DefaultScheme = "SmartScheme";
+            })
+            .AddPolicyScheme("SmartScheme", "Local or JWT", options =>
+            {
+                options.ForwardDefaultSelector = context =>
+                {
+                    var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
+                    return string.IsNullOrEmpty(authHeader)
+                        ? "LocalScheme" // no Authorization header → use local auth
+                        : OAuth2IntrospectionDefaults.AuthenticationScheme; // header present → JWT introspection
+                };
+            })
+            .AddScheme<AuthenticationSchemeOptions, LocalAuthenticationHandler>("LocalScheme", null);
+
+      
             services.AddAuthentication()
                 .AddOAuth2Introspection(OAuth2IntrospectionDefaults.AuthenticationScheme, options =>
                 {

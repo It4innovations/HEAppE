@@ -189,12 +189,9 @@ public class Startup
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
-
-        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-        {
-            services.AddHttpClient("LexisTokenExchangeClient");
-            services.AddSingleton<ILexisTokenService, LexisTokenService>();   
-        }
+        
+        services.AddHttpClient("LexisTokenExchangeClient");
+        services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
         services.AddSwaggerGen(gen =>
         {

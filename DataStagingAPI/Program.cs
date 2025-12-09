@@ -83,11 +83,10 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
 
-if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    builder.Services.AddHttpClient("LexisTokenExchangeClient");
-    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
-}
+// Lexis Token Service
+builder.Services.AddHttpClient("LexisTokenExchangeClient");
+builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
+
 
 // Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
@@ -297,8 +296,16 @@ if (LexisAuthenticationConfiguration.UseBearerAuth)
 if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
 {
     app.UseMiddleware<LexisTokenExchangeMiddleware>();
-    app.UseAuthentication();
-    app.UseAuthorization();
+    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+    {
+        app.UseAuthentication();
+        app.UseAuthorization();
+    }
+    else
+    {
+        app.UseAuthentication();
+    }
+   
 }
 
 app.Run();
