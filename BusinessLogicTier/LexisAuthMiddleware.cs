@@ -33,6 +33,12 @@ public class LexisAuthMiddleware
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
 
+            if (string.IsNullOrEmpty(token))
+            {
+                //local user, no token to validate
+                await _next(context);
+            }
+
             try
             {
                 await keys.Authorize(sshCaService);

@@ -80,20 +80,40 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
+        bool hasFIPOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) 
+                                  || !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken);
+
+        if (!hasFIPOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
+        {
+            _log.Info("Authenticating local user with session code.");
+            return AuthenticateLocalSession(sessionCode);
+        }
+
         if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
         }
+
+        return AuthenticateLocalSession(sessionCode);
+    }
+
+    private AdaptorUser AuthenticateLocalSession(string sessionCode)
+    {
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
-        if (session is null) throw new SessionCodeNotValidException("NotPresent", sessionCode);
+        if (session is null)
+            throw new SessionCodeNotValidException("NotPresent", sessionCode);
 
         if (IsSessionExpired(session))
-            throw new SessionCodeNotValidException("Expired", sessionCode,
-                session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+            throw new SessionCodeNotValidException(
+                "Expired", 
+                sessionCode,
+                session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            );
 
         session.LastAccessTime = DateTime.UtcNow;
         _unitOfWork.SessionCodeRepository.Update(session);
         _unitOfWork.Save();
+
         return session.User;
     }
     

@@ -33,7 +33,10 @@ public class LexisTokenService : ILexisTokenService
     public async Task<string> ExchangeLexisTokenForFipAsync(string lexisAccessToken)
     {
         if (string.IsNullOrWhiteSpace(lexisAccessToken))
-            throw new ArgumentException("LEXIS access token is required.", nameof(lexisAccessToken));
+        {
+            //throw new ArgumentException("LEXIS access token is required.", nameof(lexisAccessToken));
+            return null;
+        }
 
         
         var client = _httpClientFactory.CreateClient("LexisTokenExchangeClient");

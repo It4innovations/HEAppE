@@ -55,6 +55,13 @@ public static class JwtIntrospectionExtensions
                     {
                         var sshCaService = context.HttpContext.RequestServices
                             .GetRequiredService<ISshCertificateAuthorityService>();
+                        
+                        if(string.IsNullOrEmpty(context.SecurityToken))
+                        {
+                            //local user, no token to validate
+                            return;
+                        }
+                        
                         try
                         {
                             await context.HttpContext.RequestServices
