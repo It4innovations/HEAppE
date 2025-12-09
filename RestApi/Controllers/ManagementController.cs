@@ -67,8 +67,10 @@ public class ManagementController : BaseController<ManagementController>
 
     private void ClearListAvailableClusterMethodCache(string sessionCode)
     {
-         var memoryCacheKey =$"{nameof(ClusterInformationController.ListAvailableClusters)}_{sessionCode}";
+        var adaptorUser = _userAndManagementService.GetCurrentUserInfo(sessionCode);
+         var memoryCacheKey =$"{nameof(ClusterInformationController.ListAvailableClusters)}_{adaptorUser.Email}";
         _cacheProvider.RemoveKeyFromCache(_logger, memoryCacheKey, nameof(CreateProjectAssignmentToCluster));
+        CacheUtils.InvalidateAllCache(_logger);
     }
 
     #endregion

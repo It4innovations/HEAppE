@@ -16,6 +16,7 @@ using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using log4net;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Primitives;
 using SshCaAPI;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
@@ -47,7 +48,7 @@ public class ClusterInformationService : IClusterInformationService
         var (loggedUser, projects) = UserAndLimitationManagementService
             .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, roles);
 
-        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{sessionCode}";
+        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{loggedUser.Email}";
         if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
         {
             _log.Info($"Using Memory Cache to get value for key.");
@@ -59,7 +60,14 @@ public class ClusterInformationService : IClusterInformationService
             cachedClusters = clusterLogic.ListAvailableClusters()
                 .Select(c => c.ConvertIntToExt(projects, true))
                 .ToArray();
-            _cacheProvider.Set(memoryCacheKey, cachedClusters, TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters));
+            _cacheProvider.Set(
+                memoryCacheKey,
+                cachedClusters,
+                new MemoryCacheEntryOptions()
+                    .SetAbsoluteExpiration(TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters))
+                    .AddExpirationToken(new CancellationChangeToken(CacheUtils.GlobalResetToken))
+            );
+
         }
 
         // Pokud nejsou žádné filtry, vrať cache rovnou
