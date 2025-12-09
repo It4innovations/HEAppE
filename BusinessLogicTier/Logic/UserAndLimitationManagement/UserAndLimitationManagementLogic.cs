@@ -101,7 +101,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     {
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
         if (session is null)
-            throw new SessionCodeNotValidException("NotPresent", sessionCode);
+            throw new UnauthorizedAccessException("Unauthorized");
 
         if (IsSessionExpired(session))
             throw new SessionCodeNotValidException(

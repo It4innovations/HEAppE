@@ -114,7 +114,7 @@ if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || 
 }
 if (JwtTokenIntrospectionConfiguration.IsEnabled)
 {
-    builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
+    builder.Services.AddSmartAuthentication(builder.Configuration);
 }
 
 

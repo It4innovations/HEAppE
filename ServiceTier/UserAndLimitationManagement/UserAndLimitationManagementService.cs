@@ -238,6 +238,8 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             .CreateUserAndLimitationManagementLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys);
 
         var user = authenticationLogic.GetUserForSessionCode(sessionCode);
+        if (user == null)
+            throw new UnauthorizedAccessException("Unauthorized");
 
         var now = DateTime.UtcNow;
 

@@ -168,7 +168,7 @@ public class Startup
 
         if (JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            services.AddJwtIntrospectionIfEnabled(Configuration);
+            services.AddSmartAuthentication(Configuration);
         }
 
 

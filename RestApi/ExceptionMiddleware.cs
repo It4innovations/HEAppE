@@ -178,6 +178,12 @@ public class ExceptionMiddleware
                     _ => StatusCodes.Status400BadRequest
                 };
                 break;
+            case UnauthorizedAccessException:
+                problem.Title = "Unauthorized Access";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
             default:
                 problem.Title = "Problem";
                 problem.Detail = _exceptionsLocalizer["InternalException"];
