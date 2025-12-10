@@ -16,6 +16,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using log4net;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 
 namespace HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 
@@ -267,73 +268,132 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         _log.DebugFormat("Using cluster account: {0}", creds.Username);
         return creds;
     }
+    
+    private IEnumerable<ClusterAuthenticationCredentials> GetAndInitializeCredentials(long clusterId, 
+                                                                                        long projectId, 
+                                                                                        long adaptorUserId, 
+                                                                                        bool requireIsInitialized, 
+                                                                                        bool onlyServiceAccounts)
+    {
+        try
+        {
+            if (onlyServiceAccounts)
+            {
+                // Získání servisního účtu (vrací jeden objekt nebo null)
+                var serviceAccount = _unitOfWork.ClusterAuthenticationCredentialsRepository
+                    .GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, adaptorUserId);
+
+                // Musíme zabalit jeden objekt do IEnumerable, aby seděl návratový typ
+                return serviceAccount != null 
+                    ? new List<ClusterAuthenticationCredentials> { serviceAccount } 
+                    : Enumerable.Empty<ClusterAuthenticationCredentials>();
+            }
+            else
+            {
+                // Získání uživatelských účtů (již vrací IEnumerable)
+                return _unitOfWork.ClusterAuthenticationCredentialsRepository
+                    .GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, requireIsInitialized, adaptorUserId);
+            }
+        }
+        catch (NotAllowedException ex)
+        {
+            // Kontrola: Je chyba způsobena tím, že účet není inicializován? A je povolena auto-inicializace?
+            bool isNotInitializedError = ex.Message != null && ex.Message.Contains("ClusterAccountNotInitialized");
+            bool isAutoInitEnabled = BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse;
+
+            if (isAutoInitEnabled && isNotInitializedError)
+            {
+                _log.InfoFormat("Auto-initializing credentials for ClusterId: {0}, ProjectId: {1}, ServiceAccount: {2}", 
+                    clusterId, projectId, onlyServiceAccounts);
+
+                // Volání existující metody pro inicializaci
+                // Předpokládám, že InitializeClusterCredentials vrací kolekci (v původním kódu .FirstOrDefault() naznačoval kolekci)
+                return InitializeClusterCredentials(
+                    clusterId: clusterId, 
+                    projectId: projectId, 
+                    adaptorUserId: adaptorUserId, 
+                    onlyServiceAccounts: onlyServiceAccounts);
+            }
+
+            // Pokud to není chyba inicializace nebo je auto-init vypnutý, vyhoď výjimku dál
+            throw;
+        }
+    }
+    
+    private IEnumerable<ClusterAuthenticationCredentials> CreateAndInitializeMissingCredentials(
+        long clusterId, 
+        long projectId, 
+        long adaptorUserId)
+    {
+        _log.InfoFormat("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
+
+        //invoke management logic and run CreateSecureShellKey
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        managementLogic.CreateSecureShellKey(
+            credentials: new List<(string, string)> { ($"account_{projectId}_{adaptorUserId}", string.Empty) },
+            projectId: projectId,
+            adaptorUserId: adaptorUserId);
+        
+        return InitializeClusterCredentials(
+            clusterId: clusterId, 
+            projectId: projectId, 
+            adaptorUserId: adaptorUserId, 
+            onlyServiceAccounts: false); 
+    }
 
     private ClusterAuthenticationCredentials GetNextAvailableUserCredentialsByAdaptorUser(long clusterId, long projectId, bool requireIsInitialized, long adaptorUserId)
     {
-        //return all non service account for specific cluster and project
-        IEnumerable<ClusterAuthenticationCredentials> credentials =  new List<ClusterAuthenticationCredentials>();
-        try
-        {
-            credentials =
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                    clusterId, projectId, requireIsInitialized, adaptorUserId);
-        }
-        catch(NotAllowedException ex)
-        {
-            //if initialize not initialized credentials boolean is true
-            if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse && ex.Message.Contains("ClusterAccountNotInitialized"))
-            {
-                credentials = InitializeClusterCredentials(clusterId: clusterId, projectId: projectId, adaptorUserId: adaptorUserId, onlyServiceAccounts: false);
-            }
-            else
-            {
-                throw;
-            }
-        }
-        if (credentials == null || credentials?.Count() == 0)
-            throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", clusterId, projectId);
+        List<ClusterAuthenticationCredentials> credentials = GetAndInitializeCredentials(
+            clusterId, projectId, adaptorUserId, requireIsInitialized, onlyServiceAccounts: false)
+            .ToList(); 
 
-        ClusterAuthenticationCredentials serviceCredentials;
-        try
+        // 2. NOVÝ POŽADAVEK: Auto-vytvoření, pokud credentials neexistují
+        if (credentials.Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            serviceCredentials =
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, adaptorUserId)
-                ?? throw new RequestedObjectDoesNotExistException("ClusterAuthenticationCredentialsNoServiceAccount", clusterId, projectId, adaptorUserId);
-
-        }
-        catch(NotAllowedException ex)
-        {
-            //if initialize not initialized credentials boolean is true
-            if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse && ex.Message.Contains("ClusterAccountNotInitialized"))
-            {
-                serviceCredentials = InitializeClusterCredentials(clusterId: clusterId, projectId: projectId, adaptorUserId: adaptorUserId, onlyServiceAccounts: true).FirstOrDefault();
-            }
-            else
-            {
-                throw;
-            }
+            // Předpoklad: Tato metoda vytvoří v DB jak User, tak Service účty a vrátí User účty.
+            var newCredentials = CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId);
+            credentials = newCredentials.ToList(); // Opět ujistit se, že máme List
         }
 
-            
-        var firstCredentials = credentials.FirstOrDefault();
+        // 3. Kontrola, zda ne-servisní účty existují
+        if (credentials.Count == 0)
+        {
+            throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
+        }
+
+        // 4. Získání servisního účtu
+        // Zde není nutné ToList(), protože voláme jen FirstOrDefault()
+        ClusterAuthenticationCredentials serviceCredentials = GetAndInitializeCredentials(
+            clusterId, projectId, adaptorUserId, requireIsInitialized, onlyServiceAccounts: true)
+            .FirstOrDefault();
+
+        if (serviceCredentials == null)
+        {
+            // if service account is missing, something is seriously wrong
+            throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
+        }
+        
+        // 5. Rotation logic
+        var firstCredentials = credentials[0];
         var lastUsedId = AdaptorUserProjectClusterUserCache.GetLastUserId(adaptorUserId, projectId, clusterId);
-        if (lastUsedId is null)
+
+        ClusterAuthenticationCredentials creds;
+        if (lastUsedId == null)
         {
-            // No user has been used from this cluster
-            // return first usable account
-            AdaptorUserProjectClusterUserCache.SetLastUserId(adaptorUserId, projectId, clusterId, serviceCredentials.Id, firstCredentials.Id);
-            _log.DebugFormat("Using initial cluster account: {0}", firstCredentials.Username);
-            return firstCredentials;
+            creds = firstCredentials;
+        }
+        else
+        {
+            // Memory efficient way to get next account
+            creds = credentials.FirstOrDefault(account => account.Id > lastUsedId);
+            creds ??= firstCredentials;
         }
 
-        // Return first user with Id higher than the last one
-        var creds = (from account in credentials where account.Id > lastUsedId select account).FirstOrDefault();
-        // No credentials with Id higher than last used found
-        // use first usable account
-        creds ??= firstCredentials;
-
-        AdaptorUserProjectClusterUserCache.SetLastUserId(adaptorUserId, projectId, clusterId, serviceCredentials.Id, creds.Id);
+        AdaptorUserProjectClusterUserCache.SetLastUserId(
+            adaptorUserId, projectId, clusterId, serviceCredentials.Id, creds.Id);
+        
         _log.DebugFormat("Using cluster account: {0}", creds.Username);
+
         return creds;
     }
 

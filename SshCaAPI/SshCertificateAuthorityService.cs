@@ -63,7 +63,7 @@ namespace SshCaAPI
         /// <param name="resource"></param>
         /// <returns>SSH certificate in OpenSSH certificate format.</returns>
         /// <exception cref="SshCAServiceTypeException">Is thrown when the request is malformed and the API returns non 201 code.</exception>
-        public async Task<string?> SignAsync(string publicKey, string ott, string resource)
+        public async Task<SignResponse?> SignAsync(string publicKey, string ott, string resource)
         {
             var requestBody = JsonConvert.SerializeObject(new SignRequest { PublicKey = publicKey, Ott = ott, Resource = resource },
                 IgnoreNullSerializer.Instance);
@@ -81,15 +81,17 @@ namespace SshCaAPI
             if ((bool)json?.SshCert?.EndsWith("\n"))
             {
                 //remove last \n
-                return json?.SshCert.Substring(0, json.SshCert.Length - 1);
+                json.SshCert = json.SshCert.Substring(0, json.SshCert.Length - 1);
+                return json;
             }
             else
             {
-                return json?.SshCert;
+                return json;
             }
 
         }
     }
+    
     public class SignResponse
     {
         [JsonProperty("ssh_cert")]

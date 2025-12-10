@@ -132,11 +132,11 @@ public class FileTransferLogic : IFileTransferLogic
         if (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKey))
             throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
         
-        string certificate = string.Empty;
+        SignResponse response = new SignResponse();
         string publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(clusterUserAuthCredentials).PublicKeyInAuthorizedKeysFormat;
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            certificate = _sshCertificateAuthorityService
+            response = _sshCertificateAuthorityService
                 .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, jobInfo.Specification.FileTransferMethod.ServerHostname)
                 .GetAwaiter()
                 .GetResult();
@@ -152,12 +152,12 @@ public class FileTransferLogic : IFileTransferLogic
                 FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath),
             Credentials = new FileTransferKeyCredentials
             {
-                Username = clusterUserAuthCredentials.Username,
+                Username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) ? response.PosixUsername : clusterUserAuthCredentials.Username,
                 Password = clusterUserAuthCredentials.Password,
                 FileTransferCipherType = clusterUserAuthCredentials.CipherType,
                 CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
                 PrivateKey = clusterUserAuthCredentials.PrivateKey,
-                PrivateKeyCertificate = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) ? certificate : clusterUserAuthCredentials.PrivateKeyCertificate,
+                PrivateKeyCertificate = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) ? response.SshCert : clusterUserAuthCredentials.PrivateKeyCertificate,
                 Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
             }
         };
@@ -215,10 +215,10 @@ public class FileTransferLogic : IFileTransferLogic
             publicKey = certGenerator.ToPuTTYPublicKey("");
         }
 
-        string certificate = string.Empty;
+        SignResponse response = new SignResponse();
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            certificate = _sshCertificateAuthorityService
+            response = _sshCertificateAuthorityService
                 .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, transferMethod.ServerHostname)
                 .GetAwaiter()
                 .GetResult();
@@ -226,12 +226,12 @@ public class FileTransferLogic : IFileTransferLogic
 
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
-            Username = jobInfo.Specification.ClusterUser.Username,
+            Username = (string.IsNullOrEmpty(response.PosixUsername))?jobInfo.Specification.ClusterUser.Username: response.PosixUsername,
             FileTransferCipherType = certGenerator.CipherType,
             PrivateKey = certGenerator.CipherType != FileTransferCipherType.Ed25519 ? certGenerator.ToPrivateKey() : certGenerator.ToPrivateKeyInPEM(),
             CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, 
             PublicKey = publicKey,
-            PrivateKeyCertificate = certificate
+            PrivateKeyCertificate = response.SshCert
         };
 
 

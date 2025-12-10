@@ -303,6 +303,9 @@
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
     <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the HEAppE.</value>
   </data>
+  <data name="RequestedObjectDoesNotExistException_FailedToRetrieveOrInitializeClusterAccount" xml:space="preserve">
+    <value>Failed to retrieve or initialize cluster account.</value>
+  </data>
   <data name="RequestedObjectDoesNotExistException_ClusterAuthenticationCredentialsNoServiceAccount" xml:space="preserve">
     <value>Requested ClusterAuthenticationCredential for cluster Id '{0}' with Project Id '{1}' and AdaptorUser Id '{2}' has no Service Account Credentials in the HEAppE.</value>
   </data>
