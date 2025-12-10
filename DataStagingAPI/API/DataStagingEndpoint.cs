@@ -183,7 +183,7 @@ public class DataStagingEndpoint : IApiRoute
 
         group.MapPost("UploadFilesToProjectDir",
                 (
-                    [FromQuery(Name = "SessionCode")] string sessionCode,
+                    [FromQuery(Name = "SessionCode")] string? sessionCode,
                     [FromQuery(Name = "ProjectId")] long projectId,
                     [FromQuery(Name = "ClusterId")] long clusterId,
                     [FromForm] IFormFileCollection files,
@@ -233,7 +233,7 @@ public class DataStagingEndpoint : IApiRoute
 
             group.MapPost("UploadJobScriptsToProjectDir",
                 (
-                    [FromQuery(Name = "SessionCode")] string sessionCode,
+                    [FromQuery(Name = "SessionCode")] string? sessionCode,
                     [FromQuery(Name = "ProjectId")] long projectId,
                     [FromQuery(Name = "ClusterId")] long clusterId,
                     [FromForm] IFormFileCollection files,

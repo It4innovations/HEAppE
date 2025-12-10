@@ -164,20 +164,28 @@ public class FileTransferService : IFileTransferService
         }
     }
     
-    public async Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, string sessionCode)
+    public async Task<dynamic> UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, string sessionCode)
     {
         await Task.Delay(1);
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
+            // Validate that the task belongs to the job
+            if(createdTaskInfoId.HasValue)
+            {
+                if(job.Tasks.Any(t => t.Id == createdTaskInfoId.Value) == false)
+                {
+                    throw new InputValidationException("TaskDoesNotBelongToJob", createdTaskInfoId.Value);
+                }
+            }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                             AdaptorUserRoleType.Submitter, job.ProjectId);
             if (job.Submitter.Id != loggedUser.Id)
                 throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
                     loggedUser.GetLogIdentification(), job.Id);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return fileTransferLogic.UploadFileToJobExecutionDir(fileStream, fileName, createdJobInfoId, loggedUser);
+            return fileTransferLogic.UploadFileToJobExecutionDir(fileStream, fileName, createdJobInfoId, createdTaskInfoId, loggedUser);
         }
     }
 }

@@ -24,5 +24,5 @@ public interface IFileTransferLogic
 
     dynamic UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser);
     dynamic UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser);
-    dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, AdaptorUser loggedUser);
+    dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser);
 }

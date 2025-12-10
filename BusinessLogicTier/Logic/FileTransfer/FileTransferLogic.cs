@@ -459,10 +459,10 @@ public class FileTransferLogic : IFileTransferLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
         var cluster = clusterProject.Cluster;
-
-        var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-            clusterId, projectId, false, loggedUser.Id
-        ).First();
+        
+        //invoke user information logic and run GetNextAvailableUserCredentials
+        var logic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var credentials = logic.GetNextAvailableUserCredentials(clusterId, projectId, true, loggedUser.Id);
 
         var (fileTransferMethod, fileTransferProtocol) = GetFileTransferMethodForUpload(clusterId);
         if (fileTransferMethod == null)
@@ -470,7 +470,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         var projectStoragePath = clusterProject.ProjectStoragePath;
         if (string.IsNullOrEmpty(projectStoragePath))
-            throw new Exception("Error: projectStoragePath is not set!");
+            throw new InvalidRequestException("ProjectPathNotSet");
 
         var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(clusterProject.ProjectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
@@ -488,18 +488,18 @@ public class FileTransferLogic : IFileTransferLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         var clusterProject = _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId);
         var cluster = clusterProject.Cluster;
-
-        var credentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-            clusterId, projectId, false, loggedUser.Id
-        ).First();
-
+        
+        var logic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var credentials = logic.GetNextAvailableUserCredentials(clusterId, projectId, true, loggedUser.Id);
+        
+        
         var (fileTransferMethod, fileTransferProtocol) = GetFileTransferMethodForUpload(clusterId);
         if (fileTransferMethod == null)
             return result;
 
         var projectStoragePath = clusterProject.ProjectStoragePath;
         if (string.IsNullOrEmpty(projectStoragePath))
-            throw new Exception("Error: projectStoragePath is not set!");
+            throw new InvalidRequestException("ProjectPathNotSet");
 
         var absoluteFilePath = FileSystemUtils.SanitizePath(FileSystemUtils.ConcatenatePaths(projectStoragePath, fileName));
         var fileManager = FileSystemFactory.GetInstance(fileTransferProtocol.Value).CreateFileSystemManager(fileTransferMethod, _sshCertificateAuthorityService);
@@ -516,7 +516,7 @@ public class FileTransferLogic : IFileTransferLogic
         return result;
     }
 
-    public dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, AdaptorUser loggedUser)
+    public dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser)
     {
         var result = new Dictionary<string, dynamic>();
 
@@ -527,7 +527,17 @@ public class FileTransferLogic : IFileTransferLogic
         if (string.IsNullOrEmpty(jobClusterDirectoryPath))
             throw new Exception("Error: jobClusterDirectoryPath is not set!");
 
-        var absoluteFilePath = FileSystemUtils.ConcatenatePaths(jobClusterDirectoryPath, FileSystemUtils.SanitizeFileName(fileName));
+        string absoluteFilePath = string.Empty;
+        if (createdTaskInfoId.HasValue)
+        {
+            string path = Path.Combine(jobClusterDirectoryPath, createdTaskInfoId.Value.ToString());
+            absoluteFilePath = FileSystemUtils.ConcatenatePaths(path, FileSystemUtils.SanitizeFileName(fileName));
+        }
+        else
+        {
+            absoluteFilePath = FileSystemUtils.ConcatenatePaths(jobClusterDirectoryPath, FileSystemUtils.SanitizeFileName(fileName));
+        }
+        
         absoluteFilePath = FileSystemUtils.SanitizePath(absoluteFilePath);
 
         var fileManager = FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)

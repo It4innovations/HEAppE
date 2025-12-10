@@ -311,6 +311,10 @@ public class SftpFileSystemManager : AbstractFileSystemManager
             var sftpClient = (SftpClient)connection.Connection;
             var client = new SftpClientAdapter(sftpClient);
             absoluteFilePath = absoluteFilePath.Replace('\\', '/');
+            if (absoluteFilePath.StartsWith("~/"))
+            {
+                absoluteFilePath = absoluteFilePath.Replace("~", sftpClient.WorkingDirectory);
+            }
             try
             {
                 client.UploadFile(fileStream, absoluteFilePath + ".part", true);
@@ -321,7 +325,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
                 }
                 sftpClient.RenameFile(absoluteFilePath + ".part", absoluteFilePath);
             }
-            catch
+            catch(Exception ex)
             {
                 try {
                     if (client.Exists(absoluteFilePath + ".part"))

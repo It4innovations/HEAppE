@@ -65,7 +65,7 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .ThenInclude(x => x.Specification.CommandTemplate) // Combined another Include and ThenInclude
             .Where(x => x.Project.Id == projectId &&
                         x.StartTime >= startTime &&
-                        x.EndTime <= endTime &&
+                        (x.EndTime == null || x.EndTime <= endTime) &&
                         x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
             .ToList();
     }

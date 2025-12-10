@@ -207,6 +207,9 @@
   <data name="InvalidRequestException_CannotDeleteJob" xml:space="preserve">
     <value>Cannot delete job '{0}', this job is in state '{1}'.</value>
   </data>
+  <data name="InvalidRequestException_ProjectPathNotSet" xml:space="preserve">
+    <value>Project path is not set.</value>
+  </data>
   <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
     <value>The specified cluster node has no reference to cluster.</value>
   </data>

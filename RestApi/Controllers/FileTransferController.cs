@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using FluentValidation;
 using HEAppE.BusinessLogicTier;
@@ -212,7 +213,8 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult UploadFilesToJobExecutionDir(
         [FromQuery(Name = "SessionCode")] string sessionCode,
-        [FromQuery(Name = "CreatedJobInfoId")] long createdJobInfoId,
+        [FromQuery(Name = "JobId")] long jobId,
+        [FromQuery(Name = "TaskId")] long? taskId,
         [FromForm] IFormFileCollection files,
         [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
         [FromServices] IHttpContextKeys httpContextKeys
@@ -225,8 +227,14 @@ public class FileTransferController : BaseController<FileTransferController>
 
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
+            var job = unitOfWork.JobSpecificationRepository.GetById(jobId) ??
                       throw new Exception("NotExistingJob");
+            //check if task belongs to job
+            if (taskId.HasValue)
+            {
+                if(!job.Tasks.Any(t=> t.Id == taskId.Value))
+                    throw new Exception("TaskDoesNotBelongToJob");
+            }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
                             AdaptorUserRoleType.Submitter, job.ProjectId);
             if (job.Submitter.Id != loggedUser.Id)
@@ -236,7 +244,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var tasks = new List<Task<dynamic>>();
         foreach (var file in files)
         {
-            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, createdJobInfoId, sessionCode));
+            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobId, taskId, sessionCode));
         }
         Task.WaitAll(tasks);
 

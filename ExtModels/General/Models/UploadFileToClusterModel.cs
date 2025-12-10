@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.Runtime.Serialization;
 using FluentValidation;
+using HEAppE.ExternalAuthentication.Configuration;
 
 namespace HEAppE.ExtModels.General.Models;
 
@@ -38,6 +39,11 @@ public class UploadFileToClusterModelValidator : AbstractValidator<UploadFileToC
 {
     public UploadFileToClusterModelValidator()
     {
-        RuleFor(x => x.SessionCode).IsSessionCode();
+        if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled &&
+            !LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            RuleFor(x => x.SessionCode).IsSessionCode();
+        }
+
     }
 }
