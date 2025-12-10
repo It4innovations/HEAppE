@@ -7,15 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## V6.2.0
 
-## Added
-- `POST /heappe/JobManagement/DryRunJob` – Introduced dry-run job submission endpoint allowing users to simulate HPC job scheduling without actual execution (supported only for `Slurm` Scheduler). Returns estimated start time, assigned resources, and system feedback for validation purposes.
+### Added
+- Added dry-run Slurm job submission endpoint `POST /heappe/JobManagement/DryRunJob` to simulate scheduling without execution, returning predicted start time and resource allocation.
 - New Management endpoints for uploading multiple files (limited to 2GB):
-  - `/api/DataStaging/UploadFilesToProjectDir` - uploads files to project directory (for user with `Manager` Role by `DataStagingAPI`)
-  - `/api/DataStaging/UploadJobScriptsToProjectDir` - upload job scripts to project directory and makes them executable (for user with `Manager` Role by `DataStagingAPI`)
-  - `/heappe/FileTransfer/UploadFilesToJobExecutionDir` - uploadfiles to job execution directory (for user with `Submitter` Role by `RestAPI`)
+  - `/api/DataStaging/UploadFilesToProjectDir` – Upload files to project directory (Manager role, DataStagingAPI).
+  - `/api/DataStaging/UploadJobScriptsToProjectDir` – Upload job scripts to project directory and make them executable (Manager role, DataStagingAPI).
+  - `/heappe/FileTransfer/UploadFilesToJobExecutionDir` – Upload files to job execution directory and optinally directly into task directory (Submitter role, RestAPI).
+- Added auto-creation of missing cluster credentials before connecting cluster for deployments with configured `CA API`.
+- Added IQueryable-based user-specific job retrieval logic for more efficient filtering.
+- Added global cache invalidation mechanism with enhanced cache entry management for `ListAvalialbleClusters` endpoint.
+- Added `SubmittedJobInfoId` to `GetDataTransferMethodModel` to enhance task info handling.
 
 ### Changed
-- `GET /heappe/Health` – Made the health-check endpoint public for setups using Bearer token authentication.
+- Consolidated `Lexis Token Service` registration and simplified conditional authentication middleware usage.
+- Enhanced cluster authentication logic with improved error handling.
+- Enhanced cluster listing and caching with user validation and improved filtering.
+- Enhanced file listing in `SftpFileSystemManager` with better relative path handling.
+- Streamlined GPU count calculation in `SlurmTaskAdapter` for more accurate (partial) resource allocation.
+- Improved exception handling for unauthorized access.
+- Introduced `.part` temporary upload extension with rename after upload completion.
+- Renamed `PermanentStoragePath` to `ProjectStoragePath`.
+
+### Security
+- Made `/heappe/Health` endpoint publicly accessible for Bearer-secured deployments.
 
 ## V6.1.0
 
