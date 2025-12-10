@@ -18,7 +18,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 
     protected override Task<AuthenticateResult> HandleAuthenticateAsync()
     {
-        // Example: allow a fixed local user
+        // allow a fixed local user
         var claims = new[]
         {
             new Claim(ClaimTypes.NameIdentifier, "local-user"),
