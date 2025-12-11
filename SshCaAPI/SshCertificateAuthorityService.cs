@@ -29,7 +29,12 @@ namespace SshCaAPI
         {
             _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
 
-            var options = new RestClientOptions($"{baseUri}/{caName}/")
+            string url = $"{baseUri}/{caName}/";
+            if (string.IsNullOrEmpty(baseUri) && string.IsNullOrEmpty(caName))
+            {
+                return;
+            }
+            var options = new RestClientOptions(url)
             {
                 Encoding = Encoding.UTF8,
                 CachePolicy = new CacheControlHeaderValue
