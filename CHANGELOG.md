@@ -9,11 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added dry-run Slurm job submission endpoint `POST /heappe/JobManagement/DryRunJob` to simulate scheduling without execution, returning predicted start time and resource allocation.
-- New Management endpoints for uploading multiple files (limited to 2GB):
+- New Management endpoints for file uploads:
   - `/api/DataStaging/UploadFilesToProjectDir` – Upload files to project directory (Manager role, DataStagingAPI).
   - `/api/DataStaging/UploadJobScriptsToProjectDir` – Upload job scripts to project directory and make them executable (Manager role, DataStagingAPI).
   - `/heappe/FileTransfer/UploadFilesToJobExecutionDir` – Upload files to job execution directory and optinally directly into task directory (Submitter role, RestAPI).
-- Added auto-creation of missing cluster credentials before connecting cluster for deployments with configured `CA API`.
 - Added IQueryable-based user-specific job retrieval logic for more efficient filtering.
 - Added global cache invalidation mechanism with enhanced cache entry management for `ListAvalialbleClusters` endpoint.
 - Added `SubmittedJobInfoId` to `GetDataTransferMethodModel` to enhance task info handling.
@@ -23,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced cluster authentication logic with improved error handling.
 - Enhanced cluster listing and caching with user validation and improved filtering.
 - Enhanced file listing in `SftpFileSystemManager` with better relative path handling.
-- Streamlined GPU count calculation in `SlurmTaskAdapter` for more accurate (partial) resource allocation.
+- Streamlined GPU count calculation in `SlurmTaskAdapter` for partial resource allocation.
 - Improved exception handling for unauthorized access.
 - Introduced `.part` temporary upload extension with rename after upload completion.
 - Renamed `PermanentStoragePath` to `ProjectStoragePath`.
