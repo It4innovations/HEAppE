@@ -73,7 +73,7 @@ public class DataTransferController : BaseController<DataTransferController>
     }
 
     /// <summary>
-    ///     CLose Data Transfer
+    ///     Close Data Transfer
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>

@@ -20,13 +20,6 @@ public class GetDataTransferMethodModel : SessionCodeModel
     [DataMember(Name = "SubmittedTaskInfoId")]
     [Description("Submitted task info id")]
     public long SubmittedTaskInfoId { get; set; }
-    
-    [DataMember(Name = "SubmittedJobInfoId")]
-    public long SubmittedJobInfoId
-    {
-        get => SubmittedTaskInfoId;
-        set => SubmittedTaskInfoId = value;
-    }
 
     /// <summary>
     /// Ip address
