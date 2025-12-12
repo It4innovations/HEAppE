@@ -33,7 +33,7 @@ sshagent_build_development:
     - echo "Tagging the Docker image..."
     - docker tag "${SSHAGENT_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
     - echo "Pushing image to registry..."
-    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
+    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN code.it4i.cz
     - docker push "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
   tags:
     - Docker
