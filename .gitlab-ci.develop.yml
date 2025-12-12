@@ -1,16 +1,11 @@
 variables:
   HEAPPE_IMAGE_DEV_NAME: ${HEAPPE_IMAGE_NAME}:dev-latest
   SSHAGENT_IMAGE_DEV_NAME: ${SSHAGENT_IMAGE_NAME}:dev-latest
-  DOCKER_HOST: tcp://docker:2375
-  DOCKER_TLS_CERTDIR: ""
 
 heappe_build_development:
   stage: build
   image: docker:29.1.2-cli
-  services:
-    - docker:dind
   before_script:
-    - apk update
     - docker --version
   script:
     - echo "Building Docker HEAppE image..."
@@ -30,10 +25,7 @@ heappe_build_development:
 sshagent_build_development:
   stage: build
   image: docker:29.1.2-cli
-  services:
-    - docker:dind
   before_script:
-    - apk update
     - docker --version
   script:
     - echo "Building Docker SSH-Agent image..."
