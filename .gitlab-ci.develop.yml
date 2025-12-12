@@ -1,4 +1,6 @@
 variables:
+  CI_REGISTRY: "code.it4i.cz"
+  CI_REGISTRY_IMAGE: "code.it4i.cz/${CI_PROJECT_PATH}"
   HEAPPE_IMAGE_DEV_NAME: ${HEAPPE_IMAGE_NAME}:dev-latest
   SSHAGENT_IMAGE_DEV_NAME: ${SSHAGENT_IMAGE_NAME}:dev-latest
 
@@ -7,13 +9,13 @@ heappe_build_development:
   image: docker:29.1.2-cli
   before_script:
     - docker --version
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   script:
     - echo "Building Docker HEAppE image..."
     - docker build --no-cache -f ./RestApi/Dockerfile -t "${HEAPPE_IMAGE_DEV_NAME}" .
     - echo "Tagging the Docker image..."
     - docker tag "${HEAPPE_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_DEV_NAME}"
     - echo "Pushing image to registry..."
-    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN code.it4i.cz
     - docker push "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_DEV_NAME}"
   tags:
     - Docker
@@ -27,13 +29,13 @@ sshagent_build_development:
   image: docker:29.1.2-cli
   before_script:
     - docker --version
+    - docker login -u "$CI_REGISTRY_USER" -p "$CI_JOB_TOKEN" "$CI_REGISTRY"
   script:
     - echo "Building Docker SSH-Agent image..."
     - docker build --no-cache -f ./RestApi/Dockerfile -t "${SSHAGENT_IMAGE_DEV_NAME}" .
     - echo "Tagging the Docker image..."
     - docker tag "${SSHAGENT_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
     - echo "Pushing image to registry..."
-    - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN code.it4i.cz
     - docker push "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
   tags:
     - Docker
