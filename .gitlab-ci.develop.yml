@@ -1,6 +1,8 @@
 variables:
   CI_REGISTRY: "code.it4i.cz"
-  CI_REGISTRY_IMAGE: "code.it4i.cz/${CI_PROJECT_PATH,,}"
+  # Registry path musí být kompletní a lowercase
+  CI_REGISTRY_IMAGE: "code.it4i.cz/adas-private/heappe/heappe-core/heappe"
+
   HEAPPE_IMAGE_DEV_NAME: ${HEAPPE_IMAGE_NAME}:dev-latest
   SSHAGENT_IMAGE_DEV_NAME: ${SSHAGENT_IMAGE_NAME}:dev-latest
 
@@ -14,9 +16,10 @@ heappe_build_development:
     - echo "Building Docker HEAppE image..."
     - docker build --no-cache -f ./RestApi/Dockerfile -t "${HEAPPE_IMAGE_DEV_NAME}" .
     - echo "Tagging the Docker image..."
-    - docker tag "${HEAPPE_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_DEV_NAME}"
+    # Přidáme tag: heappe:dev-latest → registry/heappe:dev-latest
+    - docker tag "${HEAPPE_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE:${HEAPPE_IMAGE_DEV_NAME#*:}"
     - echo "Pushing image to registry..."
-    - docker push "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_DEV_NAME}"
+    - docker push "$CI_REGISTRY_IMAGE:${HEAPPE_IMAGE_DEV_NAME#*:}"
   tags:
     - Docker
     - Centos9
@@ -34,9 +37,10 @@ sshagent_build_development:
     - echo "Building Docker SSH-Agent image..."
     - docker build --no-cache -f ./RestApi/Dockerfile -t "${SSHAGENT_IMAGE_DEV_NAME}" .
     - echo "Tagging the Docker image..."
-    - docker tag "${SSHAGENT_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
+    # Přidáme tag: sshagent:dev-latest → registry/sshagent:dev-latest
+    - docker tag "${SSHAGENT_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE:${SSHAGENT_IMAGE_DEV_NAME#*:}"
     - echo "Pushing image to registry..."
-    - docker push "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
+    - docker push "$CI_REGISTRY_IMAGE:${SSHAGENT_IMAGE_DEV_NAME#*:}"
   tags:
     - Docker
     - Centos9
