@@ -34,4 +34,12 @@ sshagent_build_development:
     - echo "Building Docker SSH-Agent image..."
     - docker build --no-cache -f ./RestApi/Dockerfile -t "${SSHAGENT_IMAGE_DEV_NAME}" .
     - echo "Tagging the Docker image..."
-    - docker tag "${SSHAGENT_IMAGE_DEV_N_
+    - docker tag "${SSHAGENT_IMAGE_DEV_NAME}" "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
+    - echo "Pushing image to registry..."
+    - docker push "$CI_REGISTRY_IMAGE/${SSHAGENT_IMAGE_DEV_NAME}"
+  tags:
+    - Docker
+    - Centos9
+    - IT4I_Network
+  only:
+    - develop
