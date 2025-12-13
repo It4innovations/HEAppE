@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
@@ -61,13 +62,13 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CreateJob(CreateJobByProjectModel model)
+    public async Task<IActionResult> CreateJob(CreateJobByProjectModel model)
     {
         _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CreateJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CreateJob(model.JobSpecification, model.SessionCode));
+        return Ok(await _service.CreateJob(model.JobSpecification, model.SessionCode));
     }
 
     /// <summary>

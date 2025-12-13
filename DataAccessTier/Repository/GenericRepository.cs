@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository;
 using HEAppE.DomainObjects;
 using Microsoft.EntityFrameworkCore;
@@ -35,6 +36,11 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
     public virtual IList<T> GetAll()
     {
         return _dbSet.ToList();
+    }
+    
+    public virtual async Task<IList<T>> GetAllAsync()
+    {
+        return await _dbSet.ToListAsync();
     }
 
     public virtual void Insert(T entity)

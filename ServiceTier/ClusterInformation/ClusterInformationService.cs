@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -169,7 +170,7 @@ public class ClusterInformationService : IClusterInformationService
     }
 
 
-    public IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
+    public async Task<IEnumerable<string>> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -196,14 +197,15 @@ public class ClusterInformationService : IClusterInformationService
             _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var result =
-                clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
+                await clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
             _cacheProvider.Set(memoryCacheKey, result,
                 TimeSpan.FromMinutes(_cacheLimitForGetCommandTemplateParametersName));
             return result;
         }
     }
 
-    public ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode)
+    public async Task<ClusterNodeUsageExt> GetCurrentClusterNodeUsage(long clusterNodeId, long projectId,
+        string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -228,7 +230,7 @@ public class ClusterInformationService : IClusterInformationService
 
             _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork,  _sshCertificateAuthorityService, _httpContextKeys);
-            var nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
+            var nodeUsage = await clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
             _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(),
                 TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));
             return nodeUsage.ConvertIntToExt();

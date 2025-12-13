@@ -2032,13 +2032,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult InitializeClusterScriptDirectory(InitializeClusterScriptDirectoryModel model)
+    public async Task<IActionResult> InitializeClusterScriptDirectory(InitializeClusterScriptDirectoryModel model)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"InitializeClusterScriptDirectory\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        List<ClusterInitReportExt> report = _managementService.InitializeClusterScriptDirectory(model.ProjectId,
+        List<ClusterInitReportExt> report = await _managementService.InitializeClusterScriptDirectory(model.ProjectId,
             model.OverwriteExistingProjectRootDirectory, model.SessionCode, model.Username);
         
         if(report.Any(x=> !x.IsClusterInitialized))
@@ -2061,7 +2061,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult TestClusterAccessForAccount(string username, long projectId, string sessionCode)
+    public async Task<IActionResult> TestClusterAccessForAccount(string username, long projectId, string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"TestClusterAccessForAccount\"");
 
@@ -2073,7 +2073,7 @@ public class ManagementController : BaseController<ManagementController>
         }).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        List<ClusterAccessReportExt> report = _managementService.TestClusterAccessForAccount(projectId, sessionCode, username);
+        List<ClusterAccessReportExt> report = await _managementService.TestClusterAccessForAccount(projectId, sessionCode, username);
         
         if(report.Any(x=> !x.IsClusterAccessible))
             return BadRequest(report);
@@ -2095,7 +2095,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ClusterAccountStatus(string username, long projectId, string sessionCode)
+    public async Task<IActionResult> ClusterAccountStatus(string username, long projectId, string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"ClusterAccountStatus\"");
 
@@ -2107,7 +2107,7 @@ public class ManagementController : BaseController<ManagementController>
         }).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        List<ClusterAccountStatusExt> report = _managementService.ClusterAccountStatus(projectId, sessionCode, username);
+        List<ClusterAccountStatusExt> report = await _managementService.ClusterAccountStatus(projectId, sessionCode, username);
         
         return Ok(report);
     }

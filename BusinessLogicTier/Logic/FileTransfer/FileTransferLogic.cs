@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Runtime;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.FileTransfer;
@@ -451,7 +452,8 @@ public class FileTransferLogic : IFileTransferLogic
         return (fileTransferMethod, fileTransferProtocol);
     }
 
-    public dynamic UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser)
+    public async Task<dynamic> UploadFileToProjectDir(Stream fileStream, string fileName, long projectId,
+        long clusterId, AdaptorUser loggedUser)
     {
         var result = new Dictionary<string, dynamic>();
         
@@ -462,7 +464,7 @@ public class FileTransferLogic : IFileTransferLogic
         
         //invoke user information logic and run GetNextAvailableUserCredentials
         var logic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-        var credentials = logic.GetNextAvailableUserCredentials(clusterId, projectId, true, loggedUser.Id);
+        var credentials = await logic.GetNextAvailableUserCredentials(clusterId, projectId, true, loggedUser.Id);
 
         var (fileTransferMethod, fileTransferProtocol) = GetFileTransferMethodForUpload(clusterId);
         if (fileTransferMethod == null)
@@ -480,7 +482,8 @@ public class FileTransferLogic : IFileTransferLogic
         return result;
     }
 
-    public dynamic UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser)
+    public async Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId,
+        long clusterId, AdaptorUser loggedUser)
     {
         var result = new Dictionary<string, dynamic>();
 
@@ -490,7 +493,7 @@ public class FileTransferLogic : IFileTransferLogic
         var cluster = clusterProject.Cluster;
         
         var logic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-        var credentials = logic.GetNextAvailableUserCredentials(clusterId, projectId, true, loggedUser.Id);
+        var credentials = await logic.GetNextAvailableUserCredentials(clusterId, projectId, true, loggedUser.Id);
         
         
         var (fileTransferMethod, fileTransferProtocol) = GetFileTransferMethodForUpload(clusterId);

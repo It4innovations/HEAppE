@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.ExtModels.ClusterInformation.Models;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
@@ -11,8 +12,8 @@ public interface IClusterInformationService
 
     public ClusterClearCacheInfoExt ListAvailableClustersClearCache(string sessionCode);
 
-    IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
+    Task<IEnumerable<string>> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath, string sessionCode);
 
-    ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode);
+    Task<ClusterNodeUsageExt> GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode);
 }

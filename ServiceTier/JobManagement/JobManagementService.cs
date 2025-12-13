@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -42,7 +43,7 @@ public class JobManagementService : IJobManagementService
 
     #region Methods
 
-    public SubmittedJobInfoExt CreateJob(JobSpecificationExt specification, string sessionCode)
+    public async Task<SubmittedJobInfoExt> CreateJob(JobSpecificationExt specification, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -59,7 +60,7 @@ public class JobManagementService : IJobManagementService
             }
 
             var js = specification.ConvertExtToInt(specification.ProjectId, subProject?.Id);
-            var jobInfo = jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
+            var jobInfo = await jobLogic.CreateJob(js, loggedUser, specification.IsExtraLong);
             return jobInfo.ConvertIntToExt();
         }
     }
@@ -78,7 +79,7 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public SubmittedJobInfoExt GetActualTasksInfo(long submittedJobInfoId, string sessionCode)
+    public async Task<SubmittedJobInfoExt> GetActualTasksInfo(long submittedJobInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -87,12 +88,12 @@ public class JobManagementService : IJobManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, job.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var jobInfo =  jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
+            var jobInfo =  await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
             return jobInfo.ConvertIntToExt();
         }
     }
 
-    public SubmittedJobInfoExt CancelJob(long submittedJobInfoId, string sessionCode)
+    public async Task<SubmittedJobInfoExt> CancelJob(long submittedJobInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -101,7 +102,7 @@ public class JobManagementService : IJobManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, job.Project.Id);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var jobInfo = jobLogic.CancelJob(submittedJobInfoId, loggedUser);
+            var jobInfo = await jobLogic.CancelJob(submittedJobInfoId, loggedUser);
             return jobInfo.ConvertIntToExt();
         }
     }
@@ -157,7 +158,7 @@ public class JobManagementService : IJobManagementService
     }
 
 
-    public SubmittedJobInfoExt CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
+    public async Task<SubmittedJobInfoExt> CurrentInfoForJob(long submittedJobInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -169,7 +170,7 @@ public class JobManagementService : IJobManagementService
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
-                var jobInfoFromHPC = jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
+                var jobInfoFromHPC = await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
                 return jobInfoFromHPC.ConvertIntToExt();
             }
             var jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
@@ -220,7 +221,8 @@ public class JobManagementService : IJobManagementService
         }
     }
 
-    public DryRunJobInfoExt DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes, long modelTasksPerNode,
+    public async Task<DryRunJobInfoExt> DryRunJob(long modelProjectId, long modelClusterNodeTypeId, long modelNodes,
+        long modelTasksPerNode,
         long modelWallTimeInMinutes, string modelSessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -228,8 +230,8 @@ public class JobManagementService : IJobManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, modelProjectId);
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var dryRunResult = jobLogic.DryRunJob(modelProjectId, modelClusterNodeTypeId, modelNodes,
-                modelTasksPerNode, modelWallTimeInMinutes, loggedUser).ConvertIntToExt();
+            var dryRunResult = (await jobLogic.DryRunJob(modelProjectId, modelClusterNodeTypeId, modelNodes,
+                modelTasksPerNode, modelWallTimeInMinutes, loggedUser)).ConvertIntToExt();
             return dryRunResult;
         }
     }

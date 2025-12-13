@@ -69,7 +69,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public CommandTemplateExt CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
+    public async Task<CommandTemplateExt> CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
         long projectId,
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode)
@@ -81,7 +81,7 @@ public class ManagementService : IManagementService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Maintainer, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var commandTemplate = managementLogic.CreateCommandTemplateFromGeneric(genericCommandTemplateId, name,
+            var commandTemplate = await managementLogic.CreateCommandTemplateFromGeneric(genericCommandTemplateId, name,
                 projectId, description, extendedAllocationCommand, executableFile, preparationScript,
                 adaptorUserId: loggedUser.Id);
             return commandTemplate.ConvertIntToExt();
@@ -111,7 +111,8 @@ public class ManagementService : IManagementService
         }
     }
 
-    public CommandTemplateExt ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
+    public async Task<CommandTemplateExt> ModifyCommandTemplateFromGeneric(long commandTemplateId, string name,
+        long projectId,
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode)
     {
@@ -126,7 +127,7 @@ public class ManagementService : IManagementService
                                   throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
             if (!commandTemplate.ProjectId.HasValue || commandTemplate.IsDeleted)
                 throw new InputValidationException("NotPermitted");
-            var updatedCommandTemplate = managementLogic.ModifyCommandTemplateFromGeneric(commandTemplateId, name, projectId,
+            var updatedCommandTemplate = await managementLogic.ModifyCommandTemplateFromGeneric(commandTemplateId, name, projectId,
                 description, extendedAllocationCommand, executableFile, preparationScript,
                 adaptorUserId: loggedUser.Id);
             return updatedCommandTemplate.ConvertIntToExt();
@@ -301,7 +302,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public List<PublicKeyExt> GetSecureShellKeys(long projectId, string sessionCode)
+    public async Task<List<PublicKeyExt>> GetSecureShellKeys(long projectId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -323,12 +324,13 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return managementLogic.GetSecureShellKeys(projectId,
-                adaptorUserId: loggedUser.Id).Select(x => x.ConvertIntToExt()).ToList();
+            return (await managementLogic.GetSecureShellKeys(projectId,
+                adaptorUserId: loggedUser.Id)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
-    public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername, string newPassword, long projectId,
+    public async Task<List<PublicKeyExt>> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
+        string newPassword, long projectId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -352,14 +354,15 @@ public class ManagementService : IManagementService
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return managementLogic.RenameClusterAuthenticationCredentials(oldUsername, newUsername, newPassword, projectId, project.IsOneToOneMapping ? loggedUser.Id : null).
+            return (await managementLogic.RenameClusterAuthenticationCredentials(oldUsername, newUsername, newPassword, projectId, project.IsOneToOneMapping ? loggedUser.Id : null)).
                 Select(x => x.ConvertIntToExt()).
                 ToList();
             
         }
     }
 
-    public List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
+    public async Task<List<PublicKeyExt>> CreateSecureShellKey(IEnumerable<(string, string)> credentials,
+        long projectId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -383,12 +386,13 @@ public class ManagementService : IManagementService
             }
             
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return managementLogic.CreateSecureShellKey(credentials, projectId,
-                project.IsOneToOneMapping ? loggedUser.Id : null).Select(x => x.ConvertIntToExt()).ToList();
+            return (await managementLogic.CreateSecureShellKey(credentials, projectId,
+                project.IsOneToOneMapping ? loggedUser.Id : null)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
-    public PublicKeyExt RegenerateSecureShellKey(string username, string password, string publicKey, long projectId,
+    public async Task<PublicKeyExt> RegenerateSecureShellKey(string username, string password, string publicKey,
+        long projectId,
         string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -411,7 +415,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return managementLogic.RegenerateSecureShellKey(username, password, projectId).ConvertIntToExt();
+            return (await managementLogic.RegenerateSecureShellKey(username, password, projectId)).ConvertIntToExt();
         }
     }
 
@@ -442,7 +446,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
+    public async Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
@@ -465,12 +469,13 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory,
-                adaptorUserId: loggedUser.Id, username: username).Select(x => x.ConvertIntToExt()).ToList();
+            return (await managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory,
+                adaptorUserId: loggedUser.Id, username: username)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
-    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long projectId, string sessionCode, string username)
+    public async Task<List<ClusterAccessReportExt>> TestClusterAccessForAccount(long projectId, string sessionCode,
+        string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -492,13 +497,14 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return managementLogic.TestClusterAccessForAccount(projectId, username, loggedUser.Id)
+            return (await managementLogic.TestClusterAccessForAccount(projectId, username, loggedUser.Id))
                 .Select(x => x.ConvertIntToExt())
                 .ToList();
         }
     }
     
-    public List<ClusterAccountStatusExt> ClusterAccountStatus(long projectId, string sessionCode, string username)
+    public async Task<List<ClusterAccountStatusExt>> ClusterAccountStatus(long projectId, string sessionCode,
+        string username)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -528,7 +534,7 @@ public class ManagementService : IManagementService
             }
             //get all user projects for conversion
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return managementLogic.ClusterAccountStatus(projectId, username, loggedUser.Id)
+            return (await managementLogic.ClusterAccountStatus(projectId, username, loggedUser.Id))
                 .Select(x => x.ConvertIntToExt(projects, true))
                 .ToList();
         }

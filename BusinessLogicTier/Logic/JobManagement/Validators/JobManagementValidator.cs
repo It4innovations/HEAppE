@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -215,7 +216,7 @@ internal class JobManagementValidator : AbstractValidator
             _ = _messageBuilder.AppendLine($"Job {job.Name} has wrong FileTransferMethod");
     }
 
-    private void ValidateGenericCommandTemplateSetup(TaskSpecification task)
+    private async Task ValidateGenericCommandTemplateSetup(TaskSpecification task)
     {
         Dictionary<string, string> genericCommandParametres = new();
         //Regex.Matches(task.CommandTemplate.CommandParameters, @"%%\{([\w\.]+)\}", RegexOptions.Compiled)
@@ -236,7 +237,7 @@ internal class JobManagementValidator : AbstractValidator
             _ = _messageBuilder.AppendLine(
                 "User script path parameter, for generic command template, does not have a value.");
 
-        var scriptDefinedParametres = GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster,
+        var scriptDefinedParametres = await GetUserDefinedScriptParametres(task.ClusterNodeType.Cluster,
             clusterPathToUserScript, task.JobSpecification.ProjectId,
             adaptorUserId: task.JobSpecification.Submitter.Id
         );
@@ -247,13 +248,13 @@ internal class JobManagementValidator : AbstractValidator
                 _ = _messageBuilder.AppendLine($"Task specification does not contain '{parameter}' parameter.");
     }
 
-    private IEnumerable<string> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath, long projectId, long? adaptorUserId)
+    private async Task<IEnumerable<string>> GetUserDefinedScriptParametres(Cluster cluster, string userScriptPath, long projectId, long? adaptorUserId)
     {
         try
         {
             var project = _unitOfWork.ProjectRepository.GetById(projectId)
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            var serviceAccount =
+            var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                     projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
             return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)

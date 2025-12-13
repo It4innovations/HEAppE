@@ -22,7 +22,9 @@ public interface IFileTransferLogic
     FileTransferMethod GetFileTransferMethodById(long fileTransferMethodId);
     IEnumerable<FileTransferMethod> GetFileTransferMethodsByClusterId(long clusterId);
 
-    dynamic UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser);
-    dynamic UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId, AdaptorUser loggedUser);
+    Task<dynamic> UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId,
+        AdaptorUser loggedUser);
+    Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId,
+        AdaptorUser loggedUser);
     dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser);
 }

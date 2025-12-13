@@ -17,7 +17,8 @@ public interface IManagementService
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode);
 
-    CommandTemplateExt CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
+    Task<CommandTemplateExt> CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
+        long projectId,
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode);
 
@@ -25,7 +26,7 @@ public interface IManagementService
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode);
 
-    CommandTemplateExt ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
+    Task<CommandTemplateExt> ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode);
 
@@ -57,22 +58,22 @@ public interface IManagementService
 
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
 
-    List<PublicKeyExt> GetSecureShellKeys(long projectId, string sessionCode);
+    Task<List<PublicKeyExt>> GetSecureShellKeys(long projectId, string sessionCode);
 
-    List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
+    Task<List<PublicKeyExt>> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
         string sessionCode);
 
-    PublicKeyExt RegenerateSecureShellKey(string username, string password, string publicKey, long projectId,
+    Task<PublicKeyExt> RegenerateSecureShellKey(string username, string password, string publicKey, long projectId,
         string sessionCode);
 
     void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
-    public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
+    public Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username);
 
-    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
+    public Task<List<ClusterAccessReportExt>> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
         string username);
-    public List<ClusterAccountStatusExt> ClusterAccountStatus(long modelProjectId, string modelSessionCode,
+    public Task<List<ClusterAccountStatusExt>> ClusterAccountStatus(long modelProjectId, string modelSessionCode,
         string username);
 
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
@@ -204,7 +205,7 @@ public interface IManagementService
     string BackupDatabaseTransactionLogs(string sessionCode);
     List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode);
     void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode);
-    public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
+    public Task<List<PublicKeyExt>> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
         string newPassword, long projectId,
         string sessionCode);
 
