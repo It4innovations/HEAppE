@@ -37,7 +37,7 @@ public class Program
         else
             // Run w/o docker - local development
             builder = WebHost.CreateDefaultBuilder()
-                .UseUrls("http://*:5000")
+                .UseUrls("http://*:5005")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     if (!FileSystemUtils.AddConfigurationFiles(

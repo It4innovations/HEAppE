@@ -126,11 +126,11 @@ public class Startup
         Configuration.Bind("SshCaSettings", new SshCaSettings());
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 
-        services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
-        services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+        //services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+        //services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
-        services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+        //services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+        //services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
         services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
             SshCaSettings.BaseUri,
             SshCaSettings.CAName,
@@ -139,19 +139,18 @@ public class Startup
         
         services.AddSingleton<SqlServerHealthCheck>();
         services.AddSingleton<VaultHealthCheck>();
-
+        
         services.AddControllers(options =>
         {
             options.Filters.Add<LogRequestModelFilter>();
-        });
-        
-        services.AddControllers(options =>
-        {
-        
             if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 options.Filters.Add(new AuthorizeFilter());
             }
+        }).AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.PropertyNamingPolicy = null;
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
 
         services.AddHttpClient("userOrgApi", conf =>
@@ -183,12 +182,7 @@ public class Startup
                     .AllowAnyMethod();
             });
         });
-
-        services.AddControllers().AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.PropertyNamingPolicy = null;
-            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        });
+        
         
         services.AddHttpClient("LexisTokenExchangeClient");
         services.AddSingleton<ILexisTokenService, LexisTokenService>();   
@@ -357,7 +351,7 @@ public class Startup
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
-        app.UseIpRateLimiting();
+        //app.UseIpRateLimiting();
 
         app.UseStatusCodePages();
         app.UseStaticFiles();
