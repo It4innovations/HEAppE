@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
@@ -14,8 +16,15 @@ public class ConnectionPool : IConnectionPool
 {
     #region Constructors
 
-    public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval,
-        int maxUnusedDuration, IPoolableAdapter adapter, int? port)
+    public ConnectionPool(
+        string masterNodeName,
+        string remoteTimeZone,
+        int minSize,
+        int maxSize,
+        int cleaningInterval,
+        int maxUnusedDuration,
+        IPoolableAdapter adapter,
+        int? port)
     {
         log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _masterNodeName = masterNodeName;
@@ -24,14 +33,15 @@ public class ConnectionPool : IConnectionPool
         this.minSize = minSize;
         this.maxSize = maxSize;
         this.adapter = adapter;
-        pool = new Dictionary<long, LinkedList<ConnectionInfo>>();
 
-        if (cleaningInterval != 0 && maxUnusedDuration != 0)
+        pool = new ConcurrentDictionary<long, ConcurrentStack<ConnectionInfo>>();
+        _semaphore = new SemaphoreSlim(maxSize, maxSize);
+
+        if (cleaningInterval > 0 && maxUnusedDuration > 0)
         {
-            poolCleanTimer = new Timer(cleaningInterval * 1000); // conversion from seconds to miliseconds
+            poolCleanTimer = new Timer(cleaningInterval * 1000);
             poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
-            this.maxUnusedDuration = new TimeSpan(maxUnusedDuration * 10000000);
-            // conversion from seconds to ticks (100-nanosecond units) 
+            this.maxUnusedDuration = TimeSpan.FromSeconds(maxUnusedDuration);
         }
     }
 
@@ -42,25 +52,27 @@ public class ConnectionPool : IConnectionPool
     private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
     {
         log.Debug("Connection pool clean start.");
-        lock (pool)
-        {
-            foreach (var connectionList in pool)
-            {
-                var connectionNode = connectionList.Value.First;
-                while (connectionNode != null)
-                {
-                    var connection = connectionNode.Value;
-                    if (connection.LastUsed < DateTime.UtcNow.Subtract(maxUnusedDuration))
-                        RemoveConnectionFromPool(connection);
-                    if (actualSize == minSize)
-                    {
-                        poolCleanTimer.Stop();
-                        break;
-                    }
 
-                    connectionNode = connectionNode.Next;
+        foreach (var entry in pool)
+        {
+            var stack = entry.Value;
+            var survivors = new ConcurrentStack<ConnectionInfo>();
+
+            while (stack.TryPop(out var conn))
+            {
+                if (conn.LastUsed < DateTime.UtcNow - maxUnusedDuration &&
+                    actualSize > minSize)
+                {
+                    adapter.Disconnect(conn.Connection);
+                    Interlocked.Decrement(ref actualSize);
+                }
+                else
+                {
+                    survivors.Push(conn);
                 }
             }
+
+            pool[entry.Key] = survivors;
         }
     }
 
@@ -76,69 +88,73 @@ public class ConnectionPool : IConnectionPool
     private readonly int maxSize;
     private readonly TimeSpan maxUnusedDuration;
     private readonly int minSize;
-    private readonly Dictionary<long, LinkedList<ConnectionInfo>> pool;
     private readonly Timer poolCleanTimer;
+    private readonly SemaphoreSlim _semaphore;
+    private readonly ConcurrentDictionary<long, ConcurrentStack<ConnectionInfo>> pool;
     private int actualSize;
     
     #endregion
 
     #region IConnectionPool Members
 
-    public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+    public ConnectionInfo GetConnectionForUser(
+        ClusterAuthenticationCredentials credentials,
+        Cluster cluster,
+        string sshCaToken)
     {
-        //log.DebugFormat("Thread {0} Requesting connectin for {1}",Thread.CurrentThread.ManagedThreadId, credentials.Username);
-        ConnectionInfo connection = null;
-        do
-        {
-            lock (pool)
-            {
-                if (pool.ContainsKey(credentials.Id) && pool[credentials.Id].Last != null)
-                {
-                    // Free connection found
-                    connection = pool[credentials.Id].Last.Value;
-                    // Remove it from cache
-                    pool[credentials.Id].RemoveLast();
-                }
-                else
-                {
-                    if (actualSize < maxSize)
-                    {
-                        // If there is space free, create new connection
-                        connection = ExpandPoolAndGetConnection(credentials, cluster, sshCaToken);
-                    }
-                    else if (HasAnyFreeConnection())
-                    {
-                        // If pool is full, drop oldest connection
-                        // Find oldest connection in pool
-                        var oldest = FindOldestConnection();
-                        // Drop it
-                        RemoveConnectionFromPool(oldest);
-                        // Expand pool with newly created one
-                        connection = ExpandPoolAndGetConnection(credentials, cluster, sshCaToken);
-                    }
-                    else
-                    {
-                        // Wait for any returned connection
-                        Monitor.Wait(pool);
-                    }
-                }
-            }
-            //log.InfoFormat("Thread {0} Got connection for {1}", Thread.CurrentThread.ManagedThreadId, credentials.Username);
-        } while (connection == null);
+        var stack = pool.GetOrAdd(
+            credentials.Id,
+            _ => new ConcurrentStack<ConnectionInfo>());
 
-        return connection;
+        // 1️⃣ FAST PATH – existující connection pro stejný credential
+        if (stack.TryPop(out var existing))
+        {
+            return existing;
+        }
+
+        // 2️⃣ SLOW PATH – musíme vytvořit nové, hlídáme globální limit
+        _semaphore.Wait();
+
+        try
+        {
+            // mezitím mohl jiný thread connection vrátit
+            if (stack.TryPop(out existing))
+            {
+                _semaphore.Release();
+                return existing;
+            }
+
+            var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
+            Interlocked.Increment(ref actualSize);
+
+            if (poolCleanTimer != null && actualSize > minSize)
+                poolCleanTimer.Start();
+
+            return newConnection;
+        }
+        catch
+        {
+            _semaphore.Release();
+            throw;
+        }
     }
+
 
     public void ReturnConnection(ConnectionInfo connection)
     {
         connection.LastUsed = DateTime.UtcNow;
-        lock (pool)
-        {
-            AddConnectionToPool(connection);
-            Monitor.Pulse(pool);
-            //log.Debug(String.Format("Connection for user {0} returned.", connection.AuthCredentials.Username));
-        }
+
+        var stack = pool.GetOrAdd(connection.AuthCredentials.Id, _ => new ConcurrentStack<ConnectionInfo>());
+
+        // kontrola, aby nedošlo k duplicitnímu pushi stejného connection
+        if (!stack.Contains(connection))
+            stack.Push(connection);
+
+        // nepouštíme _semaphore.Release(), protože connection je sdílená
     }
+
+
+
 
     #endregion
 
@@ -175,14 +191,20 @@ public class ConnectionPool : IConnectionPool
         return connection;
     }
 
-    private void RemoveConnectionFromPool(ConnectionInfo connection)
+    private void RemoveConnection(ConnectionInfo connection)
     {
-        pool[connection.AuthCredentials.Id].Remove(connection);
-        actualSize--;
+        // fyzické ukončení spojení – mimo jakoukoli synchronizaci
         adapter.Disconnect(connection.Connection);
-        log.DebugFormat("Removed connection for {0} - actual size {1}", connection.AuthCredentials.Username,
+
+        // atomicky snížíme velikost poolu
+        Interlocked.Decrement(ref actualSize);
+
+        log.DebugFormat(
+            "Removed connection for {0} - actual size {1}",
+            connection.AuthCredentials.Username,
             actualSize);
     }
+
 
     private ConnectionInfo FindOldestConnection()
     {
@@ -214,10 +236,13 @@ public class ConnectionPool : IConnectionPool
 
     private void AddConnectionToPool(ConnectionInfo connection)
     {
-        if (!pool.ContainsKey(connection.AuthCredentials.Id))
-            pool.Add(connection.AuthCredentials.Id, new LinkedList<ConnectionInfo>());
-        pool[connection.AuthCredentials.Id].AddLast(connection);
+        var stack = pool.GetOrAdd(
+            connection.AuthCredentials.Id,
+            _ => new ConcurrentStack<ConnectionInfo>());
+
+        stack.Push(connection);
     }
+
 
     #endregion
 }
