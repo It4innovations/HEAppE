@@ -73,7 +73,7 @@ internal class JobManagementLogic : IJobManagementLogic
         if (!jobValidation.IsValid)
             throw new InputValidationException("NotValidJobSpecification", jobValidation.Message);
 
-        lock (_lockCreateJobObj)
+        //lock (_lockCreateJobObj)
         {
             SubmittedJobInfo jobInfo;
             using (var transactionScope = new TransactionScope(

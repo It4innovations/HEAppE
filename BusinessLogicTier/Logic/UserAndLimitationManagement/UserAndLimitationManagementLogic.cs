@@ -25,6 +25,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.ExternalAuthentication.KeyCloak;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
 using log4net;
@@ -367,6 +368,10 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             _userOrgHttpClient.DefaultRequestHeaders.Clear();
             _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
             _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", lexisCredentials.OpenIdLexisAccessToken);
+            //set user agent
+            string instanceIdentifierPath = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+            string globalContextVersion = (GlobalContext.Properties["instanceVersion"] ?? "unknownVersion").ToString();
+            _userOrgHttpClient.DefaultRequestHeaders.Add("User-Agent", $"HEAppE-{instanceIdentifierPath}/{globalContextVersion}");
             
             var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
             return GetOrRegisterLexisCredentials(result);

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects;
@@ -262,6 +263,10 @@ internal class MiddlewareContext : DbContext
             modelBuilder.Entity(entityType.ClrType).HasQueryFilter(filter);
             modelBuilder.Entity(entityType.ClrType).HasIndex([nameof(ISoftDeletableEntity.IsDeleted)]);
         }
+        
+        modelBuilder.Entity<SessionCode>()
+            .HasIndex(s => s.UniqueCode)
+            .IsUnique();
     }
 
     #endregion
@@ -492,7 +497,7 @@ internal class MiddlewareContext : DbContext
         }
     }
 
-    private void AddOrUpdateItem<T>(T item) where T : class
+    private async Task AddOrUpdateItem<T>(T item) where T : class
     {
         switch (item)
         {
@@ -513,7 +518,7 @@ internal class MiddlewareContext : DbContext
                         ? $"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials."
                         : $"Vault data for ClusterAuthenticationCredentials with id {(item as ClusterAuthenticationCredentials)!.Id} not found. Creating new credentials.");
                     var newVaultData = (item as ClusterAuthenticationCredentials)!.ExportVaultData();
-                    vaultConnector.SetClusterAuthenticationCredentials(newVaultData);
+                    await vaultConnector.SetClusterAuthenticationCredentialsAsync(newVaultData);
                 }
 
                 break;

@@ -19,10 +19,7 @@ internal class SessionCodeRepository : GenericRepository<SessionCode>, ISessionC
 
     public SessionCode GetByUniqueCode(string uniqueCode)
     {
-        return _dbSet
-            .OfType<SessionCode>() 
-            .OrderByDescending(w=> w.Id)
-            .FirstOrDefault(w => w.UniqueCode == uniqueCode);
+        return _dbSet.SingleOrDefault(w => w.UniqueCode == uniqueCode);
     }
 
     public SessionCode GetByUser(AdaptorUser user)

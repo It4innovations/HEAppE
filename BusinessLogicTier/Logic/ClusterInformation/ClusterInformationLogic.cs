@@ -331,7 +331,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
         //invoke management logic and run CreateSecureShellKey
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-        managementLogic.CreateSecureShellKey(
+        await managementLogic.CreateSecureShellKey(
             credentials: new List<(string, string)> { ($"account_{projectId}_{adaptorUserId}", string.Empty) },
             projectId: projectId,
             adaptorUserId: adaptorUserId);

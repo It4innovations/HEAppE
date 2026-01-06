@@ -728,7 +728,7 @@ public class ManagementLogic : IManagementLogic
                 }
             }
 
-            secureShellKeys.Add(CreateSecureShellKey(username, password, project, adaptorUserId));
+            secureShellKeys.Add(await CreateSecureShellKey(username, password, project, adaptorUserId));
         }
 
         return secureShellKeys;
@@ -2012,7 +2012,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
     }
 
-    private SecureShellKey CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
+    private async Task<SecureShellKey> CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
     {
         _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
@@ -2064,7 +2064,7 @@ public class ManagementLogic : IManagementLogic
 
         if (serviceCredentialStored)
         {
-            vaultSuccess = vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
+            vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(serviceCredentials.ExportVaultData());
             
             if (!vaultSuccess)
             {
@@ -2077,7 +2077,7 @@ public class ManagementLogic : IManagementLogic
             }
         }
 
-        vaultSuccess = vaultConnector.SetClusterAuthenticationCredentials(nonServiceCredentials.ExportVaultData());
+        vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(nonServiceCredentials.ExportVaultData());
 
         if (!vaultSuccess)
         {

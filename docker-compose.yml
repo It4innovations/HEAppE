@@ -30,7 +30,7 @@ services:
       - "${HOST_MSSQL_PORT}:1433"
     environment:
       ACCEPT_EULA: "Y"
-      MSSQL_PID: "Express"
+      MSSQL_PID: "Developer"
       TZ: "Europe/Prague"
       SA_PASSWORD: "${HOST_MSSQL_PASSWORD}"
     networks:

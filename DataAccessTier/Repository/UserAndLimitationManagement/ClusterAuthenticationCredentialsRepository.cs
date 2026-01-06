@@ -71,16 +71,16 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return dbEntity;
     }
 
-    public override void Delete(ClusterAuthenticationCredentials entityToDelete)
+    public async Task DeleteAsync(ClusterAuthenticationCredentials entityToDelete)
     {
-        _vaultConnector.DeleteClusterAuthenticationCredentials(entityToDelete.Id);
-        base.Delete(entityToDelete);
+        await _vaultConnector.DeleteClusterAuthenticationCredentialsAsync(entityToDelete.Id);
+        await base.DeleteAsync(entityToDelete);
     }
 
-    public override void Delete(long id)
+    public async Task DeleteAsync(long id)
     {
-        _vaultConnector.DeleteClusterAuthenticationCredentials(id);
-        base.Delete(id);
+        await _vaultConnector.DeleteClusterAuthenticationCredentialsAsync(id);
+        await base.DeleteAsync(id);
     }
 
     public override void Insert(ClusterAuthenticationCredentials entity)
@@ -88,10 +88,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         base.Insert(entity);
     }
 
-    public override void Update(ClusterAuthenticationCredentials entityToUpdate)
+    public async Task UpdateAsync(ClusterAuthenticationCredentials entityToUpdate)
     {
-        base.Update(entityToUpdate);
-        _vaultConnector.SetClusterAuthenticationCredentials(entityToUpdate.ExportVaultData());
+        await base.UpdateAsync(entityToUpdate);
+        await _vaultConnector.SetClusterAuthenticationCredentialsAsync(entityToUpdate.ExportVaultData());
     }
 
     public override async Task<IList<ClusterAuthenticationCredentials>> GetAllAsync()
@@ -163,23 +163,44 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return (await WithVaultData(credentials));
     }
 
-    public async Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(long clusterId, long projectId,
-        bool requireIsInitialized, long? adaptorUserId)
+    public async Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(
+        long clusterId,
+        long projectId,
+        bool requireIsInitialized,
+        long? adaptorUserId)
     {
-        var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
-        var clusterProject =
-            _context.ClusterProjects.FirstOrDefault(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId);
-        var clusterProjectCredentials = clusterProject?.ClusterProjectCredentials.FindAll(cpc => cpc.IsServiceAccount && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized));
-        var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials);
-        var cred = credentials?.FirstOrDefault();
-        if(requireIsInitialized && (credentials == null || !credentials.Any()))
+        var project = await _context.Projects
+            .AsNoTracking()
+            .Where(p => p.Id == projectId)
+            .Select(p => new { p.IsOneToOneMapping })
+            .SingleOrDefaultAsync();
+
+        if (project == null)
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        var cred = await _context.ClusterProjects
+            .AsNoTracking()
+            .Where(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId)
+            .SelectMany(cp => cp.ClusterProjectCredentials)
+            .Where(cpc =>
+                cpc.IsServiceAccount &&
+                (!requireIsInitialized || cpc.IsInitialized) &&
+                (project.IsOneToOneMapping
+                    ? cpc.AdaptorUserId == adaptorUserId
+                    : cpc.AdaptorUserId == null))
+            .Select(cpc => cpc.ClusterAuthenticationCredentials)
+            .FirstOrDefaultAsync();
+
+        if (requireIsInitialized && cred == null)
         {
-            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            _log.Info(
+                $"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
         return await WithVaultData(cred);
     }
+
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGeneratedWithFingerprint(string fingerprint,
         long projectId)

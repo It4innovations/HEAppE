@@ -1909,7 +1909,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GetSecureShellKeys(long projectId, string sessionCode)
+    public async Task<IActionResult> GetSecureShellKeys(long projectId, string sessionCode)
     {
         _logger.LogDebug(
             $"Endpoint: \"Management\" Method: \"GetSecureShellKeys\" Parameters: ProjectId: \"{projectId}\", SessionCode: \"{sessionCode}\"");
@@ -1921,7 +1921,7 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_managementService.GetSecureShellKeys(model.ProjectId, model.SessionCode));
+        return Ok(await _managementService.GetSecureShellKeys(model.ProjectId, model.SessionCode));
     }
 
     /// <summary>
@@ -1937,7 +1937,7 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult GenerateSecureShellKey(CreateSecureShellKeyModel model)
+    public async Task<IActionResult> GenerateSecureShellKey(CreateSecureShellKeyModel model)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"GenerateSecureShellKey\"");
         var validationResult = new ManagementValidator(model).Validate();
@@ -1945,7 +1945,7 @@ public class ManagementController : BaseController<ManagementController>
 
         List<(string, string)> credentials =
             model.Credentials.Select(credential => (credential.Username, credential.Password)).ToList();
-        return Ok(_managementService.CreateSecureShellKey(credentials, model.ProjectId, model.SessionCode));
+        return Ok(await _managementService.CreateSecureShellKey(credentials, model.ProjectId, model.SessionCode));
     }
     
     /// <summary>
