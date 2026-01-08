@@ -180,6 +180,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         // V této metodě MUSÍME trackovat entity, protože v cyklu pak měníte .IsInitialized = true
         var cred = await _context.ClusterAuthenticationCredentials
+            .AsSplitQuery()
             .Include(cac => cac.ClusterProjectCredentials)
             .ThenInclude(cpc => cpc.ClusterProject)
             .ThenInclude(cp => cp.Cluster)
