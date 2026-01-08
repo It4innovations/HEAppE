@@ -163,6 +163,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return (await WithVaultData(credentials));
     }
 
+    /*
     public async Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(
         long clusterId,
         long projectId,
@@ -204,6 +205,53 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         }
 
         // WithVaultData pravděpodobně vrací stejný objekt, zachováme await
+        return await WithVaultData(cred);
+    }
+    */
+    
+    public async Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(
+        long clusterId,
+        long projectId,
+        bool requireIsInitialized,
+        long? adaptorUserId)
+    {
+        // 1. Get mapping type (this is fast)
+        var project = await _context.Projects
+            .AsNoTracking()
+            .Where(p => p.Id == projectId)
+            .Select(p => new { p.IsOneToOneMapping })
+            .SingleOrDefaultAsync();
+
+        if (project == null)
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+
+        // 2. Optimized Query: Start from the junction table where IDs are already present
+        var query = _context.ClusterProjectCredentials
+            .Where(cpc => cpc.ClusterProject.ClusterId == clusterId && 
+                          cpc.ClusterProject.ProjectId == projectId &&
+                          cpc.IsServiceAccount);
+
+        // Filter by user mapping
+        if (project.IsOneToOneMapping)
+            query = query.Where(cpc => cpc.AdaptorUserId == adaptorUserId);
+        else
+            query = query.Where(cpc => cpc.AdaptorUserId == null);
+
+        if (requireIsInitialized)
+            query = query.Where(cpc => cpc.IsInitialized);
+
+        // 3. Select only the necessary credentials object
+        // This removes the need for all the .Include() overhead
+        var cred = await query
+            .Select(cpc => cpc.ClusterAuthenticationCredentials)
+            .FirstOrDefaultAsync();
+
+        if (requireIsInitialized && cred == null)
+        {
+            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
+            throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
+        }
+
         return await WithVaultData(cred);
     }
 
