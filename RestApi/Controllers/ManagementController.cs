@@ -2007,13 +2007,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult RemoveSecureShellKey(RemoveSecureShellKeyModel model)
+    public async Task<IActionResult> RemoveSecureShellKey(RemoveSecureShellKeyModel model)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"RevokeSecureShellKey\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        _managementService.RemoveSecureShellKey(model.Username, null, model.ProjectId, model.SessionCode);
+        await _managementService.RemoveSecureShellKey(model.Username, null, model.ProjectId, model.SessionCode);
         return Ok("SecureShellKey revoked");
     }
 

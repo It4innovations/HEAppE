@@ -419,7 +419,7 @@ public class ManagementService : IManagementService
         }
     }
 
-    public void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode)
+    public async Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -442,7 +442,7 @@ public class ManagementService : IManagementService
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-            managementLogic.RemoveSecureShellKey(username, projectId);
+            await managementLogic.RemoveSecureShellKey(username, projectId);
         }
     }
 

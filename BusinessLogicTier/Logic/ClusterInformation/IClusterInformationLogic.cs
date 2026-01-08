@@ -22,6 +22,6 @@ public interface IClusterInformationLogic
     IEnumerable<ClusterNodeType> ListClusterNodeTypes();
     bool IsUserAvailableToRun(ClusterAuthenticationCredentials user);
 
-    public ClusterAuthenticationCredentials InitializeCredential(ClusterAuthenticationCredentials credential,
+    public Task<ClusterAuthenticationCredentials> InitializeCredential(ClusterAuthenticationCredentials credential,
         long projectId, long? adaptorUserId);
 }

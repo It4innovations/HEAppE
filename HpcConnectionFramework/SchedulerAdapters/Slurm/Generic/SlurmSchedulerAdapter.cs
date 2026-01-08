@@ -128,32 +128,34 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
-        var schedulerJobIdClusterAllocationNamePairs =
-            new List<(string ScheduledJobId, string ClusterAllocationName)>();
-        SshCommandWrapper command = null;
-
+        // 1. Prepare the primary job submission command (sbatch)
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
-        var sshCommandBase64 =
-            $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+
+        // 2. Wrap the command into the interpreter and helper script (Base64 encoded)
+        var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+
+        // Improved Chaining:
+        // 1. We use 'grep -oE "[0-9]+"' to ensure we only pass numeric Job IDs to scontrol.
+        // 2. We use 'xargs -r' (or --no-run-if-empty) to prevent running scontrol if no ID is found.
+        var integratedCommand = $"{sbatchCmd} | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'";
+
+        SshCommandWrapper command = null;
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
-            var jobIds = _convertor.GetJobIds(command.Result).ToList();
-
-            for (var i = 0; i < jobSpecification.Tasks.Count; i++)
-                schedulerJobIdClusterAllocationNamePairs.Add((jobIds[i],
-                    jobSpecification.Tasks[i].ClusterNodeType.ClusterAllocationName));
-
-            return GetActualTasksInfo(connectorClient, jobSpecification.Cluster,
-                schedulerJobIdClusterAllocationNamePairs);
+            // Execute the combined command in a single SSH session
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
+        
+            // Parse the detailed job information directly from the combined output
+            return _convertor.ReadParametersFromResponse(jobSpecification.Cluster, command.Result);
         }
-        catch (SlurmException)
+        catch (Exception ex)
         {
+            // Ensure detailed error reporting if the cluster communication fails
             throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name,
-                command.Error, command.Result, sshCommandBase64)
+                command?.Error ?? ex.Message, command?.Result, integratedCommand)
             {
-                CommandError = command.Error
+                CommandError = command?.Error
             };
         }
     }

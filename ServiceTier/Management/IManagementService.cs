@@ -66,7 +66,7 @@ public interface IManagementService
     Task<PublicKeyExt> RegenerateSecureShellKey(string username, string password, string publicKey, long projectId,
         string sessionCode);
 
-    void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
+    Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
     public Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username);

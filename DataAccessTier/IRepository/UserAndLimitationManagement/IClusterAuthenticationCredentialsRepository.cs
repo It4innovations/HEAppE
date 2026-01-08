@@ -22,4 +22,6 @@ public interface IClusterAuthenticationCredentialsRepository : IRepository<Clust
     Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGeneratedWithFingerprint(string fingerprint,
         long projectId);
     Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId);
+    
+    Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username);
 }

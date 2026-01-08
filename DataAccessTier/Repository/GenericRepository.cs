@@ -78,7 +78,8 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
 
     public async Task UpdateAsync(T entityToUpdate)
     {
-        await Task.Run(() => Update(entityToUpdate));
+        _dbSet.Attach(entityToUpdate);
+        _context.Entry(entityToUpdate).State = EntityState.Modified;
     }
 
     public virtual void Detach(T entity)

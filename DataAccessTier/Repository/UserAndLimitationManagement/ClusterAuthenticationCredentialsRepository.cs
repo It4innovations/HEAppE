@@ -96,7 +96,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     public override async Task<IList<ClusterAuthenticationCredentials>> GetAllAsync()
     {
-        var credentials = base.GetAll();
+        var credentials = _dbSet.Include(x=>x.ClusterProjectCredentials).ToList();
         var result = await WithVaultData(credentials);
         return result.ToList();
     }
@@ -178,26 +178,31 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         if (project == null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
 
-        var cred = await _context.ClusterProjects
-            .AsNoTracking()
-            .Where(cp => cp.ClusterId == clusterId && cp.ProjectId == projectId)
-            .SelectMany(cp => cp.ClusterProjectCredentials)
-            .Where(cpc =>
+        // V této metodě MUSÍME trackovat entity, protože v cyklu pak měníte .IsInitialized = true
+        var cred = await _context.ClusterAuthenticationCredentials
+            .Include(cac => cac.ClusterProjectCredentials)
+            .ThenInclude(cpc => cpc.ClusterProject)
+            .ThenInclude(cp => cp.Cluster)
+            .Include(cac => cac.ClusterProjectCredentials)
+            .ThenInclude(cpc => cpc.ClusterProject)
+            .ThenInclude(cp => cp.Project)
+            .Where(cac => cac.ClusterProjectCredentials.Any(cpc => 
+                cpc.ClusterProject.ClusterId == clusterId && 
+                cpc.ClusterProject.ProjectId == projectId &&
                 cpc.IsServiceAccount &&
                 (!requireIsInitialized || cpc.IsInitialized) &&
                 (project.IsOneToOneMapping
                     ? cpc.AdaptorUserId == adaptorUserId
-                    : cpc.AdaptorUserId == null))
-            .Select(cpc => cpc.ClusterAuthenticationCredentials)
+                    : cpc.AdaptorUserId == null)))
             .FirstOrDefaultAsync();
 
         if (requireIsInitialized && cred == null)
         {
-            _log.Info(
-                $"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
+            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
+        // WithVaultData pravděpodobně vrací stejný objekt, zachováme await
         return await WithVaultData(cred);
     }
 
@@ -218,6 +223,17 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             .Where(x => x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
         return (await WithVaultData(credentials));
+    }
+
+    public async Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username)
+    {
+        //with all
+        var credentials = _dbSet
+            .Include(c => c.ClusterProjectCredentials)
+            .ThenInclude(cpc => cpc.ClusterProject)
+            .Where(c => c.Username == username)
+            .ToList();
+        return (await WithVaultData(credentials)).ToList();
     }
 
     #endregion

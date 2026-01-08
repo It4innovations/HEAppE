@@ -78,12 +78,15 @@ internal class JobManagementLogic : IJobManagementLogic
             SubmittedJobInfo jobInfo;
             using (var transactionScope = new TransactionScope(
                        TransactionScopeOption.Required,
-                       new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted }))
+                       new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
+                       TransactionScopeAsyncFlowOption.Enabled))
             {
-                _unitOfWork.JobSpecificationRepository.Insert(specification);
                 jobInfo = CreateSubmittedJobInfo(specification);
+
+                _unitOfWork.JobSpecificationRepository.Insert(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
                 _unitOfWork.Save();
+    
                 transactionScope.Complete();
             }
 
@@ -298,7 +301,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)
+        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(submittedJobInfoId)
                       ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
 
         if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
@@ -747,8 +750,17 @@ internal class JobManagementLogic : IJobManagementLogic
     protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
         IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
     {
-        dbJobInfo.Tasks.ForEach(s =>
-            CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Id.ToString())));
+        try
+        {
+            dbJobInfo.Tasks.ForEach(s =>
+                CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Specification.Id.ToString())));
+        }
+        catch (Exception ex)
+        {
+            _logger.Error("Error combining submitted job info from cluster: " + ex.Message);
+            throw new InvalidRequestException("ErrorCombiningJobInfoFromCluster", dbJobInfo.Id);
+        }
+        
 
         UpdateJobStateByTasks(dbJobInfo);
         return dbJobInfo;

@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
 using System.Threading;
 using System.Timers;
@@ -14,6 +13,37 @@ namespace HEAppE.ConnectionPool
 {
     public class ConnectionPool : IConnectionPool
     {
+        #region Inner Classes
+
+        /// <summary>
+        /// Encapsulates a shared physical connection and tracks its active usage references.
+        /// </summary>
+        private class SharedConnectionContext
+        {
+            /// <summary>
+            /// The underlying physical connection object.
+            /// </summary>
+            public ConnectionInfo ConnectionInfo { get; set; }
+
+            /// <summary>
+            /// The number of threads currently holding a reference to this connection.
+            /// </summary>
+            public int ReferenceCount = 0;
+
+            /// <summary>
+            /// The timestamp when the ReferenceCount last dropped to zero.
+            /// Used to determine if the connection should be cleaned up.
+            /// </summary>
+            public DateTime LastReleasedTime = DateTime.UtcNow;
+
+            /// <summary>
+            /// Synchronization object for thread-safe access to this context.
+            /// </summary>
+            public readonly object SyncRoot = new object();
+        }
+
+        #endregion
+
         #region Fields
 
         private readonly IPoolableAdapter adapter;
@@ -21,16 +51,19 @@ namespace HEAppE.ConnectionPool
         private readonly string _masterNodeName;
         private readonly int? _port;
         private readonly string _remoteTimeZone;
-        
-        // Konfigurace
+
+        // Configuration
         private readonly int minSize;
         private readonly int maxSize;
         private readonly TimeSpan maxUnusedDuration;
-        
-        // Stav
-        private int actualSize;
+
+        // State
+        private int _currentPhysicalConnectionsCount;
         private readonly SemaphoreSlim _semaphore;
-        private readonly ConcurrentDictionary<long, ConcurrentStack<ConnectionInfo>> pool;
+        
+        // Dictionary mapping UserID to their shared connection context.
+        private readonly ConcurrentDictionary<long, SharedConnectionContext> _sharedPool;
+        
         private readonly Timer poolCleanTimer;
 
         #endregion
@@ -55,16 +88,17 @@ namespace HEAppE.ConnectionPool
             this.maxSize = maxSize;
             this.adapter = adapter;
 
-            pool = new ConcurrentDictionary<long, ConcurrentStack<ConnectionInfo>>();
-            
-            // Semafor hlídá CELKOVÝ počet spojení v systému (aktivní + v poolu)
+            _sharedPool = new ConcurrentDictionary<long, SharedConnectionContext>();
+
+            // The semaphore limits the total number of UNIQUE physical connections (active users).
+            // It does not limit the number of reused references per user.
             _semaphore = new SemaphoreSlim(maxSize, maxSize);
 
             if (cleaningInterval > 0 && maxUnusedDuration > 0)
             {
                 poolCleanTimer = new Timer(cleaningInterval * 1000);
                 poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
-                poolCleanTimer.AutoReset = false; // Prevence re-entry, pokud clean trvá déle než interval
+                poolCleanTimer.AutoReset = false; // Prevent re-entry if cleaning takes longer than the interval
                 this.maxUnusedDuration = TimeSpan.FromSeconds(maxUnusedDuration);
             }
         }
@@ -78,47 +112,48 @@ namespace HEAppE.ConnectionPool
             Cluster cluster,
             string sshCaToken)
         {
-            var stack = pool.GetOrAdd(
-                credentials.Id,
-                _ => new ConcurrentStack<ConnectionInfo>());
+            // Atomically retrieve or create the context for the user ID.
+            var context = _sharedPool.GetOrAdd(credentials.Id, _ => new SharedConnectionContext());
 
-            //  FAST PATH – zkusíme vzít existující
-            if (stack.TryPop(out var existing))
+            lock (context.SyncRoot)
             {
-                return existing;
-            }
-
-            //  SLOW PATH – musíme vytvořit nové, ale musíme respektovat maxSize
-            // Zde čekáme, pokud je pool plný.
-            _semaphore.Wait();
-
-            try
-            {
-                // Double-check: Mezitím mohl někdo spojení vrátit, zatímco jsme čekali na semafor.
-                // Pokud ano, vezmeme ho a OKAMŽITĚ vrátíme semafor (protože nevytváříme nové).
-                if (stack.TryPop(out existing))
+                // 1. If the physical connection does not exist within this context, initialize it.
+                if (context.ConnectionInfo == null)
                 {
-                    _semaphore.Release();
-                    return existing;
+                    // Acquire semaphore to ensure we do not exceed the global maximum of physical connections.
+                    _semaphore.Wait();
+
+                    try
+                    {
+                        var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
+                        context.ConnectionInfo = newConnection;
+
+                        Interlocked.Increment(ref _currentPhysicalConnectionsCount);
+
+                        // Ensure the cleanup timer is running if we are above the minimum size.
+                        if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentPhysicalConnectionsCount > minSize)
+                        {
+                            poolCleanTimer.Start();
+                        }
+                    }
+                    catch
+                    {
+                        // Release the semaphore if initialization fails.
+                        _semaphore.Release();
+                        // Remove the invalid context to allow a fresh retry next time.
+                        _sharedPool.TryRemove(credentials.Id, out _);
+                        throw;
+                    }
                 }
 
-                // Opravdu vytváříme nové spojení
-                var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
+                // 2. Increment the usage counter (Reference Counting).
+                // Multiple threads can share this single physical connection.
+                context.ReferenceCount++;
                 
-                Interlocked.Increment(ref actualSize);
+                // Update the LastUsed property for informational purposes.
+                context.ConnectionInfo.LastUsed = DateTime.UtcNow;
 
-                if (poolCleanTimer != null && !poolCleanTimer.Enabled && actualSize > minSize)
-                {
-                    poolCleanTimer.Start();
-                }
-                
-                return newConnection;
-            }
-            catch
-            {
-                // Pokud nastane chyba při InitializeConnection, musíme vrátit token semaforu!
-                _semaphore.Release();
-                throw;
+                return context.ConnectionInfo;
             }
         }
 
@@ -126,15 +161,30 @@ namespace HEAppE.ConnectionPool
         {
             if (connection == null) return;
 
-            connection.LastUsed = DateTime.UtcNow;
+            if (_sharedPool.TryGetValue(connection.AuthCredentials.Id, out var context))
+            {
+                lock (context.SyncRoot)
+                {
+                    // Decrement the active usage counter.
+                    context.ReferenceCount--;
 
-            var stack = pool.GetOrAdd(connection.AuthCredentials.Id, _ => new ConcurrentStack<ConnectionInfo>());
+                    // Update timestamp.
+                    connection.LastUsed = DateTime.UtcNow;
 
-            // OPTIMALIZACE: Odstraněno stack.Contains(connection).
-            // Lineární prohledávání je při velkém provozu zabiják výkonu.
-            stack.Push(connection);
-            
-            // Poznámka: Nevoláme _semaphore.Release(), protože spojení stále existuje (jen je v poolu).
+                    if (context.ReferenceCount <= 0)
+                    {
+                        // No active references remain.
+                        // Mark the time when it became idle. The physical connection remains open ("warm")
+                        // until the cleanup timer determines it has been unused for too long.
+                        context.ReferenceCount = 0; 
+                        context.LastReleasedTime = DateTime.UtcNow;
+                    }
+                }
+            }
+            else
+            {
+                log.Warn($"Attempted to return a connection for user {connection.AuthCredentials.Username}, but the context was not found in the pool.");
+            }
         }
 
         #endregion
@@ -145,50 +195,66 @@ namespace HEAppE.ConnectionPool
         {
             try
             {
-                log.Debug("Connection pool clean start.");
+                log.Debug("Connection pool cleanup started.");
 
-                foreach (var entry in pool)
+                foreach (var entry in _sharedPool)
                 {
-                    var stack = entry.Value;
-                    if (stack.IsEmpty) continue;
+                    var userId = entry.Key;
+                    var context = entry.Value;
+                    bool shouldRemove = false;
 
-                    // Dočasný seznam pro spojení, která přežijí
-                    var survivors = new List<ConnectionInfo>();
-                    ConnectionInfo conn;
-
-                    // Vytaháme všechna spojení ven ze stacku
-                    while (stack.TryPop(out conn))
+                    // Inspect the context state in a thread-safe manner.
+                    lock (context.SyncRoot)
                     {
-                        // Kontrola stáří a minimální velikosti poolu
-                        if (conn.LastUsed < DateTime.UtcNow - maxUnusedDuration &&
-                            actualSize > minSize)
+                        var idleDuration = DateTime.UtcNow - context.LastReleasedTime;
+
+                        // Condition to close the connection:
+                        // 1. No active references (ReferenceCount == 0).
+                        // 2. The connection has been idle longer than allowed (maxUnusedDuration).
+                        // 3. We are above the minimum pool size.
+                        if (context.ReferenceCount == 0 &&
+                            idleDuration > maxUnusedDuration &&
+                            _currentPhysicalConnectionsCount > minSize)
                         {
-                            // Spojení je staré -> smazat
-                            RemoveConnection(conn);
-                        }
-                        else
-                        {
-                            // Spojení je v pořádku -> schovat
-                            survivors.Add(conn);
+                            shouldRemove = true;
                         }
                     }
 
-                    // Vrátíme přeživší zpět do stacku
-                    // (Iterujeme tak, aby pořadí ve stacku zůstalo rozumné, i když u poolu na tom tolik nezáleží)
-                    for (int i = survivors.Count - 1; i >= 0; i--)
+                    if (shouldRemove)
                     {
-                        stack.Push(survivors[i]);
+                        // Attempt to remove the context from the dictionary.
+                        // If successful, we assume ownership of the context cleanup.
+                        if (_sharedPool.TryRemove(userId, out var removedContext))
+                        {
+                            // Double-check lock to ensure no race condition occurred during removal 
+                            // (e.g., a thread acquiring it right before removal).
+                            lock (removedContext.SyncRoot)
+                            {
+                                if (removedContext.ReferenceCount == 0)
+                                {
+                                    RemovePhysicalConnection(removedContext.ConnectionInfo);
+                                }
+                                else
+                                {
+                                    // Edge case: A race condition occurred, and the connection became active again 
+                                    // immediately before TryRemove. Since it is removed from the map, 
+                                    // we treat it as an isolated instance and close it to avoid leaks, 
+                                    // or we could log a warning. Closing is safer for consistency.
+                                    RemovePhysicalConnection(removedContext.ConnectionInfo);
+                                }
+                            }
+                        }
                     }
                 }
             }
             catch (Exception ex)
             {
-                log.Error("Error during connection pool cleanup", ex);
+                log.Error("Error during connection pool cleanup.", ex);
             }
             finally
             {
-                // Restart timeru (pokud byl nastaven)
-                if (poolCleanTimer != null && actualSize > minSize)
+                // Restart the timer if necessary.
+                if (poolCleanTimer != null && _currentPhysicalConnectionsCount > minSize)
                 {
                     poolCleanTimer.Start();
                 }
@@ -201,8 +267,7 @@ namespace HEAppE.ConnectionPool
 
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
         {
-            // Poznámka: Volání GetAwaiter().GetResult() je "sync-over-async" a může blokovat vlákna.
-            // Pokud je to možné, přepis do async/await by byl lepší, ale to vyžaduje změnu interface.
+            // Sync-over-async call (GetResult) should be replaced with async/await if the interface allows it in the future.
             if (!cred.IsVaultDataLoaded)
             {
                 var _vaultConnector = new VaultConnector();
@@ -211,23 +276,25 @@ namespace HEAppE.ConnectionPool
             }
 
             var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port);
-            
+
             var connection = new ConnectionInfo
             {
                 Connection = connectionObject,
                 LastUsed = DateTime.UtcNow,
                 AuthCredentials = cred
             };
-            
+
             adapter.Connect(connection.Connection);
             return connection;
         }
 
-        private void RemoveConnection(ConnectionInfo connection)
+        private void RemovePhysicalConnection(ConnectionInfo connection)
         {
+            if (connection == null) return;
+
             try
             {
-                // Fyzické ukončení spojení
+                // Physically close the connection.
                 adapter.Disconnect(connection.Connection);
             }
             catch (Exception ex)
@@ -236,16 +303,16 @@ namespace HEAppE.ConnectionPool
             }
             finally
             {
-                // 1. Snížíme počítadlo
-                Interlocked.Decrement(ref actualSize);
+                // 1. Decrement the global physical connection counter.
+                Interlocked.Decrement(ref _currentPhysicalConnectionsCount);
 
-                // 2. Uvolníme semafor, aby se mohlo vytvořit nové spojení !!!
+                // 2. Release the semaphore slot to allow new physical connections.
                 _semaphore.Release();
 
                 log.DebugFormat(
-                    "Removed connection for {0} - actual size {1}",
+                    "Removed physical connection for {0} - actual size {1}",
                     connection.AuthCredentials.Username,
-                    actualSize);
+                    _currentPhysicalConnectionsCount);
             }
         }
 

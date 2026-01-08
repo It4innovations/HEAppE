@@ -685,7 +685,7 @@ public class ManagementLogic : IManagementLogic
         {
             cred.Username = newUsername;
             cred.Password = newPassword;
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(cred);
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(cred);
             _logger.Info($"Renamed ClusterAuthenticationCredentials ID '{cred.Id}' username to '{newUsername}'.");
         }
         _unitOfWork.Save();
@@ -744,8 +744,8 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public async Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId)
     {
-        var clusterAuthenticationCredentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllAsync()).Where(
-            w => w.Username == username &&
+        var clusterAuthenticationCredentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username)).Where(
+            w => 
                  w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
                  w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
@@ -770,7 +770,7 @@ public class ManagementLogic : IManagementLogic
                 cpc.ModifiedAt = modificationDate;
                 cpc.ClusterProject.Project.ModifiedAt = modificationDate;
             });
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(credentials);
         }
 
         _unitOfWork.Save();
@@ -785,10 +785,14 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public async Task RemoveSecureShellKey(string username, long projectId)
     {
-        var clusterAuthenticationCredentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllAsync()).Where(
-            w => w.Username == username &&
+        var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username);
+
+        var list = clusterAuthenticationCredentials.ToList();
+        
+        clusterAuthenticationCredentials = clusterAuthenticationCredentials.Where(
+            w => 
                  w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
-                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId)).ToList();
 
         if (!clusterAuthenticationCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
 
@@ -804,7 +808,7 @@ public class ManagementLogic : IManagementLogic
                 cpc.ModifiedAt = modificationDate;
                 cpc.ClusterProject.Project.ModifiedAt = modificationDate;
             });
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(credentials);
         }
 
         _unitOfWork.Save();
@@ -2030,7 +2034,7 @@ public class ManagementLogic : IManagementLogic
 
         foreach (var clusterProject in clusterProjects)
         {
-            var serviceAccount =
+            var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                     clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId);
 
@@ -2383,7 +2387,7 @@ public class ManagementLogic : IManagementLogic
                 {
                     //invoke ClusterInformationLogic
                     var clusterInformationLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-                    clusterInformationLogic.InitializeCredential(clusterAuthCredentials, project.Id, null);
+                    await clusterInformationLogic.InitializeCredential(clusterAuthCredentials, project.Id, null);
                     
                 }
             }
