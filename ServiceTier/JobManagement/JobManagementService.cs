@@ -130,28 +130,36 @@ public class JobManagementService : IJobManagementService
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
 
-        var (loggedUser, projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
+        var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
             sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Submitter);
 
         var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(
             unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
+        // 1. AsNoTracking is critical for read-only reports (huge performance gain)
+        // 2. Keep Includes as you need the full objects for ConvertIntToExt
         IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id)
+            .AsNoTracking()
             .Include(x => x.Specification)
             .Include(x => x.Project);
 
+        // 3. Optimized filtering
         if (!string.IsNullOrWhiteSpace(jobStates))
         {
             var stateInts = jobStates.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => int.Parse(s.Trim()))
-                .ToArray();
+                .ToList();
 
-            int statesMask = stateInts.Aggregate(0, (acc, val) => acc | val);
-
-            query = query.Where(x => ((int)x.State & statesMask) != 0);
+            // Use 'Contains' instead of bitwise mask to allow Database Index usage
+            query = query.Where(x => stateInts.Contains((int)x.State));
         }
 
-        return query.ToList().Select(x => x.ConvertIntToExt()).ToArray();
+        // 4. Execution and Mapping
+        // ToList() executes the optimized SQL, then we map in memory
+        return query
+            .ToList() 
+            .Select(x => x.ConvertIntToExt())
+            .ToArray();
     }
 
 
