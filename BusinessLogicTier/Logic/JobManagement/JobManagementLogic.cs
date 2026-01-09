@@ -77,15 +77,16 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             SubmittedJobInfo jobInfo;
             jobInfo = CreateSubmittedJobInfo(specification);
-            using (var transactionScope = new TransactionScope(
+            /*using (var transactionScope = new TransactionScope(
                        TransactionScopeOption.Required,
                        new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
                        TransactionScopeAsyncFlowOption.Enabled))
+                       */
             {
                 _unitOfWork.JobSpecificationRepository.Insert(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
                 await _unitOfWork.SaveAsync();
-                transactionScope.Complete();
+                //transactionScope.Complete();
             }
 
             var clusterProject =

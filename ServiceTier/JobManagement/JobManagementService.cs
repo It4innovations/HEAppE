@@ -16,6 +16,7 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net;
+using Microsoft.EntityFrameworkCore;
 using SshCaAPI;
 
 namespace HEAppE.ServiceTier.JobManagement;
@@ -129,32 +130,28 @@ public class JobManagementService : IJobManagementService
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
 
-        // Validate the user and get associated projects
         var (loggedUser, projects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
             sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Submitter);
 
         var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(
             unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-        // Get IQueryable of jobs for the user (enables DB-side filtering)
-        IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id);
+        IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id)
+            .Include(x => x.Specification)
+            .Include(x => x.Project);
 
         if (!string.IsNullOrWhiteSpace(jobStates))
         {
-            // Convert jobStates string into array of integers
             var stateInts = jobStates.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => int.Parse(s.Trim()))
                 .ToArray();
 
-            // Combine all states into a single bitmask
             int statesMask = stateInts.Aggregate(0, (acc, val) => acc | val);
 
-            // Apply bitmask filtering directly in SQL
             query = query.Where(x => ((int)x.State & statesMask) != 0);
         }
 
-        // Fetch from DB and convert to external DTO
-        return query.AsEnumerable().Select(x => x.ConvertIntToExt()).ToArray();
+        return query.ToList().Select(x => x.ConvertIntToExt()).ToArray();
     }
 
 
