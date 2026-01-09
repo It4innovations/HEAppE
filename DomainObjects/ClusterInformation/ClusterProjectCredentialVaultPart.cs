@@ -1,40 +1,44 @@
 ﻿using System.Text.Json;
+using System.Text.Json.Serialization;
 
 namespace HEAppE.DomainObjects.ClusterInformation;
 
-/// <summary>
-///     Represents a cluster project credential vault part.
-/// </summary>
 public record ClusterProjectCredentialVaultPart(
-    long Id,
-    string Password,
-    string PrivateKey,
-    string PrivateKeyPassword,
-    string PrivateKeyCertificate
+    [property: JsonPropertyName("Id")] long Id,
+    [property: JsonPropertyName("Password")] string Password,
+    [property: JsonPropertyName("PrivateKey")] string PrivateKey,
+    [property: JsonPropertyName("PrivateKeyPassword")] string PrivateKeyPassword,
+    [property: JsonPropertyName("PrivateKeyCertificate")] string PrivateKeyCertificate
 )
 {
-    private ClusterProjectCredentialVaultPart() : this(-1, "", "", "", "")
-    {
-    }
+    // Default constructor prevents nulls in properties
+    public ClusterProjectCredentialVaultPart() : this(-1, "", "", "", "") { }
 
-    /// <summary>
-    ///     Gets the default empty cluster project credential vault part.
-    /// </summary>
     public static ClusterProjectCredentialVaultPart Empty => new();
 
     public string AsVaultDataJsonObject()
     {
-        return $"{{ \"data\":{JsonSerializer.Serialize(this)}}}";
+        // Wraps the object into {"data": {...}} envelope
+        return JsonSerializer.Serialize(new { data = this });
     }
 
     public static ClusterProjectCredentialVaultPart FromVaultJsonData(string json)
     {
-        var response = JsonSerializer.Deserialize<VaultResponse>(json);
+        if (string.IsNullOrWhiteSpace(json)) return Empty;
 
-        return response?.data.data ?? Empty;
+        try
+        {
+            var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var envelope = JsonSerializer.Deserialize<VaultEnvelope>(json, options);
+            
+            // Returns the inner data or Empty if null
+            return envelope?.Data ?? Empty;
+        }
+        catch
+        {
+            return Empty;
+        }
     }
 
-    private record DataPart(ClusterProjectCredentialVaultPart data);
-
-    private record VaultResponse(DataPart data);
+    private record VaultEnvelope([property: JsonPropertyName("data")] ClusterProjectCredentialVaultPart Data);
 }
