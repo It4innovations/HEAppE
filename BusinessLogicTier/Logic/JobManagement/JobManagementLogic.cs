@@ -76,17 +76,15 @@ internal class JobManagementLogic : IJobManagementLogic
         //lock (_lockCreateJobObj)
         {
             SubmittedJobInfo jobInfo;
+            jobInfo = CreateSubmittedJobInfo(specification);
             using (var transactionScope = new TransactionScope(
                        TransactionScopeOption.Required,
                        new TransactionOptions { IsolationLevel = IsolationLevel.ReadCommitted },
                        TransactionScopeAsyncFlowOption.Enabled))
             {
-                jobInfo = CreateSubmittedJobInfo(specification);
-
                 _unitOfWork.JobSpecificationRepository.Insert(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
-                _unitOfWork.Save();
-    
+                await _unitOfWork.SaveAsync();
                 transactionScope.Complete();
             }
 

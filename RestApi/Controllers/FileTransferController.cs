@@ -64,13 +64,13 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult RequestFileTransfer(GetFileTransferMethodModel model)
+    public async Task<IActionResult> RequestFileTransfer(GetFileTransferMethodModel model)
     {
         _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>

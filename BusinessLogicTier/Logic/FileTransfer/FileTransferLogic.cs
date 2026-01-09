@@ -120,7 +120,7 @@ public class FileTransferLogic : IFileTransferLogic
         }
     }
 
-    public FileTransferMethod TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser)
+    public async Task<FileTransferMethod> TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _log.Info(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
@@ -129,7 +129,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
         //retrieve credentials from vault
-        clusterUserAuthCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetById(clusterUserAuthCredentials.Id);
+        clusterUserAuthCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetByIdAsync(clusterUserAuthCredentials.Id);
         if (string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKey))
             throw new ClusterAuthenticationException("NotExistingPrivateKey", clusterUserAuthCredentials.PrivateKey);
         
@@ -166,7 +166,7 @@ public class FileTransferLogic : IFileTransferLogic
         return transferMethod;
     }
 
-    public FileTransferMethod GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser)
+    public async Task<FileTransferMethod> GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser)
     {
         _log.Info(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
@@ -193,7 +193,7 @@ public class FileTransferLogic : IFileTransferLogic
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent)
         {
             var credentials =
-                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetById(jobInfo.Specification.ClusterUser.Id);
+                await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetByIdAsync(jobInfo.Specification.ClusterUser.Id);
             _log.Debug($"ClusterUser: {credentials}");
             transferMethod.Credentials = new FileTransferKeyCredentials
             {

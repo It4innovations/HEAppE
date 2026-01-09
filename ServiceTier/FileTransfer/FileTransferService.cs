@@ -32,7 +32,7 @@ public class FileTransferService : IFileTransferService
         _httpContextKeys = httpContextKeys;
     }
 
-    public FileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
+    public async Task<FileTransferMethodExt> TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -43,12 +43,12 @@ public class FileTransferService : IFileTransferService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var fileTransferMethod = fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
+            var fileTransferMethod = await fileTransferLogic.TrustfulRequestFileTransfer(submittedJobInfoId, loggedUser);
             return fileTransferMethod.ConvertIntToExt();
         }
     }
 
-    public FileTransferMethodExt RequestFileTransfer(long submittedJobInfoId, string sessionCode)
+    public async Task<FileTransferMethodExt> RequestFileTransfer(long submittedJobInfoId, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -59,7 +59,7 @@ public class FileTransferService : IFileTransferService
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, submittedJobInfo.Project.Id);
             var fileTransferLogic = LogicFactory.GetLogicFactory().CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var fileTransferMethod = fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
+            var fileTransferMethod = await fileTransferLogic.GetFileTransferMethod(submittedJobInfoId, loggedUser);
             return fileTransferMethod.ConvertIntToExt();
         }
     }

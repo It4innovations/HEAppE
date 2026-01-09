@@ -28,14 +28,13 @@ public class DataStagingEndpoint : IApiRoute
             .WithTags("DataStaging");
 
 
-        group.MapPost("GetFileTransferMethod",
-                ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
+        group.MapPost("GetFileTransferMethod", async ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys) =>
                 {
                     logger.LogDebug(
                         """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
-                    return Results.Ok(
-                        new FileTransferService(sshCertificateAuthorityService, httpContextKeys).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
+                    return Results.Ok( await
+                        (new FileTransferService(sshCertificateAuthorityService, httpContextKeys)).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
                             model.SessionCode));
                 }).Produces<FileTransferMethodExt>()
             .ProducesValidationProblem()

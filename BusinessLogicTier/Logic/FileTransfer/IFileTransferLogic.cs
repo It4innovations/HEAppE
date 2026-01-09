@@ -9,8 +9,8 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer;
 public interface IFileTransferLogic
 {
     void RemoveJobsTemporaryFileTransferKeys();
-    FileTransferMethod TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser);
-    FileTransferMethod GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<FileTransferMethod> TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<FileTransferMethod> GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser);
     void EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser);
 
     IList<JobFileContent> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffset[] taskFileOffsets,

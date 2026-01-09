@@ -6,8 +6,8 @@ namespace HEAppE.ServiceTier.FileTransfer;
 
 public interface IFileTransferService
 {
-    FileTransferMethodExt TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode);
-    FileTransferMethodExt RequestFileTransfer(long submittedJobInfoId, string sessionCode);
+    Task<FileTransferMethodExt> TrustfulRequestFileTransfer(long submittedJobInfoId, string sessionCode);
+    Task<FileTransferMethodExt> RequestFileTransfer(long submittedJobInfoId, string sessionCode);
     void CloseFileTransfer(long submittedJobInfoId, string publicKey, string sessionCode);
 
     JobFileContentExt[] DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffsetExt[] taskFileOffsets,
