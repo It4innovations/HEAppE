@@ -1,11 +1,6 @@
 ﻿using System;
-using System.Collections.Concurrent;
-using System.IO;
 using System.Net.Http;
-using System.Net.Http.Json;
-using System.Text.Json;
-using System.Text.Json.Serialization;
-using System.Threading;
+using System.Text;
 using System.Threading.Tasks;
 using log4net;
 using Microsoft.Extensions.Caching.Memory;
@@ -16,100 +11,95 @@ namespace HEAppE.DataAccessTier.Vault;
 
 public class VaultConnector : IVaultConnector
 {
+    // Static members ensure the cache and client are shared across all instances of VaultConnector
     private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
-    private static readonly HttpClient _httpClient = new HttpClient();
-    private static readonly ConcurrentDictionary<long, SemaphoreSlim> _idLocks = new();
+    
+    // Static HttpClient prevents Socket Exhaustion issues
+    private static readonly HttpClient _httpClient = new HttpClient { 
+        BaseAddress = new Uri(VaultConnectorSettings.VaultBaseAddress) 
+    };
 
-    private readonly string _vaultBaseAddress = VaultConnectorSettings.VaultBaseAddress;
-    private readonly string _clusterPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
+    private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
     protected readonly ILog _log = LogManager.GetLogger(typeof(VaultConnector));
 
+    /// <summary>
+    /// Get cluster authentication credentials with cache support.
+    /// Uses a static cache shared across all instances of the connector.
+    /// </summary>
     public async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentials(long id)
     {
-        if (_cache.TryGetValue(id, out ClusterProjectCredentialVaultPart cachedData))
-            return cachedData;
+        // GetOrCreateAsync handles locking, so only one HTTP request is made per ID
+        return await _cache.GetOrCreateAsync(id, entry =>
+        {
+            entry.SlidingExpiration = TimeSpan.FromMinutes(5);
+            _log.Debug($"Cache miss for ID: {id}, fetching from Vault.");
+            return GetClusterAuthenticationCredentialsInternal(id);
+        });
+    }
 
-        var semaphore = _idLocks.GetOrAdd(id, _ => new SemaphoreSlim(1, 1));
-        await semaphore.WaitAsync();
+    /// <summary>
+    /// Internal method to fetch credentials from Vault.
+    /// </summary>
+    private async Task<ClusterProjectCredentialVaultPart> GetClusterAuthenticationCredentialsInternal(long id)
+    {
+        var path = $"{_clusterAuthenticationCredentialsPath}/{id}";
 
         try
         {
-            if (_cache.TryGetValue(id, out cachedData)) return cachedData;
-
-            var data = await GetInternalAsync(id);
-
-            // Validation: Only cache if critical data (like PrivateKey or Password) is present
-            if (data != null && data.Id != -1)
-            {
-                _cache.Set(id, data, TimeSpan.FromMinutes(5));
-                return data;
-            }
-
+            var result = await _httpClient.GetStringAsync(path);
+            var vaultPart = ClusterProjectCredentialVaultPart.FromVaultJsonData(result);
+            _log.Debug($"Retrieved vault ClusterProjectCredential with ID: {id}");
+            return vaultPart;
+        }
+        catch (HttpRequestException e)
+        {
+            _log.Warn($"Vault request for Id: {id} not found. Exception: {e}");
             return ClusterProjectCredentialVaultPart.Empty;
         }
-        finally
-        {
-            semaphore.Release();
-        }
     }
 
-    private async Task<ClusterProjectCredentialVaultPart> GetInternalAsync(long id)
-    {
-        var requestUrl = $"{_vaultBaseAddress}/{_clusterPath}/{id}";
-
-        try
-        {
-            // Performance: Use ResponseHeadersRead to minimize memory allocation
-            using var response = await _httpClient.GetAsync(requestUrl, HttpCompletionOption.ResponseHeadersRead);
-            
-            if (!response.IsSuccessStatusCode)
-            {
-                _log.Warn($"Vault record {id} not found. Status: {response.StatusCode}");
-                return null; 
-            }
-
-            using var contentStream = await response.Content.ReadAsStreamAsync();
-            
-            // Deserialize directly from stream
-            var envelope = await JsonSerializer.DeserializeAsync<VaultEnvelopeProxy>(contentStream, 
-                new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-            return envelope?.Data;
-        }
-        catch (Exception e)
-        {
-            _log.Error($"Vault connection error for ID: {id}", e);
-            return null;
-        }
-    }
-
-    // Helper proxy for stream deserialization
-    private record VaultEnvelopeProxy([property: JsonPropertyName("data")] ClusterProjectCredentialVaultPart Data);
-
+    /// <summary>
+    /// Set cluster authentication credentials asynchronously.
+    /// Invalidates the shared cache after a successful update.
+    /// </summary>
     public async Task<bool> SetClusterAuthenticationCredentialsAsync(ClusterProjectCredentialVaultPart data)
     {
-        var requestUrl = $"{_vaultBaseAddress}/{_clusterPath}/{data.Id}";
-        
-        // Wrap into expected Vault structure
-        var payload = new { data = data };
-        using var response = await _httpClient.PostAsJsonAsync(requestUrl, payload);
+        var path = $"{_clusterAuthenticationCredentialsPath}/{data.Id}";
+        var content = data.AsVaultDataJsonObject();
+        var payload = new StringContent(content, Encoding.UTF8, "application/json");
 
-        if (response.IsSuccessStatusCode)
+        _log.Debug($"Updating vault ClusterProjectCredential with ID: {data.Id}");
+        var result = await _httpClient.PostAsync(path, payload);
+
+        if (result.IsSuccessStatusCode)
         {
-            _cache.Remove(data.Id); 
+            _log.Debug($"Successfully set vault ClusterProjectCredential with ID: {data.Id}");
+            _cache.Remove(data.Id); // Invalidate shared cache
             return true;
         }
+
+        _log.Warn($"Failed to set vault ClusterProjectCredential with ID: {data.Id}");
         return false;
     }
 
+    /// <summary>
+    /// Delete cluster authentication credentials asynchronously.
+    /// Invalidates the shared cache after successful deletion.
+    /// </summary>
     public async Task DeleteClusterAuthenticationCredentialsAsync(long id)
     {
-        var requestUrl = $"{_vaultBaseAddress}/{_clusterPath}/{id}";
-        using var response = await _httpClient.DeleteAsync(requestUrl);
-        if (response.IsSuccessStatusCode)
+        var path = $"{_clusterAuthenticationCredentialsPath}/{id}";
+
+        var result = await _httpClient.DeleteAsync(path);
+
+        if (result.IsSuccessStatusCode)
         {
-            _cache.Remove(id);
-            _idLocks.TryRemove(id, out _);
+            _log.Debug($"Deleted vault ClusterProjectCredential with ID: {id}");
+            _cache.Remove(id); // Invalidate shared cache
+        }
+        else
+        {
+            _log.Warn($"Failed to delete vault ClusterProjectCredential with ID: {id}");
         }
     }
 }
