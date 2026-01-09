@@ -508,111 +508,55 @@ internal class JobManagementLogic : IJobManagementLogic
         return _unitOfWork.SubmittedJobInfoRepository.GetJobsForUserQuery(loggedUserId);
     }
 
-   protected async Task CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser,
-    IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
+    protected async Task CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser,
+        IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
     {
-        // 1. Initial job-level data retrieval
         var cluster = clusterLogic.GetClusterById(specification.ClusterId);
         specification.Cluster = cluster;
-        specification.Submitter = loggedUser;
-        
-        // Fetch Project and SubProject
-        specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
-        if (specification.SubProjectId.HasValue)
-        {
-            specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
-        }
 
-        // Default group assignment
-        specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
-
-        // 2. File transfer logic initialization
-        specification.FileTransferMethod = LogicFactory.GetLogicFactory()
-            .CreateFileTransferLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-        // 3. PERFORMANCE: Manual batch fetch using GetById
-        // Since .Where() is not available, we fetch unique templates before the main loop
-        var templateIds = specification.Tasks
-            .Select(t => t.CommandTemplateId)
-            .Distinct()
-            .ToList();
+        specification.ClusterUser = await clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        specification.Submitter = loggedUser;
+        specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
+        specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
+        if (specification.SubProjectId.HasValue)
+            specification.SubProject = _unitOfWork.SubProjectRepository.GetById(specification.SubProjectId.Value);
 
-        var templates = new Dictionary<long, CommandTemplate>();
-        foreach (var id in templateIds)
-        {
-            var template = _unitOfWork.CommandTemplateRepository.GetById(id);
-            if (template != null)
-            {
-                templates[id] = template;
-            }
-        }
-
-        // 4. Async fetch for credentials
-        specification.ClusterUser = await clusterLogic.GetNextAvailableUserCredentials(
-            cluster.Id, 
-            specification.ProjectId, 
-            requireIsInitialized: true, 
-            adaptorUserId: loggedUser.Id);
-
-        // 5. Optimized Task iteration
         foreach (var task in specification.Tasks)
         {
-            // Use the pre-fetched dictionary for O(1) template lookup
-            if (templates.TryGetValue(task.CommandTemplateId, out var commandTemplate) && commandTemplate.IsGeneric)
+            var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(task.CommandTemplateId);
+            if (commandTemplate != null && commandTemplate.IsGeneric)
             {
-                // PERFORMANCE: Use .ToHashSet() to resolve ambiguous constructor reference
-                var definedGenericIds = commandTemplate.TemplateParameters
-                    .Select(x => x.Identifier)
-                    .ToHashSet();
+                //dynamically get parameters and their values and parse user-defined parameters to new parameter [name at db]
+                //if you want to, refactoring is possible
+                var definedGenericCommandParameters = commandTemplate.TemplateParameters
+                    .Select(x => x.Identifier);
+                var userDefinedCommandParameters = task.CommandParameterValues
+                    .Where(x => !definedGenericCommandParameters.Contains(x.CommandParameterIdentifier));
+                var userScriptParameter = task.CommandParameterValues
+                    .Where(x => definedGenericCommandParameters
+                        .Contains(x.CommandParameterIdentifier))
+                    .FirstOrDefault();
+                var userParametersParameterName = commandTemplate.TemplateParameters
+                    .Where(x => x.Identifier != userScriptParameter.CommandParameterIdentifier)
+                    .FirstOrDefault().Identifier;
+                var parsedUserParameter = AddGenericCommandUserDefinedCommands(userDefinedCommandParameters.ToList());
 
-                // PERFORMANCE: Single pass filtering to separate parameters (reduces allocations)
-                var userDefinedParams = new List<CommandTemplateParameterValue>();
-                CommandTemplateParameterValue userScriptParam = null;
-
-                foreach (var val in task.CommandParameterValues)
+                task.CommandParameterValues.Add(new CommandTemplateParameterValue
                 {
-                    if (definedGenericIds.Contains(val.CommandParameterIdentifier))
-                    {
-                        userScriptParam ??= val;
-                    }
-                    else
-                    {
-                        userDefinedParams.Add(val);
-                    }
-                }
-
-                if (userScriptParam != null)
-                {
-                    // Find the target parameter name that isn't the script parameter itself
-                    var targetParamName = commandTemplate.TemplateParameters
-                        .FirstOrDefault(x => x.Identifier != userScriptParam.CommandParameterIdentifier)?.Identifier;
-
-                    if (targetParamName != null)
-                    {
-                        var parsedValue = AddGenericCommandUserDefinedCommands(userDefinedParams);
-
-                        // Clean up and add the parsed aggregate parameter
-                        task.CommandParameterValues.RemoveAll(x => !definedGenericIds.Contains(x.CommandParameterIdentifier));
-                        
-                        task.CommandParameterValues.Add(new CommandTemplateParameterValue
-                        {
-                            CommandParameterIdentifier = targetParamName,
-                            Value = parsedValue
-                        });
-                    }
-                }
+                    CommandParameterIdentifier = userParametersParameterName,
+                    Value = parsedUserParameter //validate if value does not contain some prohibited parameters
+                });
+                task.CommandParameterValues.RemoveAll(x => userDefinedCommandParameters.Contains(x));
             }
 
-            // Complete individual task logic
             CompleteTaskSpecification(task, clusterLogic);
-            
-            // Merge environment variables
-            task.EnvironmentVariables = CombineJobAndTaskEnvironmentVariables(
-                    specification.EnvironmentVariables, 
-                    task.EnvironmentVariables)
-                .ToList();
+            task.EnvironmentVariables =
+                CombineJobAndTaskEnvironmentVariables(specification.EnvironmentVariables, task.EnvironmentVariables)
+                    .ToList();
         }
     }
 
@@ -745,11 +689,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     protected static SubmittedJobInfo CreateSubmittedJobInfo(JobSpecification specification)
     {
-        // Performance: If the number of tasks is large, pre-calculating count 
-        // and using a direct projection is faster than multiple LINQ iterations.
-        var taskCount = specification.Tasks.Count;
-    
-        var result = new SubmittedJobInfo
+        SubmittedJobInfo result = new()
         {
             CreationTime = DateTime.UtcNow,
             Name = specification.Name,
@@ -757,23 +697,19 @@ internal class JobManagementLogic : IJobManagementLogic
             Specification = specification,
             State = JobState.Configuring,
             Submitter = specification.Submitter,
-        
-            // Performance: Removed OrderByDescending unless strictly necessary for business logic.
-            // If ordering is needed, do it once at the end or on the UI layer.
             Tasks = specification.Tasks
+                .OrderByDescending(x => x.Id)
                 .Select(s => new SubmittedTaskInfo
                 {
                     Name = s.Name,
                     Specification = s,
                     State = TaskState.Configuring,
-                    // Performance: Using Null-coalescing operator is efficient here
                     Priority = s.Priority ?? TaskPriority.Average,
                     NodeType = s.ClusterNodeType,
                     Project = s.Project
                 })
-                .ToList() // ToList() on a Select expression is highly optimized in modern .NET
+                .ToList()
         };
-
         return result;
     }
 
