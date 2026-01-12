@@ -17,11 +17,32 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
     #endregion
 
     #region Methods
-
+    
     public AdaptorUser GetByName(string username)
     {
-        return GetAll().Where(w => w.Username == username)
-            .FirstOrDefault();
+        return _dbSet
+            // 1. Větev: Načtení rolí (bez ContainedRoleTypes, ty se načtou automaticky s rolí)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserRole)
+        
+            // 2. Větev: Načtení skupin a projektů
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .ThenInclude(ug => ug.Project)
+        
+            .FirstOrDefault(w => w.Username == username);
+    }
+
+// Pokud jsi upravoval i GetById, oprav ho stejně:
+    public override AdaptorUser GetById(long id)
+    {
+        return _dbSet
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .ThenInclude(ug => ug.Project)
+            .SingleOrDefault(u => u.Id == id);
     }
     
     public AdaptorUser GetByNameIgnoreQueryFilters(string username)

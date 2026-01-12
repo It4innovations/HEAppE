@@ -206,7 +206,6 @@ internal class LinuxCommands : ICommands
         var sshCommand =
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
         _log.Info($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
-        
     }
 
     /// <summary>

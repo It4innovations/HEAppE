@@ -142,7 +142,7 @@ public class Startup
         
         services.AddControllers(options =>
         {
-            options.Filters.Add<LogRequestModelFilter>();
+            //options.Filters.Add<LogRequestModelFilter>();
             if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 options.Filters.Add(new AuthorizeFilter());
