@@ -142,7 +142,9 @@ public class JobManagementService : IJobManagementService
             .Include(x => x.Specification)
             .Include(x => x.Project)
             .Include(x => x.Tasks)
-            .ThenInclude(t => t.NodeType);
+            .ThenInclude(t => t.NodeType)
+            .Include(x => x.Tasks) 
+            .ThenInclude(t => t.Project);
         
         if (!string.IsNullOrWhiteSpace(jobStates))
         {
