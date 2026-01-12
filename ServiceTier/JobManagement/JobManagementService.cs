@@ -139,12 +139,14 @@ public class JobManagementService : IJobManagementService
 
         IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id)
             .AsNoTracking()
-            .Include(x => x.Specification)
-            .Include(x => x.Project)
+            .Include(x => x.Specification) // This is for the Job
+            .Include(x => x.Project)       // This is for the Job
             .Include(x => x.Tasks)
             .ThenInclude(t => t.NodeType)
             .Include(x => x.Tasks) 
-            .ThenInclude(t => t.Project);
+            .ThenInclude(t => t.Project)
+            .Include(x => x.Tasks)        
+            .ThenInclude(t => t.Specification); // Load Specification for each Task
         
         if (!string.IsNullOrWhiteSpace(jobStates))
         {
