@@ -144,8 +144,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// </summary>
     /// <param name="sessionCode">Session code</param>
     /// <param name="jobStates">
-    ///     Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed",
-    ///     "1,2,Running,Failed" etc.
+    ///     Job states separated by coma; eg.: "1,2,8,16,32"
     /// </param>
     /// <returns></returns>
     [HttpGet("ListJobsForCurrentUser")]
