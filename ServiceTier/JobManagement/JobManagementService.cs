@@ -136,26 +136,23 @@ public class JobManagementService : IJobManagementService
         var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(
             unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-        // 1. AsNoTracking is critical for read-only reports (huge performance gain)
-        // 2. Keep Includes as you need the full objects for ConvertIntToExt
+
         IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id)
             .AsNoTracking()
             .Include(x => x.Specification)
-            .Include(x => x.Project);
-
-        // 3. Optimized filtering
+            .Include(x => x.Project)
+            .Include(x => x.Tasks)
+            .ThenInclude(t => t.NodeType);
+        
         if (!string.IsNullOrWhiteSpace(jobStates))
         {
             var stateInts = jobStates.Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(s => int.Parse(s.Trim()))
                 .ToList();
-
-            // Use 'Contains' instead of bitwise mask to allow Database Index usage
+            
             query = query.Where(x => stateInts.Contains((int)x.State));
         }
 
-        // 4. Execution and Mapping
-        // ToList() executes the optimized SQL, then we map in memory
         return query
             .ToList() 
             .Select(x => x.ConvertIntToExt())
