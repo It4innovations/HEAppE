@@ -182,7 +182,7 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
+    public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
     {
         var model = new CurrentInfoForJobModel
         {
@@ -193,7 +193,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
