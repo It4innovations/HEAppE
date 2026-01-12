@@ -106,13 +106,13 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CancelJob(CancelJobModel model)
+    public async Task<IActionResult> CancelJob(CancelJobModel model)
     {
         _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CancelJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>

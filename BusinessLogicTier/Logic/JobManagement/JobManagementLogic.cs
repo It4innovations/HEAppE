@@ -300,7 +300,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(submittedJobInfoId)
+        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)
                       ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
 
         if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
