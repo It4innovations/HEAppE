@@ -13,33 +13,61 @@ namespace HEAppE.ConnectionPool
 {
     public class ConnectionPool : IConnectionPool
     {
+        #region Constants & Configuration
+
+        // OPTIMIZATION: Sharding Factor.
+        // Determines how many physical SSH connections allow per user.
+        // Increasing this allows parallel execution for a single user (e.g., submitting 10 jobs at once).
+        private const int MaxConnectionsPerUser = 2; 
+
+        #endregion
+
         #region Inner Classes
 
         /// <summary>
-        /// Encapsulates a shared physical connection and tracks its active usage references.
+        /// Represents a specific "slot" for a physical connection.
+        /// Each user has multiple slots (defined by MaxConnectionsPerUser).
         /// </summary>
-        private class SharedConnectionContext
+        private class ConnectionSlot
         {
-            /// <summary>
-            /// The underlying physical connection object.
-            /// </summary>
             public ConnectionInfo ConnectionInfo { get; set; }
-
-            /// <summary>
-            /// The number of threads currently holding a reference to this connection.
-            /// </summary>
+            
+            // Counts how many threads are currently using this specific connection.
             public int ReferenceCount = 0;
-
-            /// <summary>
-            /// The timestamp when the ReferenceCount last dropped to zero.
-            /// Used to determine if the connection should be cleaned up.
-            /// </summary>
+            
+            // Timestamp when the reference count dropped to zero.
             public DateTime LastReleasedTime = DateTime.UtcNow;
+            
+            // Lock for thread-safety within this specific slot.
+            public readonly object SyncRoot = new object();
+        }
+
+        /// <summary>
+        /// Container for all connection slots belonging to a specific user.
+        /// </summary>
+        private class SharedUserContext
+        {
+            public readonly ConnectionSlot[] Slots;
+            private int _roundRobinCounter = 0;
+
+            public SharedUserContext(int capacity)
+            {
+                Slots = new ConnectionSlot[capacity];
+                for (int i = 0; i < capacity; i++)
+                {
+                    Slots[i] = new ConnectionSlot();
+                }
+            }
 
             /// <summary>
-            /// Synchronization object for thread-safe access to this context.
+            /// Returns the next slot in a round-robin fashion to distribute load.
             /// </summary>
-            public readonly object SyncRoot = new object();
+            public ConnectionSlot GetNextSlot()
+            {
+                // Simple thread-safe round-robin selection
+                var idx = (Interlocked.Increment(ref _roundRobinCounter) & 0x7FFFFFFF) % Slots.Length;
+                return Slots[idx];
+            }
         }
 
         #endregion
@@ -59,10 +87,16 @@ namespace HEAppE.ConnectionPool
 
         // State
         private int _currentPhysicalConnectionsCount;
+        
+        // Limits the TOTAL number of physical connections to the HPC across all users.
         private readonly SemaphoreSlim _semaphore;
         
-        // Dictionary mapping UserID to their shared connection context.
-        private readonly ConcurrentDictionary<long, SharedConnectionContext> _sharedPool;
+        // Stores the context (slots) for each user.
+        private readonly ConcurrentDictionary<long, SharedUserContext> _userContexts;
+        
+        // OPTIMIZATION: Cache for Vault credentials to avoid repeated HTTP requests.
+        private static readonly ConcurrentDictionary<long, ClusterProjectCredentialVaultPart> _vaultCache 
+            = new ConcurrentDictionary<long, ClusterProjectCredentialVaultPart>();
         
         private readonly Timer poolCleanTimer;
 
@@ -88,17 +122,14 @@ namespace HEAppE.ConnectionPool
             this.maxSize = maxSize;
             this.adapter = adapter;
 
-            _sharedPool = new ConcurrentDictionary<long, SharedConnectionContext>();
-
-            // The semaphore limits the total number of UNIQUE physical connections (active users).
-            // It does not limit the number of reused references per user.
+            _userContexts = new ConcurrentDictionary<long, SharedUserContext>();
             _semaphore = new SemaphoreSlim(maxSize, maxSize);
 
             if (cleaningInterval > 0 && maxUnusedDuration > 0)
             {
                 poolCleanTimer = new Timer(cleaningInterval * 1000);
                 poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
-                poolCleanTimer.AutoReset = false; // Prevent re-entry if cleaning takes longer than the interval
+                poolCleanTimer.AutoReset = false; 
                 this.maxUnusedDuration = TimeSpan.FromSeconds(maxUnusedDuration);
             }
         }
@@ -112,48 +143,69 @@ namespace HEAppE.ConnectionPool
             Cluster cluster,
             string sshCaToken)
         {
-            // Atomically retrieve or create the context for the user ID.
-            var context = _sharedPool.GetOrAdd(credentials.Id, _ => new SharedConnectionContext());
+            // 1. Get the container for the user (create if not exists).
+            var userContext = _userContexts.GetOrAdd(credentials.Id, _ => new SharedUserContext(MaxConnectionsPerUser));
 
-            lock (context.SyncRoot)
+            // 2. Select a slot using Round-Robin.
+            // This distributes the user's workload across multiple physical SSH tunnels.
+            var slot = userContext.GetNextSlot();
+
+            // 3. OPTIMIZATION: Fast path check (Double-Checked Locking).
+            // If the connection is already open, grab it quickly without heavy logic.
+            lock (slot.SyncRoot)
             {
-                // 1. If the physical connection does not exist within this context, initialize it.
-                if (context.ConnectionInfo == null)
+                if (slot.ConnectionInfo != null && adapter.IsConnected(slot.ConnectionInfo.Connection))
                 {
-                    // Acquire semaphore to ensure we do not exceed the global maximum of physical connections.
-                    _semaphore.Wait();
+                    slot.ReferenceCount++;
+                    slot.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                    return slot.ConnectionInfo;
+                }
+            }
 
-                    try
-                    {
-                        var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
-                        context.ConnectionInfo = newConnection;
+            // 4. OPTIMIZATION: Prepare Vault data OUTSIDE the lock.
+            // Fetching from Vault is an HTTP call (~200ms). We don't want to block other threads while waiting for this.
+            EnsureVaultDataLoaded(credentials);
 
-                        Interlocked.Increment(ref _currentPhysicalConnectionsCount);
-
-                        // Ensure the cleanup timer is running if we are above the minimum size.
-                        if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentPhysicalConnectionsCount > minSize)
-                        {
-                            poolCleanTimer.Start();
-                        }
-                    }
-                    catch
-                    {
-                        // Release the semaphore if initialization fails.
-                        _semaphore.Release();
-                        // Remove the invalid context to allow a fresh retry next time.
-                        _sharedPool.TryRemove(credentials.Id, out _);
-                        throw;
-                    }
+            // 5. Critical Section: Initialize the connection.
+            lock (slot.SyncRoot)
+            {
+                // Re-check: Another thread might have initialized this slot while we were fetching Vault data.
+                if (slot.ConnectionInfo != null && adapter.IsConnected(slot.ConnectionInfo.Connection))
+                {
+                    slot.ReferenceCount++;
+                    slot.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                    return slot.ConnectionInfo;
                 }
 
-                // 2. Increment the usage counter (Reference Counting).
-                // Multiple threads can share this single physical connection.
-                context.ReferenceCount++;
-                
-                // Update the LastUsed property for informational purposes.
-                context.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                // We are about to open a new physical connection.
+                // Wait for the semaphore to ensure we don't exceed global limits (maxSize).
+                _semaphore.Wait();
 
-                return context.ConnectionInfo;
+                try
+                {
+                    log.Debug($"Initializing new SSH connection for user {credentials.Username} (Slot ID: {slot.GetHashCode()})...");
+
+                    // Create and Connect (The heavy 5s operation).
+                    var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
+                    slot.ConnectionInfo = newConnection;
+
+                    Interlocked.Increment(ref _currentPhysicalConnectionsCount);
+
+                    // Ensure cleanup timer is running.
+                    if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentPhysicalConnectionsCount > minSize)
+                    {
+                        poolCleanTimer.Start();
+                    }
+                }
+                catch (Exception ex)
+                {
+                    log.Error("Failed to initialize connection", ex);
+                    _semaphore.Release(); // Always release semaphore on failure.
+                    throw;
+                }
+
+                slot.ReferenceCount++;
+                return slot.ConnectionInfo;
             }
         }
 
@@ -161,35 +213,40 @@ namespace HEAppE.ConnectionPool
         {
             if (connection == null) return;
 
-            if (_sharedPool.TryGetValue(connection.AuthCredentials.Id, out var context))
+            // Find the user context
+            if (_userContexts.TryGetValue(connection.AuthCredentials.Id, out var userContext))
             {
-                lock (context.SyncRoot)
+                // We need to find which slot this connection belongs to.
+                // Since MaxConnectionsPerUser is small (e.g., 2-4), iteration is very fast.
+                foreach (var slot in userContext.Slots)
                 {
-                    // Decrement the active usage counter.
-                    context.ReferenceCount--;
-
-                    // Update timestamp.
-                    connection.LastUsed = DateTime.UtcNow;
-
-                    if (context.ReferenceCount <= 0)
+                    lock (slot.SyncRoot)
                     {
-                        // No active references remain.
-                        // Mark the time when it became idle. The physical connection remains open ("warm")
-                        // until the cleanup timer determines it has been unused for too long.
-                        context.ReferenceCount = 0; 
-                        context.LastReleasedTime = DateTime.UtcNow;
+                        // Check by reference equality
+                        if (slot.ConnectionInfo == connection)
+                        {
+                            slot.ReferenceCount--;
+                            connection.LastUsed = DateTime.UtcNow;
+
+                            if (slot.ReferenceCount <= 0)
+                            {
+                                slot.ReferenceCount = 0; // Safety clamp
+                                slot.LastReleasedTime = DateTime.UtcNow;
+                            }
+                            return; // Found and handled
+                        }
                     }
                 }
             }
             else
             {
-                log.Warn($"Attempted to return a connection for user {connection.AuthCredentials.Username}, but the context was not found in the pool.");
+                log.Warn($"Attempted to return a connection for user {connection.AuthCredentials.Username}, but the context was not found.");
             }
         }
 
         #endregion
 
-        #region Timer Event Handlers
+        #region Timer & Cleanup
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
@@ -197,54 +254,46 @@ namespace HEAppE.ConnectionPool
             {
                 log.Debug("Connection pool cleanup started.");
 
-                foreach (var entry in _sharedPool)
+                foreach (var userEntry in _userContexts)
                 {
-                    var userId = entry.Key;
-                    var context = entry.Value;
-                    bool shouldRemove = false;
+                    var userContext = userEntry.Value;
 
-                    // Inspect the context state in a thread-safe manner.
-                    lock (context.SyncRoot)
+                    // Iterate over all slots for this user
+                    foreach (var slot in userContext.Slots)
                     {
-                        var idleDuration = DateTime.UtcNow - context.LastReleasedTime;
+                        bool shouldRemove = false;
+                        ConnectionInfo connToRemove = null;
 
-                        // Condition to close the connection:
-                        // 1. No active references (ReferenceCount == 0).
-                        // 2. The connection has been idle longer than allowed (maxUnusedDuration).
-                        // 3. We are above the minimum pool size.
-                        if (context.ReferenceCount == 0 &&
-                            idleDuration > maxUnusedDuration &&
-                            _currentPhysicalConnectionsCount > minSize)
+                        lock (slot.SyncRoot)
                         {
-                            shouldRemove = true;
-                        }
-                    }
+                            if (slot.ConnectionInfo == null) continue;
 
-                    if (shouldRemove)
-                    {
-                        // Attempt to remove the context from the dictionary.
-                        // If successful, we assume ownership of the context cleanup.
-                        if (_sharedPool.TryRemove(userId, out var removedContext))
-                        {
-                            // Double-check lock to ensure no race condition occurred during removal 
-                            // (e.g., a thread acquiring it right before removal).
-                            lock (removedContext.SyncRoot)
+                            var idleDuration = DateTime.UtcNow - slot.LastReleasedTime;
+
+                            // Cleanup Condition:
+                            // 1. No active refs.
+                            // 2. Idle for too long.
+                            // 3. Pool is larger than minSize.
+                            if (slot.ReferenceCount == 0 &&
+                                idleDuration > maxUnusedDuration &&
+                                _currentPhysicalConnectionsCount > minSize)
                             {
-                                if (removedContext.ReferenceCount == 0)
-                                {
-                                    RemovePhysicalConnection(removedContext.ConnectionInfo);
-                                }
-                                else
-                                {
-                                    // Edge case: A race condition occurred, and the connection became active again 
-                                    // immediately before TryRemove. Since it is removed from the map, 
-                                    // we treat it as an isolated instance and close it to avoid leaks, 
-                                    // or we could log a warning. Closing is safer for consistency.
-                                    RemovePhysicalConnection(removedContext.ConnectionInfo);
-                                }
+                                shouldRemove = true;
+                                connToRemove = slot.ConnectionInfo;
+                                
+                                // Detach connection from the slot immediately
+                                slot.ConnectionInfo = null;
                             }
                         }
+
+                        if (shouldRemove && connToRemove != null)
+                        {
+                            RemovePhysicalConnection(connToRemove);
+                        }
                     }
+                    
+                    // Note: We are keeping the UserContext object alive even if slots are empty.
+                    // This is fine as it's lightweight. Only physical connections are heavy.
                 }
             }
             catch (Exception ex)
@@ -253,7 +302,6 @@ namespace HEAppE.ConnectionPool
             }
             finally
             {
-                // Restart the timer if necessary.
                 if (poolCleanTimer != null && _currentPhysicalConnectionsCount > minSize)
                 {
                     poolCleanTimer.Start();
@@ -263,19 +311,46 @@ namespace HEAppE.ConnectionPool
 
         #endregion
 
-        #region Local Methods
+        #region Helper Methods
+
+        /// <summary>
+        /// OPTIMIZATION: Ensures Vault data is loaded. Uses an internal cache to avoid 
+        /// redundant HTTP calls to the Vault service during the connection phase.
+        /// </summary>
+        private void EnsureVaultDataLoaded(ClusterAuthenticationCredentials cred)
+        {
+            if (cred.IsVaultDataLoaded) return;
+
+            // 1. Zkusíme vytáhnout data z Cache
+            if (_vaultCache.TryGetValue(cred.Id, out ClusterProjectCredentialVaultPart cachedData))
+            {
+                cred.ImportVaultData(cachedData);
+                return;
+            }
+
+            // 2. Pokud nejsou v cache, stáhneme je z Vaultu
+            var _vaultConnector = new VaultConnector();
+    
+            // Předpokládám, že tato metoda vrací ClusterProjectCredentialVaultPart
+            var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(cred.Id).GetAwaiter().GetResult();
+    
+            // 3. Importujeme data do credentials objektu
+            cred.ImportVaultData(vaultData);
+    
+            // 4. Uložíme do cache pro příště
+            _vaultCache.TryAdd(cred.Id, vaultData);
+        }
 
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
         {
-            // Sync-over-async call (GetResult) should be replaced with async/await if the interface allows it in the future.
-            if (!cred.IsVaultDataLoaded)
-            {
-                var _vaultConnector = new VaultConnector();
-                var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(cred.Id).GetAwaiter().GetResult();
-                cred.ImportVaultData(vaultData);
-            }
-
-            var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port);
+            // Create the adapter object (lightweight)
+            var connectionObject = adapter.CreateConnectionObject(
+                _masterNodeName, 
+                cred, 
+                cluster.ProxyConnection, 
+                sshCaToken, 
+                cluster.Port
+            );
 
             var connection = new ConnectionInfo
             {
@@ -284,7 +359,9 @@ namespace HEAppE.ConnectionPool
                 AuthCredentials = cred
             };
 
+            // Connect (Heavyweight - network I/O)
             adapter.Connect(connection.Connection);
+            
             return connection;
         }
 
@@ -294,7 +371,6 @@ namespace HEAppE.ConnectionPool
 
             try
             {
-                // Physically close the connection.
                 adapter.Disconnect(connection.Connection);
             }
             catch (Exception ex)
@@ -303,14 +379,11 @@ namespace HEAppE.ConnectionPool
             }
             finally
             {
-                // 1. Decrement the global physical connection counter.
                 Interlocked.Decrement(ref _currentPhysicalConnectionsCount);
-
-                // 2. Release the semaphore slot to allow new physical connections.
                 _semaphore.Release();
 
                 log.DebugFormat(
-                    "Removed physical connection for {0} - actual size {1}",
+                    "Removed physical connection for {0}. Active connections: {1}",
                     connection.AuthCredentials.Username,
                     _currentPhysicalConnectionsCount);
             }

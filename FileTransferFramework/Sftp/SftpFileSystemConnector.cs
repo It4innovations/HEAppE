@@ -207,6 +207,20 @@ public class SftpFileSystemConnector : IPoolableAdapter
     {
         new SftpClientAdapter((SftpClient)connectorClient).Disconnect();
     }
+    
+    /// <summary>
+    /// Is connected
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <returns></returns>
+    public bool IsConnected(object connection)
+    {
+        if (connection is SftpClient sshClient)
+        {
+            return sshClient.IsConnected;
+        }
+        return false;
+    }
 
     #endregion
 

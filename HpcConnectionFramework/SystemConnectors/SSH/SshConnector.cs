@@ -121,6 +121,20 @@ public class SshConnector : IPoolableAdapter
     {
         new SshClientAdapter((SshClient)connectorClient).Disconnect();
     }
+    
+    /// <summary>
+    /// Is connection connected
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <returns></returns>
+    public bool IsConnected(object connection)
+    {
+        if (connection is SshClient sshClient)
+        {
+            return sshClient.IsConnected;
+        }
+        return false;
+    }
 
     #endregion
 
