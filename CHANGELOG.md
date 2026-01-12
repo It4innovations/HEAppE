@@ -26,6 +26,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved exception handling for unauthorized access.
 - Introduced `.part` temporary upload extension with rename after upload completion.
 - Renamed `PermanentStoragePath` to `ProjectStoragePath`.
+- Asynchronous Processing: extensive implementation of async/await methods across Repositories and Services for non-blocking I/O operations.
+- Applied `AsNoTracking` in `JobManagementService` for read-only queries to reduce change tracker overhead.
+- Utilized `AsSplitQuery` in `ClusterAuthenticationCredentialsRepository` to resolve `Cartesian explosion` issues during complex joins.
+- Refined filtering logic for user-specific job retrieval.
+- Rewrote ConnectionPool using ConcurrentDictionary and SemaphoreSlim to ensure thread safety and prevent race conditions under load.
+- Optimized pooling by introducing user-specific slots.
+- Updated VaultConnector to use a singleton HttpClient instance to prevent socket exhaustion.
+- Implemented thread-safe caching for `Vault` data to minimize external API calls.
+- Enhanced `ClusterProjectCredentialVaultPart` with null-safe JSON processing, robust serialization, and improved error handling.
+- Optimized the job specification completion process and task processing logic.
+- Optimized `Service Registration` logic.
+- Improved retrieval efficiency for `AdaptorUser` and `SessionCode` entities.
 
 ### Security
 - Made `/heappe/Health` endpoint publicly accessible for Bearer-secured deployments.
