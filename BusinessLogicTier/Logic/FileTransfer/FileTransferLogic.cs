@@ -106,8 +106,16 @@ public class FileTransferLogic : IFileTransferLogic
 
             foreach (var tempKey in clusterUserActiveTempKey)
             {
+                var clusterUser = tempKey.Key.ClusterUser;
                 var userName = tempKey.Key.ClusterUser?.Username ?? "Unknown User";
                 var clusterName = tempKey.Key.Cluster?.Name ?? "Unknown Cluster";
+                
+                if (clusterUser == null)
+                {
+                    _log.Warn(
+                        $"Cluster user is null for temporary file transfer key(s) in cluster \"{clusterName}\". Skipping removal of file transfer keys for this user.");
+                    continue;
+                }
 
                 _log.Info(
                     $"Removing file transfer key for user \"{userName}\" in cluster \"{clusterName}\"");
