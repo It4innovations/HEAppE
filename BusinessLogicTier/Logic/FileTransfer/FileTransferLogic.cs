@@ -108,7 +108,9 @@ public class FileTransferLogic : IFileTransferLogic
             {
                 _log.Info(
                     $"Removing file transfer key for user \"{tempKey.Key.ClusterUser.Username}\" in cluster \"{tempKey.Key.Cluster.Name}\"");
-                long? adaptorUserId = tempKey.Key.Project.IsOneToOneMapping ? tempKey.Key.ClusterUser.ClusterProjectCredentials.FirstOrDefault().AdaptorUser.Id : null;
+                long? adaptorUserId = tempKey.Key.Project.IsOneToOneMapping
+                    ? tempKey.Key.ClusterUser.ClusterProjectCredentials?.FirstOrDefault()?.AdaptorUser?.Id
+                    : null;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                     .CreateScheduler(cluster, tempKey.Key.Project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
