@@ -464,6 +464,17 @@ public static class JobManagementConverts
 
         return convert;
     }
+    
+    public static AdaptorUserCreatedExt ConvertIntToExt(this AdaptorUserCreated adaptorUserCreated)
+    {
+        var convert = new AdaptorUserCreatedExt()
+        {
+            Id = adaptorUserCreated.Id,
+            Username = adaptorUserCreated.Username,
+            ApiKey = adaptorUserCreated.ApiKey,
+        };
+        return convert;
+    }
 
     public static StatusCheckLogsExt ConvertIntToExt(this StatusCheckLogs status)
     {

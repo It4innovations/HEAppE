@@ -8,6 +8,8 @@ using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -212,4 +214,11 @@ public interface IManagementService
     Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 
     StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
+    AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode);
+    AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode);
+    string DeleteAdaptorUser(string modelUsername, string modelSessionCode);
+    AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode);
+    AdaptorUserExt AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    AdaptorUserExt RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    AdaptorUserExt[] ListAdaptorUsersInProject(long projectId, string sessionCode);
 }

@@ -25,6 +25,8 @@ using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using SshCaAPI;
 using HEAppE.DomainObjects.JobManagement;
+using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -1364,6 +1366,106 @@ public class ManagementService : IManagementService
             return result.ConvertIntToExt();
         }
     }
+
+    public AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode.ToString(), unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUserCreated = managementLogic.CreateAdaptorUser(username);
+            return adaptorUserCreated.ConvertIntToExt();
+        }
+    }
+
+    public AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUserCreated = managementLogic.ModifyAdaptorUser(oldUsername, newUsername);
+            return adaptorUserCreated.ConvertIntToExt();
+        }
+    }
+
+    public string DeleteAdaptorUser(string modelUsername, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            return managementLogic.DeleteAdaptorUser(modelUsername);
+        }
+    }
+
+    public AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUser = managementLogic.GetAdaptorUserByUsername(username);
+            return adaptorUser.ConvertIntToExt();
+        }
+    }
+
+    public AdaptorUserExt AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole,
+        string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUser = managementLogic.AssignAdaptorUserToProject(modelUsername, modelProjectId, modelRole);
+            return adaptorUser.ConvertIntToExt();
+        }
+    }
+
+    public AdaptorUserExt RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole,
+        string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUser = managementLogic.RemoveAdaptorUserFromProject(modelUsername, modelProjectId, modelRole);
+            return adaptorUser.ConvertIntToExt();
+        }
+    }
+
+    public AdaptorUserExt[] ListAdaptorUsersInProject(long projectId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUsers = managementLogic.ListAdaptorUsersInProject(projectId);
+            return adaptorUsers.Select(au => au.ConvertIntToExt()).ToArray();
+        }
+    }
+
 
     public string BackupDatabase(string sessionCode)
     {

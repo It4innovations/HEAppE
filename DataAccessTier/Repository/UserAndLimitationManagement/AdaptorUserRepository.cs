@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using Microsoft.EntityFrameworkCore;
@@ -60,7 +61,17 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .IgnoreQueryFilters() 
             .FirstOrDefault(w => w.Email == email);
     }
-    
+
+    public List<AdaptorUser> GetAllUsersInGroup(long groupId)
+    {
+        return _dbSet
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .Where(u => u.AdaptorUserUserGroupRoles
+                .Any(ugr => ugr.AdaptorUserGroup.Id == groupId))
+            .ToList();
+    }
+
     public AdaptorUser GetByEmail(string email)
     {
         return GetAll().Where(w => w.Email == email)

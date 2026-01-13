@@ -8,6 +8,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -190,4 +191,11 @@ public interface IManagementLogic
     StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo);
 
     Task<dynamic> CheckClusterProjectCredentialsStatus();
+    AdaptorUserCreated CreateAdaptorUser(string username);
+    AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername);
+    string DeleteAdaptorUser(string modelUsername);
+    AdaptorUser GetAdaptorUserByUsername(string username);
+    AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
+    AdaptorUser RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
+    List<AdaptorUser> ListAdaptorUsersInProject(long projectId);
 }

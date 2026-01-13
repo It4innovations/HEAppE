@@ -39,6 +39,7 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
 using System.Threading.Tasks;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -453,6 +454,148 @@ public class ManagementController : BaseController<ManagementController>
         return Ok(message);
     }
 
+    #endregion
+
+
+    #region  AdaptorUser
+    
+    /// <summary>
+    /// Get Adaptor User by Username
+    /// </summary>
+    /// <param name="username"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("AdaptorUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult GetAdaptorUserByUsername(string username, string sessionCode)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"GetAdaptorUserByUsername\"");
+        var model = new CreateAdaptorUserModel
+        {
+            Username = username,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUser = _managementService.GetAdaptorUserByUsername(username, sessionCode);
+        return Ok(adaptorUser);
+    }
+    
+    /// <summary>
+    /// Create Adaptor User
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("AdaptorUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult CreateAdaptorUser(CreateAdaptorUserModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"CreateAdaptorUser\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUser = _managementService.CreateAdaptorUser(model.Username, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(adaptorUser);
+    }
+    
+    /// <summary>
+    /// Modify Adaptor User
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPut("AdaptorUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    
+    public IActionResult ModifyAdaptorUser(ModifyAdaptorUserModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"ModifyAdaptorUser\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUser = _managementService.ModifyAdaptorUser(model.OldUsername, model.NewUsername, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(adaptorUser);
+    }
+    
+    /// <summary>
+    /// Delete Adaptor User
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpDelete("AdaptorUser")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult DeleteAdaptorUser(DeleteAdaptorUserModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"DeleteAdaptorUser\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var message = _managementService.DeleteAdaptorUser(model.Username, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(message);
+    }
+    
+
+    #endregion
+
+    #region AssignAdaptorUserToProject
+    
+    public IActionResult ListAdaptorUsersInProject(long projectId, string sessionCode)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"ListAdaptorUsersInProject\"");
+        var model = new ListAdaptorUsersInProjectModel
+        {
+            ProjectId = projectId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUsers = _managementService.ListAdaptorUsersInProject(projectId, sessionCode);
+        return Ok(adaptorUsers);
+    }
+    
+    public IActionResult AssignAdaptorUserToProject(AssignAdaptorUserToProjectModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"AssignAdaptorUserToProject\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var message = _managementService.AssignAdaptorUserToProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(message);
+    }
+    
+    public IActionResult RemoveAdaptorUserFromProject(AssignAdaptorUserToProjectModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"RemoveAdaptorUserFromProject\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var message = _managementService.RemoveAdaptorUserFromProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(message);
+    }
+    
     #endregion
 
     #region Project
@@ -2158,8 +2301,7 @@ public class ManagementController : BaseController<ManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         return Ok(_managementService.ListAccountingStates(projectId, sessionCode));
     }
-
-    #endregion
+    
 
     #region Status
     [HttpPost("Status")]
@@ -2306,5 +2448,6 @@ public class ManagementController : BaseController<ManagementController>
         return Ok($"Database was restored successfully from backup '{model.BackupFileName}'.");
     }
 
+    #endregion
     #endregion
 }

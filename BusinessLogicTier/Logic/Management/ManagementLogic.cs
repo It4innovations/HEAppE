@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -2410,6 +2411,161 @@ public class ManagementLogic : IManagementLogic
 
         return null;
     }
+    
+    
+
+    public AdaptorUserCreated CreateAdaptorUser(string username)
+    {
+        //test if username already exists
+        var existingUser = _unitOfWork.AdaptorUserRepository.GetByName(username);
+        if (existingUser != null)
+            throw new InputValidationException("AdaptorUserUsernameAlreadyExists", username);
+        
+        string apiKey = RandomNumberGenerator.GetHexString(64, lowercase: false);
+        var adaptorUser = new AdaptorUser
+        {
+            Username = username,
+            Password = apiKey,
+            AdaptorUserUserGroupRoles = new List<AdaptorUserUserGroupRole>(),
+            CreatedAt = DateTime.UtcNow,
+            UserType = AdaptorUserType.Default
+        };
+        _unitOfWork.AdaptorUserRepository.Insert(adaptorUser);
+        _unitOfWork.Save();
+        
+        var adaptorUserCreated = new AdaptorUserCreated
+        {
+            Id = adaptorUser.Id,
+            Username = adaptorUser.Username,
+            ApiKey = adaptorUser.Password
+        };
+        return adaptorUserCreated;
+    }
+
+    public AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(oldUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", oldUsername);
+        
+        //check type of user
+        if (adaptorUser.UserType != AdaptorUserType.Default)
+            throw new InputValidationException("AdaptorUserCannotModifyNonDefaultUser", oldUsername);
+
+        //generate new api key
+        string apiKey = RandomNumberGenerator.GetHexString(64, lowercase: false);
+        adaptorUser.Password = apiKey;
+        adaptorUser.Username = newUsername;
+        adaptorUser.ModifiedAt = DateTime.UtcNow;
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        var adaptorUserCreated = new AdaptorUserCreated
+        {
+            Id = adaptorUser.Id,
+            Username = adaptorUser.Username,
+            ApiKey = adaptorUser.Password
+        };
+        return adaptorUserCreated;
+    }
+
+    public string DeleteAdaptorUser(string modelUsername)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+        
+        //check type of user
+        if (adaptorUser.UserType != AdaptorUserType.Default)
+            throw new InputValidationException("AdaptorUserCannotDeleteNonDefaultUser", modelUsername);
+
+        _unitOfWork.AdaptorUserRepository.Delete(adaptorUser);
+        _unitOfWork.Save();
+        return modelUsername;
+    }
+
+    public AdaptorUser GetAdaptorUserByUsername(string username)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+        return adaptorUser;
+    }
+
+    public AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        //check if already assigned
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted);
+        if (existingAssignment != null)
+            throw new InputValidationException("AdaptorUserAlreadyAssignedToProject", modelUsername, modelProjectId);
+
+
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(project.AccountingString) ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", project.AccountingString);
+
+
+        //get role
+        var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
+                              ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
+        
+        //create assignment
+        adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
+        {
+            AdaptorUser = adaptorUser,
+            AdaptorUserGroup = userGroup,
+            AdaptorUserRole = adaptorUserRole,
+            CreatedAt = DateTime.UtcNow
+        });
+        
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        return adaptorUser;
+    }
+
+    public AdaptorUser RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        //check if assigned
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted);
+        if (existingAssignment == null)
+            throw new InputValidationException("AdaptorUserNotAssignedToProject", modelUsername, modelProjectId);
+
+        //check role
+        if (existingAssignment.AdaptorUserRole.Name != modelRole.ToString())
+            throw new InputValidationException("AdaptorUserRoleMismatch", modelUsername, modelProjectId, modelRole);
+
+        //soft delete assignment
+        existingAssignment.IsDeleted = true;
+        existingAssignment.ModifiedAt = DateTime.UtcNow;
+        
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        return adaptorUser;
+    }
+
+    public List<AdaptorUser> ListAdaptorUsersInProject(long projectId)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(project.AccountingString) ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", project.AccountingString);
+
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAllUsersInGroup(userGroup.Id);
+
+        return adaptorUsers;
+    }
+
 
     public string BackupDatabase()
     {
