@@ -321,8 +321,8 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public Project GetProjectById(long id)
     {
-        return _unitOfWork.ProjectRepository.GetById(id) ??
-               throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        return _unitOfWork.ProjectRepository.GetById(id)
+               ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
     }
 
     /// <summary>
@@ -1012,7 +1012,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="InputValidationException"></exception>
     /// <exception cref="InvalidRequestException"></exception>
     public CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
-        string modelDescription, long modelCommandTemplateId)
+        string modelDescription, long modelCommandTemplateId, bool isVisible = true)
     {
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId);
         if (commandTemplate is null) throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
@@ -1031,7 +1031,8 @@ public class ManagementLogic : IManagementLogic
             Description = modelDescription,
             CommandTemplate = commandTemplate,
             CommandTemplateId = commandTemplate.Id,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IsVisible = isVisible
         };
 
         _unitOfWork.CommandTemplateParameterRepository.Insert(commandTemplateParameter);
@@ -2607,6 +2608,66 @@ public class ManagementLogic : IManagementLogic
         }
 
         return adaptorUsers.Distinct().ToList();
+    }
+
+    public CommandTemplate CreateGenericCommandTemplate(string modelName, string modelDescription,
+        string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId,
+        long modelClusterNodeTypeId)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
+                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", modelClusterNodeTypeId);
+
+        var commandTemplate = new CommandTemplate
+        {
+            Name = modelName,
+            Description = modelDescription,
+            ExtendedAllocationCommand = modelExtendedAllocationCommand,
+            ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, "generic.sh"),
+            PreparationScript = modelPreparationScript,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false,
+            Project = project,
+            ClusterNodeType = clusterNodeType,
+            TemplateParameters = new List<CommandTemplateParameter>(),
+            CommandParameters = string.Empty,
+            IsGeneric = true
+        };
+
+        _unitOfWork.CommandTemplateRepository.Insert(commandTemplate);
+        _unitOfWork.Save();
+
+        return commandTemplate;
+    }
+
+    public CommandTemplate ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription,
+        string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId,
+        bool modelIsEnabled)
+    {
+        var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelId)
+                              ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", modelId);
+
+        var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
+                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", modelClusterNodeTypeId);
+
+        if (!commandTemplate.IsGeneric)
+            throw new InputValidationException("CommandTemplateNotGeneric", modelId);
+        
+        commandTemplate.Name = modelName;
+        commandTemplate.Description = modelDescription;
+        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(commandTemplate.Project.AccountingString, "generic.sh");
+        commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
+        commandTemplate.PreparationScript = modelPreparationScript;
+        commandTemplate.ClusterNodeType = clusterNodeType;
+        commandTemplate.IsEnabled = modelIsEnabled;
+        commandTemplate.ModifiedAt = DateTime.UtcNow;
+
+        _unitOfWork.CommandTemplateRepository.Update(commandTemplate);
+        _unitOfWork.Save();
+
+        return commandTemplate;
     }
 
 

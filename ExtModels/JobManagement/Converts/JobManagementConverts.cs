@@ -16,6 +16,7 @@ using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt.ByClusterAuth
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.ExtModels.JobManagement.Converts;
 
@@ -264,6 +265,7 @@ public static class JobManagementConverts
             UsageType = project.UsageType.ConvertIntToExt(),
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
+            KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
             CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
         };
         return convert;

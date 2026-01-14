@@ -81,7 +81,7 @@ public interface IManagementService
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
 
     ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
-        string modelDescription, long modelCommandTemplateId, string modelSessionCode);
+        string modelDescription, long modelCommandTemplateId, string modelSessionCode, bool isVisible = true);
 
     ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long id, string modelIdentifier,
         string modelQuery, string modelDescription, string modelSessionCode);
@@ -221,4 +221,6 @@ public interface IManagementService
     AdaptorUserExt AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt[] ListAdaptorUsersInProject(long projectId, string sessionCode);
+    ExtendedCommandTemplateExt CreateGenericCommandTemplate(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode);
+    ExtendedCommandTemplateExt ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode);
 }

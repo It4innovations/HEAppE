@@ -71,7 +71,7 @@ public interface IManagementLogic
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
     CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
-        string modelDescription, long modelCommandTemplateId);
+        string modelDescription, long modelCommandTemplateId, bool isVisible = true);
 
     CommandTemplateParameter ModifyCommandTemplateParameter(long id, string modelIdentifier, string modelQuery,
         string modelDescription);
@@ -198,4 +198,6 @@ public interface IManagementLogic
     AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
     AdaptorUser RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
     List<AdaptorUser> ListAdaptorUsersInProject(long projectId);
+    CommandTemplate CreateGenericCommandTemplate(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId);
+    CommandTemplate ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId, bool modelIsEnabled);
 }

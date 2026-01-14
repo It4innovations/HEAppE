@@ -81,7 +81,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Maintainer, projectId, true);
+                AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplate = await managementLogic.CreateCommandTemplateFromGeneric(genericCommandTemplateId, name,
                 projectId, description, extendedAllocationCommand, executableFile, preparationScript,
@@ -123,7 +123,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Maintainer, projectId, true);
+                AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??
                                   throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
@@ -148,7 +148,7 @@ public class ManagementService : IManagementService
                 throw new InputValidationException("The specified command template cannot be removed!");
 
             UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Maintainer, commandTemplate.ProjectId.Value, true);
+                AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveCommandTemplate(commandTemplateId);
         }
@@ -557,7 +557,7 @@ public class ManagementService : IManagementService
 
     public ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier,
         string modelQuery,
-        string modelDescription, long modelCommandTemplateId, string modelSessionCode)
+        string modelDescription, long modelCommandTemplateId, string modelSessionCode, bool isVisible = true)
     {
         _logger.Info(
             $"CreateCommandTemplateParameter: Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}, CommandTemplateId: {modelCommandTemplateId}");
@@ -1463,6 +1463,54 @@ public class ManagementService : IManagementService
 
             var adaptorUsers = managementLogic.ListAdaptorUsersInProject(projectId);
             return adaptorUsers.Select(au => au.ConvertIntToExt()).ToArray();
+        }
+    }
+
+    public ExtendedCommandTemplateExt CreateGenericCommandTemplate(string modelName, string modelDescription,
+        string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId,
+        long modelClusterNodeTypeId, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            //manager in project
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
+                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, modelProjectId, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var commandTemplate = managementLogic.CreateGenericCommandTemplate(modelName, modelDescription,
+                modelExtendedAllocationCommand, modelPreparationScript, modelProjectId,
+                modelClusterNodeTypeId);
+            return commandTemplate.ConvertIntToExtendedExt();
+        }
+    }
+
+    public ExtendedCommandTemplateExt ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription,
+        string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId,
+        bool modelIsEnabled, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            //get template to find project id
+            var commandTemplateToModify = unitOfWork.CommandTemplateRepository.GetById(modelId);
+            if (commandTemplateToModify == null)
+            {
+                throw new NotAllowedException($"Command template with id {modelId} does not exist.");
+            }
+
+            if (!commandTemplateToModify.ProjectId.HasValue)
+            {
+                throw new NotAllowedException($"Command template with id {modelId} is not a generic command template.");
+            }
+            var project = unitOfWork.ProjectRepository.GetById(commandTemplateToModify.ProjectId.Value);
+            //manager in project
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
+                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, project.Id, true);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var commandTemplate = managementLogic.ModifyGenericCommandTemplate(modelId, modelName, modelDescription,
+                modelExtendedAllocationCommand, modelPreparationScript, modelClusterNodeTypeId,
+                modelIsEnabled);
+            return commandTemplate.ConvertIntToExtendedExt();
         }
     }
 

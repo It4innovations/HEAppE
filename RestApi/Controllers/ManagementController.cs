@@ -253,6 +253,48 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(commandTemplate);
     }
+    
+    
+    /// <summary>
+    ///   Create Generic Command Template
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("GenericCommandTemplate")]
+    [RequestSizeLimit(1520)]
+    [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult CreateGenericCommandTemplate(CreateGenericCommandTemplateModel model)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateGenericCommandTemplate\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var commandTemplate = _managementService.CreateGenericCommandTemplate(model.Name, model.Description,
+            model.ExtendedAllocationCommand, model.PreparationScript, model.ProjectId,
+            model.ClusterNodeTypeId, model.SessionCode);
+        
+        List<ExtendedCommandTemplateParameterExt> templateParameters = new();
+        //userScriptPath parameter
+        var createdUserScriptPathParameter = _managementService.CreateCommandTemplateParameter(
+            "userScriptPath", string.Empty,
+            "Path to the user script file", commandTemplate.Id.Value, model.SessionCode, true);
+        templateParameters.Add(createdUserScriptPathParameter);
+        
+        //userScriptParametres
+        var createdUserScriptParametersParameter = _managementService.CreateCommandTemplateParameter(
+            "userScriptParameters", string.Empty,
+            "Parameters for the user script", commandTemplate.Id.Value, model.SessionCode, false);
+        templateParameters.Add(createdUserScriptParametersParameter);
+        
+        commandTemplate.TemplateParameters = templateParameters.ToArray();
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(commandTemplate);
+    }
 
     /// <summary>
     ///     Create Command Template from Generic Command Template
@@ -304,6 +346,32 @@ public class ManagementController : BaseController<ManagementController>
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(commandTemplate);
     }
+    
+    /// <summary>
+    /// Modify Generic Command Template
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPut("GenericCommandTemplate")]
+    [RequestSizeLimit(1520)]
+    [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ModifyGenericCommandTemplate(ModifyGenericCommandTemplateModel model)
+    {
+        _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyGenericCommandTemplate\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var commandTemplate = _managementService.ModifyGenericCommandTemplate(model.Id, model.Name, model.Description,
+            model.ExtendedAllocationCommand, model.PreparationScript, model.ClusterNodeTypeId,
+            model.IsEnabled, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(commandTemplate);
+    }
 
     /// <summary>
     ///     Modify Command Template based on Generic Command Template
@@ -349,9 +417,9 @@ public class ManagementController : BaseController<ManagementController>
         _logger.LogDebug("Endpoint: \"Management\" Method: \"RemoveCommandTemplateModel\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-
-        ClearListAvailableClusterMethodCache(model.SessionCode);
+        
         _managementService.RemoveCommandTemplate(model.CommandTemplateId, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok("CommandTemplate was deleted.");
     }
 
