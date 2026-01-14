@@ -34,6 +34,22 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
+        if (!Request.Headers.ContainsKey(ApiKeyHeaderName))
+        {
+            // Create claims based on the authenticated service user
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.NameIdentifier, "InternalUser"),
+                new Claim(ClaimTypes.Name, "Internal User"),
+                new Claim(ClaimTypes.Role, "InternalRole"),
+                new Claim("auth_method", "Internal")
+            };
+            var identity = new ClaimsIdentity(claims, Scheme.Name);
+            var principal = new ClaimsPrincipal(identity);
+            var ticket = new AuthenticationTicket(principal, Scheme.Name);
+            return AuthenticateResult.Success(ticket);
+        }
+        
         if (!Request.Headers.TryGetValue(ApiKeyHeaderName, out var extractedApiKey))
         {
             return AuthenticateResult.Fail("Missing API Key");
