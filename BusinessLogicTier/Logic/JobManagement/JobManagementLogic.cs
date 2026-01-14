@@ -85,7 +85,7 @@ internal class JobManagementLogic : IJobManagementLogic
             {
                 _unitOfWork.JobSpecificationRepository.Insert(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
-                _unitOfWork.Save();
+                await _unitOfWork.SaveAsync();
                 //transactionScope.Complete();
             }
 

@@ -30,23 +30,22 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     #endregion
 
-
+    
     private async Task<IEnumerable<ClusterAuthenticationCredentials>> WithVaultData(
         IEnumerable<ClusterAuthenticationCredentials> credentials)
     {
         if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
 
-        var tasks = credentials
-            .Where(c => c != null)
-            .Select(async item =>
-            {
-                _log.Debug($"Importing VaultInfo for id:{item.Id}");
-                var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
-                item.ImportVaultData(vaultData);
-                return item;
-            });
+        var result = new List<ClusterAuthenticationCredentials>();
+        foreach (var item in credentials.Where(c => c != null))
+        {
+            _log.Debug($"Importing VaultInfo for id:{item.Id}");
+            var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
+            item.ImportVaultData(vaultData);
+            result.Add(item);
+        }
 
-        return await Task.WhenAll(tasks);
+        return result;
     }
 
     private async Task<ClusterAuthenticationCredentials> WithVaultData(ClusterAuthenticationCredentials credentials)
