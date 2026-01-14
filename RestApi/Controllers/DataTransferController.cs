@@ -178,7 +178,6 @@ public class DataTransferController : BaseController<DataTransferController>
         
         try
         {
-            // Použití streaming metody místo původní async metody
             await _service.HttpPostToJobNodeStreamAsync(
                 model.HttpRequest,
                 model.HttpHeaders,
