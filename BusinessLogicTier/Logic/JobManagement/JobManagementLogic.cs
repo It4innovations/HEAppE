@@ -12,6 +12,7 @@ using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
@@ -53,8 +54,9 @@ internal class JobManagementLogic : IJobManagementLogic
     {
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
         var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-
-        await CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic);
+        var credentials = await clusterLogic.GetNextAvailableUserCredentials(
+            specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic, credentials);
         _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
 
         foreach (var task in specification.Tasks)
@@ -515,8 +517,8 @@ internal class JobManagementLogic : IJobManagementLogic
         return _unitOfWork.SubmittedJobInfoRepository.GetJobsForUserQuery(loggedUserId);
     }
 
-    protected async Task CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser,
-        IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic)
+    protected void CompleteJobSpecification(JobSpecification specification, AdaptorUser loggedUser,
+        IClusterInformationLogic clusterLogic, IUserAndLimitationManagementLogic userLogic, ClusterAuthenticationCredentials credentials)
     {
         var cluster = clusterLogic.GetClusterById(specification.ClusterId);
         specification.Cluster = cluster;
@@ -525,7 +527,7 @@ internal class JobManagementLogic : IJobManagementLogic
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
-        specification.ClusterUser = await clusterLogic.GetNextAvailableUserCredentials(cluster.Id, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+        specification.ClusterUser = credentials;
         specification.Submitter = loggedUser;
         specification.SubmitterGroup ??= userLogic.GetDefaultSubmitterGroup(loggedUser, specification.ProjectId);
         specification.Project = _unitOfWork.ProjectRepository.GetById(specification.ProjectId);
