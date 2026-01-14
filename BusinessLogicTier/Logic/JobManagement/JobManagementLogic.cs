@@ -87,17 +87,8 @@ internal class JobManagementLogic : IJobManagementLogic
             {
                 _unitOfWork.JobSpecificationRepository.Insert(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
-                await Task.Yield(); 
 
-                try 
-                {
-                    await _unitOfWork.SaveAsync();
-                }
-                catch (InvalidOperationException ex) when (ex.Message.Contains("second operation"))
-                {
-                    await Task.Delay(10);
-                    await _unitOfWork.SaveAsync();
-                }
+                await _unitOfWork.SaveAsync();
             }
 
             var clusterProject =
@@ -413,10 +404,20 @@ internal class JobManagementLogic : IJobManagementLogic
                     (await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, jobGroup.SelectMany(s => s.Tasks), true))
                         .ToList();
             else
-                userJobsGroup.ForEach(async f =>
-                    actualUnfinishedSchedulerTasksInfo.AddRange(
-                        await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, f.SelectMany(s => s.Tasks), false)));
+            {
+                /*
+                 *  userJobsGroup.ForEach(async f =>
+                                      actualUnfinishedSchedulerTasksInfo.AddRange(
+                                          await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, f.SelectMany(s => s.Tasks), false)));
 
+                 */
+                foreach (var userJobGroup in userJobsGroup)
+                {
+                    var states = await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, userJobGroup.SelectMany(s => s.Tasks), false);
+                    actualUnfinishedSchedulerTasksInfo.AddRange(states);
+                }
+            }
+               
             var isNeedUpdateJobState = false;
             foreach (var submittedJob in jobGroup)
             {
