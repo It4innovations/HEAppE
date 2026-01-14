@@ -6,34 +6,45 @@ using System.Threading.Tasks;
 using Services.Expirio.Exceptions;
 using Services.Expirio.Models;
 using Microsoft.Extensions.Configuration;
+using log4net;
 using System.Net;
 using Services.Expirio.Configuration;
+using System.Net.Http.Headers;
+using System.Reflection;
 
 namespace Services.Expirio;
 
 public class ExpirioService : IExpirioService
 {
-    private readonly IHttpClientFactory _httpClientFactory;
+    protected readonly ILog _logger;
+    private readonly HttpClient _httpClient;
 
-    public ExpirioService(IHttpClientFactory httpClientFactory)
+    public ExpirioService(HttpClient httpClient)
     {
-        _httpClientFactory = httpClientFactory;
+        _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        //_logger = loggerFactory.CreateLogger("HEAppE.Services.Expirio");
+        _httpClient = httpClient;
     }
 
-    public async Task<string> ExchangeTokenForKerberosAsync(string providerName, string token, CancellationToken cancellationToken = default)
+    public async Task<string> ExchangeTokenForKerberosAsync(string providerName, CancellationToken cancellationToken = default)
     {
-        var request = new KerberosExchangeRequest { ProviderName = providerName, Token = token };
+        _logger.Info("Endpoint: \"ExpirioService\" Method: \"ExchangeTokenForKerberos\"\n\n");
+
+        var request = new KerberosExchangeRequest { ProviderName = providerName};
         var jsonRequest = JsonSerializer.Serialize(request);
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, /*ExpirioSettings.BaseUrl +*/ "/kerberos/exchange")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{ExpirioSettings.BaseUrl}/kerberos/exchange")
         {
             Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
         };
+        
         // Add API token header if configured
         //if (!string.IsNullOrEmpty(_configuration.ApiToken))
         //    httpRequest.Headers.Add("X-Api-Token", _configuration.ApiToken);
 
-        var httpClient = _httpClientFactory.CreateClient("ExpirioTokenForKerberosExchangeClient");
-        using var response = await httpClient.SendAsync(httpRequest, cancellationToken);
+        var token = ""; //TODO: need to get the appropriate token
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (response.IsSuccessStatusCode)

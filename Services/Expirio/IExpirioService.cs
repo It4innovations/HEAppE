@@ -12,5 +12,5 @@ public interface IExpirioService
     /// <param name="token">Token to exchange</param>
     /// <param name="cancellationToken"></param>
     /// <returns>Kerberos ticket string</returns>
-    Task<string> ExchangeTokenForKerberosAsync(string providerName, string token, CancellationToken cancellationToken = default);
+    Task<string> ExchangeTokenForKerberosAsync(string providerName, CancellationToken cancellationToken = default);
 }

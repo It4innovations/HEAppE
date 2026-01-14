@@ -17,10 +17,12 @@ public class KerberosExchangeRequest
     [Description("Provider name")]
     public required string ProviderName { get; set; }
     
+    /*
     /// <summary>
     /// Token
     /// </summary>
-    [DataMember(Name = "Token")]
+    [DataMember(Name = "Token", IsRequired = true)]
     [Description("Token")]
-    public string Token { get; set; }
+    public required string Token { get; set; }
+    */
 }
