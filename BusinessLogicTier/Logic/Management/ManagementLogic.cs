@@ -2536,7 +2536,7 @@ public class ManagementLogic : IManagementLogic
 
         //check if already assigned
         var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
-            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted);
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted && x.AdaptorUserRole.Name == modelRole.ToString());
         if (existingAssignment != null)
             throw new InputValidationException("AdaptorUserAlreadyAssignedToProject", modelUsername, modelProjectId);
 
