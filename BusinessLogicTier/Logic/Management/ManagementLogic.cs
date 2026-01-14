@@ -2420,14 +2420,21 @@ public class ManagementLogic : IManagementLogic
         var existingUser = _unitOfWork.AdaptorUserRepository.GetByName(username);
         if (existingUser != null)
             throw new InputValidationException("AdaptorUserUsernameAlreadyExists", username);
+
+        string apiKey = GenerateApiKeyBase64();
+        var createdAt = DateTime.UtcNow;
+        string rawApiKey = apiKey;
+        //convert api key to SHA256 hash with salt and store hash and salt
+        string salt = createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+        string saltedPassword = rawApiKey + salt;
+        string passwordHash = ComputeSha512Hash(saltedPassword);
         
-        string apiKey = RandomNumberGenerator.GetHexString(64, lowercase: false);
         var adaptorUser = new AdaptorUser
         {
             Username = username,
-            Password = apiKey,
+            Password = passwordHash,
             AdaptorUserUserGroupRoles = new List<AdaptorUserUserGroupRole>(),
-            CreatedAt = DateTime.UtcNow,
+            CreatedAt = createdAt,
             UserType = AdaptorUserType.Default
         };
         _unitOfWork.AdaptorUserRepository.Insert(adaptorUser);
@@ -2437,9 +2444,24 @@ public class ManagementLogic : IManagementLogic
         {
             Id = adaptorUser.Id,
             Username = adaptorUser.Username,
-            ApiKey = adaptorUser.Password
+            ApiKey = apiKey
         };
         return adaptorUserCreated;
+    }
+
+    private string ComputeSha512Hash(string input)
+    {
+        using var sha512 = System.Security.Cryptography.SHA512.Create();
+        byte[] inputBytes = System.Text.Encoding.UTF8.GetBytes(input);
+        byte[] hashBytes = sha512.ComputeHash(inputBytes);
+        return Convert.ToHexString(hashBytes).ToUpper();
+    }
+    
+    public string GenerateApiKeyBase64()
+    {
+        byte[] randomBytes = RandomNumberGenerator.GetBytes(32);
+        string base64 = Convert.ToBase64String(randomBytes);
+        return base64.Replace("+", "").Replace("/", "").Replace("=", "");
     }
 
     public AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername)
@@ -2447,13 +2469,28 @@ public class ManagementLogic : IManagementLogic
         var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(oldUsername)
                           ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", oldUsername);
         
+        //new username already exists?
+        if (!string.Equals(oldUsername, newUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            var existingUser = _unitOfWork.AdaptorUserRepository.GetByName(newUsername);
+            if (existingUser != null)
+                throw new InputValidationException("AdaptorUserNewUsernameAlreadyExists", newUsername);
+        }
+        
+        
         //check type of user
         if (adaptorUser.UserType != AdaptorUserType.Default)
             throw new InputValidationException("AdaptorUserCannotModifyNonDefaultUser", oldUsername);
 
         //generate new api key
-        string apiKey = RandomNumberGenerator.GetHexString(64, lowercase: false);
-        adaptorUser.Password = apiKey;
+        string apiKey = GenerateApiKeyBase64();
+        string rawApiKey = apiKey;
+        //convert api key to SHA256 hash with salt and store hash and salt
+        string salt = adaptorUser.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
+        string saltedPassword = rawApiKey + salt;
+        string passwordHash = ComputeSha512Hash(saltedPassword);
+        
+        adaptorUser.Password = passwordHash;
         adaptorUser.Username = newUsername;
         adaptorUser.ModifiedAt = DateTime.UtcNow;
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
@@ -2463,7 +2500,7 @@ public class ManagementLogic : IManagementLogic
         {
             Id = adaptorUser.Id,
             Username = adaptorUser.Username,
-            ApiKey = adaptorUser.Password
+            ApiKey = apiKey
         };
         return adaptorUserCreated;
     }
@@ -2504,21 +2541,23 @@ public class ManagementLogic : IManagementLogic
             throw new InputValidationException("AdaptorUserAlreadyAssignedToProject", modelUsername, modelProjectId);
 
 
-        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(project.AccountingString) ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", project.AccountingString);
-
+        var userGroups = project.AdaptorUserGroups;
 
         //get role
         var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
                               ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
-        
-        //create assignment
-        adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
+
+        foreach (var userGroup in userGroups)
         {
-            AdaptorUser = adaptorUser,
-            AdaptorUserGroup = userGroup,
-            AdaptorUserRole = adaptorUserRole,
-            CreatedAt = DateTime.UtcNow
-        });
+            //create assignment
+            adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
+            {
+                AdaptorUser = adaptorUser,
+                AdaptorUserGroup = userGroup,
+                AdaptorUserRole = adaptorUserRole,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
         
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
@@ -2559,11 +2598,15 @@ public class ManagementLogic : IManagementLogic
         var project = _unitOfWork.ProjectRepository.GetById(projectId)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetGroupByUniqueName(project.AccountingString) ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", project.AccountingString);
+        var userGroups = project.AdaptorUserGroups;
+        var adaptorUsers = new List<AdaptorUser>();
+        foreach (var userGroup in userGroups)
+        {
+            var usersInGroup = _unitOfWork.AdaptorUserRepository.GetAllUsersInGroup(userGroup.Id);
+            adaptorUsers.AddRange(usersInGroup);
+        }
 
-        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAllUsersInGroup(userGroup.Id);
-
-        return adaptorUsers;
+        return adaptorUsers.Distinct().ToList();
     }
 
 

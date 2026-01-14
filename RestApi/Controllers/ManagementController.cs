@@ -561,7 +561,19 @@ public class ManagementController : BaseController<ManagementController>
     #endregion
 
     #region AssignAdaptorUserToProject
-    
+    /// <summary>
+    /// List Adaptor Users in Project
+    /// </summary>
+    /// <param name="projectId"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("AdaptorUsersInProject")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult ListAdaptorUsersInProject(long projectId, string sessionCode)
     {
         _logger.LogInformation("Endpoint: \"Management\" Method: \"ListAdaptorUsersInProject\"");
@@ -576,24 +588,50 @@ public class ManagementController : BaseController<ManagementController>
         return Ok(adaptorUsers);
     }
     
+    /// <summary>
+    /// Assign Adaptor User to Project
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("AssignAdaptorUserToProject")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult AssignAdaptorUserToProject(AssignAdaptorUserToProjectModel model)
     {
         _logger.LogInformation("Endpoint: \"Management\" Method: \"AssignAdaptorUserToProject\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        var message = _managementService.AssignAdaptorUserToProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
+        var user = _managementService.AssignAdaptorUserToProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
-        return Ok(message);
+        return Ok(user);
     }
     
+    /// <summary>
+    /// Remove Adaptor User from Project
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpDelete("RemoveAdaptorUserFromProject")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveAdaptorUserFromProject(AssignAdaptorUserToProjectModel model)
     {
         _logger.LogInformation("Endpoint: \"Management\" Method: \"RemoveAdaptorUserFromProject\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        var message = _managementService.RemoveAdaptorUserFromProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
+        var user = _managementService.RemoveAdaptorUserFromProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
-        return Ok(message);
+        return Ok(user);
     }
     
     #endregion

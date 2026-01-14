@@ -126,11 +126,11 @@ public class Startup
         Configuration.Bind("SshCaSettings", new SshCaSettings());
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
 
-        //services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
-        //services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
+        services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
+        services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
         services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>();
-        //services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
-        //services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
+        services.AddSingleton<IRateLimitConfiguration, RateLimitConfiguration>();
+        services.AddSingleton<IProcessingStrategy, AsyncKeyLockProcessingStrategy>();
         services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCertificateAuthorityService(
             SshCaSettings.BaseUri,
             SshCaSettings.CAName,
@@ -142,7 +142,7 @@ public class Startup
         
         services.AddControllers(options =>
         {
-            //options.Filters.Add<LogRequestModelFilter>();
+            options.Filters.Add<LogRequestModelFilter>();
             if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 options.Filters.Add(new AuthorizeFilter());

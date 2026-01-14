@@ -15,7 +15,7 @@ public class PasswordCredentialsExt : AuthenticationCredentialsExt
     /// Password
     /// </summary>
     [DataMember(Name = "Password")]
-    [StringLength(50)]
+    [StringLength(100)]
     [Description("Password")]
     public string Password { get; set; }
 

@@ -26,13 +26,13 @@ public static class UserAndLimitationManagementConverts
             PublicKey = user.PublicKey,
             Email = user.Email,
             UserType = (AdaptorUserTypeExt)user.UserType,
-            AdaptorUserGroups = user.Groups?.DistinctBy(g => g.Id).Select(g => g.ConvertIntToExt())
+            AdaptorUserGroups = user.Groups?.DistinctBy(g => g.Id).Select(g => g.ConvertIntToExt(user))
                 .ToArray()
         };
         return convert;
     }
 
-    public static AdaptorUserGroupExt ConvertIntToExt(this AdaptorUserGroup userGroup)
+    private static AdaptorUserGroupExt ConvertIntToExt(this AdaptorUserGroup userGroup, AdaptorUser user)
     {
         var convert = new AdaptorUserGroupExt
         {
@@ -40,7 +40,7 @@ public static class UserAndLimitationManagementConverts
             Name = userGroup.Name,
             Description = userGroup.Description,
             Project = new ProjectExt { Name = userGroup.Project?.Name, Description = userGroup.Project?.Description },
-            Roles = userGroup.AdaptorUserUserGroupRoles?.Select(r => r.AdaptorUserRole.Name)
+            Roles = userGroup.AdaptorUserUserGroupRoles?.Where(r=>!r.IsDeleted && r.AdaptorUser.Id == user.Id).Select(r => r.AdaptorUserRole.Name)
                 .ToArray()
         };
         return convert;
