@@ -5,6 +5,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -26,10 +27,8 @@ public class LogRequestModelFilter : ActionFilterAttribute
         "SessionCode", "Password", "Token", "Secret", "Key"
     };
 
-    // Cache pro SessionCode property, abychom ji nehledali reflexí stále dokola
     private static readonly ConcurrentDictionary<Type, PropertyInfo> SessionCodePropertyCache = new();
 
-    // Nastavení serializace s vlastním konvertorem pro maskování
     private readonly JsonSerializerOptions _jsonOptions;
 
     public LogRequestModelFilter(ILogger<LogRequestModelFilter> logger, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
@@ -42,9 +41,27 @@ public class LogRequestModelFilter : ActionFilterAttribute
         {
             WriteIndented = false,
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            MaxDepth = 128,
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver
+            {
+                Modifiers = { MaskSensitiveProperties }
+            }
         };
-        _jsonOptions.Converters.Add(new SensitiveDataConverter(SensitiveKeys));
+    }
+
+    private static void MaskSensitiveProperties(JsonTypeInfo typeInfo)
+    {
+        if (typeInfo.Kind != JsonTypeInfoKind.Object) return;
+
+        foreach (var property in typeInfo.Properties)
+        {
+            if (SensitiveKeys.Contains(property.Name))
+            {
+                property.CustomConverter = new StaticMaskConverter();
+            }
+        }
     }
 
     public override void OnActionExecuting(ActionExecutingContext context)
@@ -75,16 +92,13 @@ public class LogRequestModelFilter : ActionFilterAttribute
         foreach (var argument in actionArguments.Values)
         {
             if (argument == null) continue;
-
-            if (argument is string strValue && Guid.TryParse(strValue, out _))
-                return strValue;
+            if (argument is string strValue && Guid.TryParse(strValue, out _)) return strValue;
 
             var type = argument.GetType();
             var prop = SessionCodePropertyCache.GetOrAdd(type, t => 
                 t.GetProperty("SessionCode", BindingFlags.Public | BindingFlags.Instance));
 
-            if (prop?.GetValue(argument) is string sessionCode)
-                return sessionCode;
+            if (prop?.GetValue(argument) is string sessionCode) return sessionCode;
         }
         return null;
     }
@@ -96,7 +110,6 @@ public class LogRequestModelFilter : ActionFilterAttribute
             using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
             var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var user = logic.GetUserForSessionCode(sessionCode);
-            
             return (user?.Id ?? -1, user?.Username ?? "Unknown");
         }
         catch
@@ -105,44 +118,12 @@ public class LogRequestModelFilter : ActionFilterAttribute
         }
     }
 
-    // --- Vnitřní třída pro efektivní maskování během serializace ---
-    private class SensitiveDataConverter : JsonConverter<object>
+    private class StaticMaskConverter : JsonConverter<object>
     {
-        private readonly HashSet<string> _sensitiveKeys;
-        public SensitiveDataConverter(HashSet<string> sensitiveKeys) => _sensitiveKeys = sensitiveKeys;
-
-        public override bool CanConvert(Type typeToConvert) =>
-            typeToConvert.IsClass && typeToConvert != typeof(string);
-
-        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
-        { 
-            throw new NotImplementedException("Deserialization is not implemented for SensitiveDataConverter.");
-        }
-
+        public override object Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => null;
         public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
-            writer.WriteStartObject();
-            var properties = value.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance);
-
-            foreach (var prop in properties)
-            {
-                if (!prop.CanRead || prop.GetIndexParameters().Length > 0)
-                    continue;
-
-                writer.WritePropertyName(options.PropertyNamingPolicy?.ConvertName(prop.Name) ?? prop.Name);
-
-                if (_sensitiveKeys.Contains(prop.Name))
-                {
-                    writer.WriteStringValue("***REDACTED***");
-                }
-                else
-                {
-                    var propValue = prop.GetValue(value);
-                    JsonSerializer.Serialize(writer, propValue, prop.PropertyType, options);
-                }
-            }
-
-            writer.WriteEndObject();
+            writer.WriteStringValue("***REDACTED***");
         }
     }
 }
