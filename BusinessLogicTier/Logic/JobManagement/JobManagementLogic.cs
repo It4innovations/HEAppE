@@ -87,8 +87,17 @@ internal class JobManagementLogic : IJobManagementLogic
             {
                 _unitOfWork.JobSpecificationRepository.Insert(specification);
                 _unitOfWork.SubmittedJobInfoRepository.Insert(jobInfo);
-                await _unitOfWork.SaveAsync();
-                //transactionScope.Complete();
+                await Task.Yield(); 
+
+                try 
+                {
+                    await _unitOfWork.SaveAsync();
+                }
+                catch (InvalidOperationException ex) when (ex.Message.Contains("second operation"))
+                {
+                    await Task.Delay(10);
+                    await _unitOfWork.SaveAsync();
+                }
             }
 
             var clusterProject =

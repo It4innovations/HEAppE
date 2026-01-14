@@ -349,23 +349,18 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         List<ClusterAuthenticationCredentials> credentials = (await GetAndInitializeCredentials(
             clusterId, projectId, adaptorUserId, requireIsInitialized, onlyServiceAccounts: false))
             .ToList(); 
-
-        // 2. NOVÝ POŽADAVEK: Auto-vytvoření, pokud credentials neexistují
+        
         if (credentials.Count == 0 && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            // Předpoklad: Tato metoda vytvoří v DB jak User, tak Service účty a vrátí User účty.
             var newCredentials = await CreateAndInitializeMissingCredentials(clusterId, projectId, adaptorUserId);
-            credentials = newCredentials.ToList(); // Opět ujistit se, že máme List
+            credentials = newCredentials.ToList(); 
         }
-
-        // 3. Kontrola, zda ne-servisní účty existují
+        
         if (credentials.Count == 0)
         {
             throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
         }
 
-        // 4. Získání servisního účtu
-        // Zde není nutné ToList(), protože voláme jen FirstOrDefault()
         ClusterAuthenticationCredentials serviceCredentials = (await GetAndInitializeCredentials(
             clusterId, projectId, adaptorUserId, requireIsInitialized, onlyServiceAccounts: true))
             .FirstOrDefault();
@@ -376,7 +371,6 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             throw new RequestedObjectDoesNotExistException("FailedToRetrieveOrInitializeClusterAccount");
         }
         
-        // 5. Rotation logic
         var firstCredentials = credentials[0];
         var lastUsedId = AdaptorUserProjectClusterUserCache.GetLastUserId(adaptorUserId, projectId, clusterId);
 
