@@ -30,7 +30,6 @@ namespace HEAppE.ConnectionPool
             {
                 Slots = new ConnectionSlot[capacity];
                 for (int i = 0; i < capacity; i++) Slots[i] = new ConnectionSlot();
-                // Enforces limit per Credential ID
                 UserSemaphore = new SemaphoreSlim(capacity, capacity);
             }
 
@@ -51,8 +50,6 @@ namespace HEAppE.ConnectionPool
         private int _currentTotalPhysicalConnectionsCount;
         
         private readonly ConcurrentDictionary<long, SharedUserContext> _userContexts;
-        
-        // Cache tasks to handle parallel Vault requests efficiently
         private static readonly ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _vaultCache 
             = new ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
             
@@ -74,12 +71,12 @@ namespace HEAppE.ConnectionPool
                 poolCleanTimer = new Timer(cleaningInterval * 1000);
                 poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
                 poolCleanTimer.AutoReset = false;
+                log.Debug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s");
             }
         }
 
         public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
         {
-            // Fulfills the synchronous interface while running internal logic asynchronously
             return Task.Run(async () => await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken))
                        .GetAwaiter()
                        .GetResult();
@@ -87,46 +84,54 @@ namespace HEAppE.ConnectionPool
 
         private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
         {
-            var userContext = _userContexts.GetOrAdd(credentials.Id, id => new SharedUserContext(_maxConnectionsPerUser));
+            log.Debug($"[User:{credentials.Id}] Requesting connection.");
+            var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
+                log.Debug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+                return new SharedUserContext(_maxConnectionsPerUser);
+            });
 
             // Fast path: reuse existing active connection
-            foreach (var s in userContext.Slots)
+            for (int i = 0; i < userContext.Slots.Length; i++)
             {
+                var s = userContext.Slots[i];
                 lock (s.SyncRoot)
                 {
                     if (s.ConnectionInfo != null && adapter.IsConnected(s.ConnectionInfo.Connection))
                     {
                         s.ReferenceCount++;
                         s.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                        log.Debug($"[User:{credentials.Id}] Reusing existing connection from slot {i}. RefCount: {s.ReferenceCount}");
                         return s.ConnectionInfo;
                     }
                 }
             }
 
-            // Await vault data asynchronously to avoid thread starvation
+            log.Debug($"[User:{credentials.Id}] No idle connection found. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
+            
             await EnsureVaultDataLoadedAsync(credentials);
-
-            // Wait for user-specific semaphore non-blockingly
             await userContext.UserSemaphore.WaitAsync();
+
             try
             {
                 var slot = userContext.GetNextSlot();
                 lock (slot.SyncRoot)
                 {
-                    // Re-check status after acquiring semaphore and lock
                     if (slot.ConnectionInfo != null && adapter.IsConnected(slot.ConnectionInfo.Connection))
                     {
+                        log.Debug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
                         userContext.UserSemaphore.Release();
                         slot.ReferenceCount++;
                         return slot.ConnectionInfo;
                     }
 
+                    log.Debug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
                     var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
                     slot.ConnectionInfo = newConnection;
                     
                     Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
                     if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > minSize)
                     {
+                        log.Debug("Starting cleanup timer.");
                         poolCleanTimer.Start();
                     }
 
@@ -136,7 +141,7 @@ namespace HEAppE.ConnectionPool
             }
             catch (Exception ex)
             {
-                log.Error($"Connection setup failed for user {credentials.Id}", ex);
+                log.Error($"[User:{credentials.Id}] Connection setup failed", ex);
                 userContext.UserSemaphore.Release();
                 throw;
             }
@@ -148,8 +153,9 @@ namespace HEAppE.ConnectionPool
 
             if (_userContexts.TryGetValue(connection.AuthCredentials.Id, out var userContext))
             {
-                foreach (var slot in userContext.Slots)
+                for (int i = 0; i < userContext.Slots.Length; i++)
                 {
+                    var slot = userContext.Slots[i];
                     lock (slot.SyncRoot)
                     {
                         if (slot.ConnectionInfo == connection)
@@ -161,15 +167,19 @@ namespace HEAppE.ConnectionPool
                                 slot.ReferenceCount = 0;
                                 slot.LastReleasedTime = DateTime.UtcNow;
                             }
+                            log.Debug($"[User:{connection.AuthCredentials.Id}] Connection returned to slot {i}. RefCount: {slot.ReferenceCount}");
                             return;
                         }
                     }
                 }
             }
+            log.Warn($"[User:{connection.AuthCredentials.Id}] Attempted to return a connection that is not managed by this pool.");
         }
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            log.Debug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
+            int closedCount = 0;
             try
             {
                 foreach (var userEntry in _userContexts)
@@ -181,20 +191,36 @@ namespace HEAppE.ConnectionPool
                         lock (slot.SyncRoot)
                         {
                             if (slot.ConnectionInfo == null) continue;
-                            if (slot.ReferenceCount == 0 && (DateTime.UtcNow - slot.LastReleasedTime) > maxUnusedDuration && _currentTotalPhysicalConnectionsCount > minSize)
+                            
+                            bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > maxUnusedDuration;
+                            if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > minSize)
                             {
                                 connToRemove = slot.ConnectionInfo;
                                 slot.ConnectionInfo = null;
                             }
                         }
-                        if (connToRemove != null) RemovePhysicalConnection(connToRemove, userContext);
+
+                        if (connToRemove != null)
+                        {
+                            log.Debug($"[User:{userEntry.Key}] Closing idle expired connection.");
+                            RemovePhysicalConnection(connToRemove, userContext);
+                            closedCount++;
+                        }
                     }
                 }
             }
             catch (Exception ex) { log.Error("Pool cleanup error", ex); }
             finally
             {
-                if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > minSize) poolCleanTimer.Start();
+                if (closedCount > 0) log.Debug($"Cleanup finished. Closed {closedCount} connections.");
+                if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > minSize)
+                {
+                    poolCleanTimer.Start();
+                }
+                else
+                {
+                    log.Debug("Cleanup timer stopped (pool at or below minSize).");
+                }
             }
         }
 
@@ -202,8 +228,10 @@ namespace HEAppE.ConnectionPool
         {
             if (cred.IsVaultDataLoaded) return;
             
+            log.Debug($"[User:{cred.Id}] Loading vault data...");
             var vaultTask = _vaultCache.GetOrAdd(cred.Id, async id =>
             {
+                log.Debug($"[User:{id}] Fetching vault data from service (Shared Task).");
                 var connector = new VaultConnector();
                 return await connector.GetClusterAuthenticationCredentials(id);
             });
@@ -213,29 +241,39 @@ namespace HEAppE.ConnectionPool
                 var vaultData = await vaultTask;
                 cred.ImportVaultData(vaultData);
             }
-            catch 
+            catch (Exception ex)
             {
+                log.Error($"[User:{cred.Id}] Failed to load vault data", ex);
                 _vaultCache.TryRemove(cred.Id, out _);
                 throw;
             }
         }
 
+        private void RemovePhysicalConnection(ConnectionInfo connection, SharedUserContext context)
+        {
+            try 
+            { 
+                adapter.Disconnect(connection.Connection); 
+            }
+            catch (Exception ex)
+            {
+                log.Warn($"Error while disconnecting connection for user {connection.AuthCredentials.Id}", ex);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
+                context.UserSemaphore.Release();
+                log.Debug($"[User:{connection.AuthCredentials.Id}] Physical connection removed. Semaphore released.");
+            }
+        }
+        
+        // Pomocná metoda pro inicializaci (beze změny, jen pro úplnost)
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
         {
             var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
             adapter.Connect(connection.Connection);
             return connection;
-        }
-
-        private void RemovePhysicalConnection(ConnectionInfo connection, SharedUserContext context)
-        {
-            try { adapter.Disconnect(connection.Connection); }
-            finally
-            {
-                Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
-                context.UserSemaphore.Release();
-            }
         }
     }
 }
