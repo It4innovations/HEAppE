@@ -16,21 +16,29 @@ public static class JwtIntrospectionExtensions
     public static IServiceCollection AddSmartAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         // Register OAuth2 Introspection if enabled
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (true)
         {
             // Default authentication scheme with runtime selection
             services.AddAuthentication(options =>
             {
                 options.DefaultScheme = "SmartScheme";
+                options.DefaultAuthenticateScheme = "SmartScheme";
+                options.DefaultChallengeScheme = "SmartScheme";
             })
             .AddPolicyScheme("SmartScheme", "Local or JWT", options =>
             {
                 options.ForwardDefaultSelector = context =>
                 {
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-                    return string.IsNullOrEmpty(authHeader)
-                        ? "LocalScheme" // no Authorization header → use local auth
-                        : OAuth2IntrospectionDefaults.AuthenticationScheme; // header present → JWT introspection
+        
+                    // If Bearer token is present, use OAuth2 Introspection
+                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return OAuth2IntrospectionDefaults.AuthenticationScheme;
+                    }
+
+                    // Otherwise (no header or custom API Key header), route to LocalScheme
+                    return "LocalScheme";
                 };
             })
             .AddScheme<AuthenticationSchemeOptions, LocalAuthenticationHandler>("LocalScheme", null);

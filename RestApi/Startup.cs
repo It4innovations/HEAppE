@@ -165,7 +165,7 @@ public class Startup
         
        
 
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (true)
         {
             services.AddSmartAuthentication(Configuration);
         }
@@ -189,6 +189,25 @@ public class Startup
 
         services.AddSwaggerGen(gen =>
         {
+            gen.AddSecurityDefinition("ServiceApiKey", new OpenApiSecurityScheme
+            {
+                Description = "Service API Key authentication. Enter the key in the field below.",
+                Name = "X-API-Key",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "ApiKeyScheme"
+            });
+
+            gen.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ServiceApiKey" }
+                    },
+                    Array.Empty<string>()
+                }
+            });
             
             //if introspection is enabled, add JWT Bearer authentication
             if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)

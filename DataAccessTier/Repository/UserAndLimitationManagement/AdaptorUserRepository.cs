@@ -34,7 +34,18 @@ internal class AdaptorUserRepository : GenericRepository<AdaptorUser>, IAdaptorU
             .FirstOrDefault(w => w.Username == username);
     }
 
-// Pokud jsi upravoval i GetById, oprav ho stejně:
+    public AdaptorUser GetByApiKey(string apiKey)
+    {
+        return _dbSet
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserRole)
+            .Include(u => u.AdaptorUserUserGroupRoles)
+            .ThenInclude(ugr => ugr.AdaptorUserGroup)
+            .ThenInclude(ug => ug.Project)
+            .SingleOrDefault(u => u.Password == apiKey);
+    }
+
+
     public override AdaptorUser GetById(long id)
     {
         return _dbSet

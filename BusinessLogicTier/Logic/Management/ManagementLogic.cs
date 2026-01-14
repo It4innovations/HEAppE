@@ -2449,7 +2449,7 @@ public class ManagementLogic : IManagementLogic
         return adaptorUserCreated;
     }
 
-    private string ComputeSha512Hash(string input)
+    private static string ComputeSha512Hash(string input)
     {
         using var sha512 = System.Security.Cryptography.SHA512.Create();
         byte[] inputBytes = System.Text.Encoding.UTF8.GetBytes(input);

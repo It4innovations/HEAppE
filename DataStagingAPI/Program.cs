@@ -111,7 +111,7 @@ if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || 
     builder.Services.AddAuthentication("Bearer");
     builder.Services.AddAuthorization();
 }
-if (JwtTokenIntrospectionConfiguration.IsEnabled)
+if (true)
 {
     builder.Services.AddSmartAuthentication(builder.Configuration);
 }
@@ -203,6 +203,26 @@ builder.Services.AddSwaggerGen(options =>
         { key, new List<string>() }
     };
     options.AddSecurityRequirement(requirement);
+    
+    options.AddSecurityDefinition("ServiceApiKey", new OpenApiSecurityScheme
+    {
+        Description = "Service API Key authentication. Enter the key below.",
+        Name = "X-API-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "ApiKeyScheme"
+    });
+    
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ServiceApiKey" }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
 
