@@ -14,7 +14,7 @@ using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement.Validators;
 
-internal class JobManagementValidator : AbstractValidator
+internal class JobManagementValidator : AsyncAbstractValidator
 {
     protected readonly IUnitOfWork _unitOfWork;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -42,11 +42,11 @@ internal class JobManagementValidator : AbstractValidator
     ///     Validation
     /// </summary>
     /// <returns></returns>
-    public override ValidationResult Validate()
+    public override async Task<ValidationResult> Validate()
     {
         var message = _validationObject switch
         {
-            JobSpecification jobSpecification => ValidateJobSpecification(jobSpecification),
+            JobSpecification jobSpecification => await ValidateJobSpecification(jobSpecification),
             _ => string.Empty
         };
         return new ValidationResult(string.IsNullOrEmpty(message), message);
@@ -61,7 +61,7 @@ internal class JobManagementValidator : AbstractValidator
     /// </summary>
     /// <param name="job">Job specification</param>
     /// <returns></returns>
-    private string ValidateJobSpecification(JobSpecification job)
+    private async Task<string> ValidateJobSpecification(JobSpecification job)
     {
         ValidateRequestedCluster(job);
         ValidateRequestedProject(job);
@@ -75,7 +75,7 @@ internal class JobManagementValidator : AbstractValidator
         for (var i = 0; i < job.Tasks.Count; i++)
         {
             //Task Validation
-            ValidateTaskSpecification(job.Tasks[i]);
+            await ValidateTaskSpecification(job.Tasks[i]);
 
             if (job.Tasks[i].CommandTemplate is null || job.Tasks[i].CommandTemplate.IsDeleted)
                 //_messageBuilder.AppendLine($"Command Template does not exist.");
@@ -138,7 +138,7 @@ internal class JobManagementValidator : AbstractValidator
         return _messageBuilder.ToString();
     }
 
-    private void ValidateTaskSpecification(TaskSpecification task)
+    private async Task ValidateTaskSpecification(TaskSpecification task)
     {
         if (task.Id != 0 && _unitOfWork.TaskSpecificationRepository.GetById(task.Id) == null)
             _ = _messageBuilder.AppendLine($"Task with Id {task.Id} does not exist in the system");
@@ -170,7 +170,7 @@ internal class JobManagementValidator : AbstractValidator
             _ = _messageBuilder.AppendLine(
                 $"Task {task.Name} has specified disabled CommandTemplateId \"{task.CommandTemplate.Id}\"");
 
-        if (task.CommandTemplate.IsGeneric) ValidateGenericCommandTemplateSetup(task);
+        if (task.CommandTemplate.IsGeneric) await ValidateGenericCommandTemplateSetup(task);
 
         if (task.CommandTemplate.ProjectId.HasValue)
             if (task.CommandTemplate.ProjectId != task.JobSpecification.ProjectId)
