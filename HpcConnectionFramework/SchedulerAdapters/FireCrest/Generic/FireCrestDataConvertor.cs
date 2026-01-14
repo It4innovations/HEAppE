@@ -89,7 +89,8 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
         if (task.RequiredNodes != null && task.RequiredNodes.Any())
         {
             scriptBuilder.AppendLine($"#SBATCH --nodes={task.RequiredNodes.Count}");
-            var nodeNames = task.RequiredNodes.Where(n => !string.IsNullOrEmpty(n.NodeName)).Select(n => n.NodeName).ToList();
+            var nodeNames = task.RequiredNodes.Where(n => !string.IsNullOrEmpty(n.NodeName)).Select(n => n.NodeName)
+                .ToList();
             if (nodeNames.Any())
             {
                 scriptBuilder.AppendLine($"#SBATCH --nodelist={string.Join(",", nodeNames)}");
@@ -125,14 +126,15 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
             {
                 scriptBuilder.AppendLine($"#SBATCH --ntasks-per-node={parSpec.MPIProcesses.Value}");
             }
+
             if (parSpec.OpenMPThreads.HasValue)
             {
                 scriptBuilder.AppendLine($"#SBATCH --cpus-per-task={parSpec.OpenMPThreads.Value}");
             }
         }
 
-        if (task.ClusterNodeType?.ClusterNodeTypeAggregation != null && 
-            (task.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || 
+        if (task.ClusterNodeType?.ClusterNodeTypeAggregation != null &&
+            (task.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") ||
              task.ClusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")))
         {
             if (task.MaxCores.HasValue)
@@ -306,17 +308,19 @@ public class FireCrestDataConvertor : SchedulerDataConvertor
     private TaskState ConvertState(string state)
     {
         if (string.IsNullOrEmpty(state)) return TaskState.Unknown;
-        return state.ToUpperInvariant() switch
-        {
-            "PENDING" => TaskState.Queued,
-            "RUNNING" => TaskState.Running,
-            "COMPLETED" => TaskState.Finished,
-            "FAILED" => TaskState.Failed,
-            "CANCELLED" => TaskState.Canceled,
-            "TIMEOUT" => TaskState.Failed,
-            "SUSPENDED" => TaskState.Paused,
-            _ => TaskState.Unknown,
-        };
+
+        var upperState = state.ToUpperInvariant();
+
+        if (upperState.Contains("PENDING")) return TaskState.Queued;
+        if (upperState.Contains("RUNNING")) return TaskState.Running;
+        if (upperState.Contains("COMPLETED")) return TaskState.Finished;
+        if (upperState.Contains("FAILED")) return TaskState.Failed;
+        if (upperState.Contains("CANCELLED")) return TaskState.Canceled;
+        if (upperState.Contains("TIMEOUT")) return TaskState.Failed;
+        if (upperState.Contains("SUSPENDED")) return TaskState.Paused;
+        if (upperState.Contains("NODE_FAIL")) return TaskState.Failed;
+
+        return TaskState.Unknown;
     }
 
     private List<SubmittedTaskAllocationNodeInfo> ParseNodes(string nodesString, string taskId)
