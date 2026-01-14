@@ -357,13 +357,19 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             var cluster = jobGroup.Key.Cluster;
             var project = jobGroup.Key.Project;
-            _logger.Info($"Updating current state of unfinished jobs for cluster {cluster.Name} and project {project.Name}");
+            
             
             var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
 
             var userJobsGroup = jobGroup.GroupBy(g => g.Specification.ClusterUser)
                 .ToList();
-
+            
+            //if some jobs need to be checked log
+            if (userJobsGroup.Any())
+            {
+                _logger.Info($"Updating current state of unfinished jobs for cluster {cluster.Name} and project {project.Name}");
+            }
+            
             foreach (var userJobGroup in userJobsGroup)
             {
                 var tasksExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w))
