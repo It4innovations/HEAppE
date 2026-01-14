@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Threading.Tasks;
 using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
@@ -114,13 +115,13 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult RequestCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
+    public async Task<IActionResult> RequestCommandTemplateParametersName(GetCommandTemplateParametersNameModel model)
     {
         _logger.LogDebug("Endpoint: \"ClusterInformation\" Method: \"GetCommandTemplateParametersName\"");
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.RequestCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId,
+        return Ok(await _service.RequestCommandTemplateParametersName(model.CommandTemplateId, model.ProjectId,
             model.UserScriptPath, model.SessionCode));
     }
 
@@ -139,7 +140,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CurrentClusterNodeUsage(string sessionCode, long clusterNodeId, long projectId)
+    public async Task<IActionResult> CurrentClusterNodeUsage(string sessionCode, long clusterNodeId, long projectId)
     {
         var model = new CurrentClusterNodeUsageModel
         {
@@ -152,7 +153,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.ProjectId, model.SessionCode));
+        return Ok(await _service.GetCurrentClusterNodeUsage(model.ClusterNodeId, model.ProjectId, model.SessionCode));
     }
 
     #endregion
