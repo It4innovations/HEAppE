@@ -368,7 +368,7 @@ internal class JobManagementLogic : IJobManagementLogic
             if (userJobsGroup.Any())
             {
                 _logger.Info(
-                    $"Triggered  automatic check of unfinished jobs for cluster {cluster.Name} and project {project.Name}.");
+                    $"Triggered automatic check of unfinished jobs for cluster {cluster.Name} and project {project.Name}.");
             }
 
             foreach (var userJobGroup in userJobsGroup)
