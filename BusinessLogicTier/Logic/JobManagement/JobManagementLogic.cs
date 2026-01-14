@@ -367,9 +367,10 @@ internal class JobManagementLogic : IJobManagementLogic
             //if some jobs need to be checked log
             if (userJobsGroup.Any())
             {
-                _logger.Info($"Updating current state of unfinished jobs for cluster {cluster.Name} and project {project.Name}");
+                _logger.Info(
+                    $"Triggered  automatic check of unfinished jobs for cluster {cluster.Name} and project {project.Name}.");
             }
-            
+
             foreach (var userJobGroup in userJobsGroup)
             {
                 var tasksExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w))
