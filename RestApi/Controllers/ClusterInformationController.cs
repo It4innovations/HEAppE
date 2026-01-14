@@ -91,7 +91,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListAvailableClustersClearCache([Required] string sessionCode)
+    public IActionResult ListAvailableClustersClearCache(string sessionCode)
     {
         ListAvailableClustersModel model = new()
         {
