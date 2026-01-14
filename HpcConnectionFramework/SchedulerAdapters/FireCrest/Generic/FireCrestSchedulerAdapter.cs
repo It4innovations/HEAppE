@@ -1,10 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -95,19 +98,106 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
 
     private void CreateDirectory(string endpoint, string token, string directoryPath, object requestBody)
     {
+        Console.WriteLine($"[CreateDirectory] Starting creation for: {directoryPath}");
+        
         var jsonContent = JsonSerializer.Serialize(requestBody);
         using var content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
         using var request = new HttpRequestMessage(HttpMethod.Post, endpoint);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
         request.Content = content;
 
+        Console.WriteLine($"[CreateDirectory] Sending request to {endpoint}");
         var response = _httpClient.SendAsync(request).ConfigureAwait(false).GetAwaiter().GetResult();
-        if (!response.IsSuccessStatusCode)
+
+        Console.WriteLine($"[CreateDirectory] Response status for {directoryPath}: {response.StatusCode}");
+
+        if (response.IsSuccessStatusCode)
         {
-            var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
-            throw new FirecrestApiException($"Failed to create directory: {directoryPath}", response.StatusCode,
-                responseContent);
+            Console.WriteLine($"[CreateDirectory] Successfully created: {directoryPath}");
+            return;
         }
+
+        var responseContent = response.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+        Console.WriteLine($"[CreateDirectory] Error content for {directoryPath}: {responseContent}");
+
+        if ((response.StatusCode == HttpStatusCode.BadRequest || 
+             response.StatusCode == HttpStatusCode.InternalServerError || 
+             response.StatusCode == HttpStatusCode.NotFound) && 
+           (responseContent.Contains("File exists") || responseContent.Contains("directory already exists")))
+        {
+            Console.WriteLine($"[CreateDirectory] Directory already exists (ignored): {directoryPath}");
+            return;
+        }
+
+        if (response.StatusCode == HttpStatusCode.BadRequest || 
+            response.StatusCode == HttpStatusCode.InternalServerError || 
+            response.StatusCode == HttpStatusCode.NotFound)
+        {
+            Console.WriteLine($"[CreateDirectory] Triggering recursion logic due to status {response.StatusCode}");
+            var parentDirectory = Path.GetDirectoryName(directoryPath.TrimEnd('/'))?.Replace("\\", "/");
+            Console.WriteLine($"[CreateDirectory] Calculated parent directory: {parentDirectory}");
+            
+            if (!string.IsNullOrEmpty(parentDirectory) && parentDirectory != "/" && parentDirectory != ".")
+            {
+                try
+                {
+                    var jsonNode = JsonNode.Parse(jsonContent);
+                    if (jsonNode != null)
+                    {
+                        var updatedRequestBody = jsonNode.DeepClone();
+                        
+                        updatedRequestBody["path"] = parentDirectory; 
+                        
+                        Console.WriteLine($"[CreateDirectory] Recursively calling for parent: {parentDirectory}");
+                        CreateDirectory(endpoint, token, parentDirectory, updatedRequestBody);
+
+                        Console.WriteLine($"[CreateDirectory] Parent created. Retrying original: {directoryPath}");
+                        using var retryRequest = new HttpRequestMessage(HttpMethod.Post, endpoint);
+                        retryRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                        retryRequest.Content = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+                        
+                        var retryResponse = _httpClient.SendAsync(retryRequest).ConfigureAwait(false).GetAwaiter().GetResult();
+                        Console.WriteLine($"[CreateDirectory] Retry status for {directoryPath}: {retryResponse.StatusCode}");
+                        
+                        if (retryResponse.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"[CreateDirectory] Retry successful for: {directoryPath}");
+                            return;
+                        }
+                        
+                        var retryContent = retryResponse.Content.ReadAsStringAsync().ConfigureAwait(false).GetAwaiter().GetResult();
+                        Console.WriteLine($"[CreateDirectory] Retry error content: {retryContent}");
+
+                        if ((retryResponse.StatusCode == HttpStatusCode.BadRequest || 
+                             retryResponse.StatusCode == HttpStatusCode.InternalServerError ||
+                             retryResponse.StatusCode == HttpStatusCode.NotFound) && 
+                           (retryContent.Contains("File exists") || retryContent.Contains("directory already exists")))
+                        {
+                            Console.WriteLine($"[CreateDirectory] Retry indicated directory exists: {directoryPath}");
+                            return;
+                        }
+                        
+                        throw new FirecrestApiException($"Failed to create directory (retry): {directoryPath}. Status: {retryResponse.StatusCode}, Response: {retryContent}", retryResponse.StatusCode, retryContent);
+                    }
+                }
+                catch (FirecrestApiException)
+                {
+                    throw;
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[CreateDirectory] Exception during recursion: {ex.Message}");
+                    throw new FirecrestApiException($"Failed to create directory during recursion: {directoryPath}. Original error: {responseContent}. Recursive error: {ex.Message}", response.StatusCode, responseContent);
+                }
+            }
+            else 
+            {
+                 Console.WriteLine($"[CreateDirectory] Parent directory was null or root. Cannot recurse further.");
+            }
+        }
+
+        Console.WriteLine($"[CreateDirectory] Fatal failure for: {directoryPath}");
+        throw new FirecrestApiException($"Failed to create directory: {directoryPath}. Status: {response.StatusCode}. Response: {responseContent}", response.StatusCode, responseContent);
     }
 
     #endregion
@@ -410,7 +500,6 @@ public class FireCrestSchedulerAdapter : ISchedulerAdapter
         _sshTunnelUtil.GetTunnelsInformations(taskInfo.Id, nodeHost);
 
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        // another implementation
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath,
         string account, bool isServiceAccount) => _commands.InitializeClusterScriptDirectory(
         schedulerConnectionConnection, clusterProjectRootDirectory, overwriteExistingProjectRootDirectory,

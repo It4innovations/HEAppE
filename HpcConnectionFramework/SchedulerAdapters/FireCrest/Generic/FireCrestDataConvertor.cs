@@ -38,11 +38,11 @@ internal class JobStatus
 
 internal class TimeInfo
 {
-    [JsonPropertyName("start")] public long Start { get; set; }
+    [JsonPropertyName("start")] public long? Start { get; set; }
 
-    [JsonPropertyName("end")] public long End { get; set; }
+    [JsonPropertyName("end")] public long? End { get; set; }
 
-    [JsonPropertyName("elapsed")] public int Elapsed { get; set; }
+    [JsonPropertyName("elapsed")] public int? Elapsed { get; set; }
 }
 
 #endregion

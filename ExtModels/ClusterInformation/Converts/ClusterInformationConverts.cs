@@ -91,7 +91,12 @@ public static class ClusterInformationConverts
             ClusterConnectionProtocol.MicrosoftHpcApi => ClusterConnectionProtocolExt.MicrosoftHpcApi,
             ClusterConnectionProtocol.Ssh => ClusterConnectionProtocolExt.Ssh,
             ClusterConnectionProtocol.SshInteractive => ClusterConnectionProtocolExt.SshInteractive,
-            _ => throw new InputValidationException("EnumValueMustBeInInterval", "Connection protocol", "<1, 2, 4>")
+            ClusterConnectionProtocol.FirecrestApi => ClusterConnectionProtocolExt.FirecrestApi,
+            _ => throw new InputValidationException(
+                "EnumValueMustBeInInterval",
+                "Connection protocol",
+                $"<{string.Join(", ", Enum.GetValues(typeof(ClusterConnectionProtocolExt)).Cast<int>())}>"
+            )
         };
     }
 
