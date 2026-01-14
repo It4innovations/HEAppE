@@ -57,7 +57,7 @@ public class ClusterInformationService : IClusterInformationService
             .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, roles);
 
         // Build cache key including all filter parameters to ensure cache is revalidated when filters change
-        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{loggedUser.Email}_" +
+        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{loggedUser.Id}_" +
                              $"{clusterName}_{nodeTypeName}_{projectName}_" +
                              $"{(accountingString != null ? string.Join(",", accountingString) : "")}_" +
                              $"{commandTemplateName}";
@@ -154,7 +154,7 @@ public class ClusterInformationService : IClusterInformationService
         foreach (var item in collection)
         {
             var memoryCacheKey = item.ToString();
-            if (memoryCacheKey.StartsWith($"{nameof(ListAvailableClusters)}_{loggedUser.Email}_"))
+            if (memoryCacheKey.StartsWith($"{nameof(ListAvailableClusters)}_{loggedUser.Id}_"))
             {
                 _cacheProvider.Remove(memoryCacheKey);
                 clearedKeysCount++;

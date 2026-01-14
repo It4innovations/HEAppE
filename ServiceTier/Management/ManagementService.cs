@@ -577,7 +577,7 @@ public class ManagementService : IManagementService
                 unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplateParameter = managementLogic.CreateCommandTemplateParameter(modelIdentifier, modelQuery,
-                modelDescription, modelCommandTemplateId);
+                modelDescription, modelCommandTemplateId, isVisible);
             return commandTemplateParameter.ConvertIntToExtendedExt();
         }
     }
