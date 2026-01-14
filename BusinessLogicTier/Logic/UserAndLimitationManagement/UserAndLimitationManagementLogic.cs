@@ -90,7 +90,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             return AuthenticateLocalSession(sessionCode);
         }
 
-        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
             return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
         }
