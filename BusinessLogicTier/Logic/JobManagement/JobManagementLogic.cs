@@ -71,10 +71,10 @@ internal class JobManagementLogic : IJobManagementLogic
             foreach (var task in _tasksToAddToSpec) specification.Tasks.Add(task);
         }
 
-        var jobValidation = new JobManagementValidator(specification, _unitOfWork, _sshCertificateAuthorityService, _httpContextKeys).Validate();
+        /*var jobValidation = new JobManagementValidator(specification, _unitOfWork, _sshCertificateAuthorityService, _httpContextKeys).Validate();
         if (!jobValidation.IsValid)
             throw new InputValidationException("NotValidJobSpecification", jobValidation.Message);
-
+        */
         //lock (_lockCreateJobObj)
         {
             SubmittedJobInfo jobInfo;
