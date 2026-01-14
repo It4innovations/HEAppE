@@ -143,7 +143,7 @@ public class Startup
         services.AddControllers(options =>
         {
             options.Filters.Add<LogRequestModelFilter>();
-            if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+            //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 options.Filters.Add(new AuthorizeFilter());
             }
@@ -210,7 +210,7 @@ public class Startup
             });
             
             //if introspection is enabled, add JWT Bearer authentication
-            if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+            //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
@@ -432,7 +432,7 @@ public class Startup
         {
             app.UseMiddleware<LexisAuthMiddleware>();
         }
-        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             app.UseMiddleware<LexisTokenExchangeMiddleware>();
             app.UseAuthentication();

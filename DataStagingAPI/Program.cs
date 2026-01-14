@@ -104,7 +104,7 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 });
 
 builder.Services.AddDistributedMemoryCache();
-if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+//if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
 {
     builder.Services.AddHttpClient("LexisTokenExchangeClient");
     builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
@@ -163,7 +163,7 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
 
-    if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+    //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
     {
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
@@ -309,21 +309,21 @@ app.UseSwaggerUI(swaggerUI =>
     swaggerUI.EnableTryItOutByDefault();
 });
 
-if (LexisAuthenticationConfiguration.UseBearerAuth)
+//if (LexisAuthenticationConfiguration.UseBearerAuth)
 {
     app.UseMiddleware<LexisAuthMiddleware>();
 }
-if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+//if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
 {
     app.UseMiddleware<LexisTokenExchangeMiddleware>();
-    if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
+    //if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
     {
         app.UseAuthentication();
         app.UseAuthorization();
     }
-    else
+    //else
     {
-        app.UseAuthentication();
+    //    app.UseAuthentication();
     }
    
 }
