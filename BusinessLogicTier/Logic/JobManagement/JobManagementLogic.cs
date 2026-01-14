@@ -199,7 +199,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
             UpdateJobStateByTasks(jobInfo);
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
-            _unitOfWork.Save();
+            await _unitOfWork.SaveAsync();
         }
         else if (jobInfo.State is JobState.WaitingForServiceAccount || jobInfo.State is JobState.Configuring)
         {

@@ -152,10 +152,10 @@ public class FileTransferLogic : IFileTransferLogic
         string publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(clusterUserAuthCredentials).PublicKeyInAuthorizedKeysFormat;
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            response = _sshCertificateAuthorityService
-                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, jobInfo.Specification.FileTransferMethod.ServerHostname)
-                .GetAwaiter()
-                .GetResult();
+            response = await _sshCertificateAuthorityService
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken,
+                    jobInfo.Specification.FileTransferMethod.ServerHostname);
+
         }
 
         var transferMethod = new FileTransferMethod
@@ -234,10 +234,8 @@ public class FileTransferLogic : IFileTransferLogic
         SignResponse response = new SignResponse();
         if (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
-            response = _sshCertificateAuthorityService
-                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, transferMethod.ServerHostname)
-                .GetAwaiter()
-                .GetResult();
+            response = await _sshCertificateAuthorityService
+                .SignAsync(publicKey, _httpContextKeys.Context.SshCaToken, transferMethod.ServerHostname);
         }
 
         transferMethod.Credentials = new FileTransferKeyCredentials

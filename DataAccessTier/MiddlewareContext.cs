@@ -510,9 +510,8 @@ internal class MiddlewareContext : DbContext
                 if (entity_after_update is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
                     var vaultConnector = new VaultConnector();
-                    var vaultData = vaultConnector
-                        .GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id).GetAwaiter()
-                        .GetResult();
+                    var vaultData = await vaultConnector
+                        .GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id);
 
                     _log.Info(vaultData.Id > 0
                         ? $"Vault data for ClusterAuthenticationCredentials with id {clusterProjectCredentialEntity.Id} found. Setting credentials."
