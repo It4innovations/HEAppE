@@ -238,7 +238,7 @@ public static class JobManagementConverts
             State = task.State.ConvertIntToExt(),
             Priority = task.Priority.ConvertIntToExt(),
             AllocatedTime = task.AllocatedTime,
-            AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId)
+            AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct()
                 .ToArray(),
             StartTime = task.StartTime,
             EndTime = task.EndTime,
