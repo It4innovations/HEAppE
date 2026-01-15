@@ -40,7 +40,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
                 try
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                    LogicFactory.GetLogicFactory()
+                    await LogicFactory.GetLogicFactory()
                         .CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
                         .UpdateCurrentStateOfUnfinishedJobs();
                 }
