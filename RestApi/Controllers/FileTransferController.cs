@@ -230,7 +230,7 @@ public class FileTransferController : BaseController<FileTransferController>
         SubmittedTaskInfo task = null;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            job = unitOfWork.SubmittedJobInfoRepository.GetById(jobId) ??
+            job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
                       throw new Exception("NotExistingJob");
             //check if task belongs to job
             if (taskId.HasValue)
