@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using FluentValidation;
 using HEAppE.BusinessLogicTier;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Models;
@@ -225,18 +226,20 @@ public class FileTransferController : BaseController<FileTransferController>
         validator.ValidateAndThrow(model);
         _logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
 
+        SubmittedJobInfo job = null;
+        SubmittedTaskInfo task = null;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var job = unitOfWork.JobSpecificationRepository.GetById(jobId) ??
+            job = unitOfWork.SubmittedJobInfoRepository.GetById(jobId) ??
                       throw new Exception("NotExistingJob");
             //check if task belongs to job
             if (taskId.HasValue)
             {
-                if(!job.Tasks.Any(t=> t.Id == taskId.Value))
-                    throw new Exception("TaskDoesNotBelongToJob");
+                task = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value) ?? 
+                       throw new Exception("TaskDoesNotBelongToJob");
             }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
-                            AdaptorUserRoleType.Submitter, job.ProjectId);
+                            AdaptorUserRoleType.Submitter, job.Specification.ProjectId);
             if (job.Submitter.Id != loggedUser.Id)
                 throw new Exception("LoggedUserIsNotSubmitterOfJob");
         }
@@ -244,7 +247,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var tasks = new List<Task<dynamic>>();
         foreach (var file in files)
         {
-            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobId, taskId, sessionCode));
+            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, job.Specification.Id, task?.Specification.Id, sessionCode));
         }
         Task.WaitAll(tasks);
 
