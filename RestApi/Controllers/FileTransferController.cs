@@ -226,17 +226,18 @@ public class FileTransferController : BaseController<FileTransferController>
         validator.ValidateAndThrow(model);
         _logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
 
-        SubmittedJobInfo job = null;
-        SubmittedTaskInfo task = null;
+        long jobSpecificationId;
+        long? taskSpecificationId = null;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
+            var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
                       throw new Exception("NotExistingJob");
+            jobSpecificationId = job.Specification.Id;
             //check if task belongs to job
             if (taskId.HasValue)
             {
-                task = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value) ?? 
-                       throw new Exception("TaskDoesNotBelongToJob");
+                taskSpecificationId = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value)?.Specification.Id ?? 
+                                      throw new Exception("TaskDoesNotBelongToJob");
             }
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
                             AdaptorUserRoleType.Submitter, job.Specification.ProjectId);
@@ -247,7 +248,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var tasks = new List<Task<dynamic>>();
         foreach (var file in files)
         {
-            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, job.Specification.Id, task?.Specification.Id, sessionCode));
+            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
         }
         Task.WaitAll(tasks);
 
