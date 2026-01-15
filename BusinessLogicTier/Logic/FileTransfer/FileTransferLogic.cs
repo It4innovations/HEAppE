@@ -410,9 +410,9 @@ public class FileTransferLogic : IFileTransferLogic
             relativeFilePath = relativeFilePath.TrimStart('/');
             foreach (var task in jobInfo.Tasks)
             {
-                var start1 = Path.Combine($"{jobInfo.Specification.Id}", $"{jobInfo.Specification.Id}",
+                var start1 = Path.Combine($"{jobInfo.Specification.Id}", $"{task.Specification.Id}",
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
-                var start2 = Path.Combine($"{jobInfo.Specification.Id}",
+                var start2 = Path.Combine($"{task.Specification.Id}",
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
                 if (relativeFilePath.StartsWith(start1))
                 {
@@ -430,7 +430,7 @@ public class FileTransferLogic : IFileTransferLogic
                 {
                     try
                     {
-                        relativeFilePath = Path.Combine($"{jobInfo.Id}", relativeFilePath.TrimStart('/'));
+                        relativeFilePath = Path.Combine($"{jobInfo.Specification.Id}", relativeFilePath.TrimStart('/'));
                         return fileManager.DownloadFileFromCluster(jobInfo, relativeFilePath, _httpContextKeys.Context.SshCaToken);
                     }
                     catch (Exception exception)
