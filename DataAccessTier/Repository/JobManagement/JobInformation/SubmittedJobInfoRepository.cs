@@ -74,6 +74,8 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
     {
         return _dbSet
             .Include(j => j.Tasks)
+            .Include(j => j.Specification)
+            .Include(j => j.Project)
             .FirstOrDefault(j => j.Id == id);
     }
 
