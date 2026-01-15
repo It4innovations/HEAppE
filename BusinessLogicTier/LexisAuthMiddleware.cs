@@ -17,7 +17,7 @@ public class LexisAuthMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService)
+    public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService)
     {
         // check if the endpoint allows anonymous access
         var endpoint = context.GetEndpoint();
@@ -35,7 +35,7 @@ public class LexisAuthMiddleware
             
             try
             {
-                await keys.Authorize(sshCaService);
+                await keys.Authorize(sshCaService, userOrgService);
                 var identity = new ClaimsIdentity(new[] { new Claim("raw_token", token) }, "Lexis");
                 context.User = new ClaimsPrincipal(identity);
             }

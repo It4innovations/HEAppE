@@ -55,11 +55,11 @@ public class ManagementController : BaseController<ManagementController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _managementService = new ManagementService(sshCertificateAuthorityService, httpContextKeys);
-        _userAndManagementService = new UserAndLimitationManagementService(memoryCache, sshCertificateAuthorityService, httpContextKeys);
+        _managementService = new ManagementService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _userAndManagementService = new UserAndLimitationManagementService(memoryCache, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

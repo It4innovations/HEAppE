@@ -19,8 +19,10 @@ public class DataTransferService : IDataTransferService
 {
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
-    public DataTransferService(ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    private readonly IUserOrgService _userOrgService;
+    public DataTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
+        _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
         
@@ -32,9 +34,9 @@ public class DataTransferService : IDataTransferService
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
-        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
         var dataTransferMethod =
             dataTransferLogic.GetDataTransferMethod(nodeIPAddress, nodePort, submittedTaskInfoId, loggedUser);
         return dataTransferMethod.ConvertIntToExt();
@@ -46,9 +48,9 @@ public class DataTransferService : IDataTransferService
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(usedTransferMethod.SubmittedTaskId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", usedTransferMethod.SubmittedTaskId);
-        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
         dataTransferLogic.EndDataTransfer(usedTransferMethod.ConvertExtToInt(), loggedUser);
     }
 
@@ -59,9 +61,9 @@ public class DataTransferService : IDataTransferService
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
-        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
         return await dataTransferLogic.HttpGetToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()),
             submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
     }
@@ -73,9 +75,9 @@ public class DataTransferService : IDataTransferService
         var submittedTaskInfo = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
-        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
         return await dataTransferLogic.HttpPostToJobNodeAsync(httpRequest, httpHeaders.Select(s => s.ConvertExtToInt()),
             httpPayload, submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser);
     }
@@ -89,10 +91,10 @@ public class DataTransferService : IDataTransferService
         if (submittedTaskInfo == null)
             throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
     
-        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+        var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
             AdaptorUserRoleType.Submitter, submittedTaskInfo.Project.Id);
     
-        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
         await dataTransferLogic.HttpPostToJobNodeStreamAsync(
             httpRequest, 
             httpHeaders.Select(s => s.ConvertExtToInt()),

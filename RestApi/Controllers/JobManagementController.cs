@@ -37,12 +37,12 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobManagementService(_sshCertificateAuthorityService, _httpContextKeys);
+        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
     }
 
     #endregion

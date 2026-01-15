@@ -32,6 +32,7 @@ public class FileTransferController : BaseController<FileTransferController>
     #region Instances
 
     private readonly IFileTransferService _service;
+    private readonly IUserOrgService _userOrgService;
 
     #endregion
 
@@ -42,10 +43,10 @@ public class FileTransferController : BaseController<FileTransferController>
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _service = new FileTransferService(sshCertificateAuthorityService, httpContextKeys);
+        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion
@@ -239,7 +240,7 @@ public class FileTransferController : BaseController<FileTransferController>
                 taskSpecificationId = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value)?.Specification.Id ?? 
                                       throw new Exception("TaskDoesNotBelongToJob");
             }
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
                             AdaptorUserRoleType.Submitter, job.Specification.ProjectId);
             if (job.Submitter.Id != loggedUser.Id)
                 throw new Exception("LoggedUserIsNotSubmitterOfJob");
@@ -248,7 +249,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var tasks = new List<Task<dynamic>>();
         foreach (var file in files)
         {
-            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
+            tasks.Add(new FileTransferService(_userOrgService, sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
         }
         Task.WaitAll(tasks);
 

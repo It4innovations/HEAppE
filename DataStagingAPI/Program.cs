@@ -97,6 +97,9 @@ builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings(
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
 
+//add IUserOrgService
+builder.Services.AddScoped<IUserOrgService, UserOrgService>();
+
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
     if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))

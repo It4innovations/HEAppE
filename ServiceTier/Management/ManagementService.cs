@@ -37,13 +37,15 @@ public class ManagementService : IManagementService
     private readonly ILog _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IUserOrgService _userOrgService;
 
     #endregion
 
     #region Constructors    
 
-    public ManagementService(ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public ManagementService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
+        _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = httpContextKeys;
         _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
@@ -62,7 +64,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, modelProjectId, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, modelProjectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplate = managementLogic.CreateCommandTemplate(modelName, modelDescription,
                 modelExtendedAllocationCommand, modelExecutableFile, modelPreparationScript, modelProjectId,
@@ -80,7 +82,7 @@ public class ManagementService : IManagementService
             $"CreateCommandTemplateFromGeneric: GenericCommandTemplateId: {genericCommandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplate = await managementLogic.CreateCommandTemplateFromGeneric(genericCommandTemplateId, name,
@@ -104,7 +106,7 @@ public class ManagementService : IManagementService
             if (!commandTemplate.ProjectId.HasValue || commandTemplate.IsDeleted)
                 throw new InputValidationException("NotPermitted");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var updatedCommandTemplate = managementLogic.ModifyCommandTemplate(modelId, modelName, modelDescription,
                 modelExtendedAllocationCommand, modelExecutableFile, modelPreparationScript, modelClusterNodeTypeId,
@@ -122,7 +124,7 @@ public class ManagementService : IManagementService
             $"ModifyCommandTemplateFromGeneric: Id: {commandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??
@@ -147,7 +149,7 @@ public class ManagementService : IManagementService
             if (commandTemplate.ProjectId == null)
                 throw new InputValidationException("The specified command template cannot be removed!");
 
-            UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveCommandTemplate(commandTemplateId);
@@ -159,7 +161,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var projects = managementLogic.ListProjects();
@@ -172,7 +174,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var project = managementLogic.GetProjectByAccountingString(accountingString);
@@ -185,7 +187,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var project = managementLogic.GetProjectById(id);
@@ -201,7 +203,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var project = managementLogic.CreateProject(accountingString, usageType, name, description, startDate,
@@ -217,7 +219,7 @@ public class ManagementService : IManagementService
             $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, IsOneToOneMapping: {isOneToOneMapping}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.ManagementAdmin, id, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var project = managementLogic.ModifyProject(id, usageType, name, description, startDate, endDate,
@@ -231,7 +233,7 @@ public class ManagementService : IManagementService
         _logger.Info($"RemoveProject: Id: {id}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.ManagementAdmin, id, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveProject(id);
@@ -242,7 +244,7 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProject = managementLogic.GetProjectAssignmentToClusterById(projectId, clusterId);
@@ -254,7 +256,7 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProject = managementLogic.GetProjectAssignmentToClusters(projectId);
@@ -269,7 +271,7 @@ public class ManagementService : IManagementService
             $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProject = managementLogic.CreateProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath);
@@ -284,7 +286,7 @@ public class ManagementService : IManagementService
             $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProject = managementLogic.ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath);
@@ -297,7 +299,7 @@ public class ManagementService : IManagementService
         _logger.Info($"RemoveProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.ManagementAdmin, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveProjectAssignmentToCluster(projectId, clusterId);
@@ -316,13 +318,13 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -345,13 +347,13 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             
@@ -377,13 +379,13 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             
@@ -407,13 +409,13 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -433,13 +435,13 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -461,13 +463,13 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -489,13 +491,13 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -519,18 +521,18 @@ public class ManagementService : IManagementService
             {
                 // In one-to-one mapping, the session code is used to identify the user
                 _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
-                (_, var submitterProjects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                (_, var submitterProjects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter);
                 projects.AddRange(submitterProjects);
             }
             else
             {
                 _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
-                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
-                (_, var managementAdminProjects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                (_, var managementAdminProjects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
                 projects.AddRange(managementAdminProjects);
             }
@@ -547,7 +549,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplateParameter = managementLogic.GetCommandTemplateParameterById(id);
@@ -574,7 +576,7 @@ public class ManagementService : IManagementService
             }
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, 
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var commandTemplateParameter = managementLogic.CreateCommandTemplateParameter(modelIdentifier, modelQuery,
                 modelDescription, modelCommandTemplateId, isVisible);
@@ -602,7 +604,7 @@ public class ManagementService : IManagementService
 
             if (commandTemplateParameter.CommandTemplate.IsDeleted) throw new InputValidationException("NotPermitted");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var updatedCommandTemplateParameter =
                 managementLogic.ModifyCommandTemplateParameter(id, modelIdentifier, modelQuery, modelDescription);
@@ -623,7 +625,7 @@ public class ManagementService : IManagementService
                 throw new InputValidationException("CommandTemplateParameterCannotBeRemoved", id);
 
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value,
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplateParameter.CommandTemplate.ProjectId.Value,
                 true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveCommandTemplateParameter(id);
@@ -635,7 +637,7 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             return managementLogic.ListCommandTemplates(projectId).Select(x => x.ConvertIntToExtendedExt()).ToList();
         }
@@ -651,14 +653,14 @@ public class ManagementService : IManagementService
             if (!commandTemplate.ProjectId.HasValue)
             {
                 (var loggedUser, _) =
-                    UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                    UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                         AdaptorUserRoleType.Manager);
                 return commandTemplate.ConvertIntToExtendedExt();
             }
             else
             {
                 var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode,
-                    unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
+                    unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, commandTemplate.ProjectId.Value, true);
                 return commandTemplate.ConvertIntToExtendedExt();
             }
         }
@@ -670,7 +672,7 @@ public class ManagementService : IManagementService
         {
             var subProject = unitOfWork.SubProjectRepository.GetById(subProjectId)
                              ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, subProject.ProjectId, true);
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, subProject.ProjectId, true);
             return subProject.ConvertIntToExt();
         }
     }
@@ -681,7 +683,7 @@ public class ManagementService : IManagementService
         {
             var project = unitOfWork.ProjectRepository.GetById(projectId)
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
             var subProjects = project.SubProjects.ToList();
             return subProjects.Select(x => x.ConvertIntToExt()).ToList();
         }
@@ -693,7 +695,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, modelProjectId, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, modelProjectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var subProject = managementLogic.CreateSubProject(modelProjectId, modelIdentifier, modelDescription,
                 modelStartDate, modelEndDate);
@@ -710,7 +712,7 @@ public class ManagementService : IManagementService
             var subProject = unitOfWork.SubProjectRepository.GetById(modelId)
                              ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, subProject.ProjectId, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, subProject.ProjectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
             var updatedSubProject = managementLogic.ModifySubProject(modelId, modelIdentifier, modelDescription,
@@ -726,7 +728,7 @@ public class ManagementService : IManagementService
             var subProject = unitOfWork.SubProjectRepository.GetById(modelId)
                              ?? throw new RequestedObjectDoesNotExistException("SubProjectNotFound");
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, subProject.ProjectId, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, subProject.ProjectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveSubProject(modelId);
         }
@@ -749,7 +751,7 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
+            var user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             _logger.Info(
                 $"User {user.Username} is computing accounting for project {projectId} from {modelStartTime} to {modelEndTime}");
@@ -761,7 +763,7 @@ public class ManagementService : IManagementService
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
+            var user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             return managementLogic.ListAccountingStates(projectId).Select(x => x.ConvertIntToExt()).ToList();
         }
@@ -772,7 +774,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var cluster = managementLogic.GetByIdWithProxyConnection(clusterId);
@@ -785,7 +787,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -802,7 +804,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var cluster = managementLogic.CreateCluster(name, description, masterNodeName, schedulerType,
@@ -820,7 +822,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var cluster = managementLogic.ModifyCluster(id, name, description, masterNodeName, schedulerType,
@@ -835,7 +837,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveCluster(id);
@@ -847,7 +849,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypes = managementLogic.ListClusterNodeTypes();
@@ -860,7 +862,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeType = managementLogic.GetClusterNodeTypeById(clusterId);
@@ -876,7 +878,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeType = managementLogic.CreateClusterNodeType(name, description, numberOfNodes, coresPerNode,
@@ -894,7 +896,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeType = managementLogic.ModifyClusterNodeType(id, name, description, numberOfNodes,
@@ -909,7 +911,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveClusterNodeType(id);
@@ -921,7 +923,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProxyConnection = managementLogic.GetClusterProxyConnectionById(clusterProxyConnectionId);
@@ -934,7 +936,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProxyConnection = managementLogic.GetClusterProxyConnections();
@@ -950,7 +952,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProxyConnection =
@@ -965,7 +967,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterProxyConnection =
@@ -979,7 +981,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveClusterProxyConnection(id);
@@ -991,7 +993,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var fileTransferMethods = managementLogic.ListFileTransferMethods();
@@ -1004,7 +1006,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var fileTransferMethod = managementLogic.GetFileTransferMethodById(fileTransferMethodId);
@@ -1018,7 +1020,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var fileTransferMethod =
@@ -1033,7 +1035,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var fileTransferMethod =
@@ -1047,7 +1049,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveFileTransferMethod(id);
@@ -1059,7 +1061,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, 
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, 
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypeAggregation = managementLogic.GetClusterNodeTypeAggregationById(id);
@@ -1072,7 +1074,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypeAggregation = managementLogic.GetClusterNodeTypeAggregations();
@@ -1087,7 +1089,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypeAggregation = managementLogic.CreateClusterNodeTypeAggregation(name, description,
@@ -1104,7 +1106,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypeAggregation = managementLogic.ModifyClusterNodeTypeAggregation(id, name, description,
@@ -1119,7 +1121,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveClusterNodeTypeAggregation(id);
@@ -1131,7 +1133,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypeAggregationAccountings =
@@ -1146,7 +1148,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypeAggregationAccounting =
@@ -1161,7 +1163,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var clusterNodeTypeAggregationAccounting =
@@ -1176,7 +1178,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveClusterNodeTypeAggregationAccounting(clusterNodeTypeAggregationId, accountingId);
@@ -1188,7 +1190,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var accountings = managementLogic.ListAccountings();
@@ -1201,7 +1203,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var accounting = managementLogic.GetAccountingById(id);
@@ -1215,7 +1217,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var accounting = managementLogic.CreateAccounting(formula, validityFrom, validityTo);
@@ -1229,7 +1231,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var accounting = managementLogic.ModifyAccounting(id, formula, validityFrom, validityTo);
@@ -1242,7 +1244,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveAccounting(id);
@@ -1255,7 +1257,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var aggregation =
@@ -1270,7 +1272,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             List<ProjectClusterNodeTypeAggregation> aggregations = new();
@@ -1288,7 +1290,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var aggregations = managementLogic.GetProjectClusterNodeTypeAggregationsByProjectId(projectId);
@@ -1302,7 +1304,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var aggregation =
@@ -1318,7 +1320,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var aggregation =
@@ -1334,7 +1336,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             managementLogic.RemoveProjectClusterNodeTypeAggregation(projectId, clusterNodeTypeAggregationId);
@@ -1346,7 +1348,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var result = (await managementLogic.Status(projectId, timeFrom, timeTo));
@@ -1359,7 +1361,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var result = managementLogic.StatusErrorLogs(projectId, timeFrom, timeTo);
@@ -1372,7 +1374,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode.ToString(), unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode.ToString(), unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1386,7 +1388,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1400,7 +1402,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1413,7 +1415,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1428,7 +1430,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1443,7 +1445,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1457,7 +1459,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1474,7 +1476,7 @@ public class ManagementService : IManagementService
         {
             //manager in project
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, modelProjectId, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, modelProjectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
             var commandTemplate = managementLogic.CreateGenericCommandTemplate(modelName, modelDescription,
@@ -1504,7 +1506,7 @@ public class ManagementService : IManagementService
             var project = unitOfWork.ProjectRepository.GetById(commandTemplateToModify.ProjectId.Value);
             //manager in project
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode,
-                unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, project.Id, true);
+                unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, project.Id, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
             var commandTemplate = managementLogic.ModifyGenericCommandTemplate(modelId, modelName, modelDescription,
@@ -1520,7 +1522,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1533,7 +1535,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1546,7 +1548,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
@@ -1560,7 +1562,7 @@ public class ManagementService : IManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (_, _) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 

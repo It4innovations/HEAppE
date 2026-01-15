@@ -37,13 +37,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
+        _userOrgService = userOrgService;
     }
 
     #endregion
@@ -60,7 +60,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// </summary>
     private readonly ILog _log;
 
-    private readonly HttpClient _userOrgHttpClient;
+    private readonly IUserOrgService _userOrgService;
 
     /// <summary>
     ///     Lock for creating user
@@ -220,7 +220,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
         var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .ListClusterNodeTypes();
@@ -362,18 +362,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         try
         {
             _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
-            
-            var requestUri =
-                $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
-            _userOrgHttpClient.DefaultRequestHeaders.Clear();
-            _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
-            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", lexisCredentials.OpenIdLexisAccessToken);
-            //set user agent
-            string instanceIdentifierPath = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-            string globalContextVersion = (GlobalContext.Properties["instanceVersion"] ?? "unknownVersion").ToString();
-            _userOrgHttpClient.DefaultRequestHeaders.Add("User-Agent", $"HEAppE-{instanceIdentifierPath}/{globalContextVersion}");
-            
-            var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
+            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
             return GetOrRegisterLexisCredentials(result);
         }
         catch (HttpRequestException ex)
@@ -381,6 +370,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             throw new AuthenticationTypeException("InvalidToken");
         }
     }
+    
+    
 
     /// <summary>
     ///     Get existing or create new HEAppE user, from the OpenId credentials.

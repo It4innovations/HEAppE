@@ -18,6 +18,7 @@ using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
@@ -38,8 +39,9 @@ internal class JobManagementLogic : IJobManagementLogic
     protected IUnitOfWork _unitOfWork;
     protected ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IUserOrgService _userOrgService;
 
-    internal JobManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal JobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
         _tasksToDeleteFromSpec = new List<TaskSpecification>();
@@ -47,13 +49,48 @@ internal class JobManagementLogic : IJobManagementLogic
         _extraLongTaskDecomposedDependency = new Dictionary<TaskSpecification, TaskSpecification>();
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _userOrgService = userOrgService;
     }
 
     public async Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser,
         bool isExtraLong)
     {
-        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
         var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        //check if user is authorized to use CommandTemplates in the job specification
+        //if jwt is enabled
+        if (!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        {
+            CommandTemplatePermissionsModel permissionsModel = await _userOrgService.GetCommandTemplatePermissionsAsync(
+                _httpContextKeys.Context.LEXISToken,
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+
+            var project = _unitOfWork.ProjectRepository.GetByIdWithClusterProjects(specification.ProjectId)
+                          ?? throw new RequestedObjectDoesNotExistException("NotExistingProject", specification.ProjectId);
+
+            var cluster = project.ClusterProjects
+                              .Select(cp => cp.Cluster)
+                              .FirstOrDefault(c => c.Id == specification.ClusterId)
+                          ?? throw new RequestedObjectDoesNotExistException("ClusterNotAssociatedWithProject", specification.ClusterId);
+
+            foreach (var commandTemplateId in specification.Tasks.Select(s => s.CommandTemplateId).Distinct())
+            {
+                var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
+                                      ?? throw new RequestedObjectDoesNotExistException("NotExistingCommandTemplate", commandTemplateId);
+
+                var queue = _unitOfWork.ClusterNodeTypeRepository.GetById(commandTemplate.ClusterNodeTypeId.Value)
+                            ?? throw new RequestedObjectDoesNotExistException("NotExistingClusterNodeType", commandTemplate.ClusterNodeTypeId);
+
+                _userOrgService.ValidatePermissions(
+                    permissionsModel, 
+                    cluster.Name, 
+                    queue.Name, 
+                    project.AccountingString, 
+                    commandTemplate.Name
+                );
+            }
+        }
+        
         var credentials = await clusterLogic.GetNextAvailableUserCredentials(
             specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
         CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic, credentials);
@@ -307,7 +344,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)
                       ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
 
-        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
                 .AuthorizeUserForJobInfo(loggedUser, jobInfo))
             throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
                 loggedUser.GetLogIdentification(), submittedJobInfoId);
@@ -320,7 +357,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId)
                        ?? throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
 
-        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
                 .AuthorizeUserForTaskInfo(loggedUser, taskInfo))
             throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithTask",
                 loggedUser.GetLogIdentification(), submittedTaskInfoId);
@@ -535,7 +572,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var cluster = clusterLogic.GetClusterById(specification.ClusterId);
         specification.Cluster = cluster;
 
-        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 

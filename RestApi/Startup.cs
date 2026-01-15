@@ -152,11 +152,17 @@ public class Startup
             options.JsonSerializerOptions.PropertyNamingPolicy = null;
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
+        
+        services.AddScoped<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
         {
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
+            {
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
+                conf.Timeout = TimeSpan.FromSeconds(60);
+            }
+
         });
         
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();

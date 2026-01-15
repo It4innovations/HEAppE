@@ -6,7 +6,7 @@ namespace HEAppE.ServiceTier.ClusterInformation;
 
 public interface IClusterInformationService
 {
-    IEnumerable<ClusterExt> ListAvailableClusters(string sessionCode, string clusterName, string nodeTypeName,
+    Task<IEnumerable<ClusterExt>> ListAvailableClusters(string sessionCode, string clusterName, string nodeTypeName,
         string projectName,
         string[] accountingString, string commandTemplateName, bool forceRefresh);
 

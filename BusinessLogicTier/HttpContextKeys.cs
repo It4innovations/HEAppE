@@ -36,7 +36,7 @@ public class RequestContext : IRequestContext
 
 public interface IHttpContextKeys
 {
-    Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService);
+    Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService);
     Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient);
     
     IRequestContext Context { get;  }
@@ -55,12 +55,12 @@ public class HttpContextKeys : IHttpContextKeys
         _log = LogManager.GetLogger(typeof(HttpContextKeys));
     }
 
-    public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService)
     {
         _log.Info("Authorizing with UserOrg");
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, sshCertificateAuthorityService, this);
+        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
 
         try
         {

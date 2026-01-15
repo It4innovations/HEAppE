@@ -41,10 +41,10 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// <param name="logger">Logger instance</param>
     /// <param name="cacheProvider">Memory cache instance</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) :
+    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) :
         base(logger, cacheProvider)
     {
-        _service = new ClusterInformationService(cacheProvider, sshCertificateAuthorityService, httpContextKeys);
+        _service = new ClusterInformationService(cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion
@@ -69,7 +69,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ListAvailableClusters(string sessionCode, string clusterName = null, string nodeTypeName = null,
+    public async Task<IActionResult> ListAvailableClusters(string sessionCode, string clusterName = null, string nodeTypeName = null,
         string projectName = null, [FromQuery] string[] accountingString = null, string commandTemplateName = null, bool? forceRefresh = null)
     {
         _logger.LogDebug($"Endpoint: \"ClusterInformation\" Method: \"ListAvailableClusters\", Parameters: \"SessionCode: {sessionCode}, ClusterName: {clusterName}, NodeTypeName: {nodeTypeName}, " +
@@ -80,7 +80,7 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
         };
         var validationResult = new ClusterInformationValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        return Ok(_service.ListAvailableClusters(sessionCode, clusterName, nodeTypeName, projectName, accountingString,
+        return Ok(await _service.ListAvailableClusters(sessionCode, clusterName, nodeTypeName, projectName, accountingString,
             commandTemplateName, forceRefresh ?? false));
     }
 

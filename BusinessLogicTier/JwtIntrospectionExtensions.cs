@@ -76,12 +76,14 @@ public static class JwtIntrospectionExtensions
 
                             var sshCaService = context.HttpContext.RequestServices
                                 .GetRequiredService<ISshCertificateAuthorityService>();
+                            var userOrgService = context.HttpContext.RequestServices
+                                .GetRequiredService<IUserOrgService>();
 
                             try
                             {
                                 await context.HttpContext.RequestServices
                                     .GetRequiredService<IHttpContextKeys>()
-                                    .Authorize(sshCaService);
+                                    .Authorize(sshCaService, userOrgService);
                             }
                             catch
                             {

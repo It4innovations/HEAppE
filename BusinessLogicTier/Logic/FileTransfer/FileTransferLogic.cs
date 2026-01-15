@@ -40,11 +40,12 @@ public class FileTransferLogic : IFileTransferLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    internal FileTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal FileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _userOrgService = userOrgService;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
@@ -56,6 +57,11 @@ public class FileTransferLogic : IFileTransferLogic
     ///     Unit of work
     /// </summary>
     private readonly IUnitOfWork _unitOfWork;
+    
+    /// <summary>
+    /// User Org Service
+    /// </summary>
+    private readonly IUserOrgService _userOrgService;
 
     /// <summary>
     ///     _logger
@@ -139,7 +145,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
 
         var clusterUserAuthCredentials = jobInfo.Specification.ClusterUser;
@@ -185,7 +191,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Getting file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
 
@@ -267,7 +273,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Removing file transfer method for submitted job Id \"{submittedJobInfoId}\" with user \"{loggedUser.GetLogIdentification()}\"");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
 
@@ -292,7 +298,7 @@ public class FileTransferLogic : IFileTransferLogic
     {
         _log.Info(
             $"Getting part of job files from cluster for submitted job Id {submittedJobInfoId} with user {loggedUser.GetLogIdentification()}");
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
@@ -336,7 +342,7 @@ public class FileTransferLogic : IFileTransferLogic
 
     public IList<SynchronizedJobFiles> SynchronizeAllUnfinishedJobFiles()
     {
-        var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var unfinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetNotFinishedJobInfos().ToList();
 
         var fileTransferMethodGroups =
@@ -372,7 +378,7 @@ public class FileTransferLogic : IFileTransferLogic
 
     public ICollection<FileInformation> ListChangedFilesForJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var fileManager =
             FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
@@ -390,7 +396,7 @@ public class FileTransferLogic : IFileTransferLogic
     }
     public byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser)
     {
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         
         var fileManager =

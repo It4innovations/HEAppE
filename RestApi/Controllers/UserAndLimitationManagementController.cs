@@ -39,9 +39,9 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority Service</param>
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
-        IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
+        IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
     {
-        _service = new UserAndLimitationManagementService(_cacheProvider, sshCertificateAuthorityService, httpContextKeys);
+        _service = new UserAndLimitationManagementService(_cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion

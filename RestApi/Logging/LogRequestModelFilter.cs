@@ -21,6 +21,7 @@ public class LogRequestModelFilter : ActionFilterAttribute
     private readonly ILogger<LogRequestModelFilter> _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IUserOrgService _userOrgService;
 
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -31,9 +32,10 @@ public class LogRequestModelFilter : ActionFilterAttribute
 
     private readonly JsonSerializerOptions _jsonOptions;
 
-    public LogRequestModelFilter(ILogger<LogRequestModelFilter> logger, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public LogRequestModelFilter(ILogger<LogRequestModelFilter> logger, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
 
@@ -108,7 +110,7 @@ public class LogRequestModelFilter : ActionFilterAttribute
         try
         {
             using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-            var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+            var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
             var user = logic.GetUserForSessionCode(sessionCode);
             return (user?.Id ?? -1, user?.Username ?? "Unknown");
         }
