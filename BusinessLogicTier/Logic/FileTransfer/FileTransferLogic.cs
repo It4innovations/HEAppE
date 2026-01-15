@@ -535,11 +535,10 @@ public class FileTransferLogic : IFileTransferLogic
     public dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser)
     {
         var result = new Dictionary<string, dynamic>();
-
-        var jobInfo = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
-            .GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
+        
+        var jobSpecification = _unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId);
         var jobClusterDirectoryPath = FileSystemUtils
-            .GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
+            .GetJobClusterDirectoryPath(jobSpecification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
         if (string.IsNullOrEmpty(jobClusterDirectoryPath))
             throw new Exception("Error: jobClusterDirectoryPath is not set!");
 
@@ -556,9 +555,9 @@ public class FileTransferLogic : IFileTransferLogic
         
         absoluteFilePath = FileSystemUtils.SanitizePath(absoluteFilePath);
 
-        var fileManager = FileSystemFactory.GetInstance(jobInfo.Specification.FileTransferMethod.Protocol)
-            .CreateFileSystemManager(jobInfo.Specification.FileTransferMethod, _sshCertificateAuthorityService);
-        var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, _httpContextKeys.Context.SshCaToken);
+        var fileManager = FileSystemFactory.GetInstance(jobSpecification.FileTransferMethod.Protocol)
+            .CreateFileSystemManager(jobSpecification.FileTransferMethod, _sshCertificateAuthorityService);
+        var succeeded = fileManager.UploadFileToClusterByAbsolutePath(fileStream, absoluteFilePath, jobSpecification.ClusterUser, jobSpecification.Cluster, _httpContextKeys.Context.SshCaToken);
         result.Add("Succeeded", succeeded);
         result.Add("Path", succeeded ? absoluteFilePath : null);
         return result;
