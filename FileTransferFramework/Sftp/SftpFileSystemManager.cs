@@ -48,6 +48,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     {
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
+        
         var localBasePath = Path.Combine(basePath, _scripts.SubExecutionsPath.TrimStart('/'));
 
         var partPath = localBasePath.Replace(basePath, string.Empty);
@@ -268,8 +269,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         foreach (var file in client.ListDirectory(hostTimeZone, currentDirectory))
         {
             if (file.Name == "." || file.Name == "..") continue;
-
-            // Sestavíme plnou cestu k aktuálnímu souboru/složce
+            
             var fullPath = FileSystemUtils.ConcatenatePaths(currentDirectory, file.Name);
 
             if (file.IsDirectory)

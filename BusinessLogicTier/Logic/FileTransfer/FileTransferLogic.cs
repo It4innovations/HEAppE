@@ -410,9 +410,9 @@ public class FileTransferLogic : IFileTransferLogic
             relativeFilePath = relativeFilePath.TrimStart('/');
             foreach (var task in jobInfo.Tasks)
             {
-                var start1 = Path.Combine($"{jobInfo.Id}", $"{task.Id}",
+                var start1 = Path.Combine($"{jobInfo.Specification.Id}", $"{jobInfo.Specification.Id}",
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
-                var start2 = Path.Combine($"{task.Id}",
+                var start2 = Path.Combine($"{jobInfo.Specification.Id}",
                     $"{task.Specification.ClusterTaskSubdirectory ?? string.Empty}");
                 if (relativeFilePath.StartsWith(start1))
                 {
