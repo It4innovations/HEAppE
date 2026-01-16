@@ -8,6 +8,7 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using IdentityModel.Client;
@@ -21,6 +22,7 @@ namespace HEAppE.BusinessLogicTier;
 public interface IRequestContext
 {
     public long AdaptorUserId { get; set; } 
+    public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
     public string LEXISToken { get; set; }
@@ -29,6 +31,7 @@ public interface IRequestContext
 public class RequestContext : IRequestContext
 {
     public long AdaptorUserId { get; set; } 
+    public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
     public string LEXISToken { get; set; }
@@ -83,6 +86,7 @@ public class HttpContextKeys : IHttpContextKeys
             
 
             _context.AdaptorUserId = user.Id;
+            _context.UserInfo = $"{user.Username}:{user.Email}";
             return user;
         }
         catch (Exception ex)

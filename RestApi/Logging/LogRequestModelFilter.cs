@@ -71,13 +71,27 @@ public class LogRequestModelFilter : ActionFilterAttribute
         try
         {
             var sessionCode = ExtractSessionCode(context.ActionArguments);
-            var (userId, userName) = string.IsNullOrEmpty(sessionCode) 
-                ? (0L, "Anonymous") 
-                : GetUserInfo(sessionCode);
+            
+            var (userId, userName) = (0L, "Anonymous");
+            if (string.IsNullOrEmpty(sessionCode))
+            {
+                //try context
+                if (context.HttpContext.Items.TryGetValue(_httpContextKeys.Context.AdaptorUserId, out var userIdObj) &&
+                    context.HttpContext.Items.TryGetValue(_httpContextKeys.Context.UserInfo, out var userNameObj) &&
+                    userIdObj is long id && userNameObj is string name)
+                {
+                    userId = id;
+                    userName = name;
+                }
+            }
+            else
+            {
+                GetUserInfo(sessionCode);
+            }
             
             var serializedArgs = JsonSerializer.Serialize(context.ActionArguments, _jsonOptions);
 
-            _logger.LogInformation("Action: {Action}, UserId: {UserId}, UserName: {UserName}, Arguments: {Arguments}",
+            _logger.LogInformation("Action: {Action}, UserId: {UserId}, UserInfo: {UserName}, Arguments: {Arguments}",
                 context.ActionDescriptor.DisplayName, userId, userName, serializedArgs);
         }
         catch (Exception ex)
