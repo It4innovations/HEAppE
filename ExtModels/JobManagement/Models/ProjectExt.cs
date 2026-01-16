@@ -19,7 +19,7 @@ public class ProjectExt
     /// </summary>
     [DataMember(Name = "Id")]
     [Description("Id")]
-    public long Id { get; set; }
+    public long? Id { get; set; }
 
     /// <summary>
     /// Name

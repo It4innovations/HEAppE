@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added IQueryable-based user-specific job retrieval logic for more efficient filtering.
 - Added global cache invalidation mechanism with enhanced cache entry management for `ListAvalialbleClusters` endpoint.
 - Added `SubmittedJobInfoId` to `GetDataTransferMethodModel` to enhance task info handling.
+- Support for checking permissions of the single user to use `CommandTemplate` by the `UserOrgService`
 
 ### Changed
 - Consolidated `Lexis Token Service` registration and simplified conditional authentication middleware usage.

@@ -18,6 +18,7 @@ using HEAppE.DomainObjects.JobManagement.Comparers;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -59,7 +60,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
         //check if user is authorized to use CommandTemplates in the job specification
         //if jwt is enabled
-        if (!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
         {
             CommandTemplatePermissionsModel permissionsModel = await _userOrgService.GetCommandTemplatePermissionsAsync(
                 _httpContextKeys.Context.LEXISToken,

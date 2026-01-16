@@ -4,7 +4,8 @@ public class LexisAuthenticationConfiguration
 {
     public static bool UseBearerAuth { get; set; } = false;
     public static string ExtendedUserInfoEndpoint { get; set; } = "/api/UserInfo/Extended";
-    public static string CommandTemplatePermissions { get; set; } = "/api/CommandTemplatePermissions/";
+    public static string CommandTemplatePermissions { get; set; } = "/api/Heappe/CommandTemplatePermissions/";
+    public static bool CheckCommandTemplatePermissions { get; set; } = true;
     public static string BaseAddress { get; set; }
     public static string EndpointPrefix { get; set; }
     public static RoleMapping RoleMapping { get; set; } = new();

@@ -39,7 +39,7 @@ public static class UserAndLimitationManagementConverts
             Id = userGroup.Id,
             Name = userGroup.Name,
             Description = userGroup.Description,
-            Project = new ProjectExt { Name = userGroup.Project?.Name, Description = userGroup.Project?.Description },
+            Project = userGroup.Project.ConvertIntToExt(),
             Roles = userGroup.AdaptorUserUserGroupRoles?.Where(r=>!r.IsDeleted && r.AdaptorUser.Id == user.Id).Select(r => r.AdaptorUserRole.Name)
                 .ToArray()
         };

@@ -11,6 +11,7 @@ using Newtonsoft.Json;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
@@ -61,7 +62,7 @@ public class ClusterInformationService : IClusterInformationService
         }
 
         CommandTemplatePermissionsModel lexisPermissions = null;
-        if (!string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
         {
             lexisPermissions = await _userOrgService.GetCommandTemplatePermissionsAsync(
                 _httpContextKeys.Context.LEXISToken,
