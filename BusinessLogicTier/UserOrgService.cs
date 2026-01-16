@@ -26,16 +26,31 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
     private readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     private const string ClientName = "userOrgApi";
 
+    private string BuildUrl(params string[] segments)
+    {
+        var cleanedSegments = segments
+            .Where(s => !string.IsNullOrWhiteSpace(s))
+            .Select(s => s.Trim('/'));
+
+        return string.Join("/", cleanedSegments);
+    }
     public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken)
     {
-        string relativeUri = $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
+        string relativeUri = BuildUrl(
+            LexisAuthenticationConfiguration.EndpointPrefix, 
+            LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint
+        );
         var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
         return await SendAsync<UserInfoExtendedModel>(request);
     }
 
     public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier)
     {
-        string relativeUri = $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.CommandTemplatePermissions}";
+        string relativeUri = BuildUrl(
+            LexisAuthenticationConfiguration.EndpointPrefix, 
+            LexisAuthenticationConfiguration.CommandTemplatePermissions, 
+            heappeInstanceIdentifier
+        );
         var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
         return await SendAsync<CommandTemplatePermissionsModel>(request);
     }
