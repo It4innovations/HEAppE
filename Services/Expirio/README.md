@@ -8,6 +8,10 @@
 
 **RetryInitialDelayMs**: delay, in milliseconds, before a retry.
 
+**ProviderName**: Provider name for authentication.
+
+**TokenName**: Token name for authentication.
+
 
 # Dependency Injection registration
 
@@ -30,9 +34,14 @@
                                             ));
 
 
-
 # Usage
 
+## ExchangeTokenForKerberosAsync()
+    public async Task<string> GetKerberosTicket(IExpirioService expirio, KerberosExchangeRequest request, CancellationToken ct)
+    {
+        var ticket = await expirio.ExchangeTokenForKerberosAsync(request, ct);
+        return ticket;
+    }
 
 
 # Exceptions
