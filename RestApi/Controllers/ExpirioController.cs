@@ -17,9 +17,9 @@ public class ExpirioController : ControllerBase
     public ExpirioController(IExpirioService expirio) => _expirio = expirio;
 
     [HttpPost("kerberos")]
-    public async Task<IActionResult> GetKerberosTicket([FromBody] KerberosExchangeRequest req, CancellationToken ct)
+    public async Task<IActionResult> GetKerberosTicket([FromBody] KerberosExchangeRequest request, CancellationToken ct)
     {
-        var ticket = await _expirio.ExchangeTokenForKerberosAsync(req.ProviderName, ct);
+        var ticket = await _expirio.ExchangeTokenForKerberosAsync(request, ct);
         return Ok(new { ticket });
     }
 }

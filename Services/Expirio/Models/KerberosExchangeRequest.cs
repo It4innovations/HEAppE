@@ -16,13 +16,4 @@ public class KerberosExchangeRequest
     [DataMember(Name = "ProviderName", IsRequired = true)]
     [Description("Provider name")]
     public required string ProviderName { get; set; }
-    
-    /*
-    /// <summary>
-    /// Token
-    /// </summary>
-    [DataMember(Name = "Token", IsRequired = true)]
-    [Description("Token")]
-    public required string Token { get; set; }
-    */
 }

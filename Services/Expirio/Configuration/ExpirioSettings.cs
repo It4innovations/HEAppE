@@ -23,8 +23,13 @@ namespace Services.Expirio.Configuration
         public static int RetryInitialDelayMs { get; set; } = 200;
 
         /// <summary>
-        ///     Client authentication token (only used for testing purpose)
+        ///     Client authentication provider name
         /// </summary>
-        //public static string? Token { get; set; }
+        public static string ProviderName { get; set; } = string.Empty;
+
+        /// <summary>
+        ///     Client authentication token name
+        /// </summary>
+        public static string TokenName { get; set; } = string.Empty;
     }
 }

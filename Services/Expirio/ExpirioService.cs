@@ -26,20 +26,15 @@ public class ExpirioService : IExpirioService
         _httpClient = httpClient;
     }
 
-    public async Task<string> ExchangeTokenForKerberosAsync(string providerName, CancellationToken cancellationToken = default)
+    public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, CancellationToken cancellationToken = default)
     {
         _logger.Info("Endpoint: \"ExpirioService\" Method: \"ExchangeTokenForKerberos\"\n\n");
 
-        var request = new KerberosExchangeRequest { ProviderName = providerName};
         var jsonRequest = JsonSerializer.Serialize(request);
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{ExpirioSettings.BaseUrl}/kerberos/exchange")
         {
             Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
         };
-        
-        // Add API token header if configured
-        //if (!string.IsNullOrEmpty(_configuration.ApiToken))
-        //    httpRequest.Headers.Add("X-Api-Token", _configuration.ApiToken);
 
         var token = ""; //TODO: need to get the appropriate token
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
