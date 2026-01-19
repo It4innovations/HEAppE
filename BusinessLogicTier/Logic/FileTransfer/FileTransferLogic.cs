@@ -174,7 +174,7 @@ public class FileTransferLogic : IFileTransferLogic
                 FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath),
             Credentials = new FileTransferKeyCredentials
             {
-                Username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) ? response.PosixUsername : clusterUserAuthCredentials.Username,
+                Username = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication && SshCaSettings.UsePosixAccountFromCertificate) ? response.PosixUsername : clusterUserAuthCredentials.Username,
                 Password = clusterUserAuthCredentials.Password,
                 FileTransferCipherType = clusterUserAuthCredentials.CipherType,
                 CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
@@ -246,7 +246,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
-            Username = (string.IsNullOrEmpty(response.PosixUsername))?jobInfo.Specification.ClusterUser.Username: response.PosixUsername,
+            Username = (!SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername))?jobInfo.Specification.ClusterUser.Username: response.PosixUsername,
             FileTransferCipherType = certGenerator.CipherType,
             PrivateKey = certGenerator.CipherType != FileTransferCipherType.Ed25519 ? certGenerator.ToPrivateKey() : certGenerator.ToPrivateKeyInPEM(),
             CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, 
@@ -265,7 +265,7 @@ public class FileTransferLogic : IFileTransferLogic
         SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService,adaptorUserId: loggedUser.Id)
             .AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo, _httpContextKeys.Context.SshCaToken);
 
-        _unitOfWork.Save();
+        await _unitOfWork.SaveAsync();
         return transferMethod;
     }
 
