@@ -125,7 +125,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
@@ -135,7 +135,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
@@ -172,12 +172,12 @@ public class SftpFileSystemConnector : IPoolableAdapter
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
             };
 

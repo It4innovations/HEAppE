@@ -246,7 +246,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         transferMethod.Credentials = new FileTransferKeyCredentials
         {
-            Username = (!SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername))?jobInfo.Specification.ClusterUser.Username: response.PosixUsername,
+            Username = (!SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername))?jobInfo.Specification.ClusterUser.Username: response.PosixUsername,
             FileTransferCipherType = certGenerator.CipherType,
             PrivateKey = certGenerator.CipherType != FileTransferCipherType.Ed25519 ? certGenerator.ToPrivateKey() : certGenerator.ToPrivateKeyInPEM(),
             CredentialsAuthType = ClusterAuthenticationCredentialsAuthType.PrivateKey, 

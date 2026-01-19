@@ -360,12 +360,12 @@ public class SshConnector : IPoolableAdapter
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
             };
 
@@ -398,7 +398,7 @@ public class SshConnector : IPoolableAdapter
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
@@ -408,7 +408,7 @@ public class SshConnector : IPoolableAdapter
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    !SshCaSettings.UsePosixAccountFromCertificate && string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
