@@ -9,6 +9,8 @@ using System.Net.Http;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.HpcConnectionFramework.Configuration;
+using log4net;
 using SshCaAPI;
 
 public static class JwtIntrospectionExtensions
@@ -94,7 +96,10 @@ public static class JwtIntrospectionExtensions
                             // Optional: exchange SSH CA token
                             var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
                             var client = httpClientFactory.CreateClient();
-                            client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
+                      
+                            string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                            string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                            client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
 
                             var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
                             {
