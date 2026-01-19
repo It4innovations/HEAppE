@@ -11,9 +11,30 @@ namespace Services.Expirio.Models;
 public class KerberosExchangeResponse
 {
     /// <summary>
-    /// Ticket
+    /// FileName
     /// </summary>
-    [DataMember(Name = "Ticket")]
-    [Description("Ticket")]
-    public string Ticket { get; set; }
+    [DataMember(Name = "FileName")]
+    [Description("FileName")]
+    public required string FileName { get; set; }
+
+    /// <summary>
+    /// Content
+    /// </summary>
+    [DataMember(Name = "Content")]
+    [Description("Content")]
+    public required string Content { get; set; }
+
+    /// <summary>
+    /// Size
+    /// </summary>
+    [DataMember(Name = "Size")]
+    [Description("Size")]
+    public required int Size { get; set; }
+
+    /// <summary>
+    /// Timestamp
+    /// </summary>
+    [DataMember(Name = "Timestamp")]
+    [Description("Timestamp")]
+    public required string Timestamp { get; set; }
 }

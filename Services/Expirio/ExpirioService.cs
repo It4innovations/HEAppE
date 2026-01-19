@@ -45,7 +45,7 @@ public class ExpirioService : IExpirioService
         if (response.IsSuccessStatusCode)
         {
             var dto = JsonSerializer.Deserialize<KerberosExchangeResponse>(content);
-            return dto?.Ticket ?? throw new ExpirioException("Empty ticket in response.");
+            return dto?.Content ?? throw new ExpirioException("Empty ticket in response.");
         }
         else
         {

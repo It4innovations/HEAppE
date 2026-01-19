@@ -20,7 +20,7 @@ public class ExpirioServiceTests
         var expirio = new ExpirioService(httpClient);
         var request = new KerberosExchangeRequest()
         {
-            ProviderName = "",
+            ProviderName = ExpirioSettings.ProviderName,
         };
 
         var ct = new CancellationToken();
@@ -47,7 +47,7 @@ public class ExpirioServiceTests
         var expirio = new ExpirioService(httpClient);
         var request = new KerberosExchangeRequest()
         {
-            ProviderName = "",
+            ProviderName = ExpirioSettings.ProviderName,
         };
 
         var ct = new CancellationToken();

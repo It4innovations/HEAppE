@@ -13,7 +13,7 @@ public class KerberosExchangeRequest
     /// <summary>
     /// Provider name
     /// </summary>
-    [DataMember(Name = "ProviderName", IsRequired = true)]
+    [DataMember(Name = "providerName", IsRequired = true)]
     [Description("Provider name")]
     public required string ProviderName { get; set; }
 }
