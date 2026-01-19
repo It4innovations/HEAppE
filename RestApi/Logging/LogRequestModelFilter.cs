@@ -108,17 +108,36 @@ public class LogRequestModelFilter : IAsyncActionFilter
 
     private bool TryGetFromContext(HttpContext context, out long userId, out string userName)
     {
-        userId = 0;
         userName = string.Empty;
-
-        if (context.Items.TryGetValue(_httpContextKeys.Context.AdaptorUserId, out var userIdObj) &&
-            context.Items.TryGetValue(_httpContextKeys.Context.UserInfo, out var userNameObj) &&
-            userIdObj is long id && userNameObj is string name)
+        userId = -1;
+        
+        if(context.Items.TryGetValue("X-API-Key", out var contextItem))
         {
-            userId = id;
-            userName = name;
-            return true;
+            var apiKey = contextItem?.ToString();
+            if (!string.IsNullOrEmpty(apiKey))
+            {
+                var parts = apiKey.Split(':', 2);
+                if (parts.Length == 2)
+                {
+                    userName = parts[0];
+                    userId = -1; // UserId is unknown in this case
+                    return true;
+                }
+            }
         }
+        //or bearer from Authorization HEADER
+        else if(context.Items.TryGetValue("Authorization", out var item))
+        {
+            var bearer = item?.ToString();
+            if (!string.IsNullOrEmpty(bearer) && bearer.StartsWith("Bearer "))
+            {
+                userName = "BEARER AUTH IN HEADER"; 
+                userId = -1; // UserId is unknown in this case
+                return true;
+            }
+        }
+            
+        
         return false;
     }
 
