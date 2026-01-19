@@ -210,9 +210,31 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var authenticationLogic = LogicFactory.GetLogicFactory()
             .CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
         AdaptorUser loggedUser;
-        loggedUser = JwtTokenIntrospectionConfiguration.IsEnabled ? 
-            authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId) : 
-            authenticationLogic.GetUserForSessionCode(sessionCode);
+
+        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        {
+            if (httpContextKeys.Context.AdaptorUserId >= 0)
+            {
+                loggedUser = authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+                
+            }
+            else
+            {
+                throw new UnauthorizedAccessException("Unauthorized"); 
+            }
+        }
+        else
+        {
+            if (string.IsNullOrEmpty(sessionCode))
+            {
+                throw new UnauthorizedAccessException("Unauthorized");
+            }
+            loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+        }
+        
+        if (loggedUser == null)
+            throw new UnauthorizedAccessException("Unauthorized");
+            
 
         var now = DateTime.UtcNow;
 
