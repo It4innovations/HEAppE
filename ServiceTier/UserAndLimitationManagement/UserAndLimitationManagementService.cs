@@ -198,6 +198,15 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
     {
         var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService,sshCertificateAuthorityService, httpContextKeys);
+        
+        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            if (httpContextKeys.Context.AdaptorUserId < 0)
+            {
+                throw new UnauthorizedAccessException("Unauthorized"); 
+            }
+            return authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+        }
         var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
         CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
@@ -211,7 +220,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             .CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
         AdaptorUser loggedUser;
 
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             if (httpContextKeys.Context.AdaptorUserId >= 0)
             {
