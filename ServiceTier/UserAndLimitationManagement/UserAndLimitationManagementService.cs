@@ -9,6 +9,7 @@ using HEAppE.BusinessLogicTier;
 using Microsoft.Extensions.Caching.Memory;
 using log4net;
 using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.JobManagement;
@@ -180,78 +181,53 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
     }
 
-    /// <summary>
-    ///     Get user for given <paramref name="sessionCode" /> and check if the user has <paramref name="requiredUserRole" />.
-    /// </summary>
-    /// <param name="sessionCode">User session code</param>
-    /// <param name="unitOfWork">Unit of work</param>
-    /// <param name="requiredUserRole">Allowed User role</param>
-    /// <param name="projectId">
-    ///     Project Id /param>
-    ///     <returns>AdaptorUser object if user has required user role.</returns>
-    ///     <exception cref="InsufficientRoleException">
-    ///         Is thrown if the user doesn't have <paramref name="requiredUserRole" />
-    ///         .
-    ///     </exception>
-    ///     <exception cref="RequestedObjectDoesNotExistException">is thrown when the specific project does not exist.</exception>
-    public static AdaptorUser GetValidatedUserForSessionCode(string sessionCode, IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, 
-        AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
+    private static AdaptorUser AuthenticateUser(string sessionCode, IUserAndLimitationManagementLogic authLogic, IHttpContextKeys httpContextKeys)
     {
-        var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService,sshCertificateAuthorityService, httpContextKeys);
-        
         if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             if (httpContextKeys.Context.AdaptorUserId < 0)
-            {
-                throw new UnauthorizedAccessException("Unauthorized"); 
-            }
-            return authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+                throw new UnauthorizedAccessException("Unauthorized");
+
+            return authLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
         }
-        if(string.IsNullOrEmpty(sessionCode) && httpContextKeys.Context.AdaptorUserId > 0)
+
+        if (string.IsNullOrEmpty(sessionCode))
         {
-            return authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+            if (httpContextKeys.Context.AdaptorUserId > 0)
+                return authLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+            
+            throw new UnauthorizedAccessException("Unauthorized");
         }
-        var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+
+        var user = authLogic.GetUserForSessionCode(sessionCode);
+        if (user == null)
+            throw new UnauthorizedAccessException("Unauthorized");
+
+        return user;
+    }
+
+    public static AdaptorUser GetValidatedUserForSessionCode(
+        string sessionCode, IUnitOfWork unitOfWork, IUserOrgService userOrgService, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, 
+        AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
+    {
+        var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
 
         CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
+        
         return loggedUser;
     }
 
     public static (AdaptorUser, IEnumerable<Project> projects) GetValidatedUserForSessionCode(
-        string sessionCode, IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, AdaptorUserRoleType allowedRole)
+        string sessionCode, IUnitOfWork unitOfWork, IUserOrgService userOrgService, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, 
+        AdaptorUserRoleType allowedRole)
     {
-        var authenticationLogic = LogicFactory.GetLogicFactory()
-            .CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
-        AdaptorUser loggedUser;
-
-        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-        {
-            if (httpContextKeys.Context.AdaptorUserId >= 0)
-            {
-                loggedUser = authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
-                
-            }
-            else
-            {
-                throw new UnauthorizedAccessException("Unauthorized"); 
-            }
-        }
-        else
-        {
-            if(string.IsNullOrEmpty(sessionCode) && httpContextKeys.Context.AdaptorUserId > 0)
-            {
-                loggedUser = authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
-            }
-            else
-                loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
-        }
-        
-        if (loggedUser == null)
-            throw new UnauthorizedAccessException("Unauthorized");
-            
+        var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
 
         var now = DateTime.UtcNow;
-
         var projects = loggedUser.AdaptorUserUserGroupRoles
             .Where(r =>
                 r.AdaptorUserGroup.Project != null &&
