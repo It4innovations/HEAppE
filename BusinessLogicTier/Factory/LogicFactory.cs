@@ -19,7 +19,7 @@ public abstract class LogicFactory
         new(Enum.GetValues(typeof(BusinessLogicType)).Length);
 
     /// <summary>
-    ///     Hack, initialized in Startup
+    ///  Service provider for dependency injection
     /// </summary>
     public static IServiceProvider ServiceProvider { get; set; }
 
