@@ -238,11 +238,12 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
         else
         {
-            if (string.IsNullOrEmpty(sessionCode))
+            if(string.IsNullOrEmpty(sessionCode) && httpContextKeys.Context.AdaptorUserId > 0)
             {
-                throw new UnauthorizedAccessException("Unauthorized");
+                loggedUser = authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
             }
-            loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
+            else
+                loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
         }
         
         if (loggedUser == null)
