@@ -38,6 +38,15 @@ public class ClusterInformationService : IClusterInformationService
         _cacheProvider = cacheProvider;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
+    
+    private void SetCacheWithGlobalToken<T>(string key, T value, int expirationMinutes)
+    {
+        var options = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes))
+            .AddExpirationToken(new CancellationChangeToken(CacheUtils.GlobalResetToken));
+    
+        _cacheProvider.Set(key, value, options);
+    }
 
     public async Task<IEnumerable<ClusterExt>> ListAvailableClusters(string sessionCode,
         string clusterName,
@@ -106,10 +115,8 @@ public class ClusterInformationService : IClusterInformationService
             })
             .Where(cl => cl.NodeTypes.Length > 0)
             .ToArray();
-
-        _cacheProvider.Set(memoryCacheKey, clustersExt, new MemoryCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters))
-            .AddExpirationToken(new CancellationChangeToken(CacheUtils.GlobalResetToken)));
+        
+        SetCacheWithGlobalToken(memoryCacheKey, clustersExt, _cacheLimitForListAvailableClusters);
 
         return clustersExt;
     }
@@ -180,8 +187,7 @@ public class ClusterInformationService : IClusterInformationService
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var result =
                 await clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
-            _cacheProvider.Set(memoryCacheKey, result,
-                TimeSpan.FromMinutes(_cacheLimitForGetCommandTemplateParametersName));
+            SetCacheWithGlobalToken(memoryCacheKey, result, _cacheLimitForGetCommandTemplateParametersName);
             return result;
         }
     }
@@ -213,8 +219,7 @@ public class ClusterInformationService : IClusterInformationService
             _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork,  _sshCertificateAuthorityService, _httpContextKeys);
             var nodeUsage = await clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
-            _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(),
-                TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));
+            SetCacheWithGlobalToken(memoryCacheKey, nodeUsage.ConvertIntToExt(), _cacheLimitForGetCurrentClusterUsage);
             return nodeUsage.ConvertIntToExt();
         }
     }

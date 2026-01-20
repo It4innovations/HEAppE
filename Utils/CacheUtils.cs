@@ -29,10 +29,9 @@ public static class CacheUtils
     public static void InvalidateAllCache(ILogger _logger)
     {
         _logger.LogDebug("Invalidating ALL cache entries via global reset token.");
-
-        _globalResetToken.Cancel();
-        _globalResetToken.Dispose();
-        _globalResetToken = new CancellationTokenSource();
+        var oldTokenSource = Interlocked.Exchange(ref _globalResetToken, new CancellationTokenSource());
+        oldTokenSource.Cancel();
+        oldTokenSource.Dispose();
     }
 
     /// <summary>
