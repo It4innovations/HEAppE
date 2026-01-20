@@ -254,6 +254,10 @@ public static class JobManagementConverts
 
     public static ProjectExt ConvertIntToExt(this Project project)
     {
+        if (project == null)
+        {
+            return null; 
+        }
         ProjectExt convert = new()
         {
             Id = project.Id,
