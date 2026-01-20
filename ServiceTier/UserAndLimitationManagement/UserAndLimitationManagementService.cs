@@ -207,6 +207,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             }
             return authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
         }
+        if(string.IsNullOrEmpty(sessionCode) && httpContextKeys.Context.AdaptorUserId > 0)
+        {
+            return authenticationLogic.GetUserById(httpContextKeys.Context.AdaptorUserId);
+        }
         var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
 
         CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
