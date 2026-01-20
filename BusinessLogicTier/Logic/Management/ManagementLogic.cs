@@ -378,17 +378,8 @@ public class ManagementLogic : IManagementLogic
             {
                 throw new InputValidationException("ProjectAlreadyExist");
             }
-
-
-            // Check if an admin user exists
-            var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
-            if (heappeAdminUser != null)
-            {           
-                heappeAdminUser.CreateSpecificUserRoleForUser(defaultAdaptorUserGroup,
-                    AdaptorUserRoleType.Administrator);
-                _unitOfWork.AdaptorUserRepository.Update(heappeAdminUser);
-                _unitOfWork.Save();
-            }
+            
+            AssignAllRolesFromConfig(defaultAdaptorUserGroup);
 
             var adaptorUserGroup = loggedUser.UserType switch
             {
@@ -407,6 +398,45 @@ public class ManagementLogic : IManagementLogic
         }
 
         return project;
+    }
+    
+    public void AssignAllRolesFromConfig(AdaptorUserGroup group)
+    {
+        AssignSpecificRole(RoleAssignmentConfiguration.Administrators, AdaptorUserRoleType.Administrator, group);
+        AssignSpecificRole(RoleAssignmentConfiguration.Maintainers, AdaptorUserRoleType.Maintainer, group);
+        AssignSpecificRole(RoleAssignmentConfiguration.Managers, AdaptorUserRoleType.Manager, group);
+        AssignSpecificRole(RoleAssignmentConfiguration.Submitters, AdaptorUserRoleType.Submitter, group);
+        AssignSpecificRole(RoleAssignmentConfiguration.Reporters, AdaptorUserRoleType.Reporter, group);
+        AssignSpecificRole(RoleAssignmentConfiguration.GroupReporters, AdaptorUserRoleType.GroupReporter, group);
+        AssignSpecificRole(RoleAssignmentConfiguration.ManagementAdmins, AdaptorUserRoleType.ManagementAdmin, group);
+        _unitOfWork.Save();
+    }
+    
+    /// <summary>
+    /// Assigns specific role to users in the provided usernames array
+    /// </summary>
+    /// <param name="usernames"></param>
+    /// <param name="roleType"></param>
+    /// <param name="group"></param>
+    private void AssignSpecificRole(string[] usernames, AdaptorUserRoleType roleType, AdaptorUserGroup group)
+    {
+        if (usernames == null || usernames.Length == 0) return;
+
+        foreach (var username in usernames)
+        {
+            var user = _unitOfWork.AdaptorUserRepository.GetByName(username);
+            if (user != null)
+            {
+                user.CreateSpecificUserRoleForUser(group, roleType);
+                _unitOfWork.AdaptorUserRepository.Update(user);
+                
+                _logger.Info($"SysUser '{username}' assigned to role '{roleType}'.");
+            }
+            else
+            {
+                _logger.Warn($"SysUser '{username}' found in config but not in Database");
+            }
+        }
     }
 
     /// <summary>
@@ -2542,8 +2572,11 @@ public class ManagementLogic : IManagementLogic
             throw new InputValidationException("AdaptorUserAlreadyAssignedToProject", modelUsername, modelProjectId);
 
 
-        var userGroups = project.AdaptorUserGroups;
-
+        var userGroups = project.AdaptorUserGroups
+            .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
+                         !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+            .ToList();
+        
         //get role
         var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
                               ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);

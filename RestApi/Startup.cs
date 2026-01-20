@@ -114,6 +114,7 @@ public class Startup
         Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
         Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());
         Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
+        Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
         Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
