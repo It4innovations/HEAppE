@@ -433,7 +433,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         string script_name,
         string job_name, string account, string partition,
         int nodes, int ntasks_per_node, TimeSpan? time,
-        string output, string error
+        string output, string error, bool isGpuPartition
     )
     {
         if (time == null)
@@ -448,6 +448,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         result += " --output=" + output;
         result += " --error=" + error;
         result += " --test-only " + script_name;
+        //count 
+        result += isGpuPartition? $" --gpus={nodes}" : "";
         return result;
     }
 
@@ -473,7 +475,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 ntasks_per_node: 1,
                 time: TimeSpan.FromSeconds(1),
                 output: "dummy.out",
-                error: "dummy.err"
+                error: "dummy.err",
+                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU"))
             ) + "\n";
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -526,7 +529,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             ntasks_per_node: (int)dryRunJobSpecification.TasksPerNode,
             time: TimeSpan.FromMinutes(dryRunJobSpecification.WallTimeInMinutes),
             output: "dummy.out",
-            error: "dummy.err"
+            error: "dummy.err",
+            isGpuPartition:dryRunJobSpecification.IsGpuPartition
         ) + "\n";
 
         var sshCommand = $"{_commands.InterpreterCommand} eval `(" + sbatchCommand + ")`";

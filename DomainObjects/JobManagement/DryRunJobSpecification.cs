@@ -10,4 +10,6 @@ public class DryRunJobSpecification
     public long TasksPerNode { get; set; }
     public long WallTimeInMinutes { get; set; }
     public ClusterAuthenticationCredentials ClusterUser { get; set; }
+    
+    public bool IsGpuPartition { get; set; }
 }
