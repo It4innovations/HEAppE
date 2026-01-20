@@ -266,7 +266,7 @@ public static class JobManagementConverts
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
             KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
-            CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
+            CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray()
         };
         return convert;
     }

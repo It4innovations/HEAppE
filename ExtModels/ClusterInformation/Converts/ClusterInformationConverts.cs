@@ -236,7 +236,7 @@ public static class ClusterInformationConverts
             IsGeneric = commandTemplate.IsGeneric,
             IsEnabled = commandTemplate.IsEnabled,
             CreatedFromGenericTemplateId = commandTemplate.CreatedFromId,
-            TemplateParameters = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
+            TemplateParameters = commandTemplate.TemplateParameters?.Where(w => w.IsVisible)
                 .Select(s => s.ConvertIntToExt())
                 .ToArray()
         };
