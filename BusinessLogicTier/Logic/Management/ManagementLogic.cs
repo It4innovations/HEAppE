@@ -2586,7 +2586,7 @@ public class ManagementLogic : IManagementLogic
 
     public AdaptorUser RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole)
     {
-        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
                           ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
 
         var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
@@ -2740,7 +2740,7 @@ public class ManagementLogic : IManagementLogic
 
     public AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole)
     {
-        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
                           ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
 
         var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(modelUserGroupId)
