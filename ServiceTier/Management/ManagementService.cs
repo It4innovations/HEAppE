@@ -1516,6 +1516,50 @@ public class ManagementService : IManagementService
         }
     }
 
+    public AdaptorUserExt[] ListAdaptorUsersInUserGroup(long userGroupId, string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUsers = managementLogic.ListAdaptorUsersInUserGroup(userGroupId);
+            return adaptorUsers.Select(au => au.ConvertIntToExt()).ToArray();
+        }
+    }
+
+    public AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole,
+        string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUser = managementLogic.AssignAdaptorUserToUserGroup(modelUsername, modelUserGroupId, modelRole);
+            return adaptorUser.ConvertIntToExt();
+        }
+    }
+
+    public AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId,
+        AdaptorUserRoleType modelRole, string modelSessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUser = managementLogic.RemoveAdaptorUserFromUserGroup(modelUsername, modelUserGroupId, modelRole);
+            return adaptorUser.ConvertIntToExt();
+        }
+    }
+
 
     public string BackupDatabase(string sessionCode)
     {

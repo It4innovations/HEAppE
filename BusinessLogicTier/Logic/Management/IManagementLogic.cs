@@ -200,4 +200,7 @@ public interface IManagementLogic
     List<AdaptorUser> ListAdaptorUsersInProject(long projectId);
     CommandTemplate CreateGenericCommandTemplate(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId);
     CommandTemplate ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId, bool modelIsEnabled);
+    List<AdaptorUser>  ListAdaptorUsersInUserGroup(long userGroupId);
+    AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
+    AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
 }

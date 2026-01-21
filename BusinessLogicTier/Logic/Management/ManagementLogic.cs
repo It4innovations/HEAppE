@@ -379,7 +379,7 @@ public class ManagementLogic : IManagementLogic
                 throw new InputValidationException("ProjectAlreadyExist");
             }
             
-            AssignAllRolesFromConfig(defaultAdaptorUserGroup);
+            AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger);
 
             var adaptorUserGroup = loggedUser.UserType switch
             {
@@ -400,16 +400,16 @@ public class ManagementLogic : IManagementLogic
         return project;
     }
     
-    public void AssignAllRolesFromConfig(AdaptorUserGroup group)
+    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger)
     {
-        AssignSpecificRole(RoleAssignmentConfiguration.Administrators, AdaptorUserRoleType.Administrator, group);
-        AssignSpecificRole(RoleAssignmentConfiguration.Maintainers, AdaptorUserRoleType.Maintainer, group);
-        AssignSpecificRole(RoleAssignmentConfiguration.Managers, AdaptorUserRoleType.Manager, group);
-        AssignSpecificRole(RoleAssignmentConfiguration.Submitters, AdaptorUserRoleType.Submitter, group);
-        AssignSpecificRole(RoleAssignmentConfiguration.Reporters, AdaptorUserRoleType.Reporter, group);
-        AssignSpecificRole(RoleAssignmentConfiguration.GroupReporters, AdaptorUserRoleType.GroupReporter, group);
-        AssignSpecificRole(RoleAssignmentConfiguration.ManagementAdmins, AdaptorUserRoleType.ManagementAdmin, group);
-        _unitOfWork.Save();
+        AssignSpecificRole(RoleAssignmentConfiguration.Administrators, AdaptorUserRoleType.Administrator, group, unitOfWork, logger);
+        AssignSpecificRole(RoleAssignmentConfiguration.Maintainers, AdaptorUserRoleType.Maintainer, group,  unitOfWork, logger);
+        AssignSpecificRole(RoleAssignmentConfiguration.Managers, AdaptorUserRoleType.Manager, group, unitOfWork, logger);
+        AssignSpecificRole(RoleAssignmentConfiguration.Submitters, AdaptorUserRoleType.Submitter, group, unitOfWork, logger);
+        AssignSpecificRole(RoleAssignmentConfiguration.Reporters, AdaptorUserRoleType.Reporter, group, unitOfWork, logger);
+        AssignSpecificRole(RoleAssignmentConfiguration.GroupReporters, AdaptorUserRoleType.GroupReporter, group, unitOfWork, logger);
+        AssignSpecificRole(RoleAssignmentConfiguration.ManagementAdmins, AdaptorUserRoleType.ManagementAdmin, group, unitOfWork, logger);
+        unitOfWork.Save();
     }
     
     /// <summary>
@@ -418,23 +418,23 @@ public class ManagementLogic : IManagementLogic
     /// <param name="usernames"></param>
     /// <param name="roleType"></param>
     /// <param name="group"></param>
-    private void AssignSpecificRole(string[] usernames, AdaptorUserRoleType roleType, AdaptorUserGroup group)
+    private static void AssignSpecificRole(string[] usernames, AdaptorUserRoleType roleType, AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger)
     {
         if (usernames == null || usernames.Length == 0) return;
 
         foreach (var username in usernames)
         {
-            var user = _unitOfWork.AdaptorUserRepository.GetByName(username);
+            var user = unitOfWork.AdaptorUserRepository.GetByName(username);
             if (user != null)
             {
                 user.CreateSpecificUserRoleForUser(group, roleType);
-                _unitOfWork.AdaptorUserRepository.Update(user);
+                unitOfWork.AdaptorUserRepository.Update(user);
                 
-                _logger.Info($"SysUser '{username}' assigned to role '{roleType}'.");
+                logger.Info($"SysUser '{username}' assigned to role '{roleType}'.");
             }
             else
             {
-                _logger.Warn($"SysUser '{username}' found in config but not in Database");
+                logger.Warn($"SysUser '{username}' found in config but not in Database");
             }
         }
     }
@@ -2701,6 +2701,71 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
 
         return commandTemplate;
+    }
+
+    public List<AdaptorUser> ListAdaptorUsersInUserGroup(long userGroupId)
+    {
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(userGroupId)
+                        ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", userGroupId);
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAllUsersInGroup(userGroup.Id);
+        return adaptorUsers;
+    }
+
+    public AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(modelUserGroupId)
+                        ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", modelUserGroupId);
+
+        //check if already assigned
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroupId == modelUserGroupId && !x.IsDeleted && x.AdaptorUserRole.Name == modelRole.ToString());
+        if (existingAssignment != null)
+            throw new InputValidationException("AdaptorUserAlreadyAssignedToUserGroup", modelUsername, modelUserGroupId);
+        //get role
+        var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
+                              ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
+        //create assignment
+        adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
+        {
+            AdaptorUser = adaptorUser,
+            AdaptorUserGroup = userGroup,
+            AdaptorUserRole = adaptorUserRole,
+            CreatedAt = DateTime.UtcNow
+        });
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+        return adaptorUser;
+    }
+
+    public AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(modelUserGroupId)
+                        ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", modelUserGroupId);
+
+        //check if assigned
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroupId == modelUserGroupId && !x.IsDeleted);
+        if (existingAssignment == null)
+            throw new InputValidationException("AdaptorUserNotAssignedToUserGroup", modelUsername, modelUserGroupId);
+
+        //check role
+        if (existingAssignment.AdaptorUserRole.Name != modelRole.ToString())
+            throw new InputValidationException("AdaptorUserRoleMismatch", modelUsername, modelUserGroupId, modelRole);
+
+        //soft delete assignment
+        existingAssignment.IsDeleted = true;
+        existingAssignment.ModifiedAt = DateTime.UtcNow;
+
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        return adaptorUser;
     }
 
 

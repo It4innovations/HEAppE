@@ -435,7 +435,7 @@ public class Startup
 
         app.UseRouting();
 
-        if (LexisAuthenticationConfiguration.UseBearerAuth)
+        //if ()
         {
             app.UseMiddleware<LexisAuthMiddleware>();
         }

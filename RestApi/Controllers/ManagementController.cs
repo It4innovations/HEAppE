@@ -638,6 +638,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <exception cref="InputValidationException"></exception>
     [HttpGet("AdaptorUsersInProject")]
     [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(List<AdaptorUserExt>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -698,6 +699,67 @@ public class ManagementController : BaseController<ManagementController>
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
         var user = _managementService.RemoveAdaptorUserFromProject(model.Username, model.ProjectId, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(user);
+    }
+    
+    /// <summary>
+    /// List Adaptor Users in User Group
+    /// </summary>
+    /// <param name="userGroupId"></param>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("AdaptorUsersInUserGroup")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(List<AdaptorUserExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListAdaptorUsersInUserGroup(long userGroupId, string sessionCode)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"ListAdaptorUsersInUserGroup\"");
+        var model = new ListAdaptorUsersInUserGroupModel
+        {
+            UserGroupId = userGroupId,
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUsers = _managementService.ListAdaptorUsersInUserGroup(userGroupId, sessionCode);
+        return Ok(adaptorUsers);
+    }
+    
+    /// <summary>
+    /// Assign Adaptor User to User Group
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("AssignAdaptorUserToUserGroup")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult AssignAdaptorUserToUserGroup(AssignAdaptorUserToUserGroupModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"AssignAdaptorUserToUserGroup\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var user = _managementService.AssignAdaptorUserToUserGroup(model.Username, model.UserGroupId, model.Role, model.SessionCode);
+        ClearListAvailableClusterMethodCache(model.SessionCode);
+        return Ok(user);
+    }
+    
+    public IActionResult RemoveAdaptorUserFromUserGroup(AssignAdaptorUserToUserGroupModel model)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"RemoveAdaptorUserFromUserGroup\"");
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var user = _managementService.RemoveAdaptorUserFromUserGroup(model.Username, model.UserGroupId, model.Role, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(user);
     }

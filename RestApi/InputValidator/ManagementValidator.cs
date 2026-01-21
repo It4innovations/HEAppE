@@ -86,10 +86,33 @@ public class ManagementValidator : AbstractValidator
             DeleteAdaptorUserModel ext => ValidateDeleteAdaptorUserModel(ext),
             AssignAdaptorUserToProjectModel ext => ValidateAssignAdaptorUserToProjectModel(ext),
             ListAdaptorUsersInProjectModel ext => ValidateListAdaptorUsersInProjectModel(ext),
+            ListAdaptorUsersInUserGroupModel ext => ValidateListAdaptorUsersInUserGroupModel(ext),
+            AssignAdaptorUserToUserGroupModel ext => ValidateAssignAdaptorUserToUserGroupModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateAssignAdaptorUserToUserGroupModel(AssignAdaptorUserToUserGroupModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        ValidateId(ext.UserGroupId, "UserGroupId");
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateListAdaptorUsersInUserGroupModel(ListAdaptorUsersInUserGroupModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        ValidateId(ext.UserGroupId, "UserGroupId");
+
+        return _messageBuilder.ToString();
     }
 
     private string ValidateListAdaptorUsersInProjectModel(ListAdaptorUsersInProjectModel ext)

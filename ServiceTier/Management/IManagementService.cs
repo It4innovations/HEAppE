@@ -223,4 +223,7 @@ public interface IManagementService
     AdaptorUserExt[] ListAdaptorUsersInProject(long projectId, string sessionCode);
     ExtendedCommandTemplateExt CreateGenericCommandTemplate(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode);
     ExtendedCommandTemplateExt ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode);
+    AdaptorUserExt[] ListAdaptorUsersInUserGroup(long userGroupId, string sessionCode);
+    AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
 }
