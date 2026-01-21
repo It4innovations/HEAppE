@@ -64,10 +64,9 @@ public class HttpContextKeys : IHttpContextKeys
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
-
+        AdaptorUser user = null;
         try
         {
-            AdaptorUser user = null;
             if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
@@ -84,9 +83,12 @@ public class HttpContextKeys : IHttpContextKeys
                 });
             }
             
-
-            _context.AdaptorUserId = user.Id;
-            _context.UserInfo = $"{user.Username}:{user.Email}";
+            if(user != null)
+            {
+                _context.AdaptorUserId = user.Id;
+                _context.UserInfo = $"{user.Username}:{user.Email}";
+            }
+            
             return user;
         }
         catch (Exception ex)
