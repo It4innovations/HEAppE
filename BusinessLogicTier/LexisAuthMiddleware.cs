@@ -52,7 +52,7 @@ public class LexisAuthMiddleware
             //context.Response.StatusCode = 401;
             //await context.Response.WriteAsync("Unauthorized");
             //no token provided, proceed as local user
-            var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "Lexis");
+            var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "LocalScheme");
             context.User = new ClaimsPrincipal(identity);
             await _next(context);
             return;
