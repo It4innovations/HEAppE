@@ -631,7 +631,7 @@ public class ManagementLogic : IManagementLogic
     public async Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        if (project is null || project.EndDate < DateTime.UtcNow)
+        if (project is null)
         {
             _logger.Error($"Project with ID {projectId} not found or has already ended.");
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -657,7 +657,7 @@ public class ManagementLogic : IManagementLogic
         string newUsername, string newPassword, long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        if (project is null || project.EndDate < DateTime.UtcNow)
+        if (project is null)
         {
             _logger.Error($"Project with ID {projectId} not found or has already ended.");
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -698,7 +698,7 @@ public class ManagementLogic : IManagementLogic
         long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        if (project is null || project.EndDate < DateTime.UtcNow)
+        if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
         List<SecureShellKey> secureShellKeys = new();
         foreach ((var username, var password) in credentials)
