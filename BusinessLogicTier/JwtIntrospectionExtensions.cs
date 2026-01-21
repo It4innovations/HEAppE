@@ -34,7 +34,7 @@ public static class JwtIntrospectionExtensions
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         
                     // If Bearer token is present, use OAuth2 Introspection
-                    if (!string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) && (LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled))
+                    if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     {
                         return OAuth2IntrospectionDefaults.AuthenticationScheme;
                     }
