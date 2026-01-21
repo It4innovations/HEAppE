@@ -60,8 +60,6 @@ public abstract class SchedulerFactory
             
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
             clusterConf.SchedulerType, adaptorUserId);
-
-        // OPRAVA: Použití GetOrAdd pro atomické získání/vytvoření ConnectionPoolu
         return _schedulerConnectionPoolSingletons.GetOrAdd(
             endpoint,
             key => 

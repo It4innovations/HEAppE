@@ -193,6 +193,7 @@ namespace HEAppE.ConnectionPool
                             if (slot.ConnectionInfo == null) continue;
                             
                             bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > maxUnusedDuration;
+                            log.Debug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + maxUnusedDuration) - DateTime.UtcNow}");
                             if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > minSize)
                             {
                                 connToRemove = slot.ConnectionInfo;
