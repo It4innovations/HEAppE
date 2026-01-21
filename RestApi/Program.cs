@@ -20,40 +20,7 @@ public class Program
 {
     public static void Main(string[] args)
     {
-        var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
-        log4net.Config.XmlConfigurator.Configure(logRepository, new FileInfo("Logging/log4net.config"));
-        var log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        log.Info("Application process started, log4net initialized.");
-        
         var host = CreateWebHostBuilder(args).Build();
-        using (var scope = host.Services.CreateScope())
-        {
-            var services = scope.ServiceProvider;
-            try
-            {
-                var unitOfWork = services.GetRequiredService<IUnitOfWork>();
-
-                log.Info("Starting post-startup role assignment procedure.");
-                var userGroups = unitOfWork.AdaptorUserGroupRepository.GetAll();
-
-                if (userGroups != null)
-                {
-                    foreach (var userGroup in userGroups)
-                    {
-                        RoleAssignmentConfiguration.AssignAllRolesFromConfig(userGroup, unitOfWork, log);
-                    }
-                    log.Info("Role assignment procedure finished successfully.");
-                }
-                else
-                {
-                    log.Warn("Role assignment skipped: No AdaptorUserGroup found in database.");
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Error("An error occurred during the post-startup procedure.", ex);
-            }
-        }
         host.Run();
     }
 

@@ -27,6 +27,7 @@ using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
+using HEAppE.RestApi.Services;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using IdentityModel.AspNetCore.OAuth2Introspection;
 using IdentityModel.Client;
@@ -169,6 +170,7 @@ public class Startup
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
+        services.AddHostedService<RoleAssignmentService>();
         
        
 
