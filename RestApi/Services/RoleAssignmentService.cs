@@ -1,9 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -28,21 +30,32 @@ public class RoleAssignmentService : IHostedService
 
     private async Task RunRoleAssignment()
     {
-        using var scope = _serviceProvider.CreateScope();
-        var services = scope.ServiceProvider;
-
         try
         {
-            using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
             _log.Info("Starting post-startup role assignment procedure via IHostedService.");
-            
-            var userGroups = await unitOfWork.AdaptorUserGroupRepository.GetAllAsync();
+            List<AdaptorUserGroup> userGroups;
+            using (IUnitOfWork bootstrapUow = new DatabaseUnitOfWork())
+            {
+                var groups = await bootstrapUow.AdaptorUserGroupRepository.GetAllAsync();
+                userGroups = groups?.ToList() ?? new List<AdaptorUserGroup>();
+            }
 
-            if (userGroups != null)
+            if (userGroups.Any())
             {
                 foreach (var userGroup in userGroups)
                 {
-                    RoleAssignmentConfiguration.AssignAllRolesFromConfig(userGroup, unitOfWork, _log);
+                    // 2. Pro KAŽDOU skupinu vytvoříme nový, čistý UnitOfWork
+                    // Tím se vyhneme chybě "already being tracked"
+                    using (IUnitOfWork workerUow = new DatabaseUnitOfWork())
+                    {
+                        _log.Debug($"Processing roles for group: {userGroup.Name}");
+                        var localGroup = workerUow.AdaptorUserGroupRepository.GetById(userGroup.Id);
+                    
+                        if (localGroup != null)
+                        {
+                            RoleAssignmentConfiguration.AssignAllRolesFromConfig(localGroup, workerUow, _log);
+                        }
+                    }
                 }
                 _log.Info("Role assignment procedure finished successfully.");
             }
