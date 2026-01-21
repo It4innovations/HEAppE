@@ -20,12 +20,15 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        var logRepository = LogManager.GetRepository(Assembly.GetEntryAssembly());
+        log4net.Config.XmlConfigurator.Configure(logRepository, new FileInfo("Logging/log4net.config"));
+        var log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        log.Info("Application process started, log4net initialized.");
+        
         var host = CreateWebHostBuilder(args).Build();
         using (var scope = host.Services.CreateScope())
         {
             var services = scope.ServiceProvider;
-            var log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-
             try
             {
                 var unitOfWork = services.GetRequiredService<IUnitOfWork>();
