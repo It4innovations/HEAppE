@@ -754,6 +754,19 @@ public class ManagementController : BaseController<ManagementController>
         return Ok(user);
     }
     
+    /// <summary>
+    /// Unassign Adaptor User from User Group
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpPost("RemoveAdaptorUserFromUserGroup")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(AdaptorUserExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult RemoveAdaptorUserFromUserGroup(AssignAdaptorUserToUserGroupModel model)
     {
         _logger.LogInformation("Endpoint: \"Management\" Method: \"RemoveAdaptorUserFromUserGroup\"");
