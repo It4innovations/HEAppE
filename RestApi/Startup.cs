@@ -460,7 +460,7 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
-
+        
         //app.UseHealthChecks("/health", new HealthCheckOptions() {
         //    ResponseWriter = HEAppEHealth.ResponseWriter,
         //    AllowCachingResponses = false, // use custom caching

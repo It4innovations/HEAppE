@@ -3,11 +3,16 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.DataAccessTier.UnitOfWork;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using HEAppE.Utils;
+using log4net;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HEAppE.RestApi;
 
@@ -16,6 +21,36 @@ public class Program
     public static void Main(string[] args)
     {
         var host = CreateWebHostBuilder(args).Build();
+        using (var scope = host.Services.CreateScope())
+        {
+            var services = scope.ServiceProvider;
+            var log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+
+            try
+            {
+                var unitOfWork = services.GetRequiredService<IUnitOfWork>();
+
+                log.Info("Starting post-startup role assignment procedure.");
+                var userGroups = unitOfWork.AdaptorUserGroupRepository.GetAll();
+
+                if (userGroups != null)
+                {
+                    foreach (var userGroup in userGroups)
+                    {
+                        RoleAssignmentConfiguration.AssignAllRolesFromConfig(userGroup, unitOfWork, log);
+                    }
+                    log.Info("Role assignment procedure finished successfully.");
+                }
+                else
+                {
+                    log.Warn("Role assignment skipped: No AdaptorUserGroup found in database.");
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error("An error occurred during the post-startup procedure.", ex);
+            }
+        }
         host.Run();
     }
 
