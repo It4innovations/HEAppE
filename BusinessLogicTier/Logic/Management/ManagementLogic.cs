@@ -2522,37 +2522,59 @@ public class ManagementLogic : IManagementLogic
 
     public AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole)
     {
-        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
                           ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
 
         var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
                       ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-        //check if already assigned
-        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
-            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted && x.AdaptorUserRole.Name == modelRole.ToString());
-        if (existingAssignment != null)
-            throw new InputValidationException("AdaptorUserAlreadyAssignedToProject", modelUsername, modelProjectId);
+        var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
+                              ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
 
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && x.AdaptorUserRole.Name == modelRole.ToString());
+
+        if (existingAssignment != null)
+        {
+            if (existingAssignment.IsDeleted)
+            {
+                var userGroupsToRestore = project.AdaptorUserGroups
+                    .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
+                                 !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+                    .Select(ug => ug.Id)
+                    .ToList();
+
+                var assignmentsToRestore = adaptorUser.AdaptorUserUserGroupRoles
+                    .Where(x => userGroupsToRestore.Contains(x.AdaptorUserGroupId) && x.AdaptorUserRole.Name == modelRole.ToString());
+
+                foreach (var assignment in assignmentsToRestore)
+                {
+                    assignment.IsDeleted = false;
+                    assignment.CreatedAt = DateTime.UtcNow;
+                }
+
+                _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+                _unitOfWork.Save();
+                return adaptorUser;
+            }
+
+            throw new InputValidationException("AdaptorUserAlreadyAssignedToProject", modelUsername, modelProjectId);
+        }
 
         var userGroups = project.AdaptorUserGroups
             .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
                          !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
             .ToList();
-        
-        //get role
-        var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
-                              ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
 
         foreach (var userGroup in userGroups)
         {
-            //create assignment
             adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
             {
                 AdaptorUser = adaptorUser,
                 AdaptorUserGroup = userGroup,
                 AdaptorUserRole = adaptorUserRole,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
             });
         }
         
@@ -2676,28 +2698,41 @@ public class ManagementLogic : IManagementLogic
 
     public AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole)
     {
-        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
                           ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
 
         var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(modelUserGroupId)
                         ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", modelUserGroupId);
 
-        //check if already assigned
-        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
-            .FirstOrDefault(x => x.AdaptorUserGroupId == modelUserGroupId && !x.IsDeleted && x.AdaptorUserRole.Name == modelRole.ToString());
-        if (existingAssignment != null)
-            throw new InputValidationException("AdaptorUserAlreadyAssignedToUserGroup", modelUsername, modelUserGroupId);
-        //get role
         var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
                               ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
-        //create assignment
+
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroupId == modelUserGroupId && x.AdaptorUserRole.Name == modelRole.ToString());
+
+        if (existingAssignment != null)
+        {
+            if (existingAssignment.IsDeleted)
+            {
+                existingAssignment.IsDeleted = false;
+                existingAssignment.CreatedAt = DateTime.UtcNow;
+                _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+                _unitOfWork.Save();
+                return adaptorUser;
+            }
+
+            throw new InputValidationException("AdaptorUserAlreadyAssignedToUserGroup", modelUsername, modelUserGroupId);
+        }
+
         adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
         {
             AdaptorUser = adaptorUser,
             AdaptorUserGroup = userGroup,
             AdaptorUserRole = adaptorUserRole,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
         });
+
         _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
         _unitOfWork.Save();
         return adaptorUser;
