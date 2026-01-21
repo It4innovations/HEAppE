@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using HEAppE.ExternalAuthentication.Configuration;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Authorization;
@@ -28,7 +29,7 @@ public class LexisAuthMiddleware
         }
 
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-        if (authHeader?.StartsWith("Bearer ") == true)
+        if (LexisAuthenticationConfiguration.UseBearerAuth && authHeader?.StartsWith("Bearer ") == true)
         {
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
