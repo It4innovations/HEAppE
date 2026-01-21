@@ -33,8 +33,7 @@ public class RoleAssignmentService : IHostedService
 
         try
         {
-            var unitOfWork = services.GetRequiredService<IUnitOfWork>();
-
+            using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
             _log.Info("Starting post-startup role assignment procedure via IHostedService.");
             
             var userGroups = await unitOfWork.AdaptorUserGroupRepository.GetAllAsync();
