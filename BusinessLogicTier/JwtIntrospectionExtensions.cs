@@ -34,12 +34,12 @@ public static class JwtIntrospectionExtensions
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         
                     // If Bearer token is present, use OAuth2 Introspection
-                    if ((LexisAuthenticationConfiguration.UseBearerAuth || JwtTokenIntrospectionConfiguration.IsEnabled) && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    if ((JwtTokenIntrospectionConfiguration.IsEnabled) && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
                     {
                         return OAuth2IntrospectionDefaults.AuthenticationScheme;
                     }
 
-                    // Otherwise (no header or custom API Key header), route to LocalScheme
+                    // Otherwise (no header or custom API Key header), route to LocalScheme or LexisAuthenticationConfiguration.UseBearerAuth
                     return "LocalScheme";
                 };
             })
