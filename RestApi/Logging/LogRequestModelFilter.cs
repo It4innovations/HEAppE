@@ -27,7 +27,7 @@ public class LogRequestModelFilter : IAsyncActionFilter
     
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "SessionCode", "Password", "Token", "Secret", "Key", 
+        "SessionCode", "Password", "Token", "Secret", "Key", "sessionCode", "password", "token",
         "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
     };
 
