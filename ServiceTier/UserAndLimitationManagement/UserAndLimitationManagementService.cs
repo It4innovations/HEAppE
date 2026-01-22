@@ -237,7 +237,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             .Select(r => r.AdaptorUserGroup.Project)
             .Distinct()
             .ToList();
-
+        //check that at least one project is available
+        if (!projects.Any())
+        {
+            throw new InsufficientRoleException("MissingRoleForAnyProject", allowedRole.ToString());
+        }
         return (loggedUser, projects);
     }
 
