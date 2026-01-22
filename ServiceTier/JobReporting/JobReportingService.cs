@@ -160,13 +160,17 @@ public class JobReportingService : IJobReportingService
 
             var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
 
-            var allowedProjectIds = new HashSet<long>(projects.Select(p => p.Id));
+            var allowedProjectIds = projects != null 
+                ? new HashSet<long>(projects.Where(p => p != null).Select(p => p.Id)) 
+                : new HashSet<long>();
 
-            var reportAllowedGroupIds = loggedUser.Groups
-                .Where(g => g != null && g.ProjectId.HasValue && allowedProjectIds.Contains(g.ProjectId.Value))
-                .Select(g => g.Id)
-                .Distinct()
-                .ToList();
+            var reportAllowedGroupIds = loggedUser?.Groups != null
+                ? loggedUser.Groups
+                    .Where(g => g != null && g.ProjectId.HasValue && allowedProjectIds.Contains(g.ProjectId.Value))
+                    .Select(g => g.Id)
+                    .Distinct()
+                    .ToList()
+                : new List<long>();
 
             var reports = reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, timeFrom, timeTo);
 
