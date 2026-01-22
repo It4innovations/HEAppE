@@ -230,8 +230,6 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var now = DateTime.UtcNow;
         var projects = loggedUser.AdaptorUserUserGroupRoles
             .Where(r =>
-                r.AdaptorUserGroup.Project != null &&
-                r.AdaptorUserGroup.Project.EndDate > now &&
                 r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole)
             )
             .Select(r => r.AdaptorUserGroup.Project)
