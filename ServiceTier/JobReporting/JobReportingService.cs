@@ -155,18 +155,28 @@ public class JobReportingService : IJobReportingService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             (var loggedUser, var projects) =
-                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter);
+
             var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
-            var userGroupIds = loggedUser.Groups.Select(val => val.Id).Distinct().ToList();
 
-            //get only groups which are in projects which are allowed for logged user
-            var reportAllowedGroupIds = userGroupIds.Where(g => projects.Any(project =>
-                project.Id == loggedUser.Groups.FirstOrDefault(group => group.Id == g).ProjectId)).ToList();
+            var allowedProjectIds = new HashSet<long>(projects.Select(p => p.Id));
 
-            return reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, timeFrom, timeTo)
+            var reportAllowedGroupIds = loggedUser.Groups
+                .Where(g => g != null && g.ProjectId.HasValue && allowedProjectIds.Contains(g.ProjectId.Value))
+                .Select(g => g.Id)
+                .Distinct()
+                .ToList();
+
+            var reports = reportingLogic.JobsDetailedReport(reportAllowedGroupIds, subProjects, timeFrom, timeTo);
+
+            if (reports == null)
+                return Enumerable.Empty<ProjectDetailedReportExt>();
+
+            return reports
                 .Where(s => s != null)
-                .Select(s => s.ConvertIntToDetailedExt());
+                .Select(s => s.ConvertIntToDetailedExt())
+                .ToList();
         }
     }
 }
