@@ -55,5 +55,15 @@ internal class AdaptorUserGroupRepository : GenericRepository<AdaptorUserGroup>,
         return GetAll().SingleOrDefault(g => g.Name == groupName);
     }
 
+    public IEnumerable<AdaptorUserGroup> GetGroupsWithProjects(IEnumerable<long> groupIds)
+    {
+        return _dbSet
+            .Include(i => i.Project) 
+            .ThenInclude(p => p.ClusterProjects)
+            .ThenInclude(cp => cp.Cluster)
+            .Where(g => groupIds.Contains(g.Id)) 
+            .ToList();
+    }
+
     #endregion
 }
