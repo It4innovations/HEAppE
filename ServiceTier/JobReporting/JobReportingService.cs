@@ -112,8 +112,15 @@ public class JobReportingService : IJobReportingService
             var userGroupIds = loggedUser.Groups.Select(x => x.Id).Distinct().ToList();
 
             //get only groups which are in projects which are allowed for logged user
-            var reportAllowedGroupIds = userGroupIds.Where(g => projects.Any(project =>
-                project.Id == loggedUser.Groups.FirstOrDefault(group => group.Id == g).ProjectId)).ToList();
+            var reportAllowedGroupIds = userGroupIds.Where(gId => 
+            {
+                var userGroup = loggedUser.Groups.FirstOrDefault(ug => ug.Id == gId);
+                if (userGroup == null) return false;
+
+                if (!userGroup.ProjectId.HasValue) return true; 
+
+                return projects.Any(p => p.Id == userGroup.ProjectId);
+            }).ToList();
 
             return jobReportingLogic.AggregatedUserGroupResourceUsageReport(reportAllowedGroupIds, startTime, endTime)
                 .Where(s => s != null)
