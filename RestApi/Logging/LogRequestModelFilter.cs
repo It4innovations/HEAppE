@@ -24,10 +24,11 @@ public class LogRequestModelFilter : IAsyncActionFilter
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
-
+    
     private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "SessionCode", "Password", "Token", "Secret", "Key", "Heslo"
+        "SessionCode", "Password", "Token", "Secret", "Key", 
+        "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
     };
 
     private static readonly ConcurrentDictionary<Type, PropertyInfo?> SessionCodePropertyCache = new();
@@ -94,16 +95,38 @@ public class LogRequestModelFilter : IAsyncActionFilter
                 .ToDictionary(k => k.Key, v => v.Value);
 
             var serializedArgs = JsonSerializer.Serialize(safeArguments, _jsonOptions);
+            
+            var safeHeaders = ExtractSafeHeaders(context.HttpContext.Request.Headers);
+            var serializedHeaders = JsonSerializer.Serialize(safeHeaders, _jsonOptions);
 
             _logger.LogInformation(
-                "Action: {Action}, UserId: {UserId}, UserInfo: {UserName}, Arguments: {Arguments}",
-                context.ActionDescriptor.DisplayName, userId, userName, serializedArgs);
+                "Action: {Action}, UserId: {UserId}, UserInfo: {UserName}, Headers: {Headers}, Arguments: {Arguments}",
+                context.ActionDescriptor.DisplayName, userId, userName, serializedHeaders, serializedArgs);
         }
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "Failed to log request information for action {Action}", 
                 context.ActionDescriptor.DisplayName);
         }
+    }
+
+    private Dictionary<string, string> ExtractSafeHeaders(IHeaderDictionary headers)
+    {
+        var result = new Dictionary<string, string>();
+
+        foreach (var header in headers)
+        {
+            if (SensitiveKeys.Contains(header.Key))
+            {
+                result.Add(header.Key, "***REDACTED***");
+            }
+            else
+            {
+                result.Add(header.Key, header.Value.ToString());
+            }
+        }
+
+        return result;
     }
 
     private bool TryGetFromContext(HttpContext context, out long userId, out string userName)
@@ -120,24 +143,22 @@ public class LogRequestModelFilter : IAsyncActionFilter
                 if (parts.Length == 2)
                 {
                     userName = parts[0];
-                    userId = -1; // UserId is unknown in this case
+                    userId = -1; 
                     return true;
                 }
             }
         }
-        //or bearer from Authorization HEADER
         else if(context.Items.TryGetValue("Authorization", out var item))
         {
             var bearer = item?.ToString();
             if (!string.IsNullOrEmpty(bearer) && bearer.StartsWith("Bearer "))
             {
                 userName = "BEARER AUTH IN HEADER"; 
-                userId = -1; // UserId is unknown in this case
+                userId = -1; 
                 return true;
             }
         }
             
-        
         return false;
     }
 
