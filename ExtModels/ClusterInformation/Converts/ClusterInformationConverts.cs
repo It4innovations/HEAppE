@@ -135,7 +135,7 @@ public static class ClusterInformationConverts
 
     public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
     {
-        var safeProjects = projects ?? Enumerable.Empty<Project>();
+        var safeProjects = projects?.Where(p => p != null) ?? Enumerable.Empty<Project>();
         var allowedProjectIds = new HashSet<long>(safeProjects.Select(p => p.Id));
         var projectExts = new List<ProjectExt>();
 
