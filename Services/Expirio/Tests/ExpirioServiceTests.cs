@@ -7,7 +7,7 @@ namespace Services.Expirio.Tests;
 
 public class ExpirioServiceTests
 {
-
+    [Fact]
     public async Task GetKerberosTicket_should_return_success()
     {
         HttpClient httpClient = new HttpClient()
@@ -16,6 +16,8 @@ public class ExpirioServiceTests
             Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds),
         };
         httpClient.DefaultRequestHeaders.Add("Accept", "application/json");
+
+        //TODO: needs to get Expirio test token.
 
         var expirio = new ExpirioService(httpClient);
         var request = new KerberosExchangeRequest()
@@ -26,9 +28,9 @@ public class ExpirioServiceTests
         var ct = new CancellationToken();
         try
         {
-            var ticket = await expirio.ExchangeTokenForKerberosAsync(request, ct);
-            //TODO: check ticket
-            //Assert.
+            string ticket = await expirio.ExchangeTokenForKerberosAsync(request, ct);
+            Assert.NotNull(ticket);
+            Assert.NotEmpty(ticket);
         }
         catch(Exception)
         {}
