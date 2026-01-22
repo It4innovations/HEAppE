@@ -12,6 +12,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
 using log4net;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 
 public static class JwtIntrospectionExtensions
 {
@@ -93,31 +94,34 @@ public static class JwtIntrospectionExtensions
                                 return;
                             }
 
-                            // Optional: exchange SSH CA token
-                            var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
-                            var client = httpClientFactory.CreateClient();
-                      
-                            string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
-                            string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
-                            client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
+                            if(JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
+                            { 
+                                // Optional: exchange SSH CA token
+                                var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+                                var client = httpClientFactory.CreateClient();
+                          
+                                string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                                string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                                client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
 
-                            var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
-                            {
-                                Address = JwtTokenIntrospectionConfiguration.Authority,
-                                Policy = new DiscoveryPolicy
+                                var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
                                 {
-                                    RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
-                                    ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
-                                    ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
-                                }
-                            });
+                                    Address = JwtTokenIntrospectionConfiguration.Authority,
+                                    Policy = new DiscoveryPolicy
+                                    {
+                                        RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
+                                        ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
+                                        ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
+                                    }
+                                });
 
-                            if (disco.IsError)
-                                throw new Exception($"Discovery error: {disco.Error}");
+                                if (disco.IsError)
+                                    throw new Exception($"Discovery error: {disco.Error}");
 
-                            await context.HttpContext.RequestServices
-                                .GetRequiredService<IHttpContextKeys>()
-                                .ExchangeSshCaToken(disco.TokenEndpoint, client);
+                                await context.HttpContext.RequestServices
+                                    .GetRequiredService<IHttpContextKeys>()
+                                    .ExchangeSshCaToken(disco.TokenEndpoint, client);
+                            }
                         }
                     };
                 });
