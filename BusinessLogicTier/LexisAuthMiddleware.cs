@@ -2,6 +2,7 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
+using log4net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Authorization;
@@ -20,10 +21,13 @@ public class LexisAuthMiddleware
 
     public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService)
     {
+        var log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+        log.Info("LexisAuthMiddleware invoked for request: " + context.Request.Path);
         // check if the endpoint allows anonymous access
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {
+            log.Info("LexisAuthMiddleware invoked for anonymous endpoint");
             await _next(context);
             return;
         }
@@ -31,6 +35,7 @@ public class LexisAuthMiddleware
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         if (LexisAuthenticationConfiguration.UseBearerAuth && authHeader?.StartsWith("Bearer ") == true)
         {
+            log.Info("LexisAuthMiddleware invoked for Bearer header");
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
             
@@ -49,9 +54,6 @@ public class LexisAuthMiddleware
         }
         else
         {
-            //context.Response.StatusCode = 401;
-            //await context.Response.WriteAsync("Unauthorized");
-            //no token provided, proceed as local user
             var identity = new ClaimsIdentity(new[] { new Claim("raw_token", string.Empty) }, "LocalScheme");
             context.User = new ClaimsPrincipal(identity);
             await _next(context);

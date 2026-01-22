@@ -69,6 +69,7 @@ public class HttpContextKeys : IHttpContextKeys
         {
             if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
+                _log.Info("Using Bearer authentication for Lexis");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = Context.LEXISToken
@@ -76,6 +77,7 @@ public class HttpContextKeys : IHttpContextKeys
             }
             else if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
+                _log.Info("Using Bearer authentication with JWT token introspection");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) ? 
@@ -85,6 +87,7 @@ public class HttpContextKeys : IHttpContextKeys
             
             if(user != null)
             {
+                _log.Info($"Authorized user: {user.Username}:{user.Email} (ID: {user.Id})");
                 _context.AdaptorUserId = user.Id;
                 _context.UserInfo = $"{user.Username}:{user.Email}";
             }
