@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
@@ -66,6 +67,11 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     {
         _logger.LogDebug(
             $"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateLexisToken\" Parameters: \"{model}\"");
+        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            _logger.LogInformation("Lexis token authentication is handled by middleware. Returning empty string.");
+            return Ok(string.Empty);
+        }
         var validationResult = new UserAndLimitationManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
