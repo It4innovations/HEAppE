@@ -231,19 +231,18 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var groups = loggedUser.AdaptorUserUserGroupRoles
             .Where(r =>
                 r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole)
-            );
-        var projects = loggedUser.AdaptorUserUserGroupRoles
-            .Where(r =>
-                r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole)
-            )
-            .Select(r => r.AdaptorUserGroup.Project)
-            .Distinct()
-            .ToList();
+            ).ToList();
         //check that at least one project is available
         if (!groups.Any())
         {
             throw new InsufficientRoleException("MissingRoleForAnyGroup", allowedRole.ToString());
         }
+        var projects = groups
+            .Select(r => r.AdaptorUserGroup.Project)
+            .Distinct()
+            .ToList();
+        
+        
         return (loggedUser, projects);
     }
 
