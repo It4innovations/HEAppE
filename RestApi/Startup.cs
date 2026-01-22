@@ -436,6 +436,7 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+        app.UseMiddleware<ExceptionMiddleware>();
 
         //if ()
         {
@@ -448,7 +449,7 @@ public class Startup
             app.UseAuthorization();
         }
 
-        app.UseMiddleware<ExceptionMiddleware>();
+
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllerRoute(
