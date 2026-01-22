@@ -33,6 +33,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         if (BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IsEnabled && !JwtTokenIntrospectionConfiguration.IsEnabled)
         {
             while (!stoppingToken.IsCancellationRequested)

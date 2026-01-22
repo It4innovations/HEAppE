@@ -24,6 +24,7 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         var backupCanBeDone = DatabaseTransactionLogBackupConfiguration.ScheduledBackupEnabled && await DatabaseLogsBackupCanBeDone();
         if(true)
         {
