@@ -228,6 +228,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
 
         var now = DateTime.UtcNow;
+        var groups = loggedUser.AdaptorUserUserGroupRoles
+            .Where(r =>
+                r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole)
+            );
         var projects = loggedUser.AdaptorUserUserGroupRoles
             .Where(r =>
                 r.AdaptorUserRole.ContainedRoleTypes.Contains(allowedRole)
@@ -236,9 +240,9 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             .Distinct()
             .ToList();
         //check that at least one project is available
-        if (!projects.Any())
+        if (!groups.Any())
         {
-            throw new InsufficientRoleException("MissingRoleForAnyProject", allowedRole.ToString());
+            throw new InsufficientRoleException("MissingRoleForAnyGroup", allowedRole.ToString());
         }
         return (loggedUser, projects);
     }
