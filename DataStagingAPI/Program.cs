@@ -165,8 +165,7 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
-
-    //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+    
     {
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
@@ -284,7 +283,6 @@ app.UseIpRateLimiting();
 
 app.RegisterApiRoutes();
 
-
 app.UseSwagger(swagger =>
 {
     swagger.PreSerializeFilters.Add((swaggerDoc, httpReq) =>
@@ -297,7 +295,12 @@ app.UseSwagger(swagger =>
             }
         };
     });
-    swagger.RouteTemplate = $"/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
+    
+    var routePrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
+        ? string.Empty
+        : APIAdoptions.SwaggerConfiguration.HostPostfix + "/";
+
+    swagger.RouteTemplate = $"/{routePrefix}{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
 });
 
 app.UseSwaggerUI(swaggerUI =>
@@ -305,30 +308,29 @@ app.UseSwaggerUI(swaggerUI =>
     var hostPrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
         ? string.Empty
         : "/" + APIAdoptions.SwaggerConfiguration.HostPostfix;
+        
     swaggerUI.SwaggerEndpoint(
         $"{hostPrefix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{APIAdoptions.SwaggerConfiguration.Version}/swagger.json",
         APIAdoptions.SwaggerConfiguration.Title);
-    swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
+
     swaggerUI.EnableTryItOutByDefault();
+    
+    if (!string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix))
+    {
+        swaggerUI.RoutePrefix = $"{APIAdoptions.SwaggerConfiguration.HostPostfix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}";
+    }
+    else
+    {
+        swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
+    }
 });
 
-//if (LexisAuthenticationConfiguration.UseBearerAuth)
+
+app.UseMiddleware<LexisAuthMiddleware>();
+app.UseMiddleware<LexisTokenExchangeMiddleware>();
 {
-    app.UseMiddleware<LexisAuthMiddleware>();
-}
-//if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    app.UseMiddleware<LexisTokenExchangeMiddleware>();
-    //if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled)
-    {
-        app.UseAuthentication();
-        app.UseAuthorization();
-    }
-    //else
-    {
-    //    app.UseAuthentication();
-    }
-   
+    app.UseAuthentication();
+    app.UseAuthorization();
 }
 
 app.Run();
