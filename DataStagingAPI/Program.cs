@@ -259,6 +259,14 @@ if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 
 ServiceActivator.Configure(app.Services);
 
+
+var pathBase = APIAdoptions.SwaggerConfiguration.HostPostfix;
+if (!string.IsNullOrEmpty(pathBase))
+{
+    if (!pathBase.StartsWith("/")) pathBase = "/" + pathBase;
+    app.UsePathBase(pathBase);
+}
+
 app.UseCors("HEAppEDefaultOrigins");
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
@@ -281,8 +289,8 @@ app.UseSwagger(swagger =>
     var routePrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
         ? string.Empty
         : APIAdoptions.SwaggerConfiguration.HostPostfix + "/";
-
-    swagger.RouteTemplate = $"/{routePrefix}{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
+    
+    swagger.RouteTemplate = $"{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
 });
 
 app.UseSwaggerUI(swaggerUI =>
@@ -296,15 +304,7 @@ app.UseSwaggerUI(swaggerUI =>
         APIAdoptions.SwaggerConfiguration.Title);
 
     swaggerUI.EnableTryItOutByDefault();
-    
-    if (!string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix))
-    {
-        swaggerUI.RoutePrefix = $"{APIAdoptions.SwaggerConfiguration.HostPostfix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}";
-    }
-    else
-    {
-        swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
-    }
+    swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
 });
 
 app.UseMiddleware<LexisAuthMiddleware>();
