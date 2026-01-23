@@ -70,7 +70,7 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
         if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             _logger.LogInformation("Lexis token authentication is handled by middleware. Returning empty string.");
-            return Ok("HEADER-AUTH-NEEDED");
+            return Ok("bad0head-0000-4000-b000-000000000000");
         }
         var validationResult = new UserAndLimitationManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
