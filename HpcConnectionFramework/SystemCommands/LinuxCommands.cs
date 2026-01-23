@@ -281,7 +281,7 @@ internal class LinuxCommands : ICommands
             fi && 
         ");
         
-        cmdBuilder.Append($@"mv HEAppE-scripts/{rawRepoDir} .key_scripts && ");
+        cmdBuilder.Append($@"mv {rawRepoDir} .key_scripts && ");
         cmdBuilder.Append($@"rm -rf HEAppE-scripts && ");
         
         var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
