@@ -239,126 +239,71 @@ internal class LinuxCommands : ICommands
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
-   public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-     string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
-     {
-         if (isServiceAccount)
-             return true;
-         
-         var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
-         
-         string bashSafeRootDir = rootDir.StartsWith("~/") 
-             ? "~/" + "\"" + rootDir.Substring(2) + "\"" 
-             : "\"" + rootDir + "\"";
+    public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+    {
+        if (isServiceAccount) return true;
 
-         var keyScriptsDir = rootDir.EndsWith("/") ? rootDir + ".key_scripts" : rootDir + "/.key_scripts";
-         string bashSafeKeyScriptsDir = bashSafeRootDir.EndsWith("\"") 
-             ? bashSafeRootDir.Insert(bashSafeRootDir.Length - 1, "/.key_scripts") 
-             : bashSafeRootDir + "/.key_scripts";
+        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
+        string bashSafeRootDir = rootDir.StartsWith("~/") 
+            ? "~/" + "\"" + rootDir.Substring(2) + "\"" 
+            : "\"" + rootDir + "\"";
+        
+        var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
+        var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
+        var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
 
-         // Persistent cache directory for git repo to allow version comparison
-         var repoCacheDir = rootDir.EndsWith("/") ? rootDir + ".repo_cache" : rootDir + "/.repo_cache";
-         string bashSafeRepoCacheDir = bashSafeRootDir.EndsWith("\"") 
-             ? bashSafeRootDir.Insert(bashSafeRootDir.Length - 1, "/.repo_cache") 
-             : bashSafeRootDir + "/.repo_cache";
-
-         var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
-         var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
-         var rawRepoDir = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/');
-         
-         var cmdBuilder = new StringBuilder();
-         
-         // Ensure root directory exists
-         cmdBuilder.Append($@"mkdir -p {bashSafeRootDir} && ");
-
-         // Git logic: Clone if missing, Fetch & Check if exists
-         cmdBuilder.Append($@"
+        var cmdBuilder = new StringBuilder();
+        cmdBuilder.Append($@"mkdir -p {bashSafeRootDir} && cd {bashSafeRootDir} && ");
+        cmdBuilder.Append($@"
             UPDATE_NEEDED=0;
-            if [ ! -d {bashSafeRepoCacheDir}/.git ]; then
-                rm -rf {bashSafeRepoCacheDir};
-                git clone --single-branch -b {branch} --quiet {repoUrl} {bashSafeRepoCacheDir} 2>&1;
-                if [ $? -ne 0 ]; then echo ""GIT_ERROR""; exit 1; fi;
+            REPO_DIR="".repo_cache"";
+            if [ ! -d ""$REPO_DIR""/.git ]; then
+                rm -rf ""$REPO_DIR"";
+                git clone --single-branch -b {branch} --quiet {repoUrl} ""$REPO_DIR"" 2>&1 || {{ echo ""GIT_ERROR""; exit 1; }};
                 UPDATE_NEEDED=1;
             else
-                cd {bashSafeRepoCacheDir};
-                git fetch origin {branch} --quiet;
+                cd ""$REPO_DIR"" && git fetch origin {branch} --quiet;
                 LOCAL_HASH=$(git rev-parse HEAD);
                 REMOTE_HASH=$(git rev-parse origin/{branch});
-                
                 if [ ""$LOCAL_HASH"" != ""$REMOTE_HASH"" ]; then
                     git reset --hard origin/{branch} --quiet;
                     UPDATE_NEEDED=1;
                 fi;
                 cd - > /dev/null;
             fi;
-         ");
-
-         if (overwriteExistingProjectRootDirectory)
-         {
-             cmdBuilder.Append("UPDATE_NEEDED=1; ");
-         }
-
-         // If the target directory was deleted manually, force update
-         cmdBuilder.Append($@"
-            if [ ! -d {bashSafeKeyScriptsDir} ]; then
-                UPDATE_NEEDED=1;
-            fi;
-         ");
-
-         var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
-
-         // Apply changes if needed
-         cmdBuilder.Append($@"
+            if [ ! -d "".key_scripts"" ]; then UPDATE_NEEDED=1; fi;
             if [ ""$UPDATE_NEEDED"" -eq 1 ]; then
-                rm -rf {bashSafeKeyScriptsDir} &&
-                cp -r {bashSafeRepoCacheDir}/{rawRepoDir} {bashSafeKeyScriptsDir} &&
-                chmod -R 755 {bashSafeKeyScriptsDir} &&
-                sed -i ""s|TODO|{sedReplacement}|g"" {bashSafeKeyScriptsDir}/remote-cmd3.sh &&
+                rm -rf .key_scripts;
+                SOURCE_PATH=$(find ""$REPO_DIR""/HPC -maxdepth 1 -type d -name "".key_scripts"" 2>/dev/null | head -n 1);
+                if [ -z ""$SOURCE_PATH"" ]; then
+                    SOURCE_PATH=$(find ""$REPO_DIR"" -type d -name "".key_scripts"" | head -n 1);
+                fi;
+                if [ -z ""$SOURCE_PATH"" ]; then echo ""ERROR: .key_scripts not found""; exit 1; fi;
+                cp -r ""$SOURCE_PATH"" .key_scripts &&
+                chmod -R 755 .key_scripts &&
+                sed -i ""s|TODO|{sedReplacement}|g"" .key_scripts/remote-cmd3.sh &&
                 echo ""INSTALLED_UPDATED"";
             else
                 echo ""SKIPPED_UP_TO_DATE"";
-            fi
-         ");
+            fi");
 
-         try
-         {
-             var sshCommand = SshCommandUtils.RunSshCommand(
-                 new SshClientAdapter((SshClient)schedulerConnectionConnection), 
-                 cmdBuilder.ToString()
-             );
-
-             var result = sshCommand.Result.Trim();
-             
-             if (sshCommand.ExitStatus != 0)
-             {
-                 if (result.Contains("GIT_ERROR"))
-                     _log.Error($"Cluster scripts initialization failed: Git clone/fetch error.");
-                 else
-                     _log.Error($"Cluster scripts initialization failed (ExitCode: {sshCommand.ExitStatus}): {result}");
-                 
-                 return false;
-             }
-
-             if (result.Contains("SKIPPED_UP_TO_DATE"))
-             {
-                 _log.Info($"Skipping initialization for '{clusterProjectRootDirectory}', scripts are up to date.");
-                 return true;
-             }
-
-             if (result.Contains("INSTALLED_UPDATED"))
-             {
-                 _log.Info($"Cluster scripts initialized/updated successfully.");
-                 return true;
-             }
-
-             return true;
-         }
-         catch (Exception ex)
-         {
-             _log.Error($"Cluster scripts initialization exception: \"{ex.Message}\"");
-             return false;
-         }
-     }
+        try
+        {
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
+            if (sshCommand.ExitStatus != 0)
+            {
+                _log.Error($"Initialization failed: {sshCommand.Result}");
+                return false;
+            }
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"Exception: {ex.Message}");
+            return false;
+        }
+    }
 
     public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)
     {
