@@ -69,20 +69,6 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster, sshCaToken);
         try
         {
-            var localBasepath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-                ?.ScratchStoragePath;
-            string path = Path.Combine(jobSpecification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath); 
-
-            bool isUpdated = _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, path, true, localBasepath,
-                jobSpecification.ClusterUser.Username, false);
-            if (!isUpdated)
-            {
-                _log.Warn($"Cluster script directory updated failed for project {jobSpecification.Project.Id} for user {jobSpecification.ClusterUser.Username} before job submission.");
-            }
-            else
-            {
-                _log.Info($"Cluster script directory updated for project {jobSpecification.Project.Id} for user {jobSpecification.ClusterUser.Username} before job submission.");
-            }
             var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
             return tasks;
         }
@@ -252,6 +238,20 @@ public class RexSchedulerWrapper : IRexScheduler
             _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
         try
         {
+            var localBasepath = jobInfo.Specification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)
+                ?.ScratchStoragePath;
+            string path = Path.Combine(jobInfo.Specification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath); 
+
+            bool isUpdated = _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, path, true, localBasepath,
+                jobInfo.Specification.ClusterUser.Username, false);
+            if (!isUpdated)
+            {
+                _log.Warn($"Cluster script directory updated failed for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+            }
+            else
+            {
+                _log.Info($"Cluster script directory updated for project {jobInfo.Specification.Project.Id} for user {jobInfo.Specification.ClusterUser.Username} before job submission.");
+            }
             _adapter.CreateJobDirectory(schedulerConnection.Connection, jobInfo, localBasePath, sharedAccountsPoolMode);
         }
         finally
