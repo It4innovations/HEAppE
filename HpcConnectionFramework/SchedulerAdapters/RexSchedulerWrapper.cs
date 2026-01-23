@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH.DTO;
 using log4net;
@@ -67,6 +69,20 @@ public class RexSchedulerWrapper : IRexScheduler
         var schedulerConnection = _connectionPool.GetConnectionForUser(credentials, jobSpecification.Cluster, sshCaToken);
         try
         {
+            var localBasepath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
+                ?.ScratchStoragePath;
+            string path = Path.Combine(jobSpecification.Project.AccountingString, HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath); 
+
+            bool isUpdated = _adapter.InitializeClusterScriptDirectory(schedulerConnection.Connection, path, true, localBasepath,
+                jobSpecification.ClusterUser.Username, false);
+            if (!isUpdated)
+            {
+                _log.Warn($"Cluster script directory updated failed for project {jobSpecification.Project.Id} for user {jobSpecification.ClusterUser.Username} before job submission.");
+            }
+            else
+            {
+                _log.Info($"Cluster script directory updated for project {jobSpecification.Project.Id} for user {jobSpecification.ClusterUser.Username} before job submission.");
+            }
             var tasks = _adapter.SubmitJob(schedulerConnection.Connection, jobSpecification, credentials);
             return tasks;
         }

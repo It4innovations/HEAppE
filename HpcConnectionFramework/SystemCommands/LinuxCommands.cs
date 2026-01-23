@@ -244,76 +244,82 @@ internal class LinuxCommands : ICommands
     {
         if (!isServiceAccount)
             return true;
-
-        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}")
-            .Replace('\\', '/');
-
-        // Do not overwrite existing folder if overwriting is disabled
+        
+        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
+        var keyScriptsDir = Path.Combine(rootDir, ".key_scripts").Replace('\\', '/');
+        var sshDir = Path.Combine(rootDir, ".ssh").Replace('\\', '/');
+        var criticalFile = Path.Combine(keyScriptsDir, "remote-cmd3.sh").Replace('\\', '/');
+        
+        var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
+        var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
+        var rawRepoDir = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/');
+        var rawRepoDirRoot = rawRepoDir.Split(['/'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        
+        var cmdBuilder = new StringBuilder();
+        
         if (!overwriteExistingProjectRootDirectory)
         {
-            // test if root cluster project directory already exists
-            var rootDirExistsCmd = $"if [ -d {rootDir} ]; then echo EXISTS; fi";
-            var rootDirExistsResult = SshCommandUtils
-                .RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), rootDirExistsCmd)
-                .Result
-                .Trim();
-
-            if (rootDirExistsResult == "EXISTS")
-            {
-                _log.Info($"Skipping initialization for cluster project root directory: '{clusterProjectRootDirectory}', directory already exists and overwriteExistingProjectRootDirectory = false");
-                return true;
-            }
+            cmdBuilder.Append($@"
+                if [ -d ""{rootDir}"" ] && [ -f ""{criticalFile}"" ]; then 
+                    echo ""SKIPPED_EXISTS""; 
+                    exit 0; 
+                fi && 
+            ");
         }
+        
+        cmdBuilder.Append($@"rm -rf ""{rootDir}"" && ");
+        cmdBuilder.Append($@"mkdir -p ""{sshDir}"" && ");
+        cmdBuilder.Append($@"cd ""{rootDir}"" && ");
+        
+        var gitCmd = $@"
+            git clone --depth 1 --single-branch -b {branch} --quiet {repoUrl} HEAppE-scripts 2>&1";
 
-        var cmdBuilder = new StringBuilder();
-        var keyScriptsDir = Path.Combine(rootDir, ".key_scripts")
-            .Replace('\\', '/');
-        var sshDir = Path.Combine(rootDir, ".ssh")
-            .Replace('\\', '/');
-
-        // Create directories
-        cmdBuilder.Append($"rm -rf {rootDir} && ");
-        cmdBuilder.Append($"mkdir -p {sshDir} && ");
-        cmdBuilder.Append($"cd {rootDir} && ");
-
-        // Clone git repository with key scripts
-        var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings
-            .KeyScriptsDirectoryInRepository
-            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
-                StringSplitOptions.RemoveEmptyEntries);
-        var gitCloneLogic = $@"
-            error=$(git clone -b {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch} --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} HEAppE-scripts
- 2>&1); 
-            code=$?; 
-            if [ $code -ne 0 ]; then 
-              echo ""GIT CLONE ERROR: $error"" >&2; 
-              exit $code; 
-            fi
-        ";
-        cmdBuilder.Append($"{gitCloneLogic.Replace("\r\n", " ").Trim()} && ");
-        cmdBuilder.Append(
-            $"mv {HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/')} .key_scripts && ");
-        cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
-
-        // Scripts modifications
-        cmdBuilder.Append($"chmod -R 755 {keyScriptsDir} && ");
-        cmdBuilder.Append(
-            $"sed -i \"s|TODO|{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}|g\" {Path.Combine(keyScriptsDir, "remote-cmd3.sh").Replace('\\', '/')}");
+        cmdBuilder.Append($@"
+            error=$({gitCmd}); 
+            if [ $? -ne 0 ]; then 
+                echo ""GIT_ERROR: $error""; 
+                exit 1; 
+            fi && 
+        ");
+        
+        cmdBuilder.Append($@"mv HEAppE-scripts/{rawRepoDir} .key_scripts && ");
+        cmdBuilder.Append($@"rm -rf HEAppE-scripts && ");
+        
+        var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
+        cmdBuilder.Append($@"chmod -R 755 .key_scripts && ");
+        cmdBuilder.Append($@"sed -i ""s|TODO|{sedReplacement}|g"" .key_scripts/remote-cmd3.sh && ");
+        
+        cmdBuilder.Append("echo \"INSTALLED\"");
 
         try
         {
-            var sshCommand =
-                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection),
-                    cmdBuilder.ToString());
-            _log.Info($"Cluster scripts initialization result: \"{sshCommand.Result}\"");
+            var sshCommand = SshCommandUtils.RunSshCommand(
+                new SshClientAdapter((SshClient)schedulerConnectionConnection), 
+                cmdBuilder.ToString()
+            );
+
+            var result = sshCommand.Result.Trim();
+            
+            if (sshCommand.ExitStatus != 0)
+            {
+                _log.Error($"Cluster scripts initialization failed (ExitCode: {sshCommand.ExitStatus}): {result}");
+                return false;
+            }
+
+            if (result.Contains("SKIPPED_EXISTS"))
+            {
+                _log.Info($"Skipping initialization for '{clusterProjectRootDirectory}', already exists.");
+                return true;
+            }
+
+            _log.Info($"Cluster scripts initialized successfully.");
+            return true;
         }
         catch (Exception ex)
         {
-            _log.Error($"Cluster scripts initialization failed: \"{ex.Message}\"");
+            _log.Error($"Cluster scripts initialization exception: \"{ex.Message}\"");
             return false;
         }
-
-        return true;
     }
 
     public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)

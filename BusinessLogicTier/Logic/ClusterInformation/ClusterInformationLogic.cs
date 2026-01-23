@@ -284,25 +284,21 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         {
             if (onlyServiceAccounts)
             {
-                // Získání servisního účtu (vrací jeden objekt nebo null)
                 var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
                     .GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, adaptorUserId);
 
-                // Musíme zabalit jeden objekt do IEnumerable, aby seděl návratový typ
                 return serviceAccount != null 
                     ? new List<ClusterAuthenticationCredentials> { serviceAccount } 
                     : Enumerable.Empty<ClusterAuthenticationCredentials>();
             }
             else
             {
-                // Získání uživatelských účtů (již vrací IEnumerable)
                 return await _unitOfWork.ClusterAuthenticationCredentialsRepository
                     .GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, requireIsInitialized, adaptorUserId);
             }
         }
         catch (NotAllowedException ex)
         {
-            // Kontrola: Je chyba způsobena tím, že účet není inicializován? A je povolena auto-inicializace?
             bool isNotInitializedError = ex.Message != null && ex.Message.Contains("ClusterAccountNotInitialized");
             bool isAutoInitEnabled = BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse;
 
@@ -310,17 +306,13 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             {
                 _log.InfoFormat("Auto-initializing credentials for ClusterId: {0}, ProjectId: {1}, ServiceAccount: {2}", 
                     clusterId, projectId, onlyServiceAccounts);
-
-                // Volání existující metody pro inicializaci
-                // Předpokládám, že InitializeClusterCredentials vrací kolekci (v původním kódu .FirstOrDefault() naznačoval kolekci)
+                
                 return await InitializeClusterCredentials(
                     clusterId: clusterId, 
                     projectId: projectId, 
                     adaptorUserId: adaptorUserId, 
                     onlyServiceAccounts: onlyServiceAccounts);
             }
-
-            // Pokud to není chyba inicializace nebo je auto-init vypnutý, vyhoď výjimku dál
             throw;
         }
     }

@@ -128,16 +128,13 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
-        // 1. Prepare the primary job submission command (sbatch)
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
 
         // 2. Wrap the command into the interpreter and helper script (Base64 encoded)
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
-        // Improved Chaining:
-        // 1. We use 'grep -oE "[0-9]+"' to ensure we only pass numeric Job IDs to scontrol.
-        // 2. We use 'xargs -r' (or --no-run-if-empty) to prevent running scontrol if no ID is found.
+
         var integratedCommand = $"{sbatchCmd} | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'";
 
         SshCommandWrapper command = null;
