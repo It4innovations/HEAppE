@@ -215,7 +215,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
 
         CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
-        
+        if (loggedUser == null)
+        {
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
         return loggedUser;
     }
 
@@ -226,6 +229,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
+
+        if (loggedUser == null)
+        {
+            throw new UnauthorizedAccessException("Unauthorized");
+        }
 
         var now = DateTime.UtcNow;
         var groups = loggedUser.AdaptorUserUserGroupRoles
