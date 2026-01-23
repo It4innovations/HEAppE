@@ -247,7 +247,6 @@ internal class LinuxCommands : ICommands
         
         var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
         var keyScriptsDir = Path.Combine(rootDir, ".key_scripts").Replace('\\', '/');
-        var sshDir = Path.Combine(rootDir, ".ssh").Replace('\\', '/');
         var criticalFile = Path.Combine(keyScriptsDir, "remote-cmd3.sh").Replace('\\', '/');
         
         var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
@@ -268,7 +267,7 @@ internal class LinuxCommands : ICommands
         }
         
         cmdBuilder.Append($@"rm -rf ""{rootDir}"" && ");
-        cmdBuilder.Append($@"mkdir -p ""{sshDir}"" && ");
+        cmdBuilder.Append($@"mkdir -p ""{rootDir}"" && ");
         cmdBuilder.Append($@"cd ""{rootDir}"" && ");
         
         var gitCmd = $@"
