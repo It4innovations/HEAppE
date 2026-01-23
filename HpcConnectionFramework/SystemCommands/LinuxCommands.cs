@@ -242,7 +242,7 @@ internal class LinuxCommands : ICommands
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
-        if (!isServiceAccount)
+        if (isServiceAccount)
             return true;
         
         var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
