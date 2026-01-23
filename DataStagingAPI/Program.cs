@@ -14,6 +14,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.ServiceTier.FileTransfer;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Http.Features;
@@ -52,7 +53,7 @@ else
 
 builder.Services.Configure<FormOptions>(options =>
 {
-    options.MultipartBodyLengthLimit = 2L * 1024 * 1024 * 1024; // 2 GB
+    options.MultipartBodyLengthLimit = 2L * 1024 * 1024 * 1024;
 });
 
 builder.WebHost.ConfigureKestrel(serverOptions =>
@@ -62,7 +63,6 @@ builder.WebHost.ConfigureKestrel(serverOptions =>
 
 builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
 
-//IPRateLimitation
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
 
@@ -83,12 +83,9 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
 
-// Lexis Token Service
 builder.Services.AddHttpClient("LexisTokenExchangeClient");
 builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
-
-// Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
 
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
@@ -97,8 +94,8 @@ builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings(
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
 
-//add IUserOrgService
 builder.Services.AddScoped<IUserOrgService, UserOrgService>();
+builder.Services.AddScoped<FileTransferService>();
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
@@ -107,22 +104,17 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 });
 
 builder.Services.AddDistributedMemoryCache();
-//if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    builder.Services.AddHttpClient("LexisTokenExchangeClient");
-    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
-    builder.Services.AddAuthentication("Bearer");
-    builder.Services.AddAuthorization();
-}
+
+builder.Services.AddHttpClient("LexisTokenExchangeClient");
+builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
+builder.Services.AddAuthentication("Bearer");
+builder.Services.AddAuthorization();
+
 if (true)
 {
     builder.Services.AddSmartAuthentication(builder.Configuration);
 }
 
-
-
-
-//TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
 #pragma warning disable CS8604
@@ -134,7 +126,6 @@ GlobalContext.Properties["ip"] = APIAdoptions.DeploymentConfiguration.DeployedIP
 
 AdoNetAppenderHelper.SetConnectionString(builder.Configuration.GetConnectionString("Logging"));
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>
 {
     options.SchemaFilter<PascalCasingPropertiesFilter>();
@@ -165,7 +156,7 @@ builder.Services.AddSwaggerGen(options =>
         In = ParameterLocation.Header,
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
-    
+
     {
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
@@ -227,9 +218,6 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
-
-
-//Localization and resources
 builder.Services.AddLocalization();
 
 builder.Services.Configure<RequestLocalizationOptions>(options =>
@@ -244,8 +232,6 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.SupportedCultures = supportedCultures;
 });
 
-
-//CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("HEAppEDefaultOrigins", builder =>
@@ -268,10 +254,9 @@ builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLif
 
 var app = builder.Build();
 LogicFactory.ServiceProvider = app.Services;
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 
-//TODO Need to be delete after DI rework
 ServiceActivator.Configure(app.Services);
 
 app.UseCors("HEAppEDefaultOrigins");
@@ -279,9 +264,6 @@ app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
-
-
-app.RegisterApiRoutes();
 
 app.UseSwagger(swagger =>
 {
@@ -325,12 +307,11 @@ app.UseSwaggerUI(swaggerUI =>
     }
 });
 
-
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
-{
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.RegisterApiRoutes();
 
 app.Run();
