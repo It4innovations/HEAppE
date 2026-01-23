@@ -239,39 +239,44 @@ internal class LinuxCommands : ICommands
     /// <param name="localBasepath">Cluster execution path</param>
     /// <param name="isServiceAccount">Is servis account</param>
     /// <param name="account">Cluster username</param>
-    public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
-        string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
+   public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
+    string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
         if (isServiceAccount)
             return true;
         
         var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
-        var keyScriptsDir = Path.Combine(rootDir, ".key_scripts").Replace('\\', '/');
-        var criticalFile = Path.Combine(keyScriptsDir, "remote-cmd3.sh").Replace('\\', '/');
         
+        string bashSafeRootDir = rootDir.StartsWith("~/") 
+            ? "~/" + "\"" + rootDir.Substring(2) + "\"" 
+            : "\"" + rootDir + "\"";
+
+        var keyScriptsDir = rootDir.EndsWith("/") ? rootDir + ".key_scripts" : rootDir + "/.key_scripts";
+        string bashSafeKeyScriptsDir = bashSafeRootDir.EndsWith("\"") 
+            ? bashSafeRootDir.Insert(bashSafeRootDir.Length - 1, "/.key_scripts") 
+            : bashSafeRootDir + "/.key_scripts";
+
         var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
         var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
         var rawRepoDir = HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/');
-        var rawRepoDirRoot = rawRepoDir.Split(['/'], StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
         
         var cmdBuilder = new StringBuilder();
         
         if (!overwriteExistingProjectRootDirectory)
         {
             cmdBuilder.Append($@"
-                if [ -d ""{rootDir}"" ] && [ -f ""{criticalFile}"" ]; then 
+                if [ -d {bashSafeRootDir} ] && [ -f {bashSafeKeyScriptsDir}/remote-cmd3.sh ]; then 
                     echo ""SKIPPED_EXISTS""; 
                     exit 0; 
                 fi && 
             ");
         }
         
-        cmdBuilder.Append($@"rm -rf ""{rootDir}"" && ");
-        cmdBuilder.Append($@"mkdir -p ""{rootDir}"" && ");
-        cmdBuilder.Append($@"cd ""{rootDir}"" && ");
+        cmdBuilder.Append($@"rm -rf {bashSafeRootDir} && ");
+        cmdBuilder.Append($@"mkdir -p {bashSafeRootDir} && ");
+        cmdBuilder.Append($@"cd {bashSafeRootDir} && ");
         
-        var gitCmd = $@"
-            git clone --depth 1 --single-branch -b {branch} --quiet {repoUrl} HEAppE-scripts 2>&1";
+        var gitCmd = $@"git clone --depth 1 --single-branch -b {branch} --quiet {repoUrl} HEAppE-scripts 2>&1";
 
         cmdBuilder.Append($@"
             error=$({gitCmd}); 
