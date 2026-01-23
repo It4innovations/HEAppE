@@ -205,6 +205,10 @@ public static class JobManagementConverts
 
     private static ProjectForTaskExt ConvertIntToExt(this Project project, CommandTemplate commandTemplate)
     {
+        if (project is null)
+        {
+            return null;
+        }
         ProjectForTaskExt convert = new()
         {
             Id = project.Id,
@@ -290,6 +294,10 @@ public static class JobManagementConverts
 
     public static ExtendedProjectInfoExt ConvertIntToExtendedInfoExt(this Project project)
     {
+        if (project == null)
+        {
+            return null; 
+        }
         ExtendedProjectInfoExt convert = new()
         {
             Id = project.Id,
