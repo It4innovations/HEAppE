@@ -622,16 +622,28 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser, IEnumerable<Project> projects)
     {
         List<ProjectReference> projectReferences = new();
-        var groupRoles = loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup)
+        var validProjectIds = new HashSet<long>(
+            projects?.Where(x => x != null).Select(x => x.Id) ?? Enumerable.Empty<long>()
+        );
+        
+        var groupRoles = loggedUser.AdaptorUserUserGroupRoles
+            .GroupBy(x => x.AdaptorUserGroup)
             .Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
+
         foreach (var groupRole in groupRoles)
         {
-            var project = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
+            var project = _unitOfWork.AdaptorUserGroupRepository
+                .GetAllWithAdaptorUserGroupsAndActiveProjects()
                 .FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
-            //if project.Id is present in projects array, then it is a project that user has access to
-            if (project is null || !projects.Any(x => x.Id == project.Id)) continue;
+
+            if (project is null || !validProjectIds.Contains(project.Id)) 
+            {
+                continue;
+            }
+            
             var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
             project.CommandTemplates = commandTemplates.ToList();
+
             projectReferences.Add(new ProjectReference
             {
                 Role = groupRole.AdaptorUserRole,
