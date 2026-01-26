@@ -63,11 +63,6 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private readonly IUserOrgService _userOrgService;
 
     /// <summary>
-    ///     Lock for creating user
-    /// </summary>
-    private readonly object _lockCreateUserObj = new();
-
-    /// <summary>
     ///     Session code expiration in seconds
     /// </summary>
     private static readonly int _sessionExpirationSeconds = BusinessLogicConfiguration.SessionExpirationInSeconds;
@@ -390,61 +385,55 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 Permissions = x.SystemPermissionTypes
             });
 
-            lock (_lockCreateUserObj)
+        IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
+            .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
+
+        DateTime changedTime = DateTime.UtcNow;
+        AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+        
+        if (user is null)
+        {
+            try 
             {
-                IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-                    .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
-
-                DateTime changedTime = DateTime.UtcNow;
-                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
-                if (user is null)
-                {
-                    user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
-                    _log.Info($"Created new HEAppE account for user: \"{user}\"");
-                }
-
-            var hasUserGroup = false;
-
-            //Set roles for group to IsDeleted
-            user.AdaptorUserUserGroupRoles.ForEach(f =>
-            {
-                f.IsDeleted = true;
-                f.ModifiedAt = changedTime;
-            });
-
-            foreach (var lexisProject in lexisProjects)
-            {
-                var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a =>
-                    string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
-
-                if (groupsWithProject is null || !groupsWithProject.Any())
-                {
-                    //_log.Warn(
-                    //    $"LEXIS AAI: User group with prefix \"{LexisAuthenticationConfiguration.HEAppEGroupNamePrefix}\" for Project Short Name \"{lexisProject.ProjectShortName}\" does not exist in HEAppE DB!");
-                    continue;
-                }
-
-                var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey)
-                    .Select(s => RoleMapping.MappingRoles[s]);
-                if (roleNames is null || !roleNames.Any())
-                {
-                    //_log.Warn(
-                    //    $"LEXIS AAI: Permissions for mapping is not correctly setup for Project Short Name \"{lexisProject.ProjectShortName}\"!");
-                    continue;
-                }
-
-                var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
-                foreach (var prefixedGroup in groupsWithProject)
-                    user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
-
-                hasUserGroup = true;
-                //_log.Info($"LEXIS AAI: User \"{user.Username}\" for Project Short Name \"{lexisProject.ProjectShortName}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
-
+                user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
-            _unitOfWork.Save();
-            
-            return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
+            catch (Exception)
+            {
+                user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+                if (user is null) throw;
+            }
         }
+
+        var hasUserGroup = false;
+
+        user.AdaptorUserUserGroupRoles.ForEach(f =>
+        {
+            f.IsDeleted = true;
+            f.ModifiedAt = changedTime;
+        });
+
+        foreach (var lexisProject in lexisProjects)
+        {
+            var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a =>
+                string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
+
+            if (groupsWithProject is null || !groupsWithProject.Any()) continue;
+
+            var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey)
+                .Select(s => RoleMapping.MappingRoles[s]);
+                
+            if (roleNames is null || !roleNames.Any()) continue;
+
+            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
+            foreach (var prefixedGroup in groupsWithProject)
+                user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
+
+            hasUserGroup = true;
+        }
+
+        _unitOfWork.Save();
+        
+        return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
     }
 
     /// <summary>
@@ -454,43 +443,48 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// <returns>Newly created or existing HEAppE account.</returns>
     private AdaptorUser GetOrRegisterNewOpenIdUser(UserOpenId openIdUser)
     {
-        lock (_lockCreateUserObj)
+        var changedTime = DateTime.UtcNow;
+        var user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+    
+        if (user is null)
         {
-            var changedTime = DateTime.UtcNow;
-            var user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
-            if (user is null)
+            try
             {
                 user = CreateUser(openIdUser.UserName, openIdUser.Email, changedTime, AdaptorUserType.OpenId);
                 _log.Info($"OpenId: Created new HEAppE account for user: \"{user}\"");
             }
-
-            var hasUserGroup = false;
-
-            //Set roles for group to IsDeleted
-            user.AdaptorUserUserGroupRoles.ForEach(f =>
+            catch (Exception)
             {
-                f.IsDeleted = true;
-                f.ModifiedAt = changedTime;
-            });
+                user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+                if (user is null) throw;
+            }
+        }
 
-            foreach (var project in openIdUser.Projects)
+        var hasUserGroup = false;
+
+        user.AdaptorUserUserGroupRoles.ForEach(f =>
+        {
+            f.IsDeleted = true;
+            f.ModifiedAt = changedTime;
+        });
+
+        foreach (var project in openIdUser.Projects)
+        {
+            if (!TryGetUserGroupByName(project.HEAppEGroupName, out var openIdGroup))
             {
-                if (!TryGetUserGroupByName(project.HEAppEGroupName, out var openIdGroup))
-                {
-                    _log.Warn($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
-                    continue;
-                }
-
-                var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(project.Roles);
-                user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
-
-                hasUserGroup = true;
-                _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
+                _log.Warn($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
+                continue;
             }
 
-            _unitOfWork.Save();
-            return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
+            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(project.Roles);
+            user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
+
+            hasUserGroup = true;
+            _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
         }
+
+        _unitOfWork.Save();
+        return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
     }
 
     /// <summary>
