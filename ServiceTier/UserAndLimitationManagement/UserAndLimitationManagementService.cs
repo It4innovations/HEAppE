@@ -247,6 +247,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         }
         var projects = groups
             .Select(r => r.AdaptorUserGroup.Project)
+            .Where(p => p != null)
             .Distinct()
             .ToList();
         
