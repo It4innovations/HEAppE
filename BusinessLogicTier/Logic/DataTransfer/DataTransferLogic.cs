@@ -34,13 +34,14 @@ public class DataTransferLogic : IDataTransferLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    public DataTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public DataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _logger = LogManager.GetLogger(typeof(DataTransferLogic));
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        _userOrgService = userOrgService;
+        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
     }
 
     #endregion
@@ -61,6 +62,11 @@ public class DataTransferLogic : IDataTransferLogic
     ///     Management logic
     /// </summary>
     private readonly IJobManagementLogic _managementLogic;
+
+    /// <summary>
+    /// UserOrg Service
+    /// </summary>
+    private readonly IUserOrgService _userOrgService;
 
     /// <summary>
     ///     HashSet tasks with opened tunnel

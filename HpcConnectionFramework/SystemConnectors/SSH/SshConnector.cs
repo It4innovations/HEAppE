@@ -16,6 +16,7 @@ using Org.BouncyCastle.Crypto;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
 
@@ -120,6 +121,20 @@ public class SshConnector : IPoolableAdapter
     public void Disconnect(object connectorClient)
     {
         new SshClientAdapter((SshClient)connectorClient).Disconnect();
+    }
+    
+    /// <summary>
+    /// Is connection connected
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <returns></returns>
+    public bool IsConnected(object connection)
+    {
+        if (connection is SshClient sshClient)
+        {
+            return sshClient.IsConnected;
+        }
+        return false;
     }
 
     #endregion
@@ -336,21 +351,21 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
-            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
             };
 
@@ -374,16 +389,16 @@ public class SshConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
-            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
@@ -393,7 +408,7 @@ public class SshConnector : IPoolableAdapter
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,

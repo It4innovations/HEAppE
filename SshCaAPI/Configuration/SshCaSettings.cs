@@ -12,6 +12,8 @@
         /// </summary>
         
         public static bool UseCertificateAuthorityForAuthentication { get; set; } = false;
+        
+        public static bool UsePosixAccountFromCertificate { get; set; } = true;
 
         /// <summary>
         ///     Certification authority name

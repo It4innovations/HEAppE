@@ -7,15 +7,24 @@ namespace HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 
 public interface IClusterAuthenticationCredentialsRepository : IRepository<ClusterAuthenticationCredentials>
 {
-    IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForClusterAndProject(
-        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId);
+    Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForClusterAndProject(long clusterId,
+        long projectId, bool requireIsInitialized, long? adaptorUserId);
 
-    IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsForUsernameAndProject(
+    Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForUsernameAndProject(
         string username, long projectId, bool requireIsInitialized, long? adaptorUserId);
 
-    IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(long projectId, bool requireIsInitialized, long? adaptorUserId);
-    IEnumerable<ClusterAuthenticationCredentials> GetAuthenticationCredentialsProject(string username, long projectId, bool requireIsInitialized, long? adaptorUserId);
-    ClusterAuthenticationCredentials GetServiceAccountCredentials(long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId);
-    IEnumerable<ClusterAuthenticationCredentials> GetAllGeneratedWithFingerprint(string fingerprint, long projectId);
-    IEnumerable<ClusterAuthenticationCredentials> GetAllGenerated(long projectId);
+    Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(long projectId,
+        bool requireIsInitialized, long? adaptorUserId);
+    Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(string username,
+        long projectId, bool requireIsInitialized, long? adaptorUserId);
+    Task<ClusterAuthenticationCredentials> GetServiceAccountCredentials(long clusterId, long projectId,
+        bool requireIsInitialized, long? adaptorUserId);
+    Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGeneratedWithFingerprint(string fingerprint,
+        long projectId);
+    Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId);
+    
+    Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username);
+    
+    //GetByIdAsync
+    Task<ClusterAuthenticationCredentials> GetByIdAsync(long id);
 }

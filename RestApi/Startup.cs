@@ -27,6 +27,7 @@ using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.Configuration;
 using HEAppE.RestApi.Logging;
+using HEAppE.RestApi.Services;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using IdentityModel.AspNetCore.OAuth2Introspection;
 using IdentityModel.Client;
@@ -118,6 +119,7 @@ public class Startup
         Configuration.Bind("DatabaseTransactionLogBackupSettings", new DatabaseTransactionLogBackupConfiguration());
         Configuration.Bind("DatabaseBackupSettings", new DatabaseFullBackupConfiguration());
         Configuration.Bind("BusinessLogicSettings", new BusinessLogicConfiguration());
+        Configuration.Bind("RoleAssignments", new RoleAssignmentConfiguration());
         Configuration.Bind("CertificateGeneratorSettings", new CertificateGeneratorConfiguration());
         Configuration.Bind("MiddlewareContextSettings", new MiddlewareContextSettings());
         MiddlewareContextSettings.ConnectionString = Configuration.GetConnectionString("MiddlewareContext");
@@ -144,25 +146,30 @@ public class Startup
         
         services.AddSingleton<SqlServerHealthCheck>();
         services.AddSingleton<VaultHealthCheck>();
-
+        
         services.AddControllers(options =>
         {
             options.Filters.Add<LogRequestModelFilter>();
-        });
-        
-        services.AddControllers(options =>
-        {
-        
-            if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+            //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 options.Filters.Add(new AuthorizeFilter());
             }
+        }).AddJsonOptions(options =>
+        {
+            options.JsonSerializerOptions.PropertyNamingPolicy = null;
+            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
+        
+        services.AddScoped<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
         {
             if (!string.IsNullOrEmpty(LexisAuthenticationConfiguration.BaseAddress))
+            {
                 conf.BaseAddress = new Uri(LexisAuthenticationConfiguration.BaseAddress);
+                conf.Timeout = TimeSpan.FromSeconds(60);
+            }
+
         });
 
         services.AddHttpClient<IExpirioService, ExpirioService>(client =>
@@ -184,12 +191,13 @@ public class Startup
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
         services.AddScoped<IHttpContextKeys, HttpContextKeys>();
+        services.AddHostedService<RoleAssignmentService>();
         
        
 
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (true)
         {
-            services.AddJwtIntrospectionIfEnabled(Configuration);
+            services.AddSmartAuthentication(Configuration);
         }
 
 
@@ -204,24 +212,35 @@ public class Startup
                     .AllowAnyMethod();
             });
         });
-
-        services.AddControllers().AddJsonOptions(options =>
-        {
-            options.JsonSerializerOptions.PropertyNamingPolicy = null;
-            options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
-        });
-
-        if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-        {
-            services.AddHttpClient("LexisTokenExchangeClient");
-            services.AddSingleton<ILexisTokenService, LexisTokenService>();   
-        }
+        
+        
+        services.AddHttpClient("LexisTokenExchangeClient");
+        services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
         services.AddSwaggerGen(gen =>
         {
+            gen.AddSecurityDefinition("ServiceApiKey", new OpenApiSecurityScheme
+            {
+                Description = "Service API Key authentication. Enter the key in the field below.",
+                Name = "X-API-Key",
+                In = ParameterLocation.Header,
+                Type = SecuritySchemeType.ApiKey,
+                Scheme = "ApiKeyScheme"
+            });
+
+            gen.AddSecurityRequirement(new OpenApiSecurityRequirement
+            {
+                {
+                    new OpenApiSecurityScheme
+                    {
+                        Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ServiceApiKey" }
+                    },
+                    Array.Empty<string>()
+                }
+            });
             
             //if introspection is enabled, add JWT Bearer authentication
-            if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+            //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
             {
                 gen.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
                 {
@@ -381,7 +400,7 @@ public class Startup
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
-        app.UseIpRateLimiting();
+        //app.UseIpRateLimiting();
 
         app.UseStatusCodePages();
         app.UseStaticFiles();
@@ -438,19 +457,20 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+        app.UseMiddleware<ExceptionMiddleware>();
 
-        if (LexisAuthenticationConfiguration.UseBearerAuth)
+        //if ()
         {
             app.UseMiddleware<LexisAuthMiddleware>();
         }
-        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             app.UseMiddleware<LexisTokenExchangeMiddleware>();
             app.UseAuthentication();
             app.UseAuthorization();
         }
 
-        app.UseMiddleware<ExceptionMiddleware>();
+
         app.UseEndpoints(endpoints =>
         {
             endpoints.MapControllerRoute(
@@ -464,7 +484,7 @@ public class Startup
         var option = new RewriteOptions();
         option.AddRedirect("^$", $"{SwaggerConfiguration.HostPostfix}/swagger/index.html");
         app.UseRewriter(option);
-
+        
         //app.UseHealthChecks("/health", new HealthCheckOptions() {
         //    ResponseWriter = HEAppEHealth.ResponseWriter,
         //    AllowCachingResponses = false, // use custom caching

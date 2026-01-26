@@ -8,6 +8,8 @@ using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Models;
 using System.Threading.Tasks;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -17,7 +19,8 @@ public interface IManagementService
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode);
 
-    CommandTemplateExt CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
+    Task<CommandTemplateExt> CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
+        long projectId,
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode);
 
@@ -25,7 +28,7 @@ public interface IManagementService
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode);
 
-    CommandTemplateExt ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
+    Task<CommandTemplateExt> ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode);
 
@@ -49,36 +52,36 @@ public interface IManagementService
     ClusterProjectExt GetProjectAssignmentToClusterById(long projectId, long clusterId, string sessionCode);
     ClusterProjectExt[] GetProjectAssignmentToClusters(long projectId, string sessionCode);
 
-    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
+    ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
         string sessionCode);
 
-    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string permanentStoragePath,
+    ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
         string sessionCode);
 
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode);
 
-    List<PublicKeyExt> GetSecureShellKeys(long projectId, string sessionCode);
+    Task<List<PublicKeyExt>> GetSecureShellKeys(long projectId, string sessionCode);
 
-    List<PublicKeyExt> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
+    Task<List<PublicKeyExt>> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
         string sessionCode);
 
-    PublicKeyExt RegenerateSecureShellKey(string username, string password, string publicKey, long projectId,
+    Task<PublicKeyExt> RegenerateSecureShellKey(string username, string password, string publicKey, long projectId,
         string sessionCode);
 
-    void RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
+    Task RemoveSecureShellKey(string username, string publicKey, long projectId, string sessionCode);
 
-    public List<ClusterInitReportExt> InitializeClusterScriptDirectory(long projectId,
+    public Task<List<ClusterInitReportExt>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory, string sessionCode, string username);
 
-    public List<ClusterAccessReportExt> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
+    public Task<List<ClusterAccessReportExt>> TestClusterAccessForAccount(long modelProjectId, string modelSessionCode,
         string username);
-    public List<ClusterAccountStatusExt> ClusterAccountStatus(long modelProjectId, string modelSessionCode,
+    public Task<List<ClusterAccountStatusExt>> ClusterAccountStatus(long modelProjectId, string modelSessionCode,
         string username);
 
     ExtendedCommandTemplateParameterExt GetCommandTemplateParameterById(long id, string modelSessionCode);
 
     ExtendedCommandTemplateParameterExt CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
-        string modelDescription, long modelCommandTemplateId, string modelSessionCode);
+        string modelDescription, long modelCommandTemplateId, string modelSessionCode, bool isVisible = true);
 
     ExtendedCommandTemplateParameterExt ModifyCommandTemplateParameter(long id, string modelIdentifier,
         string modelQuery, string modelDescription, string modelSessionCode);
@@ -204,11 +207,23 @@ public interface IManagementService
     string BackupDatabaseTransactionLogs(string sessionCode);
     List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode);
     void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode);
-    public List<PublicKeyExt> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
+    public Task<List<PublicKeyExt>> ModifyClusterAuthenticationCredential(string oldUsername, string newUsername,
         string newPassword, long projectId,
         string sessionCode);
 
     Task<StatusExt> Status(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
 
     StatusCheckLogsExt StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo, string sessionCode);
+    AdaptorUserCreatedExt CreateAdaptorUser(string username, object sessionCode);
+    AdaptorUserCreatedExt ModifyAdaptorUser(string oldUsername, string newUsername, string modelSessionCode);
+    string DeleteAdaptorUser(string modelUsername, string modelSessionCode);
+    AdaptorUserExt GetAdaptorUserByUsername(string username, string sessionCode);
+    AdaptorUserExt AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    AdaptorUserExt RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    AdaptorUserExt[] ListAdaptorUsersInProject(long projectId, string sessionCode);
+    ExtendedCommandTemplateExt CreateGenericCommandTemplate(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode);
+    ExtendedCommandTemplateExt ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode);
+    AdaptorUserExt[] ListAdaptorUsersInUserGroup(long userGroupId, string sessionCode);
+    AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
 }

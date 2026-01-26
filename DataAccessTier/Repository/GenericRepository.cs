@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using HEAppE.DataAccessTier.IRepository;
 using HEAppE.DomainObjects;
 using Microsoft.EntityFrameworkCore;
@@ -36,6 +37,11 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
     {
         return _dbSet.ToList();
     }
+    
+    public virtual async Task<IList<T>> GetAllAsync()
+    {
+        return await _dbSet.ToListAsync();
+    }
 
     public virtual void Insert(T entity)
     {
@@ -59,7 +65,23 @@ internal class GenericRepository<T> : IRepository<T> where T : IdentifiableDbEnt
         _dbSet.Attach(entityToUpdate);
         _context.Entry(entityToUpdate).State = EntityState.Modified;
     }
+
+    public async Task DeleteAsync(T entityToDelete)
+    {
+        await Task.Run(() => Delete(entityToDelete));
+    }
     
+    public async Task DeleteAsync(long id)
+    {
+        await Task.Run(() => Delete(id));
+    }
+
+    public async Task UpdateAsync(T entityToUpdate)
+    {
+        _dbSet.Attach(entityToUpdate);
+        _context.Entry(entityToUpdate).State = EntityState.Modified;
+    }
+
     public virtual void Detach(T entity)
     {
         _context.Entry(entity).State = EntityState.Detached;

@@ -39,10 +39,10 @@ public class DataTransferController : BaseController<DataTransferController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public DataTransferController(ILogger<DataTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _service = new DataTransferService(sshCertificateAuthorityService, httpContextKeys);
+        _service = new DataTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion
@@ -73,7 +73,7 @@ public class DataTransferController : BaseController<DataTransferController>
     }
 
     /// <summary>
-    ///     CLose Data Transfer
+    ///     Close Data Transfer
     /// </summary>
     /// <param name="model"></param>
     /// <returns></returns>
@@ -178,7 +178,6 @@ public class DataTransferController : BaseController<DataTransferController>
         
         try
         {
-            // Použití streaming metody místo původní async metody
             await _service.HttpPostToJobNodeStreamAsync(
                 model.HttpRequest,
                 model.HttpHeaders,

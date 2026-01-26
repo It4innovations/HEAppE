@@ -210,38 +210,59 @@ public class SlurmTaskAdapter : ISchedulerTaskAdapter
         string placementPolicy, IEnumerable<TaskParalizationSpecification> paralizationSpecs, int minCores,
         int maxCores, int coresPerNode, ClusterNodeTypeAggregation aggregation)
     {
-        if (maxCores <= 0) throw new ArgumentException($"Invalid number of cores: {maxCores}");
+        if (maxCores <= 0)
+            throw new ArgumentException($"Invalid number of cores: {maxCores}");
+
         var allocationCmdBuilder = new StringBuilder();
         var reqNodeGroupsCmd = PrepareNameOfNodesGroup(requestedNodeGroups);
-
-        var nodeCount = maxCores / coresPerNode;
-        nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
-
         var parSpec = paralizationSpecs.FirstOrDefault();
 
-        if (aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU")))
+        bool isPartialAllocation = aggregation != null && aggregation.AllocationType.Contains("partial-allocation", StringComparison.OrdinalIgnoreCase);
+        bool isGpuAllocation = aggregation != null && (aggregation.AllocationType.Contains("ACN") || aggregation.AllocationType.Contains("GPU"));
+        // GPU allocation
+        if (isGpuAllocation)
         {
-            allocationCmdBuilder.Append($" --gpus={maxCores}");
+            // partial allocation
+            if (isPartialAllocation)
+            {
+                allocationCmdBuilder.Append($" --gpus={maxCores}");
+            }
+            else
+            {
+                int gpuCount = maxCores;
+                var nodeCount = maxCores / coresPerNode;
+                nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
+                allocationCmdBuilder.Append($" --gpus={gpuCount}");
+                allocationCmdBuilder.Append($" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
+            }
         }
-        
-        allocationCmdBuilder.Append(
-            $" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
+        // CPU only allocation
+        else
+        {
+            // TODO implement partial allocation?
+            if (isPartialAllocation) { }
+
+            var nodeCount = maxCores / coresPerNode;
+            nodeCount += maxCores % coresPerNode > 0 ? 1 : 0;
+            allocationCmdBuilder.Append(
+                $" --nodes={nodeCount}{PrepareNameOfNodes(requiredNodes.ToArray(), nodeCount)}{reqNodeGroupsCmd}");
+        }
 
         if (parSpec is not null)
         {
-            allocationCmdBuilder.Append(parSpec.MPIProcesses.HasValue
-                ? $" --ntasks-per-node={parSpec.MPIProcesses.Value}"
-                : string.Empty);
-            allocationCmdBuilder.Append(parSpec.OpenMPThreads.HasValue
-                ? $" --cpus-per-task={parSpec.OpenMPThreads.Value}"
-                : string.Empty);
+            if (parSpec.MPIProcesses.HasValue)
+                allocationCmdBuilder.Append($" --ntasks-per-node={parSpec.MPIProcesses.Value}");
+
+            if (parSpec.OpenMPThreads.HasValue)
+                allocationCmdBuilder.Append($" --cpus-per-task={parSpec.OpenMPThreads.Value}");
         }
 
-        allocationCmdBuilder.Append(string.IsNullOrEmpty(placementPolicy)
-            ? string.Empty
-            : $" --constraint={placementPolicy}");
+        if (!string.IsNullOrEmpty(placementPolicy))
+            allocationCmdBuilder.Append($" --constraint={placementPolicy}");
+
         _taskBuilder.Append(allocationCmdBuilder);
     }
+
 
     /// <summary>
     ///     Set environment variables for task

@@ -7,6 +7,7 @@ using HEAppE.DataAccessTier.IRepository.OpenStack;
 using HEAppE.DataAccessTier.IRepository.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Service;
 using System;
+using System.Threading.Tasks;
 
 namespace HEAppE.DataAccessTier.UnitOfWork;
 
@@ -21,6 +22,7 @@ public interface IUnitOfWork : IDisposable
     #region Methods
 
     void Save();
+    Task SaveAsync();
 
     #endregion
 

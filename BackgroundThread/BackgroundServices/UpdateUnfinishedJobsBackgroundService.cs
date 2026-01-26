@@ -23,9 +23,11 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
     protected readonly ILog _log;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     protected readonly IHttpContextKeys _httpContextKeys;
+    protected readonly IUserOrgService _userOrgService;
 
-    public UpdateUnfinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
+    public UpdateUnfinishedJobsBackgroundService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
+        _userOrgService = userOrgService;
         _log = LogManager.GetLogger(GetType());
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
@@ -33,6 +35,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -40,8 +43,8 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
                 try
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                    LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+                    await LogicFactory.GetLogicFactory()
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
                         .UpdateCurrentStateOfUnfinishedJobs();
                 }
                 catch (Exception ex)

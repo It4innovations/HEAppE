@@ -229,18 +229,23 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
         StringBuilder cmdBuilder = new();
 
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
-        var nodeNames = taskInfo.TaskAllocationNodes
-            .Select(s => $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}")
-            .ToList();
 
-        nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
+        taskInfo.TaskAllocationNodes.ToList().ForEach(s =>
+        {
+            var fullDomain = $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}";
+            var nodeId = s.AllocationNodeId;
+            cmdBuilder.Append($"ip=$(dig +short {fullDomain}); [ -z \"$ip\" ] && ip=$(host {nodeId} | awk '{{print $NF}}'); echo $ip; ");
+        });
 
         var sshCommand = cmdBuilder.ToString();
         _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
+            return command.Result
+                .Split('\n')
+                .Where(w => !string.IsNullOrEmpty(w))
+                .Distinct()
                 .ToList();
         }
         catch (PbsException)
@@ -252,6 +257,8 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
             };
         }
     }
+
+
 
     /// <summary>
     ///     Get generic command templates parameters from script
@@ -499,6 +506,12 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
 
         await Task.Delay(1);
         return null;
+    }
+
+    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    {
+        // Currently not implemented for PBS Pro
+        throw new NotSupportedException("Dry run job is not supported for PBS Pro scheduler.");
     }
 
     #endregion

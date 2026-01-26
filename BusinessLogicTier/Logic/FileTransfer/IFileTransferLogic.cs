@@ -1,4 +1,6 @@
 ﻿using System.Collections.Generic;
+using System.IO;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 
@@ -7,8 +9,8 @@ namespace HEAppE.BusinessLogicTier.Logic.FileTransfer;
 public interface IFileTransferLogic
 {
     void RemoveJobsTemporaryFileTransferKeys();
-    FileTransferMethod TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser);
-    FileTransferMethod GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<FileTransferMethod> TrustfulRequestFileTransfer(long submittedJobInfoId, AdaptorUser loggedUser);
+    Task<FileTransferMethod> GetFileTransferMethod(long submittedJobInfoId, AdaptorUser loggedUser);
     void EndFileTransfer(long submittedJobInfoId, string publicKey, AdaptorUser loggedUser);
 
     IList<JobFileContent> DownloadPartsOfJobFilesFromCluster(long submittedJobInfoId, TaskFileOffset[] taskFileOffsets,
@@ -19,4 +21,10 @@ public interface IFileTransferLogic
     byte[] DownloadFileFromCluster(long submittedJobInfoId, string relativeFilePath, AdaptorUser loggedUser);
     FileTransferMethod GetFileTransferMethodById(long fileTransferMethodId);
     IEnumerable<FileTransferMethod> GetFileTransferMethodsByClusterId(long clusterId);
+
+    Task<dynamic> UploadFileToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId,
+        AdaptorUser loggedUser);
+    Task<dynamic> UploadJobScriptToProjectDir(Stream fileStream, string fileName, long projectId, long clusterId,
+        AdaptorUser loggedUser);
+    dynamic UploadFileToJobExecutionDir(Stream fileStream, string fileName, long createdJobInfoId, long? createdTaskInfoId, AdaptorUser loggedUser);
 }

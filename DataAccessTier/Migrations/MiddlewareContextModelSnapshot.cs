@@ -457,12 +457,12 @@ namespace HEAppE.DataAccessTier.Migrations
                     b.Property<DateTime?>("ModifiedAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("PermanentStoragePath")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
                     b.Property<long>("ProjectId")
                         .HasColumnType("bigint");
+
+                    b.Property<string>("ProjectStoragePath")
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("ScratchStoragePath")
                         .IsRequired()
@@ -1716,6 +1716,9 @@ namespace HEAppE.DataAccessTier.Migrations
                         .HasColumnType("bigint");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("UniqueCode")
+                        .IsUnique();
 
                     b.HasIndex("UserId");
 

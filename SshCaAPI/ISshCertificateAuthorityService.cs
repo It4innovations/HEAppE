@@ -5,6 +5,6 @@ namespace SshCaAPI
     public interface ISshCertificateAuthorityService
     {
         public Task<ConfigResponse> GetConfigAsync();
-        public Task<string> SignAsync(string publicKey, string ott, string resource);
+        public Task<SignResponse?> SignAsync(string publicKey, string ott, string resource);
     }
 }

@@ -28,6 +28,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         var backupCanBeDone = DatabaseFullBackupConfiguration.ScheduledBackupEnabled && await DatabaseFullBackupCanBeDone();
 
         while (backupCanBeDone && !stoppingToken.IsCancellationRequested)

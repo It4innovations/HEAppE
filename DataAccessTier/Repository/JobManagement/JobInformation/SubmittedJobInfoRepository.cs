@@ -39,6 +39,14 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
         return GetAll().Where(w => w.Submitter.Id == submitterId)
             .ToList();
     }
+    
+    public IQueryable<SubmittedJobInfo> GetJobsForUserQuery(long submitterId)
+    {
+        return _dbSet.AsQueryable()
+            .Where(j => j.Submitter.Id == submitterId);
+    }
+
+
 
     public IEnumerable<SubmittedJobInfo> GetAllWaitingForServiceAccount()
     {
@@ -57,9 +65,18 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
             .ThenInclude(x => x.Specification.CommandTemplate) // Combined another Include and ThenInclude
             .Where(x => x.Project.Id == projectId &&
                         x.StartTime >= startTime &&
-                        x.EndTime <= endTime &&
+                        (x.EndTime == null || x.EndTime <= endTime) &&
                         x.Tasks.Any(y => y.NodeType.Id == nodeTypeId))
             .ToList();
+    }
+
+    public SubmittedJobInfo GetByIdWithTasks(long id)
+    {
+        return _dbSet
+            .Include(j => j.Tasks)
+            .Include(j => j.Specification)
+            .Include(j => j.Project)
+            .FirstOrDefault(j => j.Id == id);
     }
 
     #endregion

@@ -8,6 +8,7 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using IdentityModel.Client;
@@ -21,6 +22,7 @@ namespace HEAppE.BusinessLogicTier;
 public interface IRequestContext
 {
     public long AdaptorUserId { get; set; } 
+    public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
     public string LEXISToken { get; set; }
@@ -29,6 +31,7 @@ public interface IRequestContext
 public class RequestContext : IRequestContext
 {
     public long AdaptorUserId { get; set; } 
+    public string UserInfo { get; set; }
     public string SshCaToken { get; set; } 
     public string FIPToken { get; set; }
     public string LEXISToken { get; set; }
@@ -36,7 +39,7 @@ public class RequestContext : IRequestContext
 
 public interface IHttpContextKeys
 {
-    Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService);
+    Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService);
     Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient);
     
     IRequestContext Context { get;  }
@@ -55,18 +58,18 @@ public class HttpContextKeys : IHttpContextKeys
         _log = LogManager.GetLogger(typeof(HttpContextKeys));
     }
 
-    public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService)
     {
         _log.Info("Authorizing with UserOrg");
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, sshCertificateAuthorityService, this);
-
+        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
+        AdaptorUser user = null;
         try
         {
-            AdaptorUser user = null;
             if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
+                _log.Info("Using Bearer authentication for Lexis");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = Context.LEXISToken
@@ -74,6 +77,7 @@ public class HttpContextKeys : IHttpContextKeys
             }
             else if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
+                _log.Info("Using Bearer authentication with JWT token introspection");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) ? 
@@ -81,8 +85,13 @@ public class HttpContextKeys : IHttpContextKeys
                 });
             }
             
-
-            _context.AdaptorUserId = user.Id;
+            if(user != null)
+            {
+                _log.Info($"Authorized user: {user.Username}:{user.Email} (ID: {user.Id})");
+                _context.AdaptorUserId = user.Id;
+                _context.UserInfo = $"{user.Username}:{user.Email}";
+            }
+            
             return user;
         }
         catch (Exception ex)

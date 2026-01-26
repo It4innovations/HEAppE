@@ -11,6 +11,7 @@ using Microsoft.Extensions.Logging;
 using Renci.SshNet;
 using Renci.SshNet.Common;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 
 namespace HEAppE.FileTransferFramework.Sftp;
@@ -115,16 +116,16 @@ public class SftpFileSystemConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
-            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
@@ -134,7 +135,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     proxyType.Map(),
                     proxyHost,
                     proxyPort,
@@ -162,21 +163,21 @@ public class SftpFileSystemConnector : IPoolableAdapter
             {
                 publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
             }
-            var certificate = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
                 .GetAwaiter()
                 .GetResult();
             using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
-            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(certificate));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
             var connectionInfo = port switch
             {
                 null => new PrivateKeyConnectionInfo(
                     masterNodeName,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
                 _ => new PrivateKeyConnectionInfo(
                     masterNodeName,
                     port.Value,
-                    credentials.Username,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
                     new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
             };
 
@@ -206,6 +207,20 @@ public class SftpFileSystemConnector : IPoolableAdapter
     public void Disconnect(object connectorClient)
     {
         new SftpClientAdapter((SftpClient)connectorClient).Disconnect();
+    }
+    
+    /// <summary>
+    /// Is connected
+    /// </summary>
+    /// <param name="connection"></param>
+    /// <returns></returns>
+    public bool IsConnected(object connection)
+    {
+        if (connection is SftpClient sshClient)
+        {
+            return sshClient.IsConnected;
+        }
+        return false;
     }
 
     #endregion

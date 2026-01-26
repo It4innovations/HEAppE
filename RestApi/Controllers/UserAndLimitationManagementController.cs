@@ -2,6 +2,7 @@
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.Exceptions.External;
+using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.UserAndLimitationManagement;
@@ -39,9 +40,9 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority Service</param>
     public UserAndLimitationManagementController(ILogger<UserAndLimitationManagementController> logger,
-        IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
+        IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger, memoryCache)
     {
-        _service = new UserAndLimitationManagementService(_cacheProvider, sshCertificateAuthorityService, httpContextKeys);
+        _service = new UserAndLimitationManagementService(_cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion
@@ -66,6 +67,11 @@ public class UserAndLimitationManagementController : BaseController<UserAndLimit
     {
         _logger.LogDebug(
             $"Endpoint: \"UserAndLimitationManagement\" Method: \"AuthenticateLexisToken\" Parameters: \"{model}\"");
+        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        {
+            _logger.LogInformation("Lexis token authentication is handled by middleware. Returning empty string.");
+            return Ok("HEADER-AUTH-NEEDED");
+        }
         var validationResult = new UserAndLimitationManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 

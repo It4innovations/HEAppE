@@ -114,7 +114,7 @@ public static class ManagementConverts
             ClusterId = cp.ClusterId,
             ProjectId = cp.ProjectId,
             ScratchStoragePath = cp.ScratchStoragePath,
-            PermanentStoragePath = cp.PermanentStoragePath,
+            ProjectStoragePath = cp.ProjectStoragePath,
             CreatedAt = cp.CreatedAt,
             ModifiedAt = cp.ModifiedAt
         };

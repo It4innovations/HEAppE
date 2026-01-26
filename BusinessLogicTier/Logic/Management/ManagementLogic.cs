@@ -4,6 +4,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
@@ -64,10 +65,11 @@ public class ManagementLogic : IManagementLogic
     /// <param name="extendedAllocationCommand"></param>
     /// <param name="executableFile"></param>
     /// <param name="preparationScript"></param>
+    /// <param name="adaptorUserId"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     /// <exception cref="InputValidationException"></exception>
-    public CommandTemplate CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
+    public async Task<CommandTemplate> CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name,
         long projectId, string description, string extendedAllocationCommand, string executableFile,
         string preparationScript, long? adaptorUserId)
     {
@@ -87,9 +89,9 @@ public class ManagementLogic : IManagementLogic
         if (string.IsNullOrEmpty(executableFile)) throw new InputValidationException("NoScriptPath");
 
         var cluster = commandTemplate.ClusterNodeType.Cluster;
-        var serviceAccount =
+        var serviceAccount = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                projectId, requireIsInitialized: true, adaptorUserId);
+                projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
@@ -222,11 +224,14 @@ public class ManagementLogic : IManagementLogic
     /// <param name="extendedAllocationCommand"></param>
     /// <param name="executableFile"></param>
     /// <param name="preparationScript"></param>
+    /// <param name="adaptorUserId"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     /// <exception cref="InputValidationException"></exception>
-    public CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
-        string description, string extendedAllocationCommand, string executableFile, string preparationScript, long? adaptorUserId)
+    public async Task<CommandTemplate> ModifyCommandTemplateFromGeneric(long commandTemplateId, string name,
+        long projectId,
+        string description, string extendedAllocationCommand, string executableFile, string preparationScript,
+        long? adaptorUserId)
     {
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(commandTemplateId) ??
                               throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
@@ -241,8 +246,8 @@ public class ManagementLogic : IManagementLogic
         if (executableFile is null) throw new InputValidationException("CommandTemplateNoExecutableFile");
 
         var cluster = commandTemplate.ClusterNodeType.Cluster;
-        var serviceAccount =
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId);
+        var serviceAccount = await
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
@@ -316,8 +321,8 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     public Project GetProjectById(long id)
     {
-        return _unitOfWork.ProjectRepository.GetById(id) ??
-               throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+        return _unitOfWork.ProjectRepository.GetById(id)
+               ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
     }
 
     /// <summary>
@@ -373,17 +378,8 @@ public class ManagementLogic : IManagementLogic
             {
                 throw new InputValidationException("ProjectAlreadyExist");
             }
-
-
-            // Check if an admin user exists
-            var heappeAdminUser = _unitOfWork.AdaptorUserRepository.GetById(1);
-            if (heappeAdminUser != null)
-            {           
-                heappeAdminUser.CreateSpecificUserRoleForUser(defaultAdaptorUserGroup,
-                    AdaptorUserRoleType.Administrator);
-                _unitOfWork.AdaptorUserRepository.Update(heappeAdminUser);
-                _unitOfWork.Save();
-            }
+            
+            RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger);
 
             var adaptorUserGroup = loggedUser.UserType switch
             {
@@ -403,6 +399,8 @@ public class ManagementLogic : IManagementLogic
 
         return project;
     }
+    
+    
 
     /// <summary>
     ///     Modifies an existing project in the database and returns it
@@ -497,7 +495,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     /// <exception cref="InputValidationException"></exception>
     public ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath)
+        string projectStoragePath)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId) ??
                       throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -509,7 +507,7 @@ public class ManagementLogic : IManagementLogic
             //Cluster to project is marked as deleted, update it
             return !cp.IsDeleted
                 ? throw new InputValidationException("ProjectAlreadyExistWithCluster")
-                : ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, permanentStoragePath);
+                : ModifyProjectAssignmentToCluster(projectId, clusterId, scratchStoragePath, projectStoragePath);
 
 
         //Create cluster to project mapping
@@ -521,7 +519,7 @@ public class ManagementLogic : IManagementLogic
             ScratchStoragePath = scratchStoragePath
                 .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
-            PermanentStoragePath = permanentStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
+            ProjectStoragePath = projectStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
             CreatedAt = modified,
             IsDeleted = false
@@ -564,7 +562,7 @@ public class ManagementLogic : IManagementLogic
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
     public ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath)
+        string projectStoragePath)
     {
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(clusterId, projectId)
@@ -573,7 +571,7 @@ public class ManagementLogic : IManagementLogic
         var modified = DateTime.UtcNow;
         clusterProject.ScratchStoragePath = scratchStoragePath
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
-        clusterProject.PermanentStoragePath = permanentStoragePath
+        clusterProject.ProjectStoragePath = projectStoragePath
             .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/');
         clusterProject.ModifiedAt = modified;
         clusterProject.IsDeleted = false;
@@ -628,11 +626,12 @@ public class ManagementLogic : IManagementLogic
     ///     Returns a list of SSH keys for the specified project
     /// </summary>
     /// <param name="projectId"></param>
+    /// <param name="adaptorUserId"></param>
     /// <returns></returns>
-    public List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId)
+    public async Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        if (project is null || project.EndDate < DateTime.UtcNow)
+        if (project is null)
         {
             _logger.Error($"Project with ID {projectId} not found or has already ended.");
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -647,17 +646,18 @@ public class ManagementLogic : IManagementLogic
             _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
         }
         
-        return _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId)
+        return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId))
             .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
             .ToList();
     }
     
-    public List<SecureShellKey> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername, string newPassword, long projectId, long? adaptorUserId)
+    public async Task<List<SecureShellKey>> RenameClusterAuthenticationCredentials(string oldUsername,
+        string newUsername, string newPassword, long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        if (project is null || project.EndDate < DateTime.UtcNow)
+        if (project is null)
         {
             _logger.Error($"Project with ID {projectId} not found or has already ended.");
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
@@ -672,14 +672,14 @@ public class ManagementLogic : IManagementLogic
             _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
         }
         
-        var credentials =  _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId)
+        var credentials =  (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId))
             .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .ToList();
         foreach (var cred in credentials)
         {
             cred.Username = newUsername;
             cred.Password = newPassword;
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(cred);
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(cred);
             _logger.Info($"Renamed ClusterAuthenticationCredentials ID '{cred.Id}' username to '{newUsername}'.");
         }
         _unitOfWork.Save();
@@ -691,19 +691,21 @@ public class ManagementLogic : IManagementLogic
     /// </summary>
     /// <param name="credentials"></param>
     /// <param name="projectId"></param>
+    /// <param name="adaptorUserId"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId)
+    public async Task<List<SecureShellKey>> CreateSecureShellKey(IEnumerable<(string, string)> credentials,
+        long projectId, long? adaptorUserId)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        if (project is null || project.EndDate < DateTime.UtcNow)
+        if (project is null)
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
         List<SecureShellKey> secureShellKeys = new();
         foreach ((var username, var password) in credentials)
         {
-            var existingCredentials =
+            var existingCredentials = await 
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId);
+                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId);
             if (existingCredentials.Any())
             {
                 //get existing secure key
@@ -720,7 +722,7 @@ public class ManagementLogic : IManagementLogic
                 }
             }
 
-            secureShellKeys.Add(CreateSecureShellKey(username, password, project, adaptorUserId));
+            secureShellKeys.Add(await CreateSecureShellKey(username, password, project, adaptorUserId));
         }
 
         return secureShellKeys;
@@ -734,10 +736,10 @@ public class ManagementLogic : IManagementLogic
     /// <param name="projectId"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId)
+    public async Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId)
     {
-        var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(
-            w => w.Username == username &&
+        var clusterAuthenticationCredentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username)).Where(
+            w => 
                  w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
                  w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
@@ -762,7 +764,7 @@ public class ManagementLogic : IManagementLogic
                 cpc.ModifiedAt = modificationDate;
                 cpc.ClusterProject.Project.ModifiedAt = modificationDate;
             });
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(credentials);
         }
 
         _unitOfWork.Save();
@@ -775,12 +777,16 @@ public class ManagementLogic : IManagementLogic
     /// <param name="username"></param>
     /// <param name="projectId"></param>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public void RemoveSecureShellKey(string username, long projectId)
+    public async Task RemoveSecureShellKey(string username, long projectId)
     {
-        var clusterAuthenticationCredentials = _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAll().Where(
-            w => w.Username == username &&
+        var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username);
+
+        var list = clusterAuthenticationCredentials.ToList();
+        
+        clusterAuthenticationCredentials = clusterAuthenticationCredentials.Where(
+            w => 
                  w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
-                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId)).ToList();
 
         if (!clusterAuthenticationCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
 
@@ -796,21 +802,23 @@ public class ManagementLogic : IManagementLogic
                 cpc.ModifiedAt = modificationDate;
                 cpc.ClusterProject.Project.ModifiedAt = modificationDate;
             });
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.Update(credentials);
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(credentials);
         }
 
         _unitOfWork.Save();
     }
-    
+
     /// <summary>
     ///     Initialize cluster script directory and create symbolic link for user
     /// </summary>
     /// <param name="projectId"></param>
     /// <param name="overwriteExistingProjectRootDirectory"></param>
     /// <param name="adaptorUserId"></param>
+    /// <param name="username"></param>
     /// <returns></returns>
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
-    public List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory, long? adaptorUserId, string username)
+    public async Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
+        bool overwriteExistingProjectRootDirectory, long? adaptorUserId, string username)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         var isOneToOneMapping = project.IsOneToOneMapping;
@@ -821,13 +829,13 @@ public class ManagementLogic : IManagementLogic
             foreach (var cp in project.ClusterProjects)
                 foreach (var cpc in cp.ClusterProjectCredentials)
                     clusterAuthenticationCredentials.AddRange(
-                        _unitOfWork.ClusterAuthenticationCredentialsRepository
+                        await _unitOfWork.ClusterAuthenticationCredentialsRepository
                             .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: cpc.AdaptorUserId));
         }
         else
         {
             clusterAuthenticationCredentials.AddRange(
-                _unitOfWork.ClusterAuthenticationCredentialsRepository
+                await _unitOfWork.ClusterAuthenticationCredentialsRepository
                     .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: null));
         }
 
@@ -890,14 +898,16 @@ public class ManagementLogic : IManagementLogic
     /// </summary>
     /// <param name="projectId"></param>
     /// <param name="username"></param>
+    /// <param name="adaptorUserId"></param>
     /// <returns></returns>
     /// <exception cref="InvalidRequestException"></exception>
-    public List<ClusterAccessReport> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId)
+    public async Task<List<ClusterAccessReport>> TestClusterAccessForAccount(long projectId, string username,
+        long? adaptorUserId)
     {
         List<ClusterAccessReport> clusterAccountAccess = new();
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
-            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId)
+            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)).ToList()
+            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId))
                 .Where(w =>
                     w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
                     w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
@@ -930,21 +940,23 @@ public class ManagementLogic : IManagementLogic
         _logger.Info($"Tested cluster access for project {projectId} with username {username} with results: {string.Join(", ", clusterAccountAccess.Select(x => $"{x.Cluster.Name}: {x.IsClusterAccessible}"))}");
         return clusterAccountAccess;
     }
-    
-    
-        /// <summary>
+
+
+    /// <summary>
     /// Test cluster access for a specific account in a project.
     /// </summary>
     /// <param name="projectId"></param>
     /// <param name="username"></param>
+    /// <param name="adaptorUserId"></param>
     /// <returns></returns>
     /// <exception cref="InvalidRequestException"></exception>
-    public List<ClusterAccountStatus> ClusterAccountStatus(long projectId, string username, long? adaptorUserId)
+    public async Task<List<ClusterAccountStatus>> ClusterAccountStatus(long projectId, string username,
+        long? adaptorUserId)
     {
         List<ClusterAccountStatus> clusterAccountStatusList = new();
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId).ToList()
-            : _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId)
+            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)).ToList()
+            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId))
                 .Where(w =>
                     w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
@@ -993,7 +1005,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="InputValidationException"></exception>
     /// <exception cref="InvalidRequestException"></exception>
     public CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
-        string modelDescription, long modelCommandTemplateId)
+        string modelDescription, long modelCommandTemplateId, bool isVisible = true)
     {
         var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelCommandTemplateId);
         if (commandTemplate is null) throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound");
@@ -1012,7 +1024,8 @@ public class ManagementLogic : IManagementLogic
             Description = modelDescription,
             CommandTemplate = commandTemplate,
             CommandTemplateId = commandTemplate.Id,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            IsVisible = isVisible
         };
 
         _unitOfWork.CommandTemplateParameterRepository.Insert(commandTemplateParameter);
@@ -1998,7 +2011,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
     }
 
-    private SecureShellKey CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
+    private async Task<SecureShellKey> CreateSecureShellKey(string username, string password, Project project, long? adaptorUserId)
     {
         _logger.Info($"Creating SSH key for user {username} for project {project.Name}.");
         var clusterProjects = _unitOfWork.ClusterProjectRepository.GetAll().Where(x => x.ProjectId == project.Id && !x.IsDeleted)
@@ -2016,9 +2029,9 @@ public class ManagementLogic : IManagementLogic
 
         foreach (var clusterProject in clusterProjects)
         {
-            var serviceAccount =
+            var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId);
+                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId);
 
             if (serviceAccount == null)
             {
@@ -2050,7 +2063,7 @@ public class ManagementLogic : IManagementLogic
 
         if (serviceCredentialStored)
         {
-            vaultSuccess = vaultConnector.SetClusterAuthenticationCredentials(serviceCredentials.ExportVaultData());
+            vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(serviceCredentials.ExportVaultData());
             
             if (!vaultSuccess)
             {
@@ -2063,7 +2076,7 @@ public class ManagementLogic : IManagementLogic
             }
         }
 
-        vaultSuccess = vaultConnector.SetClusterAuthenticationCredentials(nonServiceCredentials.ExportVaultData());
+        vaultSuccess = await vaultConnector.SetClusterAuthenticationCredentialsAsync(nonServiceCredentials.ExportVaultData());
 
         if (!vaultSuccess)
         {
@@ -2369,7 +2382,7 @@ public class ManagementLogic : IManagementLogic
                 {
                     //invoke ClusterInformationLogic
                     var clusterInformationLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-                    clusterInformationLogic.InitializeCredential(clusterAuthCredentials, project.Id, null);
+                    await clusterInformationLogic.InitializeCredential(clusterAuthCredentials, project.Id, null);
                     
                 }
             }
@@ -2392,6 +2405,367 @@ public class ManagementLogic : IManagementLogic
 
         return null;
     }
+    
+    
+
+    public AdaptorUserCreated CreateAdaptorUser(string username)
+    {
+        //test if username already exists
+        var existingUser = _unitOfWork.AdaptorUserRepository.GetByName(username);
+        if (existingUser != null)
+            throw new InputValidationException("AdaptorUserUsernameAlreadyExists", username);
+
+        string apiKey = GenerateApiKeyBase64();
+        var createdAt = DateTime.UtcNow;
+        string rawApiKey = apiKey;
+        //convert api key to SHA256 hash with salt and store hash and salt
+        string salt = createdAt.ToString("yyyy-MM-dd HH:mm:ss");
+        string saltedPassword = rawApiKey + salt;
+        string passwordHash = ComputeSha512Hash(saltedPassword);
+        
+        var adaptorUser = new AdaptorUser
+        {
+            Username = username,
+            Password = passwordHash,
+            AdaptorUserUserGroupRoles = new List<AdaptorUserUserGroupRole>(),
+            CreatedAt = createdAt,
+            UserType = AdaptorUserType.Default
+        };
+        _unitOfWork.AdaptorUserRepository.Insert(adaptorUser);
+        _unitOfWork.Save();
+        
+        var adaptorUserCreated = new AdaptorUserCreated
+        {
+            Id = adaptorUser.Id,
+            Username = adaptorUser.Username,
+            ApiKey = apiKey
+        };
+        return adaptorUserCreated;
+    }
+
+    private static string ComputeSha512Hash(string input)
+    {
+        using var sha512 = System.Security.Cryptography.SHA512.Create();
+        byte[] inputBytes = System.Text.Encoding.UTF8.GetBytes(input);
+        byte[] hashBytes = sha512.ComputeHash(inputBytes);
+        return Convert.ToHexString(hashBytes).ToUpper();
+    }
+    
+    public string GenerateApiKeyBase64()
+    {
+        byte[] randomBytes = RandomNumberGenerator.GetBytes(32);
+        string base64 = Convert.ToBase64String(randomBytes);
+        return base64.Replace("+", "").Replace("/", "").Replace("=", "");
+    }
+
+    public AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(oldUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", oldUsername);
+        
+        //new username already exists?
+        if (!string.Equals(oldUsername, newUsername, StringComparison.OrdinalIgnoreCase))
+        {
+            var existingUser = _unitOfWork.AdaptorUserRepository.GetByName(newUsername);
+            if (existingUser != null)
+                throw new InputValidationException("AdaptorUserNewUsernameAlreadyExists", newUsername);
+        }
+        
+        
+        //check type of user
+        if (adaptorUser.UserType != AdaptorUserType.Default)
+            throw new InputValidationException("AdaptorUserCannotModifyNonDefaultUser", oldUsername);
+
+        //generate new api key
+        string apiKey = GenerateApiKeyBase64();
+        string rawApiKey = apiKey;
+        //convert api key to SHA256 hash with salt and store hash and salt
+        string salt = adaptorUser.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
+        string saltedPassword = rawApiKey + salt;
+        string passwordHash = ComputeSha512Hash(saltedPassword);
+        
+        adaptorUser.Password = passwordHash;
+        adaptorUser.Username = newUsername;
+        adaptorUser.ModifiedAt = DateTime.UtcNow;
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        var adaptorUserCreated = new AdaptorUserCreated
+        {
+            Id = adaptorUser.Id,
+            Username = adaptorUser.Username,
+            ApiKey = apiKey
+        };
+        return adaptorUserCreated;
+    }
+
+    public string DeleteAdaptorUser(string modelUsername)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+        
+        //check type of user
+        if (adaptorUser.UserType != AdaptorUserType.Default)
+            throw new InputValidationException("AdaptorUserCannotDeleteNonDefaultUser", modelUsername);
+
+        _unitOfWork.AdaptorUserRepository.Delete(adaptorUser);
+        _unitOfWork.Save();
+        return modelUsername;
+    }
+
+    public AdaptorUser GetAdaptorUserByUsername(string username)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByName(username)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", username);
+        return adaptorUser;
+    }
+
+    public AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
+                              ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
+
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && x.AdaptorUserRole.Name == modelRole.ToString());
+
+        if (existingAssignment != null)
+        {
+            if (existingAssignment.IsDeleted)
+            {
+                var userGroupsToRestore = project.AdaptorUserGroups
+                    .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
+                                 !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+                    .Select(ug => ug.Id)
+                    .ToList();
+
+                var assignmentsToRestore = adaptorUser.AdaptorUserUserGroupRoles
+                    .Where(x => userGroupsToRestore.Contains(x.AdaptorUserGroupId) && x.AdaptorUserRole.Name == modelRole.ToString());
+
+                foreach (var assignment in assignmentsToRestore)
+                {
+                    assignment.IsDeleted = false;
+                    assignment.CreatedAt = DateTime.UtcNow;
+                }
+
+                _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+                _unitOfWork.Save();
+                return adaptorUser;
+            }
+
+            throw new InputValidationException("AdaptorUserAlreadyAssignedToProject", modelUsername, modelProjectId);
+        }
+
+        var userGroups = project.AdaptorUserGroups
+            .Where(ug => !ug.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix) && 
+                         !ug.Name.StartsWith(ExternalAuthConfiguration.HEAppEUserPrefix))
+            .ToList();
+
+        foreach (var userGroup in userGroups)
+        {
+            adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
+            {
+                AdaptorUser = adaptorUser,
+                AdaptorUserGroup = userGroup,
+                AdaptorUserRole = adaptorUserRole,
+                CreatedAt = DateTime.UtcNow,
+                IsDeleted = false
+            });
+        }
+        
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        return adaptorUser;
+    }
+
+    public AdaptorUser RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        //check if assigned
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted);
+        if (existingAssignment == null)
+            throw new InputValidationException("AdaptorUserNotAssignedToProject", modelUsername, modelProjectId);
+
+        //check role
+        if (existingAssignment.AdaptorUserRole.Name != modelRole.ToString())
+            throw new InputValidationException("AdaptorUserRoleMismatch", modelUsername, modelProjectId, modelRole);
+
+        //soft delete assignment
+        existingAssignment.IsDeleted = true;
+        existingAssignment.ModifiedAt = DateTime.UtcNow;
+        
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        return adaptorUser;
+    }
+
+    public List<AdaptorUser> ListAdaptorUsersInProject(long projectId)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(projectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        var userGroups = project.AdaptorUserGroups;
+        var adaptorUsers = new List<AdaptorUser>();
+        foreach (var userGroup in userGroups)
+        {
+            var usersInGroup = _unitOfWork.AdaptorUserRepository.GetAllUsersInGroup(userGroup.Id);
+            adaptorUsers.AddRange(usersInGroup);
+        }
+
+        return adaptorUsers.Distinct().ToList();
+    }
+
+    public CommandTemplate CreateGenericCommandTemplate(string modelName, string modelDescription,
+        string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId,
+        long modelClusterNodeTypeId)
+    {
+        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
+                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
+
+        var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
+                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", modelClusterNodeTypeId);
+
+        var commandTemplate = new CommandTemplate
+        {
+            Name = modelName,
+            Description = modelDescription,
+            ExtendedAllocationCommand = modelExtendedAllocationCommand,
+            ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, "generic.sh"),
+            PreparationScript = modelPreparationScript,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false,
+            Project = project,
+            ClusterNodeType = clusterNodeType,
+            TemplateParameters = new List<CommandTemplateParameter>(),
+            CommandParameters = string.Empty,
+            IsGeneric = true
+        };
+
+        _unitOfWork.CommandTemplateRepository.Insert(commandTemplate);
+        _unitOfWork.Save();
+
+        return commandTemplate;
+    }
+
+    public CommandTemplate ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription,
+        string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId,
+        bool modelIsEnabled)
+    {
+        var commandTemplate = _unitOfWork.CommandTemplateRepository.GetById(modelId)
+                              ?? throw new RequestedObjectDoesNotExistException("CommandTemplateNotFound", modelId);
+
+        var clusterNodeType = _unitOfWork.ClusterNodeTypeRepository.GetById(modelClusterNodeTypeId)
+                              ?? throw new RequestedObjectDoesNotExistException("ClusterNodeTypeNotFound", modelClusterNodeTypeId);
+
+        if (!commandTemplate.IsGeneric)
+            throw new InputValidationException("CommandTemplateNotGeneric", modelId);
+        
+        commandTemplate.Name = modelName;
+        commandTemplate.Description = modelDescription;
+        commandTemplate.ExecutableFile = HPCConnectionFrameworkConfiguration.GetPathToScript(commandTemplate.Project.AccountingString, "generic.sh");
+        commandTemplate.ExtendedAllocationCommand = modelExtendedAllocationCommand;
+        commandTemplate.PreparationScript = modelPreparationScript;
+        commandTemplate.ClusterNodeType = clusterNodeType;
+        commandTemplate.IsEnabled = modelIsEnabled;
+        commandTemplate.ModifiedAt = DateTime.UtcNow;
+
+        _unitOfWork.CommandTemplateRepository.Update(commandTemplate);
+        _unitOfWork.Save();
+
+        return commandTemplate;
+    }
+
+    public List<AdaptorUser> ListAdaptorUsersInUserGroup(long userGroupId)
+    {
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(userGroupId)
+                        ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", userGroupId);
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAllUsersInGroup(userGroup.Id);
+        return adaptorUsers;
+    }
+
+    public AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(modelUserGroupId)
+                        ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", modelUserGroupId);
+
+        var adaptorUserRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleName(modelRole.ToString())
+                              ?? throw new RequestedObjectDoesNotExistException("AdaptorUserRoleNotFound", modelRole);
+
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroupId == modelUserGroupId && x.AdaptorUserRole.Name == modelRole.ToString());
+
+        if (existingAssignment != null)
+        {
+            if (existingAssignment.IsDeleted)
+            {
+                existingAssignment.IsDeleted = false;
+                existingAssignment.CreatedAt = DateTime.UtcNow;
+                _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+                _unitOfWork.Save();
+                return adaptorUser;
+            }
+
+            throw new InputValidationException("AdaptorUserAlreadyAssignedToUserGroup", modelUsername, modelUserGroupId);
+        }
+
+        adaptorUser.AdaptorUserUserGroupRoles.Add(new AdaptorUserUserGroupRole
+        {
+            AdaptorUser = adaptorUser,
+            AdaptorUserGroup = userGroup,
+            AdaptorUserRole = adaptorUserRole,
+            CreatedAt = DateTime.UtcNow,
+            IsDeleted = false
+        });
+
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+        return adaptorUser;
+    }
+
+    public AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole)
+    {
+        var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
+                          ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
+
+        var userGroup = _unitOfWork.AdaptorUserGroupRepository.GetById(modelUserGroupId)
+                        ?? throw new RequestedObjectDoesNotExistException("AdaptorUserGroupNotFound", modelUserGroupId);
+
+        //check if assigned
+        var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
+            .FirstOrDefault(x => x.AdaptorUserGroupId == modelUserGroupId && !x.IsDeleted);
+        if (existingAssignment == null)
+            throw new InputValidationException("AdaptorUserNotAssignedToUserGroup", modelUsername, modelUserGroupId);
+
+        //check role
+        if (existingAssignment.AdaptorUserRole.Name != modelRole.ToString())
+            throw new InputValidationException("AdaptorUserRoleMismatch", modelUsername, modelUserGroupId, modelRole);
+
+        //soft delete assignment
+        existingAssignment.IsDeleted = true;
+        existingAssignment.ModifiedAt = DateTime.UtcNow;
+
+        _unitOfWork.AdaptorUserRepository.Update(adaptorUser);
+        _unitOfWork.Save();
+
+        return adaptorUser;
+    }
+
 
     public string BackupDatabase()
     {

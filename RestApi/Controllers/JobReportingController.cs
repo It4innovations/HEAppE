@@ -37,12 +37,12 @@ public class JobReportingController : BaseController<JobReportingController>
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public JobReportingController(ILogger<JobReportingController> logger, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IMemoryCache memoryCache) : base(logger,
+    public JobReportingController(ILogger<JobReportingController> logger, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IMemoryCache memoryCache) : base(logger,
         memoryCache)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobReportingService(_sshCertificateAuthorityService, _httpContextKeys);
+        _service = new JobReportingService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
     }
 
     #endregion

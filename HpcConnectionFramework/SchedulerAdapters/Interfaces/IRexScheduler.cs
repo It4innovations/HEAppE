@@ -55,4 +55,5 @@ public interface IRexScheduler
     bool MoveJobFiles(SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations, string sshCaToken);
 
     Task<ClusterProjectCredentialCheckLog> CheckClusterProjectCredentialStatus(ClusterProjectCredential clusterProjectCredential);
+    DryRunJobInfo DryRunJob(DryRunJobSpecification dryRunJobSpecification, string contextSshCaToken);
 }

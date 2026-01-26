@@ -5,10 +5,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## V6.1.1
+## V6.2.0
 
-### Fixed
-- Incorrect handling of Slurm status updates for array jobs submitted paralelly under the same account. This caused tasks to be incorrectly marked as failed despite the underlying Slurm jobs being PENDING, RUNNING, or COMPLETED.
+### Added
+- Added dry-run Slurm job submission endpoint `POST /heappe/JobManagement/DryRunJob` to simulate scheduling without execution, returning predicted start time and resource allocation.
+- New Management endpoints for file uploads:
+  - `/api/DataStaging/UploadFilesToProjectDir` – Upload files to project directory (Manager role, DataStagingAPI).
+  - `/api/DataStaging/UploadJobScriptsToProjectDir` – Upload job scripts to project directory and make them executable (Manager role, DataStagingAPI).
+  - `/heappe/FileTransfer/UploadFilesToJobExecutionDir` – Upload files to job execution directory and optinally directly into task directory (Submitter role, RestAPI).
+- Added IQueryable-based user-specific job retrieval logic for more efficient filtering.
+- Added global cache invalidation mechanism with enhanced cache entry management for `ListAvalialbleClusters` endpoint.
+- Added `SubmittedJobInfoId` to `GetDataTransferMethodModel` to enhance task info handling.
+- Support for checking permissions of the single user to use `CommandTemplate` by the `UserOrgService`
+
+### Changed
+- Consolidated `Lexis Token Service` registration and simplified conditional authentication middleware usage.
+- Enhanced cluster authentication logic with improved error handling.
+- Enhanced cluster listing and caching with user validation and improved filtering.
+- Enhanced file listing in `SftpFileSystemManager` with better relative path handling.
+- Streamlined GPU count calculation in `SlurmTaskAdapter` for partial resource allocation.
+- Improved exception handling for unauthorized access.
+- Introduced `.part` temporary upload extension with rename after upload completion.
+- Renamed `PermanentStoragePath` to `ProjectStoragePath`.
+- Asynchronous Processing: extensive implementation of async/await methods across Repositories and Services for non-blocking I/O operations.
+- Applied `AsNoTracking` in `JobManagementService` for read-only queries to reduce change tracker overhead.
+- Utilized `AsSplitQuery` in `ClusterAuthenticationCredentialsRepository` to resolve `Cartesian explosion` issues during complex joins.
+- Refined filtering logic for user-specific job retrieval.
+- Rewrote ConnectionPool using ConcurrentDictionary and SemaphoreSlim to ensure thread safety and prevent race conditions under load.
+- Optimized pooling by introducing user-specific slots.
+- Updated VaultConnector to use a singleton HttpClient instance to prevent socket exhaustion.
+- Implemented thread-safe caching for `Vault` data to minimize external API calls.
+- Enhanced `ClusterProjectCredentialVaultPart` with null-safe JSON processing, robust serialization, and improved error handling.
+- Optimized the job specification completion process and task processing logic.
+- Optimized `Service Registration` logic.
+- Improved retrieval efficiency for `AdaptorUser` and `SessionCode` entities.
+
+### Security
+- Made `/heappe/Health` endpoint publicly accessible for Bearer-secured deployments.
 
 ## V6.1.0
 
@@ -68,6 +101,17 @@ POST /heappe/FileTransfer/RequestFileTransfer
               - Properties changed
                 - Modified property: CredentialsAuthType
                   - New enum values: [10 11]
+
+## V6.1.0
+
+### Changed
+- Added new endpoints for uploading file to job execution directory:
+
+### New Endpoints: 12
+---------------------
+GET+POST /api/DataStaging/UploadFilesToProjectDir
+GET+POST /api/DataStaging/UploadJobScriptsToProjectDir
+GET+POST /api/DataStaging/UploadFilesToJobExecutionDir
 
 ## V6.0.0
 

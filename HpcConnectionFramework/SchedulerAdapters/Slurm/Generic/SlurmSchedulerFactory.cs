@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
@@ -15,17 +16,20 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
 /// </summary>
 internal class SlurmSchedulerFactory : SchedulerFactory
 {
+    // NOVÉ: Objekt pro synchronizaci true singletonů (pro _convertorSingleton a _schedulerAdapterInstance)
+    private static readonly object SingletonLock = new object();
+    
     #region Instances
 
     /// <summary>
-    ///     Connectors
+    ///     Connectors (OPRAVA: Změněno na ConcurrentDictionary pro Thread Safety)
     /// </summary>
-    private readonly Dictionary<string, IPoolableAdapter> _connectorSingletons = new();
+    private readonly ConcurrentDictionary<string, IPoolableAdapter> _connectorSingletons = new();
 
     /// <summary>
     ///     Scheduler singeltons
     /// </summary>
-    private readonly Dictionary<(string, long projectId, DateTime?, long?), IRexScheduler> _schedulerSingletons = new();
+    private readonly ConcurrentDictionary<(string MasterNodeName, long projectId, DateTime? ProjectModifiedAt, long? AdaptorUserId), IRexScheduler> _schedulerSingletons = new();
 
     /// <summary>
     ///     Convertor
@@ -44,52 +48,73 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    /// <param name="configuration">Cluster configuration data</param>
-    /// <param name="jobInfoProject"></param>
-    /// <param name="project"></param>
-    /// <returns></returns>
     public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
     {
+        // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
-        if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
-            _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
+
+        // OPRAVA: Použití ConcurrentDictionary.GetOrAdd pro atomickou inicializaci
+        return _schedulerSingletons.GetOrAdd(
+            uniqueIdentifier, 
+            key => new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project,sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
                 CreateSchedulerAdapter()
-            );
-        return _schedulerSingletons[uniqueIdentifier];
+            )
+        );
     }
 
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    /// <returns></returns>
     protected override ISchedulerAdapter CreateSchedulerAdapter()
     {
-        return _schedulerAdapterInstance ??= new SlurmSchedulerAdapter(CreateDataConvertor());
+        // OPRAVA: Inicializace pomocí Thread-Safe Double-Check Lockingu
+        if (_schedulerAdapterInstance == null)
+        {
+            lock (SingletonLock)
+            {
+                if (_schedulerAdapterInstance == null)
+                {
+                    _schedulerAdapterInstance = new SlurmSchedulerAdapter(CreateDataConvertor());
+                }
+            }
+        }
+        return _schedulerAdapterInstance;
     }
 
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    /// <returns></returns>
     protected override ISchedulerDataConvertor CreateDataConvertor()
     {
-        return _convertorSingleton ??= new SlurmDataConvertor(new SlurmConversionAdapterFactory());
+        // OPRAVA: Inicializace pomocí Thread-Safe Double-Check Lockingu
+        if (_convertorSingleton == null)
+        {
+            lock (SingletonLock)
+            {
+                if (_convertorSingleton == null)
+                {
+                    _convertorSingleton = new SlurmDataConvertor(new SlurmConversionAdapterFactory());
+                }
+            }
+        }
+        return _convertorSingleton;
     }
 
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    /// <param name="configuration">Cluster configuration data</param>
-    /// <returns></returns>
     protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
     {
+        // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var masterNodeName = configuration.MasterNodeName;
-        if (!_connectorSingletons.ContainsKey(masterNodeName))
-            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService);
 
-        return _connectorSingletons[masterNodeName];
+        // OPRAVA: Použití ConcurrentDictionary.GetOrAdd pro atomickou inicializaci
+        return _connectorSingletons.GetOrAdd(
+            masterNodeName, 
+            key => new SshConnector(sshCertificateAuthorityService)
+        );
     }
 
     #endregion

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent; // NOVÉ: Pro ConcurrentDictionary
 using System.Collections.Generic;
 using System.Linq;
 using HEAppE.ConnectionPool;
@@ -25,11 +26,9 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Get specific instance
     /// </summary>
-    /// <param name="type">Instance type</param>
-    /// <returns></returns>
-    /// <exception cref="SchedulerException"></exception>
     public static SchedulerFactory GetInstance(SchedulerType type)
     {
+        // Tato statická metoda je již chráněna pomocí lock (_schedulerFactoryPoolSingletons), je Thread-Safe.
         lock (_schedulerFactoryPoolSingletons)
         {
             if (_schedulerFactoryPoolSingletons.ContainsKey(type)) return _schedulerFactoryPoolSingletons[type];
@@ -54,53 +53,61 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Get scheduler connection pool
     /// </summary>
-    /// <param name="clusterConf">Cluster configuration</param>
-    /// <param name="project">Project</param>
-    /// <returns></returns>
     protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService,long? adaptorUserId)
     {
         if (!project.IsOneToOneMapping)
             adaptorUserId = null;
+            
         var endpoint = new SchedulerEndpoint(clusterConf.MasterNodeName, project.Id, project.ModifiedAt,
             clusterConf.SchedulerType, adaptorUserId);
-        if (!_schedulerConnectionPoolSingletons.ContainsKey(endpoint))
-        {
-            var connectionPoolCleaningInterval = _connectionPoolSettings.ConnectionPoolCleaningInterval;
-            var connectionPoolMaxUnusedInterval = _connectionPoolSettings.ConnectionPoolMaxUnusedInterval;
-
-            var clusterProject = project.ClusterProjects.FirstOrDefault(x => x.ClusterId == clusterConf.Id);
-            if (clusterProject is null)
-                throw new ArgumentException(
-                    $"Project with ID '{project.Id}' is not referenced to the cluster with ID '{clusterConf.Id}'.");
-
-            var connectionPoolMinSize = 0;
-            var connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Count;
-            if (adaptorUserId != null)
+        return _schedulerConnectionPoolSingletons.GetOrAdd(
+            endpoint,
+            key => 
             {
-                connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Where(cpc => adaptorUserId.HasValue ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null).Count();
-                if (connectionPoolMaxSize == 0)
-                    throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
-            }
+                var connectionPoolCleaningInterval = _connectionPoolSettings.ConnectionPoolCleaningInterval;
+                var connectionPoolMaxUnusedInterval = _connectionPoolSettings.ConnectionPoolMaxUnusedInterval;
 
-            _schedulerConnectionPoolSingletons[endpoint] = new ConnectionPool.ConnectionPool(
-                clusterConf.MasterNodeName,
-                clusterConf.TimeZone,
-                connectionPoolMinSize,
-                connectionPoolMaxSize,
-                connectionPoolCleaningInterval,
-                connectionPoolMaxUnusedInterval,
-                CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService),
-                clusterConf.Port);
-        }
+                var clusterProject = project.ClusterProjects.FirstOrDefault(x => x.ClusterId == clusterConf.Id);
+                if (clusterProject is null)
+                    throw new ArgumentException(
+                        $"Project with ID '{project.Id}' is not referenced to the cluster with ID '{clusterConf.Id}'.");
 
-        return _schedulerConnectionPoolSingletons[endpoint];
+                var connectionPoolMinSize = 0;
+                var connectionPoolMaxSize = clusterProject.ClusterProjectCredentials.Count;
+                
+                if (adaptorUserId != null)
+                {
+                    // Použijeme AdaptorUserId z klíče
+                    var currentAdaptorUserId = key.AdaptorUserId;
+                    
+                    connectionPoolMaxSize = clusterProject.ClusterProjectCredentials
+                        .Count(cpc => currentAdaptorUserId.HasValue ? cpc.AdaptorUserId == currentAdaptorUserId : cpc.AdaptorUserId == null);
+
+                    if (connectionPoolMaxSize == 0)
+                        throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
+                }
+
+                // Vytvoření nové instance ConnectionPool.ConnectionPool
+                return new ConnectionPool.ConnectionPool(
+                    clusterConf.MasterNodeName,
+                    clusterConf.TimeZone,
+                    connectionPoolMinSize,
+                    connectionPoolMaxSize,
+                    connectionPoolCleaningInterval,
+                    connectionPoolMaxUnusedInterval,
+                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService),
+                    clusterConf.Port);
+            });
     }
 
     #endregion
 
     #region Instances
 
-    private readonly Dictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
+    // OPRAVA: Změněno z Dictionary na ConcurrentDictionary pro bezpečné použití v GetSchedulerConnectionPool
+    private readonly ConcurrentDictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
+    
+    // Zůstává Dictionary, chráněno lockem ve statické metodě GetInstance
     private static readonly Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new();
 
     private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings =
@@ -113,28 +120,21 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    /// <param name="configuration">Cluster configuration</param>
-    /// <param name="jobInfoProject"></param>
-    /// <returns></returns>
     public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId);
 
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    /// <returns></returns>
     protected abstract ISchedulerAdapter CreateSchedulerAdapter();
 
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    /// <returns></returns>
     protected abstract ISchedulerDataConvertor CreateDataConvertor();
 
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    /// <param name="configuration">Cluster configuration</param>
-    /// <returns></returns>
     protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
 
     #endregion
