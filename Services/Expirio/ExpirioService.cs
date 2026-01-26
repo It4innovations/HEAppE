@@ -36,7 +36,7 @@ public class ExpirioService : IExpirioService
             Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
         };
 
-        var token = ""; //TODO: need to get the appropriate token
+        var token = ""; //TODO: need to get the appropriate token from HttpContextKeys
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
@@ -50,7 +50,7 @@ public class ExpirioService : IExpirioService
         else
         {
             string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
-            switch(response.StatusCode)
+            switch (response.StatusCode)
             {
                 case HttpStatusCode.BadRequest:
                     throw new ExpirioBadRequestException("Bad Expirio Kerberos ticket request", details);
