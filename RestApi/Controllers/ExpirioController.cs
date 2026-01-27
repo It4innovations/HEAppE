@@ -9,14 +9,14 @@ namespace HEAppE.RestApi.Controllers;
 
 
 [ApiController]
-[Route("api/internal/expirio")]
+[Route("api/kerberos")]
 public class ExpirioController : ControllerBase
 {
     private readonly IExpirioService _expirio;
 
     public ExpirioController(IExpirioService expirio) => _expirio = expirio;
 
-    [HttpPost("kerberos")]
+    [HttpPost("exchange")]
     public async Task<IActionResult> GetKerberosTicket([FromBody] KerberosExchangeRequest request, CancellationToken ct)
     {
         var ticket = await _expirio.ExchangeTokenForKerberosAsync(request, ct);
