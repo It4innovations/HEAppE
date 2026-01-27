@@ -1,3 +1,4 @@
+using HEAppE.BusinessLogicTier;
 using Microsoft.Extensions.Configuration;
 using Services.Expirio.Configuration;
 using Services.Expirio.Exceptions;
@@ -28,7 +29,7 @@ public class ExpirioServiceTests
         var ct = new CancellationToken();
         try
         {
-            string ticket = await expirio.ExchangeTokenForKerberosAsync(request, ct);
+            string ticket = await expirio.ExchangeTokenForKerberosAsync(request, "", ct);
             Assert.NotNull(ticket);
             Assert.NotEmpty(ticket);
         }
@@ -55,7 +56,7 @@ public class ExpirioServiceTests
         var ct = new CancellationToken();
         try
         {
-            var ticket = await expirio.ExchangeTokenForKerberosAsync(request, ct);
+            var ticket = await expirio.ExchangeTokenForKerberosAsync(request, "", ct);
         }
         catch(ExpirioUnauthorizedException)
         {
@@ -84,7 +85,7 @@ public class ExpirioServiceTests
         var ct = new CancellationToken();
         try
         {
-            var ticket = await expirio.ExchangeTokenForKerberosAsync(request, ct);
+            var ticket = await expirio.ExchangeTokenForKerberosAsync(request, "", ct);
         }
         catch(ExpirioNotFoundException)
         {

@@ -11,6 +11,7 @@ using System.Net;
 using Services.Expirio.Configuration;
 using System.Net.Http.Headers;
 using System.Reflection;
+using HEAppE.BusinessLogicTier;
 
 namespace Services.Expirio;
 
@@ -26,7 +27,7 @@ public class ExpirioService : IExpirioService
         _httpClient = httpClient;
     }
 
-    public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, CancellationToken cancellationToken = default)
+    public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, CancellationToken cancellationToken = default)
     {
         _logger.Info("Endpoint: \"ExpirioService\" Method: \"ExchangeTokenForKerberos\"\n\n");
 
@@ -36,7 +37,6 @@ public class ExpirioService : IExpirioService
             Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
         };
 
-        var token = ""; //TODO: need to get the appropriate token from HttpContextKeys
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
