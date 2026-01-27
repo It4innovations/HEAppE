@@ -519,10 +519,11 @@ public class ManagementLogic : IManagementLogic
             ScratchStoragePath = scratchStoragePath
                 .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
-            ProjectStoragePath = projectStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
-                .TrimEnd('\\', '/'),
+            ProjectStoragePath = (string.IsNullOrEmpty(projectStoragePath)?
+                scratchStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/') :
+                projectStoragePath?.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/')),
             CreatedAt = modified,
-            IsDeleted = false
+            IsDeleted = false,
         };
 
         var cps = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);

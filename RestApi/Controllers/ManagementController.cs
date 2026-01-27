@@ -2285,13 +2285,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public IActionResult ModifyClusterAuthenticationCredential(ModifyClusterAuthenticationCredentialModel model)
+    public async Task<IActionResult> ModifyClusterAuthenticationCredential(ModifyClusterAuthenticationCredentialModel model)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyClusterAuthenticationCredential\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var result = _managementService.ModifyClusterAuthenticationCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
+        var result = await _managementService.ModifyClusterAuthenticationCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
         return Ok(result);
     }
 
@@ -2308,13 +2308,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult RegenerateSecureShellKey(RegenerateSecureShellKeyModel model)
+    public async Task<IActionResult> RegenerateSecureShellKey(RegenerateSecureShellKeyModel model)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_managementService.RegenerateSecureShellKey(model.Username, model.Password, string.Empty,
+        return Ok(await _managementService.RegenerateSecureShellKey(model.Username, model.Password, string.Empty,
             model.ProjectId, model.SessionCode));
     }
 
