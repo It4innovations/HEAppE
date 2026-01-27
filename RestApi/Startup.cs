@@ -155,7 +155,7 @@ public class Startup
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
         
-        services.AddScoped<IUserOrgService, UserOrgService>();
+        services.AddSingleton<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
         {

@@ -20,9 +20,10 @@ public interface IUserOrgService
     void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName);
     bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName);
 }
+
 public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgService
 {
-    private readonly HttpClient _httpClient = httpClientFactory.CreateClient(ClientName);
+    private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
     private readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     private const string ClientName = "userOrgApi";
 
@@ -34,6 +35,7 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
 
         return string.Join("/", cleanedSegments);
     }
+
     public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken)
     {
         string relativeUri = BuildUrl(
@@ -83,18 +85,22 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         var request = new HttpRequestMessage(method, relativeUri);
         request.Headers.Add("X-Api-Token", accessToken);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        
         string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
         string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+        
         request.Headers.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
+        
         if (body != null) request.Content = JsonContent.Create(body);
         return request;
     }
 
     private async Task<T> SendAsync<T>(HttpRequestMessage request)
     {
+        using var httpClient = _httpClientFactory.CreateClient(ClientName);
         try
         {
-            using var response = await _httpClient.SendAsync(request);
+            using var response = await httpClient.SendAsync(request);
             if (!response.IsSuccessStatusCode)
             {
                 throw new AuthenticationTypeException("InvalidToken");

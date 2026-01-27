@@ -94,7 +94,7 @@ builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings(
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
 
-builder.Services.AddScoped<IUserOrgService, UserOrgService>();
+builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
 builder.Services.AddScoped<FileTransferService>();
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
