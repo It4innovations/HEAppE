@@ -5,14 +5,14 @@
         <RootNamespace>HEAppE.OpenStackAPI</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="log4net" Version="3.1.0" />
+        <PackageReference Include="log4net" Version="3.2.0" />
         <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.8" />
-        <PackageReference Include="Newtonsoft.Json" Version="13.0.3"/>
-        <PackageReference Include="RestSharp" Version="112.1.0"/>
+        <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+        <PackageReference Include="RestSharp" Version="112.1.0" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\Exceptions\Exceptions.csproj"/>
-        <ProjectReference Include="..\RestUtils\RestUtils.csproj"/>
-        <ProjectReference Include="..\Utils\Utils.csproj"/>
+        <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
+        <ProjectReference Include="..\RestUtils\RestUtils.csproj" />
+        <ProjectReference Include="..\Utils\Utils.csproj" />
     </ItemGroup>
 </Project>
