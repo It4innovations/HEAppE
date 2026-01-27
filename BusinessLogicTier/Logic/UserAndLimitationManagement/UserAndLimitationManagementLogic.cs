@@ -645,7 +645,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             });
         }
 
-        return projectReferences;
+        return projectReferences.Distinct();
     }
 
     #endregion
