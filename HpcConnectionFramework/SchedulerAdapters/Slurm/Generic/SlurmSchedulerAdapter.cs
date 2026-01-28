@@ -135,8 +135,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
 
-        var integratedCommand = $@"set -o pipefail; RAW_OUT=({sbatchCmd} 2>&1); if [[ ""$RAW_OUT"" == *""error""* || ""$RAW_OUT"" == *""Invalid""* ]]; then echo ""$RAW_OUT"" >&2; exit 1; else echo ""$RAW_OUT"" | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'; fi";
-
+        var integratedCommand = $@"set -o pipefail; RAW_OUT=$({sbatchCmd} 2>&1); if [[ ""$RAW_OUT"" == *""error""* || ""$RAW_OUT"" == *""Invalid""* ]]; then echo ""$RAW_OUT"" >&2; exit 1; else echo ""$RAW_OUT"" | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'; fi";
         SshCommandWrapper command = null;
         try
         {
