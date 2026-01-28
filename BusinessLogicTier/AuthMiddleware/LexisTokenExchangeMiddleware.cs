@@ -48,6 +48,7 @@ public class LexisTokenExchangeMiddleware
             {
                 if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange)
                 {
+                    log.Info("LexisTokenExchangeMiddleware: Using Expirio service for token exchange");
                     ExchangeRequest request = new ExchangeRequest()
                     {
                         ProviderName = ExpirioSettings.ProviderName,
@@ -60,6 +61,7 @@ public class LexisTokenExchangeMiddleware
                 }
                 else
                 {
+                    log.Info("LexisTokenExchangeMiddleware: Using LexisTokenService for token exchange");
                     var exchanged = await lexisTokenService.ExchangeLexisTokenForFipAsync(incomingToken);
                     context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
                     contextKeysService.Context.FIPToken = exchanged;
