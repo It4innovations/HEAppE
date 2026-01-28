@@ -63,15 +63,16 @@ namespace HEAppE.RestApi.Logging
             var sessionCode = await ExtractSessionCode(context);
 
             long userId = 0;
-            string userName = string.Empty;
-            string email = string.Empty;
+            string userName = null;
+            string email = null;
 
             if (string.IsNullOrEmpty(sessionCode))
             {
-                if (TryGetFromContext(context, out var ctxId, out var ctxName))
+                if (TryGetFromContext(context, out var ctxId, out var ctxName, out var ctxEmail))
                 {
                     userId = ctxId;
                     userName = ctxName;
+                    email = ctxEmail;
                 }
             }
             else
@@ -120,18 +121,19 @@ namespace HEAppE.RestApi.Logging
                     unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
                 var loggedUser = logic.GetUserForSessionCode(sessionCode);
 
-                return (loggedUser?.Id ?? -1, loggedUser?.Username ?? string.Empty, loggedUser?.Email ?? string.Empty);
+                return (loggedUser?.Id ?? -1, loggedUser?.Username ?? null, loggedUser?.Email ?? null);
             }
             catch (Exception ex)
             {
                 _logger.LogDebug(ex, "Failed to retrieve user information for session code");
-                return (-1, string.Empty, string.Empty);
+                return (-1, null, null);
             }
         }
 
-        private bool TryGetFromContext(HttpContext context, out long userId, out string userName)
+        private bool TryGetFromContext(HttpContext context, out long userId, out string userName, out string email)
         {
-            userName = string.Empty;
+            userName = null;
+            email = null;
             userId = -1;
 
             if (context.Items.TryGetValue("X-API-Key", out var contextItem))
@@ -144,6 +146,9 @@ namespace HEAppE.RestApi.Logging
                     {
                         userName = parts[0];
                         userId = -1;
+                        email = null;
+                        // TODO - implement extracting email
+                        // email = parts[1];
                         return true;
                     }
                 }
@@ -155,6 +160,7 @@ namespace HEAppE.RestApi.Logging
                 {
                     userName = "BEARER AUTH IN HEADER";
                     userId = -1;
+                    email = null;
                     return true;
                 }
             }
