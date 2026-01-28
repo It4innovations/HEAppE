@@ -172,7 +172,7 @@ public class Startup
 
         });
 
-        services.AddSingleton<IExpirioService, ExpirioService>();
+        services.AddScoped<IExpirioService, ExpirioService>();
 
         services.AddHttpClient("ExpirioClient", conf =>
         {
