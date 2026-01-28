@@ -1,11 +1,11 @@
 namespace Services.Expirio.Configuration
 {
-    public class ExpirioSettings
+    public sealed class ExpirioSettings
     {
         /// <summary>
         ///     Client base URI
         /// </summary>
-        public static string BaseUrl { get; set; } = "localhost";
+        public static string BaseUrl { get; set; } = string.Empty;
 
         /// <summary>
         ///     Client connection timeout in seconds

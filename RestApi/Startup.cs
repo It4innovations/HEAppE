@@ -172,11 +172,13 @@ public class Startup
 
         });
 
-        services.AddHttpClient<IExpirioService, ExpirioService>(client =>
+        services.AddScoped<IExpirioService, ExpirioService>();
+
+        services.AddHttpClient("ExpirioClient", conf =>
         {
-            client.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
-            client.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
-            client.DefaultRequestHeaders.Add("Accept", "application/json");
+            conf.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
+            conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
+            conf.DefaultRequestHeaders.Add("Accept", "application/json");
         })
         // add Polly policies:
         .AddPolicyHandler(Policy<HttpResponseMessage>
