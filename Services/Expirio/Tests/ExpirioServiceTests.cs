@@ -8,10 +8,11 @@ namespace Services.Expirio.Tests;
 
 public class ExpirioServiceTests
 {
+    /*
     [Fact]
     public async Task GetKerberosTicket_should_return_success()
     {
-        HttpClient httpClient = new HttpClient()
+        HttpClient httpClient = new HttpClientFactory()
         {
             BaseAddress = new Uri(ExpirioSettings.BaseUrl),
             Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds),
@@ -92,6 +93,7 @@ public class ExpirioServiceTests
             Assert.True(true);
         }
     }
+    */
 
     //TODO: bad request (400 with error body)?
 

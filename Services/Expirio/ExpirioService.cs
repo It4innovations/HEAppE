@@ -18,13 +18,14 @@ namespace Services.Expirio;
 public class ExpirioService : IExpirioService
 {
     protected readonly ILog _logger;
-    private readonly HttpClient _httpClient;
+    private readonly IHttpClientFactory _httpClientFactory;
+    private const string CLIENT_NAME = "ExpirioClient";
 
-    public ExpirioService(HttpClient httpClient)
+    public ExpirioService(IHttpClientFactory httpClientFactory)
     {
         _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         //_logger = loggerFactory.CreateLogger("HEAppE.Services.Expirio");
-        _httpClient = httpClient;
+        _httpClientFactory = httpClientFactory;
     }
 
     public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, CancellationToken cancellationToken = default)
@@ -39,7 +40,8 @@ public class ExpirioService : IExpirioService
 
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (response.IsSuccessStatusCode)
@@ -80,7 +82,8 @@ public class ExpirioService : IExpirioService
 
         httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
-        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        var client = _httpClientFactory.CreateClient(CLIENT_NAME);
+        using var response = await client.SendAsync(httpRequest, cancellationToken);
         var content = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (response.IsSuccessStatusCode)
