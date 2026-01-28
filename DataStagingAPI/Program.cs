@@ -1,9 +1,11 @@
 using System.Globalization;
+using System.Net;
 using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
 using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Vault.Settings;
@@ -14,14 +16,21 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.Services.AuthMiddleware;
+using HEAppE.Services.Expirio;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.FileTransfer;
 using log4net;
 using MicroKnights.Log4NetHelper;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
+using Polly;
+using Services.Expirio.Configuration;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -93,6 +102,16 @@ builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings(
 
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
+
+
+builder.Services.AddScoped<IExpirioService, ExpirioService>();
+
+builder.Services.AddHttpClient("ExpirioClient", conf =>
+{
+    conf.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
+    conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
+    conf.DefaultRequestHeaders.Add("Accept", "application/json");
+});
 
 builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
 builder.Services.AddScoped<FileTransferService>();

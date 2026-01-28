@@ -1,12 +1,14 @@
 using System;
 using System.Collections.Generic;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.JobReporting.Models;
 using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobReporting;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.JobReporting;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

@@ -56,6 +56,10 @@ using Services.Expirio;
 using Services.Expirio.Configuration;
 using Polly;
 using System.Net;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
+using HEAppE.Services.AuthMiddleware;
+using HEAppE.Services.Expirio;
+using HEAppE.Services.UserOrg;
 
 
 namespace HEAppE.RestApi;
@@ -99,7 +103,7 @@ public class Startup
     #region Methods
 
     /// <summary>
-    ///     Configure Services
+    ///     Configure ServicesOld
     /// </summary>
     /// <param name="services">Collection services</param>
     public void ConfigureServices(IServiceCollection services)

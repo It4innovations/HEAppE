@@ -1,5 +1,6 @@
 ﻿using System.Net.Http;
 using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
@@ -10,6 +11,7 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 

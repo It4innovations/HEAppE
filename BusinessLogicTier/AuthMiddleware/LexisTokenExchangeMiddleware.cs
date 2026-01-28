@@ -1,11 +1,13 @@
 using System;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.AuthMiddleware;
+using HEAppE.Services.Expirio;
 using log4net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
 
-namespace HEAppE.BusinessLogicTier;
+namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 
 public class LexisTokenExchangeMiddleware
@@ -17,7 +19,7 @@ public class LexisTokenExchangeMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService)
+    public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService, IExpirioService expirioService)
     {
         var log = LogManager.GetLogger(typeof(LexisTokenExchangeMiddleware));
         if ((LexisAuthenticationConfiguration.UseBearerAuth && 
@@ -42,9 +44,17 @@ public class LexisTokenExchangeMiddleware
             contextKeysService.Context.LEXISToken = incomingToken;
             try
             {
-                var exchanged = await lexisTokenService.ExchangeLexisTokenForFipAsync(incomingToken);
-                context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
-                contextKeysService.Context.FIPToken = exchanged;
+                if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange)
+                {
+                    
+                }
+                else
+                {
+                    var exchanged = await lexisTokenService.ExchangeLexisTokenForFipAsync(incomingToken);
+                    context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
+                    contextKeysService.Context.FIPToken = exchanged;
+                }
+                
             }
             catch (Exception ex)
             {

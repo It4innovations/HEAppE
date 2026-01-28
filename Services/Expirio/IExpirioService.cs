@@ -2,7 +2,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using Services.Expirio.Models;
 
-namespace Services.Expirio;
+namespace HEAppE.Services.Expirio;
 
 public interface IExpirioService
 {

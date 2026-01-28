@@ -11,12 +11,13 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.UserOrg;
 using IdentityModel.Client;
 using log4net;
 using Microsoft.Extensions.Options;
 using SshCaAPI;
 
-namespace HEAppE.BusinessLogicTier;
+namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 
 public interface IRequestContext

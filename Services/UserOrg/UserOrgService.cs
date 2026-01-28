@@ -1,9 +1,5 @@
-using System;
-using System.Linq;
-using System.Net.Http;
 using System.Net.Http.Json;
 using System.Reflection;
-using System.Threading.Tasks;
 using System.Net.Http.Headers;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
@@ -11,7 +7,7 @@ using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.HpcConnectionFramework.Configuration;
 using log4net;
 
-namespace HEAppE.BusinessLogicTier;
+namespace HEAppE.Services.UserOrg;
 
 public interface IUserOrgService
 {

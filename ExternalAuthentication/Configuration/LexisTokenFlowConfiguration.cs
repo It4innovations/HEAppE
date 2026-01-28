@@ -3,6 +3,7 @@ namespace HEAppE.ExternalAuthentication.Configuration;
 public class LexisTokenFlowConfiguration
 {
     public bool IsEnabled { get; set; } = false;
+    public bool UseExpirioServiceForTokenExchange { get; set; } = true;
 
     // Keycloak / LEXIS AAI DEV settings
     public string BaseUrl { get; set; } = string.Empty;      

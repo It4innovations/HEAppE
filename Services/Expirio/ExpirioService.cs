@@ -11,9 +11,8 @@ using System.Net;
 using Services.Expirio.Configuration;
 using System.Net.Http.Headers;
 using System.Reflection;
-using HEAppE.BusinessLogicTier;
 
-namespace Services.Expirio;
+namespace HEAppE.Services.Expirio;
 
 public class ExpirioService : IExpirioService
 {
@@ -24,7 +23,7 @@ public class ExpirioService : IExpirioService
     public ExpirioService(IHttpClientFactory httpClientFactory)
     {
         _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        //_logger = loggerFactory.CreateLogger("HEAppE.Services.Expirio");
+        //_logger = loggerFactory.CreateLogger("HEAppE.ServicesOld.Expirio");
         _httpClientFactory = httpClientFactory;
     }
 

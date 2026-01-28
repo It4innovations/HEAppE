@@ -1,11 +1,13 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.JobManagement;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
