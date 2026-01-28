@@ -10,7 +10,7 @@ namespace HEAppE.RestApi.Controllers;
 
 
 [ApiController]
-[Route("api/kerberos")]
+[Route("api")]
 public class ExpirioController : ControllerBase
 {
     private readonly IExpirioService _expirio;
@@ -22,10 +22,17 @@ public class ExpirioController : ControllerBase
         _httpContextKeys = httpContextKeys;
     } 
 
-    [HttpPost("exchange")]
+    [HttpPost("kerberos/exchange")]
     public async Task<IActionResult> GetKerberosTicket([FromBody] KerberosExchangeRequest request, CancellationToken ct)
     {
         var ticket = await _expirio.ExchangeTokenForKerberosAsync(request, _httpContextKeys.Context.LEXISToken, ct);
         return Ok(new { ticket });
+    }
+
+    [HttpPost("exchange")]
+    public async Task<IActionResult> ExchangeToken([FromBody] ExchangeRequest request, CancellationToken ct)
+    {
+        var data = await _expirio.ExchangeTokenAsync(request, _httpContextKeys.Context.LEXISToken, ct);
+        return Ok(new { data });
     }
 }

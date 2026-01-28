@@ -67,4 +67,45 @@ public class ExpirioService : IExpirioService
             }
         }
     }
+
+    public async Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, CancellationToken cancellationToken = default)
+    {
+        _logger.Info("Endpoint: \"ExpirioService\" Method: \"ExchangeToken\"\n\n");
+
+        var jsonRequest = JsonSerializer.Serialize(request);
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{ExpirioSettings.BaseUrl}/exchange")
+        {
+            Content = new StringContent(jsonRequest, Encoding.UTF8, "application/json")
+        };
+
+        httpRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        using var response = await _httpClient.SendAsync(httpRequest, cancellationToken);
+        var content = await response.Content.ReadAsStringAsync(cancellationToken);
+
+        if (response.IsSuccessStatusCode)
+        {
+            var dto = JsonSerializer.Deserialize<ExchangeResponse>(content);
+            return dto?.Content ?? throw new ExpirioException("Empty data in response.");
+        }
+        else
+        {
+            string details = $"Status code: {response.StatusCode}.\nReason: {response.ReasonPhrase}.\nContent: {content}";
+            switch (response.StatusCode)
+            {
+                case HttpStatusCode.BadRequest:
+                    throw new ExpirioBadRequestException("Bad Expirio data request", details);
+                case HttpStatusCode.Unauthorized:
+                    throw new ExpirioUnauthorizedException("Unauthorized Expirio data request", details);
+                case HttpStatusCode.NotFound:
+                    throw new ExpirioNotFoundException("Not Found on Expirio data request", details);
+                case HttpStatusCode.InternalServerError:
+                    throw new ExpirioServerException("Internal Server Error on Expirio data request", details);
+                case HttpStatusCode.BadGateway:
+                    throw new ExpirioUpstreamException("Bad Gateway on Expirio data request", details);
+                default:
+                    throw new ExpirioException("Error while getting Expirio data.", details);
+            }
+        }
+    }
 }
