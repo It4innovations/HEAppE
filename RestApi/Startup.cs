@@ -52,6 +52,10 @@ using Microsoft.OpenApi.Models;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
+using Services.Expirio;
+using Services.Expirio.Configuration;
+using Polly;
+using System.Net;
 
 
 namespace HEAppE.RestApi;
@@ -127,6 +131,7 @@ public class Startup
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
         Configuration.Bind("SshCaSettings", new SshCaSettings());
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
+        Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
@@ -166,6 +171,22 @@ public class Startup
             }
 
         });
+
+        services.AddHttpClient<IExpirioService, ExpirioService>(client =>
+        {
+            client.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
+            client.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
+            client.DefaultRequestHeaders.Add("Accept", "application/json");
+        })
+        // add Polly policies:
+        .AddPolicyHandler(Policy<HttpResponseMessage>
+            .Handle<HttpRequestException>()
+            .OrResult(r => (int)r.StatusCode >= 500 || r.StatusCode == HttpStatusCode.RequestTimeout)
+            .WaitAndRetryAsync(ExpirioSettings.MaxRetries, _ => TimeSpan.FromMilliseconds(ExpirioSettings.RetryInitialDelayMs)))
+        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(
+                                            handledEventsAllowedBeforeBreaking: 5, 
+                                            durationOfBreak: TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds)
+                                            ));
         
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();

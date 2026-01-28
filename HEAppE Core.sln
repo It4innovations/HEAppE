@@ -53,6 +53,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SshCaAPI", "SshCaAPI\SshCaA
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Authentication", "Authentication\Authentication.csproj", "{4E596048-AABE-44EF-B8BD-4F0B59AA6810}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Services", "Services\Services.csproj", "{003F12B5-D5AF-4B79-926F-4010FF0A6350}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -147,6 +149,10 @@ Global
 		{4E596048-AABE-44EF-B8BD-4F0B59AA6810}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E596048-AABE-44EF-B8BD-4F0B59AA6810}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{4E596048-AABE-44EF-B8BD-4F0B59AA6810}.Release|Any CPU.Build.0 = Release|Any CPU
+		{003F12B5-D5AF-4B79-926F-4010FF0A6350}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{003F12B5-D5AF-4B79-926F-4010FF0A6350}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{003F12B5-D5AF-4B79-926F-4010FF0A6350}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{003F12B5-D5AF-4B79-926F-4010FF0A6350}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
