@@ -6,6 +6,8 @@ using HEAppE.Services.Expirio;
 using log4net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Services.Expirio.Configuration;
+using Services.Expirio.Models;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -46,7 +48,15 @@ public class LexisTokenExchangeMiddleware
             {
                 if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange)
                 {
-                    
+                    ExchangeRequest request = new ExchangeRequest()
+                    {
+                        ProviderName = ExpirioSettings.ProviderName,
+                        ClientName = JwtTokenIntrospectionConfiguration.ClientId
+
+                    };
+                    var exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken);
+                    context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
+                    contextKeysService.Context.FIPToken = exchanged;
                 }
                 else
                 {
