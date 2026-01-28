@@ -81,8 +81,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 "GetActualTasksInfo",
                 string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
                 command.Result,
-                command.Error,
-                sshCommand)
+                command.Error)
             {
                 CommandError = command.Error
             };
@@ -149,9 +148,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         {
             // Ensure detailed error reporting if the cluster communication fails
             throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name,
-                command?.Error ?? ex.Message, command?.Result, integratedCommand)
+                command?.Error ?? ex.Message, command?.Result)
             {
-                CommandError = command?.Error
+                CommandError = command?.Error ?? ex.Message
             };
         }
     }
@@ -235,7 +234,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
         catch (SlurmException)
         {
-            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand)
+            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error)
             {
                 CommandError = command.Error
             };

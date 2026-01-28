@@ -277,16 +277,16 @@
     <value>URL address for OpenStack is not specified or valid.</value>
   </data>
   <data name="PbsException_ClusterUsageException" xml:space="preserve">
-    <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="PbsException_GetActualTasksInfo" xml:space="preserve">
-    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="PbsException_GetAllocatedNodesException" xml:space="preserve">
-    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="PbsException_SubmitJobException" xml:space="preserve">
-    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'. Command line for job submission: '{4}'.</value>
+    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'..</value>
   </data>
   <data name="PbsException_TaskStateConvertException" xml:space="preserve">
     <value>Task state: '{0}' could not be converted to any known task state.</value>
