@@ -226,4 +226,5 @@ public interface IManagementService
     AdaptorUserExt[] ListAdaptorUsersInUserGroup(long userGroupId, string sessionCode);
     AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    List<AdaptorUserExt> ListAdaptorUsers(string sessionCode);
 }

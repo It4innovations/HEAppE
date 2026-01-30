@@ -88,10 +88,19 @@ public class ManagementValidator : AbstractValidator
             ListAdaptorUsersInProjectModel ext => ValidateListAdaptorUsersInProjectModel(ext),
             ListAdaptorUsersInUserGroupModel ext => ValidateListAdaptorUsersInUserGroupModel(ext),
             AssignAdaptorUserToUserGroupModel ext => ValidateAssignAdaptorUserToUserGroupModel(ext),
+            ListAdaptorUsersModel ext => ValidateListAdaptorUsersModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateListAdaptorUsersModel(ListAdaptorUsersModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        return _messageBuilder.ToString();
     }
 
     private string ValidateAssignAdaptorUserToUserGroupModel(AssignAdaptorUserToUserGroupModel ext)

@@ -538,7 +538,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <exception cref="InputValidationException"></exception>
     [HttpGet("AdaptorUser")]
     [RequestSizeLimit(3000)]
-    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AdaptorUserExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -612,7 +612,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <exception cref="InputValidationException"></exception>
     [HttpDelete("AdaptorUser")]
     [RequestSizeLimit(3000)]
-    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -625,6 +625,32 @@ public class ManagementController : BaseController<ManagementController>
         var message = _managementService.DeleteAdaptorUser(model.Username, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(message);
+    }
+    
+    /// <summary>
+    /// List Adaptor Users
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("AdaptorUsers")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(List<AdaptorUserExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListAdaptorUsers(string sessionCode)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"ListAdaptorUsers\"");
+        var model = new ListAdaptorUsersModel
+        {
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUsers = _managementService.ListAdaptorUsers(sessionCode);
+        return Ok(adaptorUsers);
     }
     
 

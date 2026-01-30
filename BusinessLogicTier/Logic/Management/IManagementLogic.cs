@@ -203,4 +203,5 @@ public interface IManagementLogic
     List<AdaptorUser>  ListAdaptorUsersInUserGroup(long userGroupId);
     AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
+    List<AdaptorUser> ListAdaptorUsers();
 }

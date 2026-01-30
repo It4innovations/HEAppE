@@ -1562,6 +1562,20 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<AdaptorUserExt> ListAdaptorUsers(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+
+            var adaptorUsers = managementLogic.ListAdaptorUsers();
+            return adaptorUsers.Select(au => au.ConvertIntToExt()).ToList();
+        }
+    }
+
 
     public string BackupDatabase(string sessionCode)
     {

@@ -2768,6 +2768,12 @@ public class ManagementLogic : IManagementLogic
         return adaptorUser;
     }
 
+    public List<AdaptorUser> ListAdaptorUsers()
+    {
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAll().ToList();
+        return adaptorUsers;
+    }
+
 
     public string BackupDatabase()
     {
