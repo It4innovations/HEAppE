@@ -5,7 +5,7 @@ namespace HEAppE.ExternalAuthentication.DTO.LexisAuth;
 
 public class CommandTemplatePermissionsModel
 {
-    public string HeappeIdentifikator { get; set; }
+    public string HeappeIdentifier { get; set; }
     public List<ProjectPermissionModel> Permissions { get; set; }
 }
 
