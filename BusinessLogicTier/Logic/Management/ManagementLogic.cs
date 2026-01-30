@@ -2591,20 +2591,16 @@ public class ManagementLogic : IManagementLogic
         var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
                           ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
 
-        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
-                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-
-        //check if assigned
         var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
-            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted);
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && 
+                                 !x.IsDeleted && 
+                                 x.AdaptorUserRole.Name == modelRole.ToString());
+        
         if (existingAssignment == null)
-            throw new InputValidationException("AdaptorUserNotAssignedToProject", modelUsername, modelProjectId);
-
-        //check role
-        if (existingAssignment.AdaptorUserRole.Name != modelRole.ToString())
-            throw new InputValidationException("AdaptorUserRoleMismatch", modelUsername, modelProjectId, modelRole);
-
-        //soft delete assignment
+        {
+            throw new InputValidationException("AdaptorUserAssignmentNotFoundOrRoleMismatch", modelUsername, modelProjectId, modelRole);
+        }
+        
         existingAssignment.IsDeleted = true;
         existingAssignment.ModifiedAt = DateTime.UtcNow;
         
