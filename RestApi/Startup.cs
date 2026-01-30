@@ -406,7 +406,7 @@ public class Startup
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
-        //app.UseIpRateLimiting();
+        app.UseIpRateLimiting();
 
         app.UseStatusCodePages();
         app.UseStaticFiles();
