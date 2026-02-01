@@ -178,6 +178,9 @@ namespace HEAppE.ConnectionPool
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            // clear logging thread properties
+            LogicalThreadContext.Properties.Clear();
+
             log.Debug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
             int closedCount = 0;
             try
