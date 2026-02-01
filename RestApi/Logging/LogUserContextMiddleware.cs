@@ -1,6 +1,7 @@
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
@@ -39,12 +40,7 @@ namespace HEAppE.RestApi.Logging
             var (userId, userName, email) = await ExtractUserInfo(context);
 
             // Append log custom user properties
-            if (userId > 0)
-                log4net.LogicalThreadContext.Properties["userId"] = userId;
-            if (!string.IsNullOrEmpty(userName))
-                log4net.LogicalThreadContext.Properties["userName"] = userName;
-            if (!string.IsNullOrEmpty(email))
-                log4net.LogicalThreadContext.Properties["userEmail"] = email;
+            LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
 
             try
             {
@@ -52,9 +48,7 @@ namespace HEAppE.RestApi.Logging
             }
             finally
             {
-                log4net.LogicalThreadContext.Properties.Remove("userId");
-                log4net.LogicalThreadContext.Properties.Remove("userName");
-                log4net.LogicalThreadContext.Properties.Remove("userEmail");
+                LoggingUtils.RemoveUserPropertiesFromLogThreadContext();
             }
         }
 

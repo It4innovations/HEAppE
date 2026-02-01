@@ -5,7 +5,6 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
-using System.Transactions;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -400,8 +399,7 @@ internal class JobManagementLogic : IJobManagementLogic
         {
             var cluster = jobGroup.Key.Cluster;
             var project = jobGroup.Key.Project;
-            
-            
+
             var actualUnfinishedSchedulerTasksInfo = new List<SubmittedTaskInfo>();
 
             var userJobsGroup = jobGroup.GroupBy(g => g.Specification.ClusterUser)
@@ -416,18 +414,33 @@ internal class JobManagementLogic : IJobManagementLogic
 
             foreach (var userJobGroup in userJobsGroup)
             {
-                var tasksExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w))
-                    .SelectMany(s => s.Tasks)
-                    .Where(w => !w.Specification.DependsOn.Any())
-                    .ToList();
-
-                if (tasksExceedWaitLimit.Any())
+                var jobsExceedWaitLimit = userJobGroup.Where(w => IsWaitingLimitExceeded(w)).ToList();
+                foreach (var job in jobsExceedWaitLimit)
                 {
-                    SchedulerFactory
-                        .GetInstance(cluster.SchedulerType)
-                        .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: userJobGroup.First().Submitter.Id)
-                        .CancelJob(tasksExceedWaitLimit, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key, _httpContextKeys.Context.SshCaToken);
-                    tasksExceedWaitLimit.ForEach(x=>_logger.Warn($"Job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
+                    var tasks = job.Tasks
+                        .Where(w => !w.Specification.DependsOn.Any())
+                        .ToList();
+
+                    if (tasks.Any())
+                    {
+                        try
+                        {
+                            // enrich log context with job id
+                            LoggingUtils.AddJobIdToLogThreadContext(job.Id);
+
+                            SchedulerFactory
+                                .GetInstance(cluster.SchedulerType)
+                                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: userJobGroup.First().Submitter.Id)
+                                .CancelJob(tasks, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key, _httpContextKeys.Context.SshCaToken);
+                            tasks.ForEach(x => _logger.Warn($"Scheduled job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
+
+                        }
+                        finally
+                        {
+                            // remove job id property from thread log context
+                            LoggingUtils.RemoveJobIdFromLogThreadContext();
+                        }                    
+                    }
                 }
             }
 
@@ -462,30 +475,41 @@ internal class JobManagementLogic : IJobManagementLogic
             var isNeedUpdateJobState = false;
             foreach (var submittedJob in jobGroup)
             {
-                foreach (var submittedTask in submittedJob.Tasks)
+                try
                 {
-                    var actualUnfinishedSchedulerTaskInfo =
-                        actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w =>
-                            w.ScheduledJobId == submittedTask.ScheduledJobId);
-                    if (actualUnfinishedSchedulerTaskInfo is null)
+                    // enrich log context with job id
+                    LoggingUtils.AddJobIdToLogThreadContext(submittedJob.Id);
+
+                    foreach (var submittedTask in submittedJob.Tasks)
                     {
-                        // Failed job which is not returned from schedulers
-                        submittedTask.State = TaskState.Failed;
-                        isNeedUpdateJobState = true;
+                        var actualUnfinishedSchedulerTaskInfo =
+                            actualUnfinishedSchedulerTasksInfo.FirstOrDefault(w =>
+                                w.ScheduledJobId == submittedTask.ScheduledJobId);
+                        if (actualUnfinishedSchedulerTaskInfo is null)
+                        {
+                            // Failed job which is not returned from schedulers
+                            submittedTask.State = TaskState.Failed;
+                            isNeedUpdateJobState = true;
+                        }
+                        else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
+                        {
+                            var submittedTaskInfo =
+                                CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
+                            isNeedUpdateJobState = true;
+                        }
                     }
-                    else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
+
+                    if (isNeedUpdateJobState)
                     {
-                        var submittedTaskInfo =
-                            CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
-                        isNeedUpdateJobState = true;
+                        UpdateJobStateByTasks(submittedJob);
+                        _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
+                        isNeedUpdateJobState = false;
                     }
                 }
-
-                if (isNeedUpdateJobState)
+                finally
                 {
-                    UpdateJobStateByTasks(submittedJob);
-                    _unitOfWork.SubmittedJobInfoRepository.Update(submittedJob);
-                    isNeedUpdateJobState = false;
+                    // remove job id property from thread log context
+                    LoggingUtils.RemoveJobIdFromLogThreadContext();
                 }
             }
         }
