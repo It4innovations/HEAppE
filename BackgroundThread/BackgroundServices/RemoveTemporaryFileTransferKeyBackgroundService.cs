@@ -7,7 +7,9 @@ using System;
 using Microsoft.Extensions.Hosting;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 
@@ -22,9 +24,12 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
     protected readonly ILog _log;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     protected readonly IHttpContextKeys _httpContextKeys;
+    protected readonly IUserOrgService _userOrgService;
+    
 
-    public RemoveTemporaryFileTransferKeyBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
+    public RemoveTemporaryFileTransferKeyBackgroundService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
+        _userOrgService = userOrgService;
         _log = LogManager.GetLogger(GetType());
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
@@ -32,6 +37,7 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -40,7 +46,7 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
                     LogicFactory.GetLogicFactory()
-                        .CreateFileTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+                        .CreateFileTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
                         .RemoveJobsTemporaryFileTransferKeys();
                 }
                 catch (Exception ex)

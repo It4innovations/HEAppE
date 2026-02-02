@@ -21,7 +21,7 @@ internal class FileTransferTemporaryKeyRepository : GenericRepository<FileTransf
 
     public IEnumerable<FileTransferTemporaryKey> GetAllActiveTemporaryKey()
     {
-        return GetAll().ToList();
+        return GetAll().Where(x=>!x.IsDeleted).ToList();
     }
 
     public bool ContainsActiveTemporaryKey(string publicKey)

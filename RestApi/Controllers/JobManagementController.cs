@@ -1,10 +1,13 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.JobManagement;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
@@ -36,12 +39,12 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobManagementService(_sshCertificateAuthorityService, _httpContextKeys);
+        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
     }
 
     #endregion
@@ -61,13 +64,13 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CreateJob(CreateJobByProjectModel model)
+    public async Task<IActionResult> CreateJob(CreateJobByProjectModel model)
     {
         _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CreateJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CreateJob(model.JobSpecification, model.SessionCode));
+        return Ok(await _service.CreateJob(model.JobSpecification, model.SessionCode));
     }
 
     /// <summary>
@@ -105,13 +108,13 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CancelJob(CancelJobModel model)
+    public async Task<IActionResult> CancelJob(CancelJobModel model)
     {
         _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CancelJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -143,8 +146,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// </summary>
     /// <param name="sessionCode">Session code</param>
     /// <param name="jobStates">
-    ///     Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed",
-    ///     "1,2,Running,Failed" etc.
+    ///     Job states separated by coma; eg.: "1,2,8,16,32"
     /// </param>
     /// <returns></returns>
     [HttpGet("ListJobsForCurrentUser")]
@@ -182,7 +184,7 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
+    public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
     {
         var model = new CurrentInfoForJobModel
         {
@@ -193,7 +195,7 @@ public class JobManagementController : BaseController<JobManagementController>
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -282,13 +284,13 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public IActionResult DryRunJob(DryRunJobModel model)
+    public async Task<IActionResult> DryRunJob(DryRunJobModel model)
     {
         _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DryRunJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.DryRunJob(model.ProjectId, model.ClusterNodeTypeId, model.Nodes, model.TasksPerNode, model.WallTimeInMinutes, model.SessionCode));
+        return Ok(await _service.DryRunJob(model.ProjectId, model.ClusterNodeTypeId, model.Nodes, model.TasksPerNode, model.WallTimeInMinutes, model.SessionCode));
     }
 
     #endregion

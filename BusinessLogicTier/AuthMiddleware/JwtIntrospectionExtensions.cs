@@ -1,36 +1,49 @@
-using IdentityModel.AspNetCore.OAuth2Introspection;
-using IdentityModel.Client;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+
 using System;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.Services.UserOrg;
+using IdentityModel.AspNetCore.OAuth2Introspection;
+using IdentityModel.Client;
+using log4net;
 using SshCaAPI;
+using SshCaAPI.Configuration;
+
+namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public static class JwtIntrospectionExtensions
 {
     public static IServiceCollection AddSmartAuthentication(this IServiceCollection services, IConfiguration configuration)
     {
         // Register OAuth2 Introspection if enabled
-        if (JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (true)
         {
             // Default authentication scheme with runtime selection
             services.AddAuthentication(options =>
             {
                 options.DefaultScheme = "SmartScheme";
+                options.DefaultAuthenticateScheme = "SmartScheme";
+                options.DefaultChallengeScheme = "SmartScheme";
             })
             .AddPolicyScheme("SmartScheme", "Local or JWT", options =>
             {
                 options.ForwardDefaultSelector = context =>
                 {
                     var authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
-                    return string.IsNullOrEmpty(authHeader)
-                        ? "LocalScheme" // no Authorization header → use local auth
-                        : OAuth2IntrospectionDefaults.AuthenticationScheme; // header present → JWT introspection
+        
+                    // If Bearer token is present, use OAuth2 Introspection
+                    if ((JwtTokenIntrospectionConfiguration.IsEnabled) && !string.IsNullOrEmpty(authHeader) && authHeader.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return OAuth2IntrospectionDefaults.AuthenticationScheme;
+                    }
+
+                    // Otherwise (no header or custom API Key header), route to LocalScheme or LexisAuthenticationConfiguration.UseBearerAuth
+                    return "LocalScheme";
                 };
             })
             .AddScheme<AuthenticationSchemeOptions, LocalAuthenticationHandler>("LocalScheme", null);
@@ -68,12 +81,14 @@ public static class JwtIntrospectionExtensions
 
                             var sshCaService = context.HttpContext.RequestServices
                                 .GetRequiredService<ISshCertificateAuthorityService>();
+                            var userOrgService = context.HttpContext.RequestServices
+                                .GetRequiredService<IUserOrgService>();
 
                             try
                             {
                                 await context.HttpContext.RequestServices
                                     .GetRequiredService<IHttpContextKeys>()
-                                    .Authorize(sshCaService);
+                                    .Authorize(sshCaService, userOrgService);
                             }
                             catch
                             {
@@ -81,28 +96,34 @@ public static class JwtIntrospectionExtensions
                                 return;
                             }
 
-                            // Optional: exchange SSH CA token
-                            var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
-                            var client = httpClientFactory.CreateClient();
-                            client.DefaultRequestHeaders.UserAgent.ParseAdd("HEAppE Middleware Dev/1.0");
+                            if(JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication)
+                            { 
+                                // Optional: exchange SSH CA token
+                                var httpClientFactory = context.HttpContext.RequestServices.GetRequiredService<IHttpClientFactory>();
+                                var client = httpClientFactory.CreateClient();
+                          
+                                string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+                                string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
+                                client.DefaultRequestHeaders.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");
 
-                            var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
-                            {
-                                Address = JwtTokenIntrospectionConfiguration.Authority,
-                                Policy = new DiscoveryPolicy
+                                var disco = await client.GetDiscoveryDocumentAsync(new DiscoveryDocumentRequest
                                 {
-                                    RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
-                                    ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
-                                    ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
-                                }
-                            });
+                                    Address = JwtTokenIntrospectionConfiguration.Authority,
+                                    Policy = new DiscoveryPolicy
+                                    {
+                                        RequireHttps = JwtTokenIntrospectionConfiguration.RequireHttps,
+                                        ValidateIssuerName = JwtTokenIntrospectionConfiguration.ValidateIssuerName,
+                                        ValidateEndpoints = JwtTokenIntrospectionConfiguration.ValidateEndpoints
+                                    }
+                                });
 
-                            if (disco.IsError)
-                                throw new Exception($"Discovery error: {disco.Error}");
+                                if (disco.IsError)
+                                    throw new Exception($"Discovery error: {disco.Error}");
 
-                            await context.HttpContext.RequestServices
-                                .GetRequiredService<IHttpContextKeys>()
-                                .ExchangeSshCaToken(disco.TokenEndpoint, client);
+                                await context.HttpContext.RequestServices
+                                    .GetRequiredService<IHttpContextKeys>()
+                                    .ExchangeSshCaToken(disco.TokenEndpoint, client);
+                            }
                         }
                     };
                 });

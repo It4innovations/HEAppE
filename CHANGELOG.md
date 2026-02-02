@@ -9,6 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added dry-run Slurm job submission endpoint `POST /heappe/JobManagement/DryRunJob` to simulate scheduling without execution, returning predicted start time and resource allocation.
+- Added an automated procedure to monitor updates to HEAppE key scripts.
+  - Implemented automatic sync procedure to the cluster user space upon detection of changes.
 - New Management endpoints for file uploads:
   - `/api/DataStaging/UploadFilesToProjectDir` – Upload files to project directory (Manager role, DataStagingAPI).
   - `/api/DataStaging/UploadJobScriptsToProjectDir` – Upload job scripts to project directory and make them executable (Manager role, DataStagingAPI).
@@ -16,9 +18,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added IQueryable-based user-specific job retrieval logic for more efficient filtering.
 - Added global cache invalidation mechanism with enhanced cache entry management for `ListAvalialbleClusters` endpoint.
 - Added `SubmittedJobInfoId` to `GetDataTransferMethodModel` to enhance task info handling.
+- Support for checking permissions of the single user to use `Command Template` by the `User Org Service`.
+- Implemented automatic and on-trigger backup systems for the HEAppE vault and configuration files.
+- Introduced new API endpoints for:
+    - `AdaptorUsers` management.
+    - `Project Role` assignment and unassignment.
+    - `User Group Role` assignment and unassignment.
+- Added a feature to map system roles directly to system users.
+- Added support for `X-API-Key` header authentication, allowing full system operation without requiring `SessionCodes`.
+- Established connection to `Expirio service`.
+    - Implemented token exchange functionality.
+- Introduced optional LEXIS user access validation for Project Command Templates.
+    - This provides an additional security layer beyond the existing HEAppE project-level access control.
+
 
 ### Changed
-- Consolidated `Lexis Token Service` registration and simplified conditional authentication middleware usage.
 - Enhanced cluster authentication logic with improved error handling.
 - Enhanced cluster listing and caching with user validation and improved filtering.
 - Enhanced file listing in `SftpFileSystemManager` with better relative path handling.
@@ -26,9 +40,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Improved exception handling for unauthorized access.
 - Introduced `.part` temporary upload extension with rename after upload completion.
 - Renamed `PermanentStoragePath` to `ProjectStoragePath`.
+- Asynchronous Processing: extensive implementation of async/await methods across Repositories and Services for non-blocking I/O operations.
+- Applied `AsNoTracking` in `JobManagementService` for read-only queries to reduce change tracker overhead.
+- Utilized `AsSplitQuery` in `ClusterAuthenticationCredentialsRepository` to resolve possible `Cartesian explosion` issues during complex joins.
+- Refined filtering logic for user-specific job retrieval.
+- Rewrote ConnectionPool using ConcurrentDictionary and SemaphoreSlim to ensure thread safety and prevent race conditions under load.
+- Optimized pooling by introducing user-specific slots.
+- Updated VaultConnector to use a singleton HttpClient instance to prevent socket exhaustion.
+- Implemented thread-safe caching for `Vault` data to minimize external API calls.
+- Enhanced `ClusterProjectCredentialVaultPart` with null-safe JSON processing, robust serialization, and improved error handling.
+- Optimized the job specification completion process and task processing logic.
+- Optimized `Service Registration` logic.
+- Consolidated `Lexis Token Service` registration and simplified conditional authentication middleware usage, introduced `UserOrg Service`.
+- Improved retrieval efficiency for `AdaptorUser` and `SessionCode` entities.
+- Decoupled the startup procedure from background job initialization, preventing background tasks from blocking the system boot process.
+- Made `/heappe/Health` endpoint publicly accessible for all deployments.
 
-### Security
-- Made `/heappe/Health` endpoint publicly accessible for Bearer-secured deployments.
 
 ## V6.1.0
 

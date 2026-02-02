@@ -4,13 +4,16 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentValidation;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.General.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.FileTransfer;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.FileTransfer;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using log4net.Repository.Hierarchy;
@@ -31,6 +34,7 @@ public class FileTransferController : BaseController<FileTransferController>
     #region Instances
 
     private readonly IFileTransferService _service;
+    private readonly IUserOrgService _userOrgService;
 
     #endregion
 
@@ -41,10 +45,10 @@ public class FileTransferController : BaseController<FileTransferController>
     /// </summary>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _service = new FileTransferService(sshCertificateAuthorityService, httpContextKeys);
+        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     #endregion
@@ -64,13 +68,13 @@ public class FileTransferController : BaseController<FileTransferController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult RequestFileTransfer(GetFileTransferMethodModel model)
+    public async Task<IActionResult> RequestFileTransfer(GetFileTransferMethodModel model)
     {
         _logger.LogDebug($"Endpoint: \"FileTransfer\" Method: \"RequestFileTransfer\" Parameters: \"{model}\"");
         var validationResult = new FileTransferValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
+        return Ok(await _service.RequestFileTransfer(model.SubmittedJobInfoId, model.SessionCode));
     }
 
     /// <summary>
@@ -225,18 +229,21 @@ public class FileTransferController : BaseController<FileTransferController>
         validator.ValidateAndThrow(model);
         _logger.LogDebug("""Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """, model);
 
+        long jobSpecificationId;
+        long? taskSpecificationId = null;
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var job = unitOfWork.JobSpecificationRepository.GetById(jobId) ??
+            var job = unitOfWork.SubmittedJobInfoRepository.GetByIdWithTasks(jobId) ??
                       throw new Exception("NotExistingJob");
+            jobSpecificationId = job.Specification.Id;
             //check if task belongs to job
             if (taskId.HasValue)
             {
-                if(!job.Tasks.Any(t=> t.Id == taskId.Value))
-                    throw new Exception("TaskDoesNotBelongToJob");
+                taskSpecificationId = job.Tasks.FirstOrDefault(t => t.Id == taskId.Value)?.Specification.Id ?? 
+                                      throw new Exception("TaskDoesNotBelongToJob");
             }
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, sshCertificateAuthorityService, httpContextKeys,
-                            AdaptorUserRoleType.Submitter, job.ProjectId);
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
+                            AdaptorUserRoleType.Submitter, job.Specification.ProjectId);
             if (job.Submitter.Id != loggedUser.Id)
                 throw new Exception("LoggedUserIsNotSubmitterOfJob");
         }
@@ -244,7 +251,7 @@ public class FileTransferController : BaseController<FileTransferController>
         var tasks = new List<Task<dynamic>>();
         foreach (var file in files)
         {
-            tasks.Add(new FileTransferService(sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobId, taskId, sessionCode));
+            tasks.Add(new FileTransferService(_userOrgService, sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
         }
         Task.WaitAll(tasks);
 

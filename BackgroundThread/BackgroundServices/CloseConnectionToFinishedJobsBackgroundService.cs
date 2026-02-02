@@ -8,7 +8,9 @@ using System;
 using System.Threading.Tasks;
 using System.Linq;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 
@@ -23,16 +25,18 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
     protected readonly ILog _log;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     protected readonly IHttpContextKeys _httpContextKeys;
-
-    public CloseConnectionToFinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
+    protected readonly IUserOrgService _userOrgService;
+    public CloseConnectionToFinishedJobsBackgroundService(IUserOrgService userOrgService,ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
         _log = LogManager.GetLogger(GetType());
+        _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -40,10 +44,10 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                 try
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                    var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+                    var dataTransferLogic = LogicFactory.GetLogicFactory().CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
 
                     var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
-                    LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys).GetAllFinishedTaskInfos(taskIds)
+                    LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys).GetAllFinishedTaskInfos(taskIds)
                         .ToList()
                         .ForEach(f => dataTransferLogic.CloseAllTunnelsForTask(f));
                 }

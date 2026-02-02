@@ -202,6 +202,7 @@ internal class LinuxCommands : ICommands
         }
 
         _log.Info($"Create job directory command: \"{cmdBuilder}\"");
+        
         var sshCommand =
             SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), cmdBuilder.ToString());
         _log.Info($"Create job directory result: \"{sshCommand.Result.Replace("\n", string.Empty)}\"");
@@ -241,78 +242,67 @@ internal class LinuxCommands : ICommands
     public bool InitializeClusterScriptDirectory(object schedulerConnectionConnection,
         string clusterProjectRootDirectory, bool overwriteExistingProjectRootDirectory, string localBasepath, string account, bool isServiceAccount)
     {
-        if (!isServiceAccount)
-            return true;
+        if (isServiceAccount) return true;
 
-        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}")
-            .Replace('\\', '/');
-
-        // Do not overwrite existing folder if overwriting is disabled
-        if (!overwriteExistingProjectRootDirectory)
-        {
-            // test if root cluster project directory already exists
-            var rootDirExistsCmd = $"if [ -d {rootDir} ]; then echo EXISTS; fi";
-            var rootDirExistsResult = SshCommandUtils
-                .RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), rootDirExistsCmd)
-                .Result
-                .Trim();
-
-            if (rootDirExistsResult == "EXISTS")
-            {
-                _log.Info($"Skipping initialization for cluster project root directory: '{clusterProjectRootDirectory}', directory already exists and overwriteExistingProjectRootDirectory = false");
-                return true;
-            }
-        }
+        var rootDir = Path.Combine(_scripts.ScriptsBasePath, $".{clusterProjectRootDirectory}").Replace('\\', '/');
+        string bashSafeRootDir = rootDir.StartsWith("~/") 
+            ? "~/" + "\"" + rootDir.Substring(2) + "\"" 
+            : "\"" + rootDir + "\"";
+        
+        var repoUrl = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository;
+        var branch = HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch;
+        var sedReplacement = $"{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}";
 
         var cmdBuilder = new StringBuilder();
-        var keyScriptsDir = Path.Combine(rootDir, ".key_scripts")
-            .Replace('\\', '/');
-        var sshDir = Path.Combine(rootDir, ".ssh")
-            .Replace('\\', '/');
-
-        // Create directories
-        cmdBuilder.Append($"rm -rf {rootDir} && ");
-        cmdBuilder.Append($"mkdir -p {sshDir} && ");
-        cmdBuilder.Append($"cd {rootDir} && ");
-
-        // Clone git repository with key scripts
-        var keyScriptsDirectoryParts = HPCConnectionFrameworkConfiguration.ScriptsSettings
-            .KeyScriptsDirectoryInRepository
-            .Split([Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar],
-                StringSplitOptions.RemoveEmptyEntries);
-        var gitCloneLogic = $@"
-            error=$(git clone -b {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepositoryBranch} --quiet {HPCConnectionFrameworkConfiguration.ScriptsSettings.ClusterScriptsRepository} HEAppE-scripts
- 2>&1); 
-            code=$?; 
-            if [ $code -ne 0 ]; then 
-              echo ""GIT CLONE ERROR: $error"" >&2; 
-              exit $code; 
-            fi
-        ";
-        cmdBuilder.Append($"{gitCloneLogic.Replace("\r\n", " ").Trim()} && ");
-        cmdBuilder.Append(
-            $"mv {HPCConnectionFrameworkConfiguration.ScriptsSettings.KeyScriptsDirectoryInRepository.Replace('\\', '/').TrimEnd('/')} .key_scripts && ");
-        cmdBuilder.Append($"rm -rf {keyScriptsDirectoryParts.FirstOrDefault()} && ");
-
-        // Scripts modifications
-        cmdBuilder.Append($"chmod -R 755 {keyScriptsDir} && ");
-        cmdBuilder.Append(
-            $"sed -i \"s|TODO|{localBasepath}/{_scripts.InstanceIdentifierPath}/{_scripts.SubExecutionsPath}/{account}|g\" {Path.Combine(keyScriptsDir, "remote-cmd3.sh").Replace('\\', '/')}");
+        cmdBuilder.Append($@"mkdir -p {bashSafeRootDir} && cd {bashSafeRootDir} && ");
+        cmdBuilder.Append($@"
+            UPDATE_NEEDED=0;
+            REPO_DIR="".repo_cache"";
+            if [ ! -d ""$REPO_DIR""/.git ]; then
+                rm -rf ""$REPO_DIR"";
+                git clone --single-branch -b {branch} --quiet {repoUrl} ""$REPO_DIR"" 2>&1 || {{ echo ""GIT_ERROR""; exit 1; }};
+                UPDATE_NEEDED=1;
+            else
+                cd ""$REPO_DIR"" && git fetch origin {branch} --quiet;
+                LOCAL_HASH=$(git rev-parse HEAD);
+                REMOTE_HASH=$(git rev-parse origin/{branch});
+                if [ ""$LOCAL_HASH"" != ""$REMOTE_HASH"" ]; then
+                    git reset --hard origin/{branch} --quiet;
+                    UPDATE_NEEDED=1;
+                fi;
+                cd - > /dev/null;
+            fi;
+            if [ ! -d "".key_scripts"" ]; then UPDATE_NEEDED=1; fi;
+            if [ ""$UPDATE_NEEDED"" -eq 1 ]; then
+                rm -rf .key_scripts;
+                SOURCE_PATH=$(find ""$REPO_DIR""/HPC -maxdepth 1 -type d -name "".key_scripts"" 2>/dev/null | head -n 1);
+                if [ -z ""$SOURCE_PATH"" ]; then
+                    SOURCE_PATH=$(find ""$REPO_DIR"" -type d -name "".key_scripts"" | head -n 1);
+                fi;
+                if [ -z ""$SOURCE_PATH"" ]; then echo ""ERROR: .key_scripts not found""; exit 1; fi;
+                cp -r ""$SOURCE_PATH"" .key_scripts &&
+                chmod -R 755 .key_scripts &&
+                sed -i ""s|TODO|{sedReplacement}|g"" .key_scripts/remote-cmd3.sh &&
+                echo ""INSTALLED_UPDATED"";
+            else
+                echo ""SKIPPED_UP_TO_DATE"";
+            fi");
 
         try
         {
-            var sshCommand =
-                SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection),
-                    cmdBuilder.ToString());
-            _log.Info($"Cluster scripts initialization result: \"{sshCommand.Result}\"");
+            var sshCommand = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), cmdBuilder.ToString());
+            if (sshCommand.ExitStatus != 0)
+            {
+                _log.Error($"Initialization failed: {sshCommand.Result}");
+                return false;
+            }
+            return true;
         }
         catch (Exception ex)
         {
-            _log.Error($"Cluster scripts initialization failed: \"{ex.Message}\"");
+            _log.Error($"Exception: {ex.Message}");
             return false;
         }
-
-        return true;
     }
 
     public bool CopyJobFiles(object schedulerConnectionConnection, SubmittedJobInfo jobInfo, IEnumerable<Tuple<string, string>> sourceDestinations)

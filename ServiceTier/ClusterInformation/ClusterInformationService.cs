@@ -4,14 +4,20 @@ using System.Collections.Generic;
 using System.Data.SqlTypes;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.ExtModels.ClusterInformation.Converts;
 using HEAppE.ExtModels.ClusterInformation.Models;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
 using log4net;
@@ -25,108 +31,94 @@ public class ClusterInformationService : IClusterInformationService
 {
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
-    public ClusterInformationService(IMemoryCache cacheProvider, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    private readonly IUserOrgService _userOrgService;
+    public ClusterInformationService(IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
+        _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
         _cacheProvider = cacheProvider;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
+    
+    private void SetCacheWithGlobalToken<T>(string key, T value, int expirationMinutes)
+    {
+        var options = new MemoryCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromMinutes(expirationMinutes))
+            .AddExpirationToken(new CancellationChangeToken(CacheUtils.GlobalResetToken));
+    
+        _cacheProvider.Set(key, value, options);
+    }
 
-    public IEnumerable<ClusterExt> ListAvailableClusters(
-    string sessionCode,
-    string clusterName,
-    string nodeTypeName,
-    string projectName,
-    string[] accountingString,
-    string commandTemplateName,
-    bool forceRefresh)
+    public async Task<IEnumerable<ClusterExt>> ListAvailableClusters(string sessionCode,
+        string clusterName,
+        string nodeTypeName,
+        string projectName,
+        string[] accountingString,
+        string commandTemplateName,
+        bool forceRefresh)
     {
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
 
-        var roles = new List<AdaptorUserRoleType>
-        {
-            AdaptorUserRoleType.Reporter,
-            AdaptorUserRoleType.ManagementAdmin,
-            AdaptorUserRoleType.Manager
-        };
+        var roles = new List<AdaptorUserRoleType> { AdaptorUserRoleType.Reporter, AdaptorUserRoleType.ManagementAdmin, AdaptorUserRoleType.Manager };
 
-        // Validate the user and get their accessible projects
         var (loggedUser, projects) = UserAndLimitationManagementService
-            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, roles);
+            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, roles);
 
-        // Build cache key including all filter parameters to ensure cache is revalidated when filters change
-        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{loggedUser.Email}_" +
-                             $"{clusterName}_{nodeTypeName}_{projectName}_" +
-                             $"{(accountingString != null ? string.Join(",", accountingString) : "")}_" +
-                             $"{commandTemplateName}";
+        var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{loggedUser.Id}_{clusterName}_{nodeTypeName}_{projectName}_{(accountingString != null ? string.Join(",", accountingString) : "")}_{commandTemplateName}";
 
-        // Return cached value if available and no force refresh requested
         if (!forceRefresh && _cacheProvider.TryGetValue(memoryCacheKey, out ClusterExt[] cachedClusters))
         {
-            _log.Info($"Using Memory Cache for key.");
             return cachedClusters;
         }
 
-        _log.Info($"Reloading clusters from DB.");
+        CommandTemplatePermissionsModel lexisPermissions = null;
+        if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
+        {
+            lexisPermissions = await _userOrgService.GetCommandTemplatePermissionsAsync(
+                _httpContextKeys.Context.LEXISToken,
+                HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
+        }
 
         HashSet<string> accountingSet = accountingString != null ? new(accountingString) : null;
 
-        // Load clusters from DB, basic filter on clusterName
         var clusters = unitOfWork.ClusterRepository.AsQueryable()
             .Where(c => clusterName == null || c.Name == clusterName)
             .ToList();
 
-        // Convert the entities to ClusterExt using existing conversion method
         var clustersExt = clusters
             .Select(c => c.ConvertIntToExt(projects, true))
             .ToArray();
 
-        // Apply additional filters in memory after conversion
-        if (clusterName != null || nodeTypeName != null || projectName != null || accountingSet != null || commandTemplateName != null)
-        {
-            clustersExt = clustersExt
-                .Where(c => clusterName == null || c.Name == clusterName)
-                .Select(cl =>
-                {
-                    cl.NodeTypes = cl.NodeTypes
-                        .Where(nt => nodeTypeName == null || nt.Name == nodeTypeName)
-                        .Select(nt =>
-                        {
-                            nt.Projects = nt.Projects
-                                .Where(p =>
-                                    (projectName == null || p.Name == projectName) &&
-                                    (accountingSet == null || accountingSet.Contains(p.AccountingString)) &&
-                                    (commandTemplateName == null || p.CommandTemplates.Any(ct => ct.Name == commandTemplateName))
-                                )
-                                .Select(p =>
-                                {
-                                    if (commandTemplateName != null)
-                                        p.CommandTemplates = p.CommandTemplates
-                                            .Where(ct => ct.Name == commandTemplateName)
-                                            .ToArray();
-                                    return p;
-                                })
-                                .Where(p => p.CommandTemplates.Length > 0)
-                                .ToArray();
-                            return nt;
-                        })
-                        .Where(nt => nt.Projects.Length > 0)
-                        .ToArray();
-                    return cl;
-                })
-                .Where(cl => cl.NodeTypes.Length > 0)
-                .ToArray();
-        }
-
-        // Store the result in cache
-        _cacheProvider.Set(
-            memoryCacheKey,
-            clustersExt,
-            new MemoryCacheEntryOptions()
-                .SetAbsoluteExpiration(TimeSpan.FromMinutes(_cacheLimitForListAvailableClusters))
-                .AddExpirationToken(new CancellationChangeToken(CacheUtils.GlobalResetToken))
-        );
+        clustersExt = clustersExt
+            .Select(cl =>
+            {
+                cl.NodeTypes = cl.NodeTypes
+                    .Where(nt => nodeTypeName == null || nt.Name == nodeTypeName)
+                    .Select(nt =>
+                    {
+                        nt.Projects = nt.Projects
+                            .Where(p => (projectName == null || p.Name == projectName) && (accountingSet == null || accountingSet.Contains(p.AccountingString)))
+                            .Select(p =>
+                            {
+                                p.CommandTemplates = p.CommandTemplates
+                                    .Where(ct => (commandTemplateName == null || string.Equals(ct.Name, commandTemplateName, StringComparison.OrdinalIgnoreCase)) &&
+                                                 (lexisPermissions == null || _userOrgService.IsTemplateEnabledInLexis(lexisPermissions, cl.Name, nt.Name, p.AccountingString, ct.Name)))
+                                    .ToArray();
+                                return p;
+                            })
+                            .Where(p => p.CommandTemplates.Length > 0)
+                            .ToArray();
+                        return nt;
+                    })
+                    .Where(nt => nt.Projects.Length > 0)
+                    .ToArray();
+                return cl;
+            })
+            .Where(cl => cl.NodeTypes.Length > 0)
+            .ToArray();
+        
+        SetCacheWithGlobalToken(memoryCacheKey, clustersExt, _cacheLimitForListAvailableClusters);
 
         return clustersExt;
     }
@@ -138,7 +130,7 @@ public class ClusterInformationService : IClusterInformationService
 
         // Validate user and projects
         var (loggedUser, projectIds) = UserAndLimitationManagementService
-            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager);
+            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager);
 
         if (loggedUser is null || !projectIds.Any())
             throw new Exception("Operation permission denied.");
@@ -153,7 +145,7 @@ public class ClusterInformationService : IClusterInformationService
         foreach (var item in collection)
         {
             var memoryCacheKey = item.ToString();
-            if (memoryCacheKey.StartsWith($"{nameof(ListAvailableClusters)}_{loggedUser.Email}_"))
+            if (memoryCacheKey.StartsWith($"{nameof(ListAvailableClusters)}_{loggedUser.Id}_"))
             {
                 _cacheProvider.Remove(memoryCacheKey);
                 clearedKeysCount++;
@@ -169,12 +161,12 @@ public class ClusterInformationService : IClusterInformationService
     }
 
 
-    public IEnumerable<string> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
+    public async Task<IEnumerable<string>> RequestCommandTemplateParametersName(long commandTemplateId, long projectId,
         string userScriptPath, string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, projectId);
 
             var memoryCacheKey = StringUtils.CreateIdentifierHash(
@@ -196,18 +188,18 @@ public class ClusterInformationService : IClusterInformationService
             _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             var result =
-                clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
-            _cacheProvider.Set(memoryCacheKey, result,
-                TimeSpan.FromMinutes(_cacheLimitForGetCommandTemplateParametersName));
+                await clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
+            SetCacheWithGlobalToken(memoryCacheKey, result, _cacheLimitForGetCommandTemplateParametersName);
             return result;
         }
     }
 
-    public ClusterNodeUsageExt GetCurrentClusterNodeUsage(long clusterNodeId, long projectId, string sessionCode)
+    public async Task<ClusterNodeUsageExt> GetCurrentClusterNodeUsage(long clusterNodeId, long projectId,
+        string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _sshCertificateAuthorityService, _httpContextKeys,
+            var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Reporter, projectId);
 
             //Memory cache key with personal session code due security purpose of access to cluster reference to project
@@ -228,9 +220,8 @@ public class ClusterInformationService : IClusterInformationService
 
             _log.Info($"Reloading Memory Cache value for key.");
             var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork,  _sshCertificateAuthorityService, _httpContextKeys);
-            var nodeUsage = clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
-            _cacheProvider.Set(memoryCacheKey, nodeUsage.ConvertIntToExt(),
-                TimeSpan.FromMinutes(_cacheLimitForGetCurrentClusterUsage));
+            var nodeUsage = await clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
+            SetCacheWithGlobalToken(memoryCacheKey, nodeUsage.ConvertIntToExt(), _cacheLimitForGetCurrentClusterUsage);
             return nodeUsage.ConvertIntToExt();
         }
     }

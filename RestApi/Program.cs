@@ -3,11 +3,16 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
+using System.Reflection;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.DataAccessTier.UnitOfWork;
 using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Newtonsoft.Json.Linq;
 using HEAppE.Utils;
+using log4net;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace HEAppE.RestApi;
 
@@ -37,7 +42,7 @@ public class Program
         else
             // Run w/o docker - local development
             builder = WebHost.CreateDefaultBuilder()
-                .UseUrls("http://*:5000")
+                .UseUrls("http://*:5005")
                 .ConfigureAppConfiguration((hostingContext, config) =>
                 {
                     if (!FileSystemUtils.AddConfigurationFiles(

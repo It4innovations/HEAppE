@@ -1717,6 +1717,9 @@ namespace HEAppE.DataAccessTier.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("UniqueCode")
+                        .IsUnique();
+
                     b.HasIndex("UserId");
 
                     b.ToTable("SessionCode");

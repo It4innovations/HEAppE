@@ -81,10 +81,92 @@ public class ManagementValidator : AbstractValidator
             RestoreDatabaseModel ext => ValidateRestoreDatabaseModel(ext),
             ModifyClusterAuthenticationCredentialModel ext => ValidateModifyClusterAuthenticationCredentialModel(ext),
             StatusModel ext => ValidateStatusModel(ext),
+            CreateAdaptorUserModel ext => ValidateCreateAdaptorUserModel(ext),
+            ModifyAdaptorUserModel ext => ValidateModifyAdaptorUserModel(ext),
+            DeleteAdaptorUserModel ext => ValidateDeleteAdaptorUserModel(ext),
+            AssignAdaptorUserToProjectModel ext => ValidateAssignAdaptorUserToProjectModel(ext),
+            ListAdaptorUsersInProjectModel ext => ValidateListAdaptorUsersInProjectModel(ext),
+            ListAdaptorUsersInUserGroupModel ext => ValidateListAdaptorUsersInUserGroupModel(ext),
+            AssignAdaptorUserToUserGroupModel ext => ValidateAssignAdaptorUserToUserGroupModel(ext),
+            ListAdaptorUsersModel ext => ValidateListAdaptorUsersModel(ext),
             _ => string.Empty
         };
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
+    }
+
+    private string ValidateListAdaptorUsersModel(ListAdaptorUsersModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateAssignAdaptorUserToUserGroupModel(AssignAdaptorUserToUserGroupModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        ValidateId(ext.UserGroupId, "UserGroupId");
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateListAdaptorUsersInUserGroupModel(ListAdaptorUsersInUserGroupModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        ValidateId(ext.UserGroupId, "UserGroupId");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateListAdaptorUsersInProjectModel(ListAdaptorUsersInProjectModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        ValidateId(ext.ProjectId, "ProjectId");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateAssignAdaptorUserToProjectModel(AssignAdaptorUserToProjectModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        ValidateId(ext.ProjectId, "ProjectId");
+        if (string.IsNullOrEmpty(ext.Username)) _messageBuilder.AppendLine("Username can not be null or empty.");
+
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateDeleteAdaptorUserModel(DeleteAdaptorUserModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateModifyAdaptorUserModel(ModifyAdaptorUserModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        return _messageBuilder.ToString();
+    }
+
+    private string ValidateCreateAdaptorUserModel(CreateAdaptorUserModel ext)
+    {
+        var sessionCodeValidation = new SessionCodeValidator(ext.SessionCode).Validate();
+        if (!sessionCodeValidation.IsValid) _messageBuilder.AppendLine(sessionCodeValidation.Message);
+        
+        return _messageBuilder.ToString();
     }
 
     private string ValidateModifyClusterAuthenticationCredentialModel(ModifyClusterAuthenticationCredentialModel ext)

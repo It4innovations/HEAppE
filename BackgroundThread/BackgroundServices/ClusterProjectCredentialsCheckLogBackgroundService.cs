@@ -8,6 +8,7 @@ using System;
 using System.Threading;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExternalAuthentication.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
@@ -33,6 +34,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         if (BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IsEnabled && !JwtTokenIntrospectionConfiguration.IsEnabled)
         {
             while (!stoppingToken.IsCancellationRequested)

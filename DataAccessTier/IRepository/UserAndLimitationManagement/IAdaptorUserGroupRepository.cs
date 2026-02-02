@@ -9,4 +9,5 @@ public interface IAdaptorUserGroupRepository : IRepository<AdaptorUserGroup>
     IEnumerable<AdaptorUserGroup> GetAllWithAdaptorUserGroupsAndActiveProjects();
     AdaptorUserGroup GetDefaultSubmitterGroup();
     AdaptorUserGroup GetGroupByUniqueName(string groupName);
+    IEnumerable<AdaptorUserGroup> GetGroupsWithProjects(IEnumerable<long> groupIds);
 }

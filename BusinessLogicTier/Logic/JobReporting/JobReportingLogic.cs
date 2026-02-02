@@ -93,14 +93,22 @@ internal class JobReportingLogic : IJobReportingLogic
     /// <returns></returns>
     public IEnumerable<JobStateAggregationReport> AggregatedJobsByStateReport(IEnumerable<Project> projects)
     {
+        if (projects == null) return Enumerable.Empty<JobStateAggregationReport>();
+
+        var allowedProjectIds = projects
+            .Where(p => p != null)
+            .Select(p => p.Id)
+            .ToHashSet();
+
         return _unitOfWork.SubmittedJobInfoRepository.GetAll()
-            .Where(x => x.Project != null && projects.Any(y => y.Id == x.Project.Id))
+            .Where(x => x.Project != null && allowedProjectIds.Contains(x.Project.Id))
             .GroupBy(g => g.State)
             .Select(s => new JobStateAggregationReport
             {
                 State = s.Key,
                 Count = s.Count()
-            }).ToList();
+            })
+            .ToList();
     }
 
     /// <summary>
@@ -109,11 +117,17 @@ internal class JobReportingLogic : IJobReportingLogic
     /// <returns></returns>
     public IEnumerable<ProjectReport> JobsDetailedReport(IEnumerable<long> groupIds, string[] subProjects, DateTime? timeFrom, DateTime? timeTo)
     {
-        DateTime _timeFrom = timeFrom.HasValue ? timeFrom.Value : DateTime.MinValue;
-        DateTime _timeTo = timeTo.HasValue ? timeTo.Value : DateTime.UtcNow;
+        if (groupIds == null || !groupIds.Any()) return Enumerable.Empty<ProjectReport>();
+
+        DateTime _timeFrom = timeFrom ?? DateTime.MinValue;
+        DateTime _timeTo = timeTo ?? DateTime.UtcNow;
         
-        return groupIds.Select(groupId =>
-            UserGroupResourceUsageReport(groupId, _timeFrom, _timeTo, subProjects)).ToList();
+        var groups = _unitOfWork.AdaptorUserGroupRepository.GetGroupsWithProjects(groupIds);
+
+        return groups
+            .Select(group => GetProjectReport(group.Project, _timeFrom, _timeTo, subProjects))
+            .Where(report => report != null)
+            .ToList();
     }
 
     /// <summary>

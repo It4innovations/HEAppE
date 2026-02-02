@@ -10,6 +10,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.DataAccessTier.Vault;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -20,6 +21,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 {
     private readonly TimeSpan _scheduledTime = TimeSpan.Parse(DatabaseFullBackupConfiguration.ScheduledRuntime, new CultureInfo("en-US"));
     protected readonly ILog _log;
+    protected VaultConnector _vaultConnector = new VaultConnector();
 
     public DatabaseFullBackupBackgroundService()
     {
@@ -28,6 +30,7 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         var backupCanBeDone = DatabaseFullBackupConfiguration.ScheduledBackupEnabled && await DatabaseFullBackupCanBeDone();
 
         while (backupCanBeDone && !stoppingToken.IsCancellationRequested)
@@ -104,6 +107,11 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
     {
         try
         {
+            string dateTimeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+            string confsDirectory = "/opt/heappe/confs/";
+            string backupConfsDirectory = Path.Combine(DatabaseFullBackupConfiguration.LocalPath,
+                $"confs_and_vault_backup_{dateTimeStamp}");
+            
             using var conn = new SqlConnection(MiddlewareContextSettings.ConnectionString);
             await conn.OpenAsync();
 
@@ -122,6 +130,73 @@ internal class DatabaseFullBackupBackgroundService : BackgroundService
                 File.Copy(backupPath, nasFile, overwrite: true);
                 _log.Info(string.Format("Database backup file was copied to NAS: {0}", nasFile));
             }
+            
+            
+            #region Confs backup
+
+            if (Directory.Exists(confsDirectory))
+            {
+                var dirInfo = new DirectoryInfo(confsDirectory);
+                var allFiles = dirInfo.GetFiles("*", SearchOption.AllDirectories)
+                    .Where(f => (f.Attributes & FileAttributes.Hidden) == 0);
+
+                foreach (var fileInfo in allFiles)
+                {
+                    string relativePath = Path.GetRelativePath(dirInfo.FullName, fileInfo.FullName);
+
+                    string localDestFile = Path.Combine(backupConfsDirectory, relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(localDestFile)!);
+                    File.Copy(fileInfo.FullName, localDestFile, overwrite: true);
+
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    {
+                        string nasFolder = Path.Combine(DatabaseFullBackupConfiguration.NASPath,
+                            $"confs_backup_{dateTimeStamp}");
+                        string nasDestFile = Path.Combine(nasFolder, relativePath);
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(nasDestFile)!);
+                        File.Copy(fileInfo.FullName, nasDestFile, overwrite: true);
+                    }
+                }
+            }
+            else
+            {
+                _log.Warn($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
+            }
+            #endregion
+            
+            #region HashiCorp Vault backup
+
+            _log.Info("Starting HashiCorp Vault snapshot as part of full backup.");
+            try
+            {
+                byte[] vaultSnapshot = await _vaultConnector.CreateSnapshot();
+
+                if (vaultSnapshot != null && vaultSnapshot.Length > 0)
+                {
+                    string vaultBackupFileName = $"vault_snapshot_{dateTimeStamp}.tar";
+                    
+                    string localVaultPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, vaultBackupFileName);
+                    await File.WriteAllBytesAsync(localVaultPath, vaultSnapshot);
+                    
+                    string confsVaultPath = Path.Combine(backupConfsDirectory, vaultBackupFileName);
+                    await File.WriteAllBytesAsync(confsVaultPath, vaultSnapshot);
+                    
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    {
+                        string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, vaultBackupFileName);
+                        await File.WriteAllBytesAsync(nasVaultPath, vaultSnapshot);
+                    }
+                    _log.Debug("Vault snapshot included in backup successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Vault backup failed, but continuing with DB backup: {ex.Message}");
+            }
+
+            #endregion
+            
         }
         catch (Exception ex)
         {

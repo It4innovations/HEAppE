@@ -7,8 +7,10 @@ using System.Threading;
 using System;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 
@@ -23,16 +25,19 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
     protected readonly ILog _log;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     protected readonly IHttpContextKeys _httpContextKeys;
+    protected readonly IUserOrgService _userOrgService;
 
-    public ClusterAccountRotationJobBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
+    public ClusterAccountRotationJobBackgroundService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
     {
         _log = LogManager.GetLogger(GetType());
+        _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        await Task.Yield();
         if (!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
             while (!stoppingToken.IsCancellationRequested)
@@ -51,7 +56,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                         {
                             _log.Info($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
                             LogicFactory.GetLogicFactory()
-                                .CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+                                .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
                                 .SubmitJob(job.Id, job.Submitter);
                         }
 
