@@ -268,7 +268,6 @@ namespace HEAppE.ConnectionPool
             }
         }
         
-        // Pomocná metoda pro inicializaci (beze změny, jen pro úplnost)
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
         {
             var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
