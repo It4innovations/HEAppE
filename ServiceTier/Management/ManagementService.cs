@@ -1577,7 +1577,7 @@ public class ManagementService : IManagementService
     }
 
 
-    public string BackupDatabase(string sessionCode)
+    public async Task<string> BackupDatabase(string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -1586,7 +1586,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-           return managementLogic.BackupDatabase();
+           return await managementLogic.BackupDatabase();
         }
     }
 

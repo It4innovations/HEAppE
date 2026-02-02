@@ -2771,9 +2771,9 @@ public class ManagementLogic : IManagementLogic
     }
 
 
-    public string BackupDatabase()
+    public async Task<string> BackupDatabase()
     {
-        return _unitOfWork.DatabaseBackupService.BackupDatabase();
+        return await _unitOfWork.DatabaseBackupService.BackupDatabase();
     }
 
     public string BackupDatabaseTransactionLogs()

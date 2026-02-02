@@ -8,6 +8,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading.Tasks;
+using log4net;
 
 namespace HEAppE.DataAccessTier.Service;
 
@@ -15,9 +17,12 @@ internal class DatabaseBackupService : IDatabaseBackupService
 {
     #region Constructors
 
-    internal DatabaseBackupService(MiddlewareContext context)
+    internal DatabaseBackupService(MiddlewareContext context, IVaultConnector vaultConnector)
     {
         _context = context;
+        _vaultConnector = vaultConnector;
+        _log = LogManager.GetLogger(nameof(DatabaseBackupService));
+        
     }
 
     #endregion
@@ -25,6 +30,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
     #region Instances
 
     protected readonly MiddlewareContext _context;
+    private readonly ILog _log;
+    private readonly IVaultConnector _vaultConnector;
 
     #endregion
 
@@ -34,19 +41,27 @@ internal class DatabaseBackupService : IDatabaseBackupService
     ///     Full backup database.
     /// </summary>
     /// <returns>Path to created backup.</returns>
-    public string BackupDatabase()
+    public async Task<string> BackupDatabase()
     {
         try
         {
+            string dateTimeStamp = DateTime.Now.ToString("yyyyMMddHHmmss");
+            string confsDirectory = "/opt/heappe/confs/";
+            string backupConfsDirectory = Path.Combine(DatabaseFullBackupConfiguration.LocalPath,
+                $"confs_and_vault_backup_{dateTimeStamp}");
+
+
+            #region Full database backup
+
             if (!DatabaseFullBackupCanBeDone())
                 throw new DatabaseBackupException("FullBackupCantBeDone");
 
             var databaseName = _context.Database.GetDbConnection().Database;
-            var backupFileName = $"{DatabaseFullBackupConfiguration.BackupFileNamePrefix}_FULL_{DateTime.Now:yyyyMMddHHmm}.bak";
+            var backupFileName = $"{DatabaseFullBackupConfiguration.BackupFileNamePrefix}_FULL_{dateTimeStamp}.bak";
             var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
 
             string sql = $"BACKUP DATABASE [{databaseName}] TO DISK = N'{backupPath}' WITH INIT;";
-            _context.Database.ExecuteSqlRaw(sql);
+            await _context.Database.ExecuteSqlRawAsync(sql);
 
             // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
@@ -55,6 +70,71 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 File.Copy(backupPath, nasFile, overwrite: true);
             }
 
+            #endregion
+
+
+            #region Confs backup
+
+            if (Directory.Exists(confsDirectory))
+            {
+                var dirInfo = new DirectoryInfo(confsDirectory);
+                var allFiles = dirInfo.GetFiles("*", SearchOption.AllDirectories)
+                    .Where(f => (f.Attributes & FileAttributes.Hidden) == 0);
+
+                foreach (var fileInfo in allFiles)
+                {
+                    string relativePath = Path.GetRelativePath(dirInfo.FullName, fileInfo.FullName);
+
+                    string localDestFile = Path.Combine(backupConfsDirectory, relativePath);
+                    Directory.CreateDirectory(Path.GetDirectoryName(localDestFile)!);
+                    File.Copy(fileInfo.FullName, localDestFile, overwrite: true);
+
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    {
+                        string nasFolder = Path.Combine(DatabaseFullBackupConfiguration.NASPath,
+                            $"confs_backup_{dateTimeStamp}");
+                        string nasDestFile = Path.Combine(nasFolder, relativePath);
+
+                        Directory.CreateDirectory(Path.GetDirectoryName(nasDestFile)!);
+                        File.Copy(fileInfo.FullName, nasDestFile, overwrite: true);
+                    }
+                }
+            }
+            else
+            {
+                _log.Warn($"Configuration directory '{confsDirectory}' does not exist. Continuing without backing up configuration files.");
+            }
+            #endregion
+            
+            #region HashiCorp Vault backup
+
+            _log.Info("Starting HashiCorp Vault snapshot as part of full backup.");
+            try
+            {
+                byte[] vaultSnapshot = await _vaultConnector.CreateSnapshot();
+
+                if (vaultSnapshot != null && vaultSnapshot.Length > 0)
+                {
+                    string vaultBackupFileName = $"vault_snapshot_{dateTimeStamp}.tar";
+                    
+                    string confsVaultPath = Path.Combine(backupConfsDirectory, vaultBackupFileName);
+                    await File.WriteAllBytesAsync(confsVaultPath, vaultSnapshot);
+                    
+                    if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath))
+                    {
+                        string nasVaultPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, vaultBackupFileName);
+                        await File.WriteAllBytesAsync(nasVaultPath, vaultSnapshot);
+                    }
+                    _log.Debug("Vault snapshot included in backup successfully.");
+                }
+            }
+            catch (Exception ex)
+            {
+                _log.Error($"Vault backup failed, but continuing with DB backup: {ex.Message}");
+            }
+
+            #endregion
+            
             return backupPath;
         }
         catch (Exception ex)

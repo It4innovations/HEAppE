@@ -1,4 +1,7 @@
 ﻿using System;
+using System.Formats.Tar;
+using System.IO;
+using System.IO.Compression;
 using System.Net.Http;
 using System.Text;
 using System.Threading.Tasks;
@@ -100,6 +103,39 @@ public class VaultConnector : IVaultConnector
         else
         {
             _log.Warn($"Failed to delete vault ClusterProjectCredential with ID: {id}");
+        }
+    }
+    
+    /// <summary>
+    /// Create a snapshot of the Vault file-storage backend by zipping the data directory.
+    /// </summary>
+    /// <returns></returns>
+
+    public async Task<byte[]> CreateSnapshot()
+    {
+        _log.Info("Initiating Vault backup using TAR format.");
+    
+        string vaultSourcePath = "/opt/vault-backup-access/data";
+
+        try
+        {
+            if (!Directory.Exists(vaultSourcePath))
+            {
+                _log.Error($"Source path {vaultSourcePath} does not exist.");
+                return Array.Empty<byte>();
+            }
+
+            using (var ms = new MemoryStream())
+            {
+                await Task.Run(() => TarFile.CreateFromDirectory(vaultSourcePath, ms, false));
+                _log.Info("Vault backup successfully archived into TAR format.");
+                return ms.ToArray();
+            }
+        }
+        catch (Exception ex)
+        {
+            _log.Error($"TAR backup failed: {ex.Message}");
+            return Array.Empty<byte>();
         }
     }
 }

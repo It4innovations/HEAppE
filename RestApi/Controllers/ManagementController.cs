@@ -2594,14 +2594,14 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult BackupDatabase(string sessionCode)
+    public async Task<IActionResult> BackupDatabase(string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabase\"");
 
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var backupFilePath = _managementService.BackupDatabase(sessionCode);
+        var backupFilePath = await _managementService.BackupDatabase(sessionCode);
 
         return Ok($"Full backup database was created successfully at '{backupFilePath}'.");
     }

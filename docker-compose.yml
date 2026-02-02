@@ -72,6 +72,7 @@ services:
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
+      - vault-volume:/opt/vault-backup-access:ro
       - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
       - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
       - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
