@@ -6,6 +6,7 @@ using System.Timers;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using log4net;
+using Renci.SshNet;
 using Timer = System.Timers.Timer;
 
 namespace HEAppE.ConnectionPool
@@ -272,9 +273,15 @@ namespace HEAppE.ConnectionPool
         {
             var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
-            log.Info($"[User:({connection.AuthCredentials.Id},{connection.AuthCredentials.Username})] Initializing connection.");
+            var username = connection.AuthCredentials.Username;
+            if (connectionObject is PrivateKeyConnectionInfo info)
+            {
+                username = info.Username;
+            }
+            log.Info($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection.");
             adapter.Connect(connection.Connection);
-            log.Info($"[User:({connection.AuthCredentials.Id},{connection.AuthCredentials.Username})] Connection initialized.");
+            log.Info($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized.");
+            
             return connection;
         }
     }
