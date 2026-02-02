@@ -8,7 +8,9 @@ using System;
 using System.Threading.Tasks;
 using System.Linq;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 

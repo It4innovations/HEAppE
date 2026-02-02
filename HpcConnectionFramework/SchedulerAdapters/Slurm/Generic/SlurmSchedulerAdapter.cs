@@ -81,8 +81,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 "GetActualTasksInfo",
                 string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
                 command.Result,
-                command.Error,
-                sshCommand)
+                command.Error)
             {
                 CommandError = command.Error
             };
@@ -135,8 +134,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
 
 
-        var integratedCommand = $"{sbatchCmd} | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'";
-
+        var integratedCommand = $@"set -o pipefail; RAW_OUT=$({sbatchCmd} 2>&1); if [[ ""$RAW_OUT"" == *""error""* || ""$RAW_OUT"" == *""Invalid""* ]]; then echo ""$RAW_OUT"" >&2; exit 1; else echo ""$RAW_OUT"" | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'; fi";
         SshCommandWrapper command = null;
         try
         {
@@ -150,9 +148,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         {
             // Ensure detailed error reporting if the cluster communication fails
             throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name,
-                command?.Error ?? ex.Message, command?.Result, integratedCommand)
+                command?.Error ?? ex.Message, command?.Result)
             {
-                CommandError = command?.Error
+                CommandError = command?.Error ?? ex.Message
             };
         }
     }
@@ -236,7 +234,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
         catch (SlurmException)
         {
-            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand)
+            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error)
             {
                 CommandError = command.Error
             };

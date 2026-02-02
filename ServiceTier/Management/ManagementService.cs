@@ -23,10 +23,12 @@ using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using SshCaAPI;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.Services.UserOrg;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -1560,8 +1562,22 @@ public class ManagementService : IManagementService
         }
     }
 
+    public List<AdaptorUserExt> ListAdaptorUsers(string sessionCode)
+    {
+        using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
+        {
+            (_, _) =
+                UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
+                    AdaptorUserRoleType.Administrator);
+            var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-    public string BackupDatabase(string sessionCode)
+            var adaptorUsers = managementLogic.ListAdaptorUsers();
+            return adaptorUsers.Select(au => au.ConvertIntToExt()).ToList();
+        }
+    }
+
+
+    public async Task<string> BackupDatabase(string sessionCode)
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -1570,7 +1586,7 @@ public class ManagementService : IManagementService
                     AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
 
-           return managementLogic.BackupDatabase();
+           return await managementLogic.BackupDatabase();
         }
     }
 

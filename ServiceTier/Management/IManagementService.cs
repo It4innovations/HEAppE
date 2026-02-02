@@ -203,7 +203,7 @@ public interface IManagementService
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId, string sessionCode);
     void ComputeAccounting(DateTime modelStartTime, DateTime modelEndTime, long projectId, string modelSessionCode);
     List<AccountingStateExt> ListAccountingStates(long projectId, string sessionCode);
-    string BackupDatabase(string sessionCode);
+    Task<string> BackupDatabase(string sessionCode);
     string BackupDatabaseTransactionLogs(string sessionCode);
     List<DatabaseBackupExt> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupTypeExt? type, string sessionCode);
     void RestoreDatabase(string backupFileName, bool includeLogs, string sessionCode);
@@ -226,4 +226,5 @@ public interface IManagementService
     AdaptorUserExt[] ListAdaptorUsersInUserGroup(long userGroupId, string sessionCode);
     AdaptorUserExt AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
     AdaptorUserExt RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole, string modelSessionCode);
+    List<AdaptorUserExt> ListAdaptorUsers(string sessionCode);
 }

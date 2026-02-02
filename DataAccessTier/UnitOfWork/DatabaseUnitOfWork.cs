@@ -404,7 +404,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
         get
         {
             return _databaseBackupService =
-                _databaseBackupService ?? new DatabaseBackupService(_context);
+                _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector());
         }
     }
 

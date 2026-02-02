@@ -39,7 +39,9 @@ using System.Linq;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
 using System.Threading.Tasks;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.Services.UserOrg;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -536,7 +538,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <exception cref="InputValidationException"></exception>
     [HttpGet("AdaptorUser")]
     [RequestSizeLimit(3000)]
-    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(AdaptorUserExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -610,7 +612,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <exception cref="InputValidationException"></exception>
     [HttpDelete("AdaptorUser")]
     [RequestSizeLimit(3000)]
-    [ProducesResponseType(typeof(AdaptorUserCreatedExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(string), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
@@ -623,6 +625,32 @@ public class ManagementController : BaseController<ManagementController>
         var message = _managementService.DeleteAdaptorUser(model.Username, model.SessionCode);
         ClearListAvailableClusterMethodCache(model.SessionCode);
         return Ok(message);
+    }
+    
+    /// <summary>
+    /// List Adaptor Users
+    /// </summary>
+    /// <param name="sessionCode"></param>
+    /// <returns></returns>
+    /// <exception cref="InputValidationException"></exception>
+    [HttpGet("AdaptorUsers")]
+    [RequestSizeLimit(3000)]
+    [ProducesResponseType(typeof(List<AdaptorUserExt>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
+    public IActionResult ListAdaptorUsers(string sessionCode)
+    {
+        _logger.LogInformation("Endpoint: \"Management\" Method: \"ListAdaptorUsers\"");
+        var model = new ListAdaptorUsersModel
+        {
+            SessionCode = sessionCode
+        };
+        var validationResult = new ManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        var adaptorUsers = _managementService.ListAdaptorUsers(sessionCode);
+        return Ok(adaptorUsers);
     }
     
 
@@ -2285,13 +2313,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
-    public IActionResult ModifyClusterAuthenticationCredential(ModifyClusterAuthenticationCredentialModel model)
+    public async Task<IActionResult> ModifyClusterAuthenticationCredential(ModifyClusterAuthenticationCredentialModel model)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyClusterAuthenticationCredential\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var result = _managementService.ModifyClusterAuthenticationCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
+        var result = await _managementService.ModifyClusterAuthenticationCredential(model.OldUsername, model.NewUsername, model.NewPassword, model.ProjectId, model.SessionCode);
         return Ok(result);
     }
 
@@ -2308,13 +2336,13 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult RegenerateSecureShellKey(RegenerateSecureShellKeyModel model)
+    public async Task<IActionResult> RegenerateSecureShellKey(RegenerateSecureShellKeyModel model)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"RecreateSecureShellKey\"");
         var validationResult = new ManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_managementService.RegenerateSecureShellKey(model.Username, model.Password, string.Empty,
+        return Ok(await _managementService.RegenerateSecureShellKey(model.Username, model.Password, string.Empty,
             model.ProjectId, model.SessionCode));
     }
 
@@ -2566,14 +2594,14 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult BackupDatabase(string sessionCode)
+    public async Task<IActionResult> BackupDatabase(string sessionCode)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"BackupDatabase\"");
 
         var validationResult = new SessionCodeValidator(sessionCode).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        var backupFilePath = _managementService.BackupDatabase(sessionCode);
+        var backupFilePath = await _managementService.BackupDatabase(sessionCode);
 
         return Ok($"Full backup database was created successfully at '{backupFilePath}'.");
     }

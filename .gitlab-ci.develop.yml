@@ -17,7 +17,6 @@ heappe_build_development:
     - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
     - docker push "$CI_REGISTRY_IMAGE/${HEAPPE_IMAGE_DEV_NAME}"
   before_script:
-    - apk update
     - docker --version
     - docker image prune
   tags:
@@ -41,7 +40,6 @@ sshagent_build_development:
     - docker login -u $CI_REGISTRY_USER -p $CI_JOB_TOKEN $CI_REGISTRY
     - docker push "$CI_REGISTRY_IMAGE/$SSHAGENT_IMAGE_DEV_NAME"
   before_script:
-    - apk update
     - docker --version
     - docker image prune
   tags:

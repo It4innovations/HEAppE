@@ -2,13 +2,14 @@ using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.UserOrg;
 using log4net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
 
-namespace HEAppE.BusinessLogicTier;
+namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public class LexisAuthMiddleware
 {

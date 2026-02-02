@@ -1,18 +1,20 @@
-using IdentityModel.AspNetCore.OAuth2Introspection;
-using IdentityModel.Client;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.Extensions.Configuration;
-using Microsoft.Extensions.DependencyInjection;
+
 using System;
 using System.Linq;
 using System.Net.Http;
-using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.Services.UserOrg;
+using IdentityModel.AspNetCore.OAuth2Introspection;
+using IdentityModel.Client;
 using log4net;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+
+namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 public static class JwtIntrospectionExtensions
 {

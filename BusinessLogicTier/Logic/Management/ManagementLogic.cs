@@ -8,6 +8,7 @@ using System.Security.Cryptography;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Transactions;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.CertificateGenerator;
@@ -519,10 +520,11 @@ public class ManagementLogic : IManagementLogic
             ScratchStoragePath = scratchStoragePath
                 .Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
                 .TrimEnd('\\', '/'),
-            ProjectStoragePath = projectStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture)
-                .TrimEnd('\\', '/'),
+            ProjectStoragePath = (string.IsNullOrEmpty(projectStoragePath)?
+                scratchStoragePath.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/') :
+                projectStoragePath?.Replace(_scripts.SubExecutionsPath, string.Empty, true, CultureInfo.InvariantCulture).TrimEnd('\\', '/')),
             CreatedAt = modified,
-            IsDeleted = false
+            IsDeleted = false,
         };
 
         var cps = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
@@ -2589,20 +2591,16 @@ public class ManagementLogic : IManagementLogic
         var adaptorUser = _unitOfWork.AdaptorUserRepository.GetByNameIgnoreQueryFilters(modelUsername)
                           ?? throw new RequestedObjectDoesNotExistException("AdaptorUserNotFound", modelUsername);
 
-        var project = _unitOfWork.ProjectRepository.GetById(modelProjectId)
-                      ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
-
-        //check if assigned
         var existingAssignment = adaptorUser.AdaptorUserUserGroupRoles
-            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && !x.IsDeleted);
+            .FirstOrDefault(x => x.AdaptorUserGroup.ProjectId == modelProjectId && 
+                                 !x.IsDeleted && 
+                                 x.AdaptorUserRole.Name == modelRole.ToString());
+        
         if (existingAssignment == null)
-            throw new InputValidationException("AdaptorUserNotAssignedToProject", modelUsername, modelProjectId);
-
-        //check role
-        if (existingAssignment.AdaptorUserRole.Name != modelRole.ToString())
-            throw new InputValidationException("AdaptorUserRoleMismatch", modelUsername, modelProjectId, modelRole);
-
-        //soft delete assignment
+        {
+            throw new InputValidationException("AdaptorUserAssignmentNotFoundOrRoleMismatch", modelUsername, modelProjectId, modelRole);
+        }
+        
         existingAssignment.IsDeleted = true;
         existingAssignment.ModifiedAt = DateTime.UtcNow;
         
@@ -2766,10 +2764,16 @@ public class ManagementLogic : IManagementLogic
         return adaptorUser;
     }
 
-
-    public string BackupDatabase()
+    public List<AdaptorUser> ListAdaptorUsers()
     {
-        return _unitOfWork.DatabaseBackupService.BackupDatabase();
+        var adaptorUsers = _unitOfWork.AdaptorUserRepository.GetAll().ToList();
+        return adaptorUsers;
+    }
+
+
+    public async Task<string> BackupDatabase()
+    {
+        return await _unitOfWork.DatabaseBackupService.BackupDatabase();
     }
 
     public string BackupDatabaseTransactionLogs()

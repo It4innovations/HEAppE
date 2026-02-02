@@ -1,5 +1,6 @@
 ﻿using FluentValidation;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Validations.AbstractTypes;
@@ -7,6 +8,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.General.Models;
 using HEAppE.RestApiModels.FileTransfer;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.FileTransfer;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;

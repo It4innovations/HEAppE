@@ -72,6 +72,7 @@ services:
     volumes:
       - app_sftp_temp_volume:/sftp
       - app_volume:/app/shared
+      - vault-volume:/opt/vault-backup-access:ro
       - "${HOST_APP_HOST_MAP_FOLD_NAME}:${HOST_APP_CONTAINER_MAP_FOLD_PATH}"
       - "${DATABASE_FULL_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database"
       - "${DATABASE_LOGS_BACKUP_HOST_MAP_FOLD_NAME}:/opt/heappe/backups/database/logs"
@@ -104,6 +105,7 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
+      - external_network
 
   vaultagent:
     image: hashicorp/vault:1.17.3
@@ -119,6 +121,7 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
+      - external_network
 
   vault_init:
     build:
@@ -139,6 +142,7 @@ services:
       - vaultNet
     profiles:
       - initVault
+      - external_network
 
   vault_unseal:
     build:
@@ -157,6 +161,7 @@ services:
       - ${PWD}:/app
     networks:
       - vaultNet
+      - external_network
     command: /opt/unsealOrInitHVault.sh
 
 volumes:

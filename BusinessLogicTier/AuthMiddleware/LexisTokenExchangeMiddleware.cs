@@ -1,11 +1,15 @@
 using System;
 using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.AuthMiddleware;
+using HEAppE.Services.Expirio;
 using log4net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Services.Expirio.Configuration;
+using Services.Expirio.Models;
 
-namespace HEAppE.BusinessLogicTier;
+namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
 
 public class LexisTokenExchangeMiddleware
@@ -17,7 +21,7 @@ public class LexisTokenExchangeMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService)
+    public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService, IExpirioService expirioService)
     {
         var log = LogManager.GetLogger(typeof(LexisTokenExchangeMiddleware));
         if ((LexisAuthenticationConfiguration.UseBearerAuth && 
@@ -42,9 +46,27 @@ public class LexisTokenExchangeMiddleware
             contextKeysService.Context.LEXISToken = incomingToken;
             try
             {
-                var exchanged = await lexisTokenService.ExchangeLexisTokenForFipAsync(incomingToken);
-                context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
-                contextKeysService.Context.FIPToken = exchanged;
+                if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange)
+                {
+                    log.Info("LexisTokenExchangeMiddleware: Using Expirio service for token exchange");
+                    ExchangeRequest request = new ExchangeRequest()
+                    {
+                        ProviderName = ExpirioSettings.ProviderName,
+                        ClientName = JwtTokenIntrospectionConfiguration.ClientId
+
+                    };
+                    var exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken);
+                    context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
+                    contextKeysService.Context.FIPToken = exchanged;
+                }
+                else
+                {
+                    log.Info("LexisTokenExchangeMiddleware: Using LexisTokenService for token exchange");
+                    var exchanged = await lexisTokenService.ExchangeLexisTokenForFipAsync(incomingToken);
+                    context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
+                    contextKeysService.Context.FIPToken = exchanged;
+                }
+                
             }
             catch (Exception ex)
             {

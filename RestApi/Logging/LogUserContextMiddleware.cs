@@ -1,6 +1,8 @@
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging;

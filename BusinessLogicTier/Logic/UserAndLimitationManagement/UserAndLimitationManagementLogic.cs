@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -28,6 +29,7 @@ using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
+using HEAppE.Services.UserOrg;
 using log4net;
 using SshCaAPI;
 
@@ -645,7 +647,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             });
         }
 
-        return projectReferences;
+        return projectReferences.Distinct();
     }
 
     #endregion

@@ -1,10 +1,12 @@
 using System;
 using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Exceptions.External;
 using HEAppE.ExtModels.DataTransfer.Models;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.DataTransfer;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.DataTransfer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

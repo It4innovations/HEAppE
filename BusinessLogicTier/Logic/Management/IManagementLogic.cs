@@ -181,7 +181,7 @@ public interface IManagementLogic
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
     List<AccountingState> ListAccountingStates(long projectId);
 
-    string BackupDatabase();
+    Task<string> BackupDatabase();
     string BackupDatabaseTransactionLogs();
     List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type);
     void RestoreDatabase(string backupFileName, bool includeLogs);
@@ -203,4 +203,5 @@ public interface IManagementLogic
     List<AdaptorUser>  ListAdaptorUsersInUserGroup(long userGroupId);
     AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
     AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
+    List<AdaptorUser> ListAdaptorUsers();
 }

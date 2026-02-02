@@ -52,6 +52,14 @@ using Microsoft.OpenApi.Models;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configuration.JwtTokenIntrospectionConfiguration;
+using Services.Expirio;
+using Services.Expirio.Configuration;
+using Polly;
+using System.Net;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
+using HEAppE.Services.AuthMiddleware;
+using HEAppE.Services.Expirio;
+using HEAppE.Services.UserOrg;
 
 
 namespace HEAppE.RestApi;
@@ -95,7 +103,7 @@ public class Startup
     #region Methods
 
     /// <summary>
-    ///     Configure Services
+    ///     Configure ServicesOld
     /// </summary>
     /// <param name="services">Collection services</param>
     public void ConfigureServices(IServiceCollection services)
@@ -127,6 +135,7 @@ public class Startup
         Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
         Configuration.Bind("SshCaSettings", new SshCaSettings());
         Configuration.Bind("HealthCheckSettings", new HealthCheckSettings());
+        Configuration.Bind("ExpirioSettings", new ExpirioSettings());
 
         services.AddSingleton<IIpPolicyStore, MemoryCacheIpPolicyStore>();
         services.AddSingleton<IRateLimitCounterStore, MemoryCacheRateLimitCounterStore>();
@@ -155,7 +164,7 @@ public class Startup
             options.JsonSerializerOptions.PropertyNameCaseInsensitive = true;
         });
         
-        services.AddScoped<IUserOrgService, UserOrgService>();
+        services.AddSingleton<IUserOrgService, UserOrgService>();
 
         services.AddHttpClient("userOrgApi", conf =>
         {
@@ -166,6 +175,24 @@ public class Startup
             }
 
         });
+
+        services.AddScoped<IExpirioService, ExpirioService>();
+
+        services.AddHttpClient("ExpirioClient", conf =>
+        {
+            conf.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
+            conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
+            conf.DefaultRequestHeaders.Add("Accept", "application/json");
+        })
+        // add Polly policies:
+        .AddPolicyHandler(Policy<HttpResponseMessage>
+            .Handle<HttpRequestException>()
+            .OrResult(r => (int)r.StatusCode >= 500 || r.StatusCode == HttpStatusCode.RequestTimeout)
+            .WaitAndRetryAsync(ExpirioSettings.MaxRetries, _ => TimeSpan.FromMilliseconds(ExpirioSettings.RetryInitialDelayMs)))
+        .AddTransientHttpErrorPolicy(p => p.CircuitBreakerAsync(
+                                            handledEventsAllowedBeforeBreaking: 5, 
+                                            durationOfBreak: TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds)
+                                            ));
         
         services.AddScoped<IUserAndLimitationManagementLogic, UserAndLimitationManagementLogic>();
         services.AddScoped<IRequestContext, RequestContext>();
@@ -379,7 +406,7 @@ public class Startup
         ServiceActivator.Configure(app.ApplicationServices);
         if (env.IsDevelopment()) app.UseDeveloperExceptionPage();
 
-        //app.UseIpRateLimiting();
+        app.UseIpRateLimiting();
 
         app.UseStatusCodePages();
         app.UseStaticFiles();

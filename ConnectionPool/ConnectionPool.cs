@@ -276,7 +276,9 @@ namespace HEAppE.ConnectionPool
         {
             var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
+            log.Info($"[User:({connection.AuthCredentials.Id},{connection.AuthCredentials.Username})] Initializing connection.");
             adapter.Connect(connection.Connection);
+            log.Info($"[User:({connection.AuthCredentials.Id},{connection.AuthCredentials.Username})] Connection initialized.");
             return connection;
         }
     }

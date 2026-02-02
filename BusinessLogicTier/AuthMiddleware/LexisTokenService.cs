@@ -7,7 +7,7 @@ using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using Microsoft.Extensions.Configuration;
 
-namespace HEAppE.BusinessLogicTier;
+namespace HEAppE.Services.AuthMiddleware;
 
 public interface ILexisTokenService
 {
