@@ -463,6 +463,9 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
+
+        app.UseMiddleware<LogUserContextMiddleware>();
+
         app.UseMiddleware<ExceptionMiddleware>();
 
         //if ()

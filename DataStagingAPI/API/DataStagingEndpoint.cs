@@ -2,17 +2,16 @@
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Validations.AbstractTypes;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExtModels.FileTransfer.Models;
 using HEAppE.ExtModels.General.Models;
-using HEAppE.RestApiModels.AbstractModels;
 using HEAppE.RestApiModels.FileTransfer;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.FileTransfer;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
+using HEAppE.Utils;
 using Microsoft.AspNetCore.Mvc;
 using SshCaAPI;
 
@@ -33,11 +32,20 @@ public class DataStagingEndpoint : IApiRoute
         group.MapPost("GetFileTransferMethod", async ([Validate] GetFileTransferMethodModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService) =>
                 {
-                    logger.LogDebug(
-                        """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
-                    return Results.Ok( await
-                        (new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
-                            model.SessionCode));
+                    try
+                    {
+                        LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
+
+                        logger.LogDebug(
+                            """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
+                        return Results.Ok(await
+                            (new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
+                                model.SessionCode));
+                    }
+                    finally
+                    {
+                        LoggingUtils.RemoveJobIdFromLogThreadContext();
+                    }
                 }).Produces<FileTransferMethodExt>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -57,11 +65,20 @@ public class DataStagingEndpoint : IApiRoute
                 [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                 [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService) =>
             {
-                logger.LogDebug(
-                    """Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """,
-                    model);
-                return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
-                    model.TaskFileOffsets, model.SessionCode));
+                try
+                {
+                    LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
+
+                    logger.LogDebug(
+                        """Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
+                    return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
+                        model.TaskFileOffsets, model.SessionCode));
+                }
+                finally
+                {
+                    LoggingUtils.RemoveJobIdFromLogThreadContext();
+                }
+                
             }).Produces<JobFileContentExt>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -84,12 +101,21 @@ public class DataStagingEndpoint : IApiRoute
                 [FromServices] IValidator<AuthorizedSubmittedJobIdModel> validator, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                 [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService) =>
             {
-                var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
-                validator.ValidateAndThrow(model);
+                try
+                {
+                    LoggingUtils.AddJobIdToLogThreadContext(submittedJobInfoId);
 
-                logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """,
-                    model);
-                return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).ListChangedFilesForJob(submittedJobInfoId, sessionCode));
+                    var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
+                    validator.ValidateAndThrow(model);
+
+                    logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """,
+                        model);
+                    return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).ListChangedFilesForJob(submittedJobInfoId, sessionCode));
+                }
+                finally
+                {
+                    LoggingUtils.RemoveJobIdFromLogThreadContext();
+                }
             }).Produces<IEnumerable<FileInformationExt>>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)
@@ -113,11 +139,20 @@ public class DataStagingEndpoint : IApiRoute
                 ([Validate] DownloadFileFromClusterModel model, [FromServices] ILogger<DataStagingEndpoint> logger, [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys, [FromServices] IUserOrgService userOrgService) =>
                 {
-                    logger.LogDebug(
-                        """Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """,
-                        model);
-                    return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).DownloadFileFromCluster(model.SubmittedJobInfoId,
-                        model.RelativeFilePath, model.SessionCode));
+                    try
+                    {
+                        LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
+
+                        logger.LogDebug(
+                            """Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """,
+                            model);
+                        return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).DownloadFileFromCluster(model.SubmittedJobInfoId,
+                            model.RelativeFilePath, model.SessionCode));
+                    }
+                    finally
+                    {
+                        LoggingUtils.RemoveJobIdFromLogThreadContext();
+                    }
                 }).Produces<string>()
             .ProducesValidationProblem()
             .ProducesProblem(StatusCodes.Status401Unauthorized)

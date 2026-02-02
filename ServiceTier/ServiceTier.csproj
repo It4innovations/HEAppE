@@ -1,9 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
         <TargetFramework>net9.0</TargetFramework>
-        <ApplicationIcon/>
+        <ApplicationIcon />
         <OutputType>Library</OutputType>
-        <StartupObject/>
+        <StartupObject />
         <AssemblyName>ServiceTier</AssemblyName>
         <RootNamespace>HEAppE.ServiceTier</RootNamespace>
     </PropertyGroup>
@@ -11,10 +11,10 @@
         <PackageReference Include="log4net" Version="3.2.0" />
     </ItemGroup>
     <ItemGroup>
-        <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj"/>
-        <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj"/>
-        <ProjectReference Include="..\DomainObjects\DomainObjects.csproj"/>
-        <ProjectReference Include="..\Exceptions\Exceptions.csproj"/>
-        <ProjectReference Include="..\ExtModels\ExtModels.csproj"/>
+        <ProjectReference Include="..\BusinessLogicTier\BusinessLogicTier.csproj" />
+        <ProjectReference Include="..\DataAccessTier\DataAccessTier.csproj" />
+        <ProjectReference Include="..\DomainObjects\DomainObjects.csproj" />
+        <ProjectReference Include="..\Exceptions\Exceptions.csproj" />
+        <ProjectReference Include="..\ExtModels\ExtModels.csproj" />
     </ItemGroup>
 </Project>
