@@ -48,6 +48,7 @@
         <ProjectReference Include="..\ServiceTier\ServiceTier.csproj" />
         <ProjectReference Include="..\SshCaAPI\SshCaAPI.csproj" />
         <ProjectReference Include="..\Services\Services.csproj" />
+        <ProjectReference Include="..\Tmds.Ssh\src\Tmds.Ssh\Tmds.Ssh.csproj" />
     </ItemGroup>
     <ItemGroup>
         <Content Update="appsettings.default.json">
