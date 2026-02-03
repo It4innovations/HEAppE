@@ -16,32 +16,24 @@ using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Logging
 {
-    /// <summary>
-    ///     Middleware to append global user properties to logs
-    /// </summary>
     public class LogUserContextMiddleware
     {
         private readonly RequestDelegate _next;
         private readonly ILogger<LogUserContextMiddleware> _logger;
         private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
-        private readonly IHttpContextKeys _httpContextKeys;
-        private readonly IUserOrgService _userOrgService;
 
         public LogUserContextMiddleware(RequestDelegate next, ILogger<LogUserContextMiddleware> logger,
-            ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService)
+            ISshCertificateAuthorityService sshCertificateAuthorityService)
         {
             _next = next;
-            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
-            _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
-            _userOrgService = userOrgService;
+            _logger = logger;
+            _sshCertificateAuthorityService = sshCertificateAuthorityService;
         }
 
-        public async Task Invoke(HttpContext context)
+        public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService)
         {
-            var (userId, userName, email) = await ExtractUserInfo(context);
+            var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService);
 
-            // Append log custom user properties
             LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
 
             try
@@ -54,7 +46,7 @@ namespace HEAppE.RestApi.Logging
             }
         }
 
-        private async Task<(long userId, string userName, string email)> ExtractUserInfo(HttpContext context)
+        private async Task<(long userId, string userName, string email)> ExtractUserInfo(HttpContext context, IHttpContextKeys keys, IUserOrgService userOrg)
         {
             var sessionCode = await ExtractSessionCode(context);
 
@@ -73,7 +65,7 @@ namespace HEAppE.RestApi.Logging
             }
             else
             {
-                var userInfo = await Task.Run(() => GetUserInfo(sessionCode));
+                var userInfo = await Task.Run(() => GetUserInfo(sessionCode, keys, userOrg));
                 userId = userInfo.userId;
                 userName = userInfo.userName;
                 email = userInfo.email;
@@ -84,13 +76,10 @@ namespace HEAppE.RestApi.Logging
 
         private static async Task<string> ExtractSessionCode(HttpContext context)
         {
-            // Try extract session code from request
-            // Query
             var sessionCode = context.Request.Query["SessionCode"].FirstOrDefault();
             if (!string.IsNullOrEmpty(sessionCode))
                 return sessionCode;
 
-            // Body
             if (context.Request.ContentLength > 0)
             {
                 context.Request.EnableBuffering();
@@ -99,22 +88,26 @@ namespace HEAppE.RestApi.Logging
                 var body = await reader.ReadToEndAsync();
                 context.Request.Body.Position = 0;
 
-                var json = JsonDocument.Parse(body);
-
-                if (json.RootElement.TryGetProperty("SessionCode", out var prop))
-                    return prop.GetString();
+                try 
+                {
+                    var json = JsonDocument.Parse(body);
+                    if (json.RootElement.TryGetProperty("SessionCode", out var prop))
+                        return prop.GetString();
+                }
+                catch { }
             }
 
             return null;
         }
 
-        private (long userId, string userName, string email) GetUserInfo(string sessionCode)
+        private (long userId, string userName, string email) GetUserInfo(string sessionCode, IHttpContextKeys keys, IUserOrgService userOrg)
         {
             try
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
-                    unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys);
+                
                 var loggedUser = logic.GetUserForSessionCode(sessionCode);
 
                 return (loggedUser?.Id ?? -1, loggedUser?.Username ?? null, loggedUser?.Email ?? null);
@@ -141,10 +134,6 @@ namespace HEAppE.RestApi.Logging
                     if (parts.Length == 2)
                     {
                         userName = parts[0];
-                        userId = -1;
-                        email = null;
-                        // TODO - implement extracting email
-                        // email = parts[1];
                         return true;
                     }
                 }
@@ -155,8 +144,6 @@ namespace HEAppE.RestApi.Logging
                 if (!string.IsNullOrEmpty(bearer) && bearer.StartsWith("Bearer "))
                 {
                     userName = "BEARER AUTH IN HEADER";
-                    userId = -1;
-                    email = null;
                     return true;
                 }
             }

@@ -465,10 +465,7 @@ public class Startup
         app.UseRouting();
 
         app.UseMiddleware<LogUserContextMiddleware>();
-
         app.UseMiddleware<ExceptionMiddleware>();
-
-
         app.UseMiddleware<LexisAuthMiddleware>();
 
         //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
