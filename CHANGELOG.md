@@ -24,7 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `AdaptorUsers` management.
     - `Project Role` assignment and unassignment.
     - `User Group Role` assignment and unassignment.
-- Added a feature to map system roles directly to system users.
+- Added HEAppE Admin Roles for Management and Reporting.
 - Added support for `X-API-Key` header authentication, allowing full system operation without requiring `SessionCodes`.
 - Established connection to `Expirio service`.
     - Implemented token exchange functionality.
