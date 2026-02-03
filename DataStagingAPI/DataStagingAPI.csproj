@@ -8,7 +8,7 @@
         <RootNamespace>HEAppE.DataStagingAPI</RootNamespace>
     </PropertyGroup>
     <ItemGroup>
-        <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0"/>
+        <PackageReference Include="AspNetCoreRateLimit" Version="5.0.0" />
         <PackageReference Include="FluentValidation.DependencyInjectionExtensions" Version="12.0.0" />
         <PackageReference Include="log4net" Version="3.2.0" />
         <PackageReference Include="MicroKnights.Log4NetAdoNetAppender" Version="2.2.0"/>
@@ -21,7 +21,11 @@
     <ItemGroup>
         <ProjectReference Include="..\ExtModels\ExtModels.csproj"/>
         <ProjectReference Include="..\RestApiModels\RestApiModels.csproj"/>
+        <ProjectReference Include="..\RestApi\RestApi.csproj" />
         <ProjectReference Include="..\Services\Services.csproj" />
         <ProjectReference Include="..\ServiceTier\ServiceTier.csproj"/>
     </ItemGroup>
+    <PropertyGroup>
+        <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    </PropertyGroup>
 </Project>

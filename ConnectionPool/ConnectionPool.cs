@@ -6,6 +6,7 @@ using System.Timers;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using log4net;
+using Renci.SshNet;
 using Timer = System.Timers.Timer;
 
 namespace HEAppE.ConnectionPool
@@ -178,6 +179,9 @@ namespace HEAppE.ConnectionPool
 
         private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
         {
+            // clear logging thread properties
+            LogicalThreadContext.Properties.Clear();
+
             log.Debug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
             int closedCount = 0;
             try
@@ -268,14 +272,19 @@ namespace HEAppE.ConnectionPool
             }
         }
         
-        // Pomocná metoda pro inicializaci (beze změny, jen pro úplnost)
         private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
         {
             var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
-            log.Info($"[User:({connection.AuthCredentials.Id},{connection.AuthCredentials.Username})] Initializing connection.");
+            var username = connection.AuthCredentials.Username;
+            if (connectionObject is SshClient info)
+            {
+                username = info.ConnectionInfo.Username;
+            }
+            log.Info($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection.");
             adapter.Connect(connection.Connection);
-            log.Info($"[User:({connection.AuthCredentials.Id},{connection.AuthCredentials.Username})] Connection initialized.");
+            log.Info($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized.");
+            
             return connection;
         }
     }

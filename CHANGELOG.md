@@ -54,6 +54,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Decoupled the startup procedure from background job initialization, preventing background tasks from blocking the system boot process.
 - Made `/heappe/Health` endpoint publicly accessible for all deployments.
 
+## V6.1.1
+
+### Fixed
+- Incorrect handling of Slurm status updates for array jobs submitted paralelly under the same account. This caused tasks to be incorrectly marked as failed despite the underlying Slurm jobs being PENDING, RUNNING, or COMPLETED.
+
 
 ## V6.1.0
 

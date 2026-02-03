@@ -99,6 +99,7 @@ public class SshConnector : IPoolableAdapter
         });
         sshClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
         sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
+        sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
         return sshClient;
     }
 
@@ -132,7 +133,16 @@ public class SshConnector : IPoolableAdapter
     {
         if (connection is SshClient sshClient)
         {
-            return sshClient.IsConnected;
+            if (!sshClient.IsConnected) return false;
+
+            try
+            {
+                return sshClient.IsConnected; 
+            }
+            catch
+            {
+                return false;
+            }
         }
         return false;
     }

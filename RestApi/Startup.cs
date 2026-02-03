@@ -463,12 +463,11 @@ public class Startup
         app.UseRequestLocalization();
 
         app.UseRouting();
-        app.UseMiddleware<ExceptionMiddleware>();
 
-        //if ()
-        {
-            app.UseMiddleware<LexisAuthMiddleware>();
-        }
+        app.UseMiddleware<LogUserContextMiddleware>();
+        app.UseMiddleware<ExceptionMiddleware>();
+        app.UseMiddleware<LexisAuthMiddleware>();
+
         //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             app.UseMiddleware<LexisTokenExchangeMiddleware>();
