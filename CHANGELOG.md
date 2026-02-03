@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added dry-run Slurm job submission endpoint `POST /heappe/JobManagement/DryRunJob` to simulate scheduling without execution, returning predicted start time and resource allocation.
+- Added GPU count calculation in `SlurmTaskAdapter` for partial resource allocation.
 - Added an automated procedure to monitor updates to HEAppE key scripts.
   - Implemented automatic sync procedure to the cluster user space upon detection of changes.
 - New Management endpoints for file uploads:
@@ -34,7 +35,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced cluster authentication logic with improved error handling.
 - Enhanced cluster listing and caching with user validation and improved filtering.
 - Enhanced file listing in `SftpFileSystemManager` with better relative path handling.
-- Streamlined GPU count calculation in `SlurmTaskAdapter` for partial resource allocation.
 - Improved exception handling for unauthorized access.
 - Introduced `.part` temporary upload extension with rename after upload completion.
 - Renamed `PermanentStoragePath` to `ProjectStoragePath`.
@@ -49,7 +49,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Enhanced `ClusterProjectCredentialVaultPart` with null-safe JSON processing, robust serialization, and improved error handling.
 - Optimized the job specification completion process and task processing logic.
 - Optimized `Service Registration` logic.
-- Consolidated `Lexis Token Service` registration and simplified conditional authentication middleware usage, introduced `UserOrg Service`.
+- Consolidated `Lexis Token Service`.
 - Improved retrieval efficiency for `AdaptorUser` and `SessionCode` entities.
 - Decoupled the startup procedure from background job initialization, preventing background tasks from blocking the system boot process.
 - Made `/heappe/Health` endpoint publicly accessible for all deployments.
