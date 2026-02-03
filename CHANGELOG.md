@@ -119,17 +119,6 @@ POST /heappe/FileTransfer/RequestFileTransfer
                 - Modified property: CredentialsAuthType
                   - New enum values: [10 11]
 
-## V6.1.0
-
-### Changed
-- Added new endpoints for uploading file to job execution directory:
-
-### New Endpoints: 12
----------------------
-GET+POST /api/DataStaging/UploadFilesToProjectDir
-GET+POST /api/DataStaging/UploadJobScriptsToProjectDir
-GET+POST /api/DataStaging/UploadFilesToJobExecutionDir
-
 ## V6.0.0
 
 ### Changed
