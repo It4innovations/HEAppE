@@ -1,11 +1,14 @@
 using System.Globalization;
+using System.Net;
 using System.Reflection;
 using AspNetCoreRateLimit;
 using FluentValidation;
 using HEAppE.Authentication;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier;
+using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.DataStagingAPI;
 using HEAppE.DataStagingAPI.API.AbstractTypes;
 using HEAppE.DataStagingAPI.Configuration;
@@ -13,12 +16,22 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.RestApi.Logging;
+using HEAppE.Services.AuthMiddleware;
+using HEAppE.Services.Expirio;
+using HEAppE.Services.UserOrg;
+using HEAppE.ServiceTier.FileTransfer;
 using log4net;
 using MicroKnights.Log4NetHelper;
+using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.OpenApi.Models;
+using Polly;
+using Services.Expirio.Configuration;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddMemoryCache();
@@ -48,9 +61,18 @@ else
         throw new Exception("Configuration files not found!");
 }
 
+builder.Services.Configure<FormOptions>(options =>
+{
+    options.MultipartBodyLengthLimit = 2L * 1024 * 1024 * 1024;
+});
+
+builder.WebHost.ConfigureKestrel(serverOptions =>
+{
+    serverOptions.Limits.MaxRequestBodySize = long.MaxValue;
+});
+
 builder.Configuration.Bind("SshCaSettings", new SshCaSettings());
 
-//IPRateLimitation
 builder.Services.Configure<IpRateLimitOptions>(builder.Configuration.GetSection("IpRateLimiting"));
 builder.Services.Configure<IpRateLimitPolicies>(builder.Configuration.GetSection("IpRateLimitPolicies"));
 
@@ -71,19 +93,29 @@ builder.Services.AddSingleton<ISshCertificateAuthorityService>(sp => new SshCert
 builder.Services.AddScoped<IHttpContextKeys, HttpContextKeys>();
 builder.Services.AddScoped<IRequestContext, RequestContext>();
 
-if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    builder.Services.AddHttpClient("LexisTokenExchangeClient");
-    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
-}
+builder.Services.AddHttpClient("LexisTokenExchangeClient");
+builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();   
 
-// Configurations
 builder.Services.AddOptions<ApplicationAPIOptions>().BindConfiguration("ApplicationAPIConfiguration");
 
 builder.Configuration.Bind("ExternalAuthenticationSettings", new ExternalAuthConfiguration());
+builder.Configuration.Bind("VaultConnectorSettings", new VaultConnectorSettings());
 
 var APIAdoptions = new ApplicationAPIOptions();
 builder.Configuration.GetSection("ApplicationAPIConfiguration").Bind(APIAdoptions);
+
+
+builder.Services.AddScoped<IExpirioService, ExpirioService>();
+
+builder.Services.AddHttpClient("ExpirioClient", conf =>
+{
+    conf.BaseAddress = new Uri(ExpirioSettings.BaseUrl);
+    conf.Timeout = TimeSpan.FromSeconds(ExpirioSettings.TimeoutSeconds);
+    conf.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+builder.Services.AddSingleton<IUserOrgService, UserOrgService>();
+builder.Services.AddScoped<FileTransferService>();
 
 builder.Services.AddHttpClient("userOrgApi", conf =>
 {
@@ -92,22 +124,17 @@ builder.Services.AddHttpClient("userOrgApi", conf =>
 });
 
 builder.Services.AddDistributedMemoryCache();
-if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+
+builder.Services.AddHttpClient("LexisTokenExchangeClient");
+builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
+builder.Services.AddAuthentication("Bearer");
+builder.Services.AddAuthorization();
+
+if (true)
 {
-    builder.Services.AddHttpClient("LexisTokenExchangeClient");
-    builder.Services.AddSingleton<ILexisTokenService, LexisTokenService>();
-    builder.Services.AddAuthentication("Bearer");
-    builder.Services.AddAuthorization();
-}
-if (JwtTokenIntrospectionConfiguration.IsEnabled)
-{
-    builder.Services.AddJwtIntrospectionIfEnabled(builder.Configuration);
+    builder.Services.AddSmartAuthentication(builder.Configuration);
 }
 
-
-
-
-//TODO Need to be delete after DI rework
 MiddlewareContextSettings.ConnectionString = builder.Configuration.GetConnectionString("MiddlewareContext");
 
 #pragma warning disable CS8604
@@ -119,7 +146,6 @@ GlobalContext.Properties["ip"] = APIAdoptions.DeploymentConfiguration.DeployedIP
 
 AdoNetAppenderHelper.SetConnectionString(builder.Configuration.GetConnectionString("Logging"));
 
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddSwaggerGen(options =>
 {
     options.SchemaFilter<PascalCasingPropertiesFilter>();
@@ -151,7 +177,6 @@ builder.Services.AddSwaggerGen(options =>
         Scheme = $"{APIAdoptions.AuthenticationParamHeaderName}Scheme"
     });
 
-    if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
     {
         options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {
@@ -191,11 +216,28 @@ builder.Services.AddSwaggerGen(options =>
         { key, new List<string>() }
     };
     options.AddSecurityRequirement(requirement);
+    
+    options.AddSecurityDefinition("ServiceApiKey", new OpenApiSecurityScheme
+    {
+        Description = "Service API Key authentication. Enter the key below.",
+        Name = "X-API-Key",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "ApiKeyScheme"
+    });
+    
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "ServiceApiKey" }
+            },
+            Array.Empty<string>()
+        }
+    });
 });
 
-
-
-//Localization and resources
 builder.Services.AddLocalization();
 
 builder.Services.Configure<RequestLocalizationOptions>(options =>
@@ -210,8 +252,6 @@ builder.Services.Configure<RequestLocalizationOptions>(options =>
     options.SupportedCultures = supportedCultures;
 });
 
-
-//CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("HEAppEDefaultOrigins", builder =>
@@ -234,21 +274,24 @@ builder.Services.AddValidatorsFromAssemblyContaining<IAssemblyMarker>(ServiceLif
 
 var app = builder.Build();
 LogicFactory.ServiceProvider = app.Services;
-// Configure the HTTP request pipeline.
+
 if (app.Environment.IsDevelopment()) app.UseDeveloperExceptionPage();
 
-//TODO Need to be delete after DI rework
 ServiceActivator.Configure(app.Services);
+
+
+var pathBase = APIAdoptions.SwaggerConfiguration.HostPostfix;
+if (!string.IsNullOrEmpty(pathBase))
+{
+    if (!pathBase.StartsWith("/")) pathBase = "/" + pathBase;
+    app.UsePathBase(pathBase);
+}
 
 app.UseCors("HEAppEDefaultOrigins");
 app.UseMiddleware<ExceptionMiddleware>();
 app.UseMiddleware<RequestSizeMiddleware>();
 app.UseStatusCodePages();
 app.UseIpRateLimiting();
-
-
-app.RegisterApiRoutes();
-
 
 app.UseSwagger(swagger =>
 {
@@ -262,7 +305,12 @@ app.UseSwagger(swagger =>
             }
         };
     });
-    swagger.RouteTemplate = $"/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
+    
+    var routePrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
+        ? string.Empty
+        : APIAdoptions.SwaggerConfiguration.HostPostfix + "/";
+    
+    swagger.RouteTemplate = $"{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{{documentname}}/swagger.json";
 });
 
 app.UseSwaggerUI(swaggerUI =>
@@ -270,22 +318,21 @@ app.UseSwaggerUI(swaggerUI =>
     var hostPrefix = string.IsNullOrEmpty(APIAdoptions.SwaggerConfiguration.HostPostfix)
         ? string.Empty
         : "/" + APIAdoptions.SwaggerConfiguration.HostPostfix;
+        
     swaggerUI.SwaggerEndpoint(
         $"{hostPrefix}/{APIAdoptions.SwaggerConfiguration.PrefixDocPath}/{APIAdoptions.SwaggerConfiguration.Version}/swagger.json",
         APIAdoptions.SwaggerConfiguration.Title);
-    swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
+
     swaggerUI.EnableTryItOutByDefault();
+    swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
 });
 
-if (LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    app.UseMiddleware<LexisAuthMiddleware>();
-}
-if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
-{
-    app.UseMiddleware<LexisTokenExchangeMiddleware>();
-    app.UseAuthentication();
-    app.UseAuthorization();
-}
+app.UseMiddleware<LogUserContextMiddleware>();
+app.UseMiddleware<LexisAuthMiddleware>();
+app.UseMiddleware<LexisTokenExchangeMiddleware>();
+app.UseAuthentication();
+app.UseAuthorization();
+
+app.RegisterApiRoutes();
 
 app.Run();

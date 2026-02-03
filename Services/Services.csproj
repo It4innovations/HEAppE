@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <RootNamespace>HEAppE.Services</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <PackageReference Include="IdentityModel.AspNetCore.OAuth2Introspection" Version="6.2.0" />
+      <PackageReference Include="log4net" Version="3.2.0" />
+      <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.2" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\ExternalAuthentication\ExternalAuthentication.csproj" />
+      <ProjectReference Include="..\HpcConnectionFramework\HpcConnectionFramework.csproj" />
+    </ItemGroup>
+
+</Project>

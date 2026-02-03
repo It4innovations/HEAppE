@@ -25,7 +25,7 @@ public class FileSystemUtils
     public static string GetJobClusterArchiveDirectoryPath(JobSpecification jobSpecification, string instanceIdentifierPath, string subExecutionsPath)
     {
         var basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
-            ?.PermanentStoragePath;
+            ?.ProjectStoragePath;
         if (string.IsNullOrEmpty(basePath))
         {
             basePath = jobSpecification.Cluster.ClusterProjects.Find(cp => cp.ProjectId == jobSpecification.ProjectId)
@@ -166,6 +166,26 @@ public class FileSystemUtils
             }
 
         return subdirExcludedFiles.ToArray();
+    }
+
+    public static string SanitizeFileName(string fileName)
+    {
+        var result = fileName;
+        foreach (var c in Path.GetInvalidFileNameChars())
+            result = fileName.Replace(c, '_');
+        return result;
+    }
+
+    public static string SanitizePath(string filePath)
+    {
+        var result = filePath.Replace("..", "__").Replace(":", "_");
+        foreach (var c in new[] { '/', '\\' })
+        {
+            var idx = result.LastIndexOf(c);
+            if (idx >= 0)
+                result = result.Substring(0, idx) + c + SanitizeFileName(result.Substring(idx + 1));
+        }
+        return result;
     }
 
     public static bool AddConfigurationFiles(string[] confsDirs, string[] confFiles, Action<string> addJsonFile = null, Action<string> addNotJson = null)

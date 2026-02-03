@@ -22,6 +22,10 @@ public class HealthExt
     [DataMember(Name = "Version")]
     [Description("Version")]
     public string Version { get; set; }
+    
+    [DataMember(Name = "InstanceIdentifier")]
+    [Description("Instance Identifier")]
+    public string InstanceIdentifier { get; set; }
 
     [DataMember(Name = "Component")]
     [Description("Component")]

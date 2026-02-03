@@ -35,10 +35,10 @@ public class CreateProjectAssignmentToClusterModel : SessionCodeModel
     public string ScratchStoragePath { get; set; }
     
     /// <summary>
-    /// Permanent storage path
+    /// Project storage path
     /// </summary>
-    [DataMember(Name = "PermanentStoragePath", IsRequired = true)]
+    [DataMember(Name = "ProjectStoragePath", IsRequired = true)]
     [StringLength(100)]
-    [Description("Permanent Storage Path")]
-    public string PermanentStoragePath { get; set; }
+    [Description("Project Storage Path")]
+    public string ProjectStoragePath { get; set; }
 }

@@ -19,7 +19,7 @@ public class ProjectExt
     /// </summary>
     [DataMember(Name = "Id")]
     [Description("Id")]
-    public long Id { get; set; }
+    public long? Id { get; set; }
 
     /// <summary>
     /// Name
@@ -77,6 +77,13 @@ public class ProjectExt
     [DataMember(Name = "IsOneToOneMapping")]
     [Description("Map user account to exact robot account")]
     public bool IsOneToOneMapping { get; set; }
+    
+    /// <summary>
+    /// Key scripts directory path
+    /// </summary>
+    [DataMember(Name = "KeyScriptsDirectoryPath")]
+    [Description("Key scripts directory path")]
+    public string KeyScriptsDirectoryPath { get; set; }
 
     /// <summary>
     /// Array of command templates
@@ -84,6 +91,7 @@ public class ProjectExt
     [DataMember(Name = "CommandTemplates")]
     [Description("Array of command templates")]
     public CommandTemplateExt[] CommandTemplates { get; set; }
+    
 
     #region Public methods
 

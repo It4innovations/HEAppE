@@ -122,6 +122,7 @@ public class ExceptionMiddleware
                 logLevel = LogLevel.Warning;
                 break;
             case SessionCodeNotValidException:
+            case AdaptorUserNotAuthorizedForJobException:    
                 problem.Title = "Session Code Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
@@ -152,6 +153,7 @@ public class ExceptionMiddleware
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
             case InvalidRequestException:
+            case UnableToCreateConnectionException:
                 problem.Title = "Invalid Request";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status400BadRequest;
@@ -177,6 +179,12 @@ public class ExceptionMiddleware
                     "Not found." => StatusCodes.Status404NotFound,
                     _ => StatusCodes.Status400BadRequest
                 };
+                break;
+            case UnauthorizedAccessException:
+                problem.Title = "Unauthorized Access";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
                 break;
             default:
                 problem.Title = "Problem";

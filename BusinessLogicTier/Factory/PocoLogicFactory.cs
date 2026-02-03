@@ -1,5 +1,6 @@
 ﻿using System.Net.Http;
 using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
@@ -10,6 +11,7 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.Services.UserOrg;
 using Microsoft.Extensions.DependencyInjection;
 using SshCaAPI;
 
@@ -27,19 +29,19 @@ public class PocoLogicFactory : LogicFactory
         return new ClusterInformationLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys);
     }
 
-    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
-        return new DataTransferLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys);
+        return new DataTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
-    public override IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
-        return new FileTransferLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys);
+        return new FileTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
-    public override IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
-        return new JobManagementLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys);
+        return new JobManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
     public override IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork)
@@ -48,11 +50,11 @@ public class PocoLogicFactory : LogicFactory
     }
 
 
-    public override IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         using var scope = ServiceProvider.CreateScope();
-        var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
-        var rtn = new UserAndLimitationManagementLogic(unitOfWork, httpFac, sshCertificateAuthorityService, httpContextKeys);
+        //var httpFac = scope.ServiceProvider.GetRequiredService<IHttpClientFactory>();
+        var rtn = new UserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
 
         return rtn;
     }

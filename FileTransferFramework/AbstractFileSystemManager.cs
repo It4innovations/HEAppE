@@ -1,7 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -59,6 +60,10 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
     protected abstract IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
         ClusterAuthenticationCredentials credentials, string sshCaToken);
 
+    public abstract bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken);
+    
+    public abstract bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+        bool? ownerCanExecute = null, bool? groupCanExecute = null);
     #endregion
 
     #region IRexFileSystemManager Members

@@ -435,5 +435,16 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
         return null;
     }
 
+    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    {
+        // For local Linux scheduler, we can just return a success message
+        //return "Dry run simulation successful for Linux Local Scheduler.";
+        return new DryRunJobInfo
+        {
+            Message = "Dry run simulation successful for Linux Local Scheduler."
+        };
+        
+    }
+
     #endregion
 }

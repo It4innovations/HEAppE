@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.FileTransfer;
 using HEAppE.DomainObjects.JobManagement;
@@ -88,6 +89,26 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
         string absoluteFilePath, string sshCaToken)
     {
         throw new NotImplementedException();
+    }
+
+    public override bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+    {
+        try
+        {
+            using var stream = File.OpenWrite(absoluteFilePath);
+            fileStream.CopyTo(stream);
+        }
+        catch (Exception ex)
+        {
+            return false;
+        }
+        return true;
+    }
+    
+    public override bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+        bool? ownerCanExecute = null, bool? groupCanExecute = null)
+    {
+        return false;
     }
 
     #endregion

@@ -12,4 +12,6 @@ public interface IPoolableAdapter
     void Connect(object connection);
 
     void Disconnect(object connection);
+    
+    bool IsConnected(object connection);
 }

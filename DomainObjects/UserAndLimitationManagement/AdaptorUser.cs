@@ -43,6 +43,10 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
 
         public string GetLogIdentification()
         {
+            if (string.IsNullOrEmpty(this.Username))
+            {
+                return Email;
+            }
             return Username;
         }
 

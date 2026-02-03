@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 using System.Text;
 using Renci.SshNet;
 
@@ -50,6 +51,7 @@ public class SshClientAdapter
     /// </summary>
     public void Connect()
     {
+        _sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
         if (_sshClient is not NoAuthenticationSshClient) _sshClient.Connect();
     }
 

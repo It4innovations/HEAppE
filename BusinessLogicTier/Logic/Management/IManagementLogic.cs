@@ -8,6 +8,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting.Enums;
 using HEAppE.DomainObjects.Management;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using static HEAppE.DomainObjects.Management.Status;
 
 namespace HEAppE.BusinessLogicTier.Logic.Management;
@@ -18,14 +19,14 @@ public interface IManagementLogic
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelProjectId, long modelClusterNodeTypeId);
 
-    CommandTemplate CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
+    Task<CommandTemplate> CreateCommandTemplateFromGeneric(long genericCommandTemplateId, string name, long projectId,
         string description, string code, string executableFile, string preparationScript, long? adaptorUserId);
 
     CommandTemplate ModifyCommandTemplate(long modelId, string modelName, string modelDescription,
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelClusterNodeTypeId, bool modelIsEnabled);
 
-    CommandTemplate ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
+    Task<CommandTemplate> ModifyCommandTemplateFromGeneric(long commandTemplateId, string name, long projectId,
         string description, string code, string executableFile, string preparationScript, long? adaptorUserId);
 
     void RemoveCommandTemplate(long commandTemplateId);
@@ -44,30 +45,33 @@ public interface IManagementLogic
         DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping);
 
     void RemoveProject(long id);
-    List<SecureShellKey> GetSecureShellKeys(long projectId, long? adaptorUserId);
+    Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId);
 
-    List<SecureShellKey> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername,
+    Task<List<SecureShellKey>> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername,
         string newPassword, long projectId, long? adaptorUserId);
-    List<SecureShellKey> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId, long? adaptorUserId);
-    SecureShellKey RegenerateSecureShellKey(string username, string password, long projectId);
-    void RemoveSecureShellKey(string publicKey, long projectId);
+    Task<List<SecureShellKey>> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
+        long? adaptorUserId);
+    Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId);
+    Task RemoveSecureShellKey(string publicKey, long projectId);
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath);
+        string  projectStoragePath);
     ClusterProject ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
-        string permanentStoragePath);
+        string projectStoragePath);
     void RemoveProjectAssignmentToCluster(long projectId, long clusterId);
 
-    List<ClusterInitReport> InitializeClusterScriptDirectory(long projectId, bool overwriteExistingProjectRootDirectory,
+    Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
+        bool overwriteExistingProjectRootDirectory,
         long? adaptorUserId, string username);
     
-    public List<ClusterAccessReport> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId);
-    public List<ClusterAccountStatus> ClusterAccountStatus(long projectId, string username, long? adaptorUserId);
+    public Task<List<ClusterAccessReport>> TestClusterAccessForAccount(long projectId, string username,
+        long? adaptorUserId);
+    public Task<List<ClusterAccountStatus>> ClusterAccountStatus(long projectId, string username, long? adaptorUserId);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
     CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
-        string modelDescription, long modelCommandTemplateId);
+        string modelDescription, long modelCommandTemplateId, bool isVisible = true);
 
     CommandTemplateParameter ModifyCommandTemplateParameter(long id, string modelIdentifier, string modelQuery,
         string modelDescription);
@@ -177,7 +181,7 @@ public interface IManagementLogic
     void RemoveProjectClusterNodeTypeAggregation(long projectId, long clusterNodeTypeAggregationId);
     List<AccountingState> ListAccountingStates(long projectId);
 
-    string BackupDatabase();
+    Task<string> BackupDatabase();
     string BackupDatabaseTransactionLogs();
     List<DatabaseBackup> ListDatabaseBackups(DateTime? fromDateTime, DateTime? toDateTime, DatabaseBackupType type);
     void RestoreDatabase(string backupFileName, bool includeLogs);
@@ -187,4 +191,17 @@ public interface IManagementLogic
     StatusCheckLogs StatusErrorLogs(long projectId, DateTime? timeFrom, DateTime? timeTo);
 
     Task<dynamic> CheckClusterProjectCredentialsStatus();
+    AdaptorUserCreated CreateAdaptorUser(string username);
+    AdaptorUserCreated ModifyAdaptorUser(string oldUsername, string newUsername);
+    string DeleteAdaptorUser(string modelUsername);
+    AdaptorUser GetAdaptorUserByUsername(string username);
+    AdaptorUser AssignAdaptorUserToProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
+    AdaptorUser RemoveAdaptorUserFromProject(string modelUsername, long modelProjectId, AdaptorUserRoleType modelRole);
+    List<AdaptorUser> ListAdaptorUsersInProject(long projectId);
+    CommandTemplate CreateGenericCommandTemplate(string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelProjectId, long modelClusterNodeTypeId);
+    CommandTemplate ModifyGenericCommandTemplate(long modelId, string modelName, string modelDescription, string modelExtendedAllocationCommand, string modelPreparationScript, long modelClusterNodeTypeId, bool modelIsEnabled);
+    List<AdaptorUser>  ListAdaptorUsersInUserGroup(long userGroupId);
+    AdaptorUser AssignAdaptorUserToUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
+    AdaptorUser RemoveAdaptorUserFromUserGroup(string modelUsername, long modelUserGroupId, AdaptorUserRoleType modelRole);
+    List<AdaptorUser> ListAdaptorUsers();
 }

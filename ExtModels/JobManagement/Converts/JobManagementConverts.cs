@@ -16,12 +16,27 @@ using static HEAppE.ExtModels.Management.Models.StatusCheckLogsExt.ByClusterAuth
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using HEAppE.HpcConnectionFramework.Configuration;
 
 namespace HEAppE.ExtModels.JobManagement.Converts;
 
 public static class JobManagementConverts
 {
     #region Methods for Object Converts
+    
+    public static DryRunJobInfoExt ConvertIntToExt(this DryRunJobInfo dryRunJobInfoExt)
+    {
+        var convert = new DryRunJobInfoExt
+        {
+            JobId = dryRunJobInfoExt.JobId,
+            StartTime = dryRunJobInfoExt.StartTime,
+            Processors = dryRunJobInfoExt.Processors,
+            Node = dryRunJobInfoExt.Node,
+            Partition = dryRunJobInfoExt.Partition,
+            Message = dryRunJobInfoExt.Message
+        };
+        return convert;
+    }
 
     public static JobSpecification ConvertExtToInt(this JobSpecificationExt jobSpecification, long projectId,
         long? subProject)
@@ -190,6 +205,10 @@ public static class JobManagementConverts
 
     private static ProjectForTaskExt ConvertIntToExt(this Project project, CommandTemplate commandTemplate)
     {
+        if (project is null)
+        {
+            return null;
+        }
         ProjectForTaskExt convert = new()
         {
             Id = project.Id,
@@ -223,7 +242,7 @@ public static class JobManagementConverts
             State = task.State.ConvertIntToExt(),
             Priority = task.Priority.ConvertIntToExt(),
             AllocatedTime = task.AllocatedTime,
-            AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId)
+            AllocatedCoreIds = task.TaskAllocationNodes?.Select(s => s.AllocationNodeId).Distinct()
                 .ToArray(),
             StartTime = task.StartTime,
             EndTime = task.EndTime,
@@ -239,6 +258,10 @@ public static class JobManagementConverts
 
     public static ProjectExt ConvertIntToExt(this Project project)
     {
+        if (project == null)
+        {
+            return null; 
+        }
         ProjectExt convert = new()
         {
             Id = project.Id,
@@ -250,7 +273,8 @@ public static class JobManagementConverts
             UsageType = project.UsageType.ConvertIntToExt(),
             UseAccountingStringForScheduler = project.UseAccountingStringForScheduler,
             IsOneToOneMapping = project.IsOneToOneMapping,
-            CommandTemplates = project.CommandTemplates.Select(x => x.ConvertIntToExt()).ToArray()
+            KeyScriptsDirectoryPath = HPCConnectionFrameworkConfiguration.GetPathToScript(project.AccountingString, string.Empty),
+            CommandTemplates = project.CommandTemplates?.Select(x => x.ConvertIntToExt()).ToArray()
         };
         return convert;
     }
@@ -270,6 +294,10 @@ public static class JobManagementConverts
 
     public static ExtendedProjectInfoExt ConvertIntToExtendedInfoExt(this Project project)
     {
+        if (project == null)
+        {
+            return null; 
+        }
         ExtendedProjectInfoExt convert = new()
         {
             Id = project.Id,
@@ -448,6 +476,17 @@ public static class JobManagementConverts
             });
         }
 
+        return convert;
+    }
+    
+    public static AdaptorUserCreatedExt ConvertIntToExt(this AdaptorUserCreated adaptorUserCreated)
+    {
+        var convert = new AdaptorUserCreatedExt()
+        {
+            Id = adaptorUserCreated.Id,
+            Username = adaptorUserCreated.Username,
+            ApiKey = adaptorUserCreated.ApiKey,
+        };
         return convert;
     }
 

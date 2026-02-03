@@ -207,6 +207,9 @@
   <data name="InvalidRequestException_CannotDeleteJob" xml:space="preserve">
     <value>Cannot delete job '{0}', this job is in state '{1}'.</value>
   </data>
+  <data name="InvalidRequestException_ProjectPathNotSet" xml:space="preserve">
+    <value>Project path is not set.</value>
+  </data>
   <data name="InvalidRequestException_ClusterNodeNoReferenceToCluster" xml:space="preserve">
     <value>The specified cluster node has no reference to cluster.</value>
   </data>
@@ -274,16 +277,16 @@
     <value>URL address for OpenStack is not specified or valid.</value>
   </data>
   <data name="PbsException_ClusterUsageException" xml:space="preserve">
-    <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving parameters of queue: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="PbsException_GetActualTasksInfo" xml:space="preserve">
-    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="PbsException_GetAllocatedNodesException" xml:space="preserve">
-    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="PbsException_SubmitJobException" xml:space="preserve">
-    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'. Command line for job submission: '{4}'.</value>
+    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'.</value>
   </data>
   <data name="PbsException_TaskStateConvertException" xml:space="preserve">
     <value>Task state: '{0}' could not be converted to any known task state.</value>
@@ -302,6 +305,9 @@
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
     <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the HEAppE.</value>
+  </data>
+  <data name="RequestedObjectDoesNotExistException_FailedToRetrieveOrInitializeClusterAccount" xml:space="preserve">
+    <value>Failed to retrieve or initialize cluster account.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterAuthenticationCredentialsNoServiceAccount" xml:space="preserve">
     <value>Requested ClusterAuthenticationCredential for cluster Id '{0}' with Project Id '{1}' and AdaptorUser Id '{2}' has no Service Account Credentials in the HEAppE.</value>
@@ -385,13 +391,13 @@
     <value>Exception thrown when retrieving usage of ClusterNode: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for queue usage: '{3}'.</value>
   </data>
   <data name="SlurmException_GetActualTasksInfo" xml:space="preserve">
-    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving parameters of JobIds: '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="SlurmException_GetAllocatedNodesException" xml:space="preserve">
-    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'. Command line for job submission: '{3}'.</value>
+    <value>Exception thrown when retrieving allocation nodes used by running task (HPC job): '{0}'. Submission script result: '{1}'. Submission script message: '{2}'.</value>
   </data>
   <data name="SlurmException_SubmitJobException" xml:space="preserve">
-    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'. Command line for job submission: '{4}'.</value>
+    <value>Exception thrown when submitting a job: '{0}' to the cluster: '{1}'. Submission script result: '{2}'. Submission script error message: '{3}'.</value>
   </data>
   <data name="SlurmException_UnableToParseNodeUsage" xml:space="preserve">
     <value>Unable to parse cluster node usage from the scheduler.</value>

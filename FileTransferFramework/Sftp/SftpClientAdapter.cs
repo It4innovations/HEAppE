@@ -5,6 +5,7 @@ using HEAppE.FileTransferFramework.Sftp.Commands;
 using HEAppE.Utils;
 using Renci.SshNet;
 using Renci.SshNet.Common;
+using Renci.SshNet.Sftp;
 
 namespace HEAppE.FileTransferFramework.Sftp;
 
@@ -183,7 +184,7 @@ public class SftpClientAdapter
         _sftpClient.CreateDirectory(targetPath);
     }
 
-    internal void UploadFile(FileStream sourceStream, string targetFilePath, bool v)
+    internal void UploadFile(Stream sourceStream, string targetFilePath, bool canOverride)
     {
         if (targetFilePath.StartsWith("~/"))
         {
@@ -191,7 +192,17 @@ public class SftpClientAdapter
         }
         if (_sftpClient is NoAuthenticationSftpClient)
             throw new SftpClientException("NoAuthenticationSftpClientMethod", "upload file");
-        _sftpClient.UploadFile(sourceStream, targetFilePath, v);
+        _sftpClient.UploadFile(sourceStream, targetFilePath, canOverride);
+    }
+    
+    internal SftpFileAttributes GetFileAttributes(string path)
+    {
+        return _sftpClient.GetAttributes(path);
+    }
+
+    internal void SetFileAttributes(string path, SftpFileAttributes fileAttributes)
+    {
+        _sftpClient.SetAttributes(path, fileAttributes);
     }
 
     internal Stream OpenRead(string path)

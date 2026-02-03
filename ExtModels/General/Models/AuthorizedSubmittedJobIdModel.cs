@@ -45,7 +45,7 @@ public class AuthorizedSubmittedJobIdModelValidator : AbstractValidator<Authoriz
 {
     public AuthorizedSubmittedJobIdModelValidator()
     {
-        if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled && !LexisAuthenticationConfiguration.UseBearerAuth)
+        //if (!JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled && !LexisAuthenticationConfiguration.UseBearerAuth)
         {
             RuleFor(x => x.SessionCode).IsSessionCode();
         }

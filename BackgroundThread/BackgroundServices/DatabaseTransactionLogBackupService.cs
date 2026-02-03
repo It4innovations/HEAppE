@@ -1,21 +1,21 @@
-﻿using HEAppE.DataAccessTier;
+﻿using System;
+using System.IO;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Configuration;
 using HEAppE.DataAccessTier.Configuration.Shared;
 using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Hosting;
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
 internal class DatabaseTransactionLogBackupService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(DatabaseTransactionLogBackupConfiguration.BackupScheduleIntervalInMinutes);
-    protected readonly ILog _log;
+    private readonly ILog _log;
 
     public DatabaseTransactionLogBackupService()
     {
@@ -24,20 +24,21 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var backupCanBeDone = DatabaseTransactionLogBackupConfiguration.ScheduledBackupEnabled && await DatabaseLogsBackupCanBeDone();
-
-        while (backupCanBeDone && !stoppingToken.IsCancellationRequested)
+        while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                // backup database transaction logs
-                await DoTransactionLogsBackupAsync();
+                bool backupCanBeDone = DatabaseTransactionLogBackupConfiguration.ScheduledBackupEnabled && await DatabaseLogsBackupCanBeDone();
 
-                // do retention of older backups
-                ApplyRetentionPolicy(DatabaseTransactionLogBackupConfiguration.LocalPath);
-                if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
+                if (backupCanBeDone)
                 {
-                    ApplyRetentionPolicy(DatabaseTransactionLogBackupConfiguration.NASPath);
+                    await DoTransactionLogsBackupAsync();
+
+                    ApplyRetentionPolicy(DatabaseTransactionLogBackupConfiguration.LocalPath);
+                    if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
+                    {
+                        ApplyRetentionPolicy(DatabaseTransactionLogBackupConfiguration.NASPath);
+                    }
                 }
             }
             catch (Exception ex)
@@ -45,15 +46,16 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                 _log.Error("An error occured during execution of the DatabaseTransactionLogBackup background service: ", ex);
             }
 
-            await Task.Delay(_interval, stoppingToken);
+            try
+            {
+                await Task.Delay(_interval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
+            }
         }
     }
 
-    /// <summary>
-    /// Check if transaction logs backup can be done
-    /// Database have to be in 'FULL' or 'BULK_LOGGED' recovery mode and full backup needs to be performed first
-    /// </summary>
-    /// <returns></returns>
     private async Task<bool> DatabaseLogsBackupCanBeDone()
     {
         try
@@ -67,24 +69,15 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                 $"AND b.type = 'D')";
 
             var result = await cmd.ExecuteScalarAsync();
-            var canBeDone = result != null && (int)result > 0;
-
-            if (!canBeDone)
-                _log.Info("Database transaction logs backup can't be done. There needs to exist full backup and database need to be in 'FULL' or 'BULK_LOGGED' recovery model.");
-
-            return canBeDone;
+            return result != null && (int)result > 0;
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
-            _log.Error("An error occured during check if database transaction logs backup can be performed in DatabaseTransactionLogBackup background service. ", ex);
+            _log.Error("An error occured during check if database transaction logs backup can be performed: ", ex);
             return false;
         }
     }
 
-    /// <summary>
-    /// Backup transaction database logs and copy backup file to NAS.
-    /// </summary>
-    /// <returns></returns>
     private async Task DoTransactionLogsBackupAsync()
     {
         try
@@ -94,30 +87,26 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
 
             var backupFileName = $"{DatabaseTransactionLogBackupConfiguration.BackupFileNamePrefix}_LOGS_{DateTime.Now:yyyyMMddHHmm}.trn";
             var backupPath = Path.Combine(DatabaseTransactionLogBackupConfiguration.LocalPath, backupFileName);
+            
             var cmd = conn.CreateCommand();
             cmd.CommandText = $"BACKUP LOG [{conn.Database}] TO DISK = '{backupPath}' WITH INIT;";
             await cmd.ExecuteNonQueryAsync();
 
-            _log.Info(string.Format("Transaction logs backup file was created to: {0}", backupPath));
+            _log.Info($"Transaction logs backup file was created to: {backupPath}");
 
-            // Copy to NAS
             if (!string.IsNullOrEmpty(DatabaseTransactionLogBackupConfiguration.NASPath))
             {
                 var nasFile = Path.Combine(DatabaseTransactionLogBackupConfiguration.NASPath, backupFileName);
                 File.Copy(backupPath, nasFile, overwrite: true);
-                _log.Info(string.Format("Transaction logs backup file was copied to NAS: {0}", nasFile));
+                _log.Info($"Transaction logs backup file was copied to NAS: {nasFile}");
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured during execution of the transaction logs backup. ", ex);
+            _log.Error("An error occured during execution of the transaction logs backup: ", ex);
         }
     }
 
-    /// <summary>
-    /// Apply retention policy of backup files in folder.
-    /// </summary>
-    /// <param name="folder"></param>
     private void ApplyRetentionPolicy(string folder)
     {
         try
@@ -147,29 +136,23 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
                     }
                     catch (Exception ex)
                     {
-                        _log.Warn(string.Format("Failed to delete transaction logs backup '{0}'", item.File.FullName), ex);
+                        _log.Warn($"Failed to delete transaction logs backup '{item.File.FullName}'", ex);
                     }
                 }
             }
         }
         catch (Exception ex)
         {
-            _log.Error("An error occured while removing older transaction logs backups in background service: ", ex);
+            _log.Error("An error occured while removing older transaction logs backups: ", ex);
         }
     }
 
-    /// <summary>
-    /// Parse date from backup file name.
-    /// </summary>
-    /// <param name="fileName"></param>
-    /// <returns></returns>
     private static DateTime? ParseDateFromFileName(string fileName)
     {
         try
         {
-            // name is in format '{DatabaseName}_LOGS_yyyyMMddHHmm.bak'
             var parts = fileName.Split('_');
-            var datePart = parts[^1].Replace(".bak", ""); // yyyyMMddHHmm
+            var datePart = parts[^1].Replace(".trn", "");
             return DateTime.ParseExact(datePart, "yyyyMMddHHmm", null);
         }
         catch
@@ -178,11 +161,6 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         }
     }
 
-    /// <summary>
-    /// Get backup retention category based on backup file creation date.
-    /// </summary>
-    /// <param name="date"></param>
-    /// <returns></returns>
     private static BackupRetentionCategory? GetRetentionCategory(DateTime? date)
     {
         if (date == null) return null;
@@ -191,11 +169,6 @@ internal class DatabaseTransactionLogBackupService : BackgroundService
         return BackupRetentionCategory.Daily;
     }
 
-    /// <summary>
-    /// Get number of files to keep by backup retention category. 
-    /// </summary>
-    /// <param name="category"></param>
-    /// <returns></returns>
     private static int GetNumberOfFilesToKeepByRetentionCategory(BackupRetentionCategory? category)
     {
         return category switch

@@ -1,17 +1,20 @@
-﻿using System.Collections.Generic;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Exceptions.External;
-using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels.JobManagement.Models;
+using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.JobManagement;
-using Microsoft.AspNetCore.Authorization;
+using HEAppE.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -36,12 +39,12 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobManagementService(_sshCertificateAuthorityService, _httpContextKeys);
+        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
     }
 
     #endregion
@@ -61,13 +64,13 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CreateJob(CreateJobByProjectModel model)
+    public async Task<IActionResult> CreateJob(CreateJobByProjectModel model)
     {
         _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CreateJob\" Parameters: \"{model}\"");
         var validationResult = new JobManagementValidator(model).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
-        return Ok(_service.CreateJob(model.JobSpecification, model.SessionCode));
+        return Ok(await _service.CreateJob(model.JobSpecification, model.SessionCode));
     }
 
     /// <summary>
@@ -85,11 +88,20 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult SubmitJob(SubmitJobModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"SubmitJob\" Parameters: \"{model}\"");
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        try
+        {
+            LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
 
-        return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
+            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"SubmitJob\" Parameters: \"{model}\"");
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+            return Ok(_service.SubmitJob(model.CreatedJobInfoId, model.SessionCode));
+        }
+        finally
+        {
+            LoggingUtils.RemoveJobIdFromLogThreadContext();
+        }
     }
 
     /// <summary>
@@ -105,13 +117,22 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CancelJob(CancelJobModel model)
+    public async Task<IActionResult> CancelJob(CancelJobModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CancelJob\" Parameters: \"{model}\"");
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        try
+        {
+            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
 
-        return Ok(_service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
+            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CancelJob\" Parameters: \"{model}\"");
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+            return Ok(await _service.CancelJob(model.SubmittedJobInfoId, model.SessionCode));
+        }
+        finally
+        {
+            LoggingUtils.RemoveJobIdFromLogThreadContext();
+        } 
     }
 
     /// <summary>
@@ -129,13 +150,22 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult DeleteJob(DeleteJobModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DeleteJob\" Parameters: \"{model}\"");
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        try
+        {
+            LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
 
-        var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
-        if (isDeleted) return Ok("Job was deleted");
-        return BadRequest("Job was not deleted");
+            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DeleteJob\" Parameters: \"{model}\"");
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+            var isDeleted = _service.DeleteJob(model.SubmittedJobInfoId, model.ArchiveLogs, model.SessionCode);
+            if (isDeleted) return Ok("Job was deleted");
+            return BadRequest("Job was not deleted");
+        }
+        finally
+        {
+            LoggingUtils.RemoveJobIdFromLogThreadContext();
+        } 
     }
 
     /// <summary>
@@ -143,8 +173,7 @@ public class JobManagementController : BaseController<JobManagementController>
     /// </summary>
     /// <param name="sessionCode">Session code</param>
     /// <param name="jobStates">
-    ///     Job states separated by coma; eg.: "1,2,8,32", "Configuring,Submitted,Running,Failed",
-    ///     "1,2,Running,Failed" etc.
+    ///     Job states separated by coma; eg.: "1,2,8,16,32"
     /// </param>
     /// <returns></returns>
     [HttpGet("ListJobsForCurrentUser")]
@@ -182,18 +211,27 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
+    public async Task<IActionResult> CurrentInfoForJob(string sessionCode, long submittedJobInfoId)
     {
-        var model = new CurrentInfoForJobModel
+        try
         {
-            SessionCode = sessionCode,
-            SubmittedJobInfoId = submittedJobInfoId
-        };
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CurrentInfoForJob\" Parameters: \"{model}\"");
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+            LoggingUtils.AddJobIdToLogThreadContext(submittedJobInfoId);
 
-        return Ok(_service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+            var model = new CurrentInfoForJobModel
+            {
+                SessionCode = sessionCode,
+                SubmittedJobInfoId = submittedJobInfoId
+            };
+            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CurrentInfoForJob\" Parameters: \"{model}\"");
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+            return Ok(await _service.CurrentInfoForJob(model.SubmittedJobInfoId, model.SessionCode));
+        }
+        finally
+        {
+            LoggingUtils.RemoveJobIdFromLogThreadContext();
+        }
     }
 
     /// <summary>
@@ -211,12 +249,21 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CopyJobDataToTemp(CopyJobDataToTempModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataToTemp\" Parameters: \"{model}\"");
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        try
+        {
+            LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
 
-        _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
-        return Ok("Data were copied to Temp");
+            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataToTemp\" Parameters: \"{model}\"");
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+            _service.CopyJobDataToTemp(model.CreatedJobInfoId, model.SessionCode, model.Path);
+            return Ok("Data were copied to Temp");
+        }
+        finally
+        {
+            LoggingUtils.RemoveJobIdFromLogThreadContext();
+        }
     }
 
     /// <summary>
@@ -234,12 +281,21 @@ public class JobManagementController : BaseController<JobManagementController>
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
     public IActionResult CopyJobDataFromTemp(CopyJobDataFromTempModel model)
     {
-        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataFromTemp\" Parameters: \"{model}\"");
-        var validationResult = new JobManagementValidator(model).Validate();
-        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+        try
+        {
+            LoggingUtils.AddJobIdToLogThreadContext(model.CreatedJobInfoId);
 
-        _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
-        return Ok("Data were copied from Temp");
+            _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"CopyJobDataFromTemp\" Parameters: \"{model}\"");
+            var validationResult = new JobManagementValidator(model).Validate();
+            if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+            _service.CopyJobDataFromTemp(model.CreatedJobInfoId, model.SessionCode, model.TempSessionCode);
+            return Ok("Data were copied from Temp");
+        }
+        finally
+        {
+            LoggingUtils.RemoveJobIdFromLogThreadContext();
+        }    
     }
 
     /// <summary>
@@ -268,6 +324,27 @@ public class JobManagementController : BaseController<JobManagementController>
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
 
         return Ok(_service.AllocatedNodesIPs(model.SubmittedTaskInfoId, model.SessionCode));
+    }
+    
+    /// <summary>
+    ///     Dry run job
+    /// </summary>
+    /// <param name="model"></param>
+    /// <returns></returns>
+    [HttpPost("DryRunJob")]
+    [RequestSizeLimit(250000)]
+    [ProducesResponseType(typeof(DryRunJobInfoExt), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
+    [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
+    public async Task<IActionResult> DryRunJob(DryRunJobModel model)
+    {
+        _logger.LogDebug($"Endpoint: \"JobManagement\" Method: \"DryRunJob\" Parameters: \"{model}\"");
+        var validationResult = new JobManagementValidator(model).Validate();
+        if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
+
+        return Ok(await _service.DryRunJob(model.ProjectId, model.ClusterNodeTypeId, model.Nodes, model.TasksPerNode, model.WallTimeInMinutes, model.SessionCode));
     }
 
     #endregion

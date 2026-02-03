@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -79,8 +81,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 "GetActualTasksInfo",
                 string.Join(", ", schedulerJobIdClusterAllocationNamePairs.Select(s => s.ScheduledJobId).ToList()),
                 command.Result,
-                command.Error,
-                sshCommand)
+                command.Error)
             {
                 CommandError = command.Error
             };
@@ -126,32 +127,30 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     public virtual IEnumerable<SubmittedTaskInfo> SubmitJob(object connectorClient, JobSpecification jobSpecification,
         ClusterAuthenticationCredentials credentials)
     {
-        var schedulerJobIdClusterAllocationNamePairs =
-            new List<(string ScheduledJobId, string ClusterAllocationName)>();
-        SshCommandWrapper command = null;
-
         var sshCommand = (string)_convertor.ConvertJobSpecificationToJob(jobSpecification, "sbatch");
         _log.Info($"Submitting job \"{jobSpecification.Id}\", command \"{sshCommand}\"");
-        var sshCommandBase64 =
-            $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+
+        // 2. Wrap the command into the interpreter and helper script (Base64 encoded)
+        var sbatchCmd = $"{_commands.InterpreterCommand} '{HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(jobSpecification.Project.AccountingString)} {Convert.ToBase64String(Encoding.UTF8.GetBytes(sshCommand))}'";
+
+
+        var integratedCommand = $@"set -o pipefail; RAW_OUT=$({sbatchCmd} 2>&1); if [[ ""$RAW_OUT"" == *""error""* || ""$RAW_OUT"" == *""Invalid""* ]]; then echo ""$RAW_OUT"" >&2; exit 1; else echo ""$RAW_OUT"" | grep -oE '[0-9]+' | xargs -r -n 1 -I {{}} {_commands.InterpreterCommand} 'scontrol show JobId={{}} -o'; fi";
+        SshCommandWrapper command = null;
         try
         {
-            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommandBase64);
-            var jobIds = _convertor.GetJobIds(command.Result).ToList();
-
-            for (var i = 0; i < jobSpecification.Tasks.Count; i++)
-                schedulerJobIdClusterAllocationNamePairs.Add((jobIds[i],
-                    jobSpecification.Tasks[i].ClusterNodeType.ClusterAllocationName));
-
-            return GetActualTasksInfo(connectorClient, jobSpecification.Cluster,
-                schedulerJobIdClusterAllocationNamePairs);
+            // Execute the combined command in a single SSH session
+            command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), integratedCommand);
+        
+            // Parse the detailed job information directly from the combined output
+            return _convertor.ReadParametersFromResponse(jobSpecification.Cluster, command.Result);
         }
-        catch (SlurmException)
+        catch (Exception ex)
         {
+            // Ensure detailed error reporting if the cluster communication fails
             throw new SlurmException("SubmitJobException", jobSpecification.Name, jobSpecification.Cluster.Name,
-                command.Error, command.Result, sshCommandBase64)
+                command?.Error ?? ex.Message, command?.Result)
             {
-                CommandError = command.Error
+                CommandError = command?.Error ?? ex.Message
             };
         }
     }
@@ -235,7 +234,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         }
         catch (SlurmException)
         {
-            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error, sshCommand)
+            throw new SlurmException("ClusterUsageException", nodeType.Name, command.Result, command.Error)
             {
                 CommandError = command.Error
             };
@@ -253,20 +252,24 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         StringBuilder cmdBuilder = new();
 
         var cluster = taskInfo.Specification.JobSpecification.Cluster;
-        var nodeNames = taskInfo.TaskAllocationNodes
-            .Select(s => $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}")
-            .ToList();
 
-        nodeNames.ForEach(f => cmdBuilder.Append($"dig +short {f};"));
+        taskInfo.TaskAllocationNodes.ToList().ForEach(s =>
+        {
+            var fullDomain = $"{s.AllocationNodeId}.{cluster.DomainName ?? cluster.MasterNodeName}";
+            var nodeId = s.AllocationNodeId;
+            cmdBuilder.Append($"ip=$(dig +short {fullDomain}); [ -z \"$ip\" ] && ip=$(host {nodeId} | awk '{{print $NF}}'); echo $ip; ");
+        });
 
         var sshCommand = cmdBuilder.ToString();
         _log.Info($"Get allocation nodes of task \"{taskInfo.Id}\", command \"{sshCommand}\"");
         try
         {
             command = SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)connectorClient), sshCommand);
-            return command.Result.Split('\n').Where(w => !string.IsNullOrEmpty(w))
+            return command.Result
+                .Split('\n')
+                .Where(w => !string.IsNullOrEmpty(w))
+                .Distinct()
                 .ToList();
-            ;
         }
         catch (SlurmException)
         {
@@ -277,6 +280,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
             };
         }
     }
+
+
 
     /// <summary>
     ///     Get generic command templates parameters from script
@@ -423,7 +428,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         string script_name,
         string job_name, string account, string partition,
         int nodes, int ntasks_per_node, TimeSpan? time,
-        string output, string error
+        string output, string error, bool isGpuPartition
     )
     {
         if (time == null)
@@ -437,6 +442,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
         result += " --time=" + $"{time:hh\\:mm\\:ss}";
         result += " --output=" + output;
         result += " --error=" + error;
+        result += isGpuPartition? $" --gpus={nodes}" : "";
         result += " --test-only " + script_name;
         return result;
     }
@@ -463,7 +469,8 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
                 ntasks_per_node: 1,
                 time: TimeSpan.FromSeconds(1),
                 output: "dummy.out",
-                error: "dummy.err"
+                error: "dummy.err",
+                isGpuPartition: nodeType.ClusterNodeTypeAggregation != null && (nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || nodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU"))
             ) + "\n";
             var sshCommand = $"{_commands.InterpreterCommand} eval `(" + testCommand + ")`";
             sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
@@ -502,6 +509,59 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
 
         await Task.Delay(1);
         return null;
+    }
+
+    public DryRunJobInfo DryRunJob(object schedulerConnectionConnection, DryRunJobSpecification dryRunJobSpecification)
+    {
+        var sbatchCommand = PrepareSbatchCommand(
+            HPCConnectionFrameworkConfiguration.GetExecuteCmdScriptPath(dryRunJobSpecification.Project
+                .AccountingString),
+            job_name: "dryrun",
+            account: dryRunJobSpecification.Project.AccountingString,
+            partition: dryRunJobSpecification.ClusterNodeType.Queue,
+            nodes: (int)dryRunJobSpecification.Nodes,
+            ntasks_per_node: (int)dryRunJobSpecification.TasksPerNode,
+            time: TimeSpan.FromMinutes(dryRunJobSpecification.WallTimeInMinutes),
+            output: "dummy.out",
+            error: "dummy.err",
+            isGpuPartition:dryRunJobSpecification.IsGpuPartition
+        ) + "\n";
+
+        var sshCommand = $"{_commands.InterpreterCommand} eval `(" + sbatchCommand + ")`";
+        sshCommand = sshCommand.Replace("\r\n", "\n").Replace("\r", "\n");
+
+        //perform dry run
+        SshCommandWrapper command =
+            SshCommandUtils.RunSshCommand(new SshClientAdapter((SshClient)schedulerConnectionConnection), sshCommand);
+        
+        var regex = new Regex(
+            @"Job (\d+) to start at ([0-9T:-]+) using (\d+) processors on nodes (\S+) in partition (\S+)");
+        //result goes to error stream in dry-run mode
+        var match = regex.Match(command.Error);
+
+        if (match.Success)
+        {
+            var info = new DryRunJobInfo
+            {
+                JobId = int.Parse(match.Groups[1].Value),
+                StartTime = DateTime.Parse(match.Groups[2].Value),
+                Processors = int.Parse(match.Groups[3].Value),
+                Node = match.Groups[4].Value,
+                Partition = match.Groups[5].Value,
+                Message = command.Error
+            };
+            return info;
+        }
+        else
+        {
+            var info = new DryRunJobInfo
+            {
+                Message = command.Result
+            };
+            return info;
+        }
+            
+            
     }
 
     #endregion

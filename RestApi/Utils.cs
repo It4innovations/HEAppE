@@ -1,11 +1,16 @@
 ﻿using System.Linq;
+using HEAppE.BusinessLogicTier.Configuration;
+using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.DomainObjects.UserAndLimitationManagement;
+using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
+using log4net;
 
 namespace HEAppE.RestApi;
 
 /// <summary>
 ///     Utils
 /// </summary>
-internal static class Utils
+public static class Utils
 {
     #region Methods
 

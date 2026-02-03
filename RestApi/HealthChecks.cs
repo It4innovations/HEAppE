@@ -16,6 +16,7 @@ using Newtonsoft.Json.Converters;
 using HEAppE.DataAccessTier;
 using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.RestApi.Configuration;
 
 namespace HEAppE.RestApi;
@@ -47,7 +48,7 @@ public class HEAppEHealth
             IsHealthy = isHealthy,
             Timestamp = timestamp,
             Version = DeploymentInformationsConfiguration.Version,
-
+            InstanceIdentifier = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath,
             Component = new HealthExt.HealthComponent_ {
                 Database = new HealthExt.HealthComponent_.Database_ {
                     IsHealthy = databaseIsHealthy

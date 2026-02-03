@@ -1,223 +1,291 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Reflection;
+using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Timers;
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using log4net;
+using Renci.SshNet;
 using Timer = System.Timers.Timer;
 
-namespace HEAppE.ConnectionPool;
-
-public class ConnectionPool : IConnectionPool
+namespace HEAppE.ConnectionPool
 {
-    #region Constructors
-
-    public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval,
-        int maxUnusedDuration, IPoolableAdapter adapter, int? port)
+    public class ConnectionPool : IConnectionPool
     {
-        log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        _masterNodeName = masterNodeName;
-        _remoteTimeZone = remoteTimeZone;
-        _port = port;
-        this.minSize = minSize;
-        this.maxSize = maxSize;
-        this.adapter = adapter;
-        pool = new Dictionary<long, LinkedList<ConnectionInfo>>();
-
-        if (cleaningInterval != 0 && maxUnusedDuration != 0)
+        private class ConnectionSlot
         {
-            poolCleanTimer = new Timer(cleaningInterval * 1000); // conversion from seconds to miliseconds
-            poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
-            this.maxUnusedDuration = new TimeSpan(maxUnusedDuration * 10000000);
-            // conversion from seconds to ticks (100-nanosecond units) 
+            public ConnectionInfo ConnectionInfo { get; set; }
+            public int ReferenceCount = 0;
+            public DateTime LastReleasedTime = DateTime.UtcNow;
+            public readonly object SyncRoot = new object();
         }
-    }
 
-    #endregion
-
-    #region Timer Event Handlers
-
-    private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
-    {
-        log.Debug("Connection pool clean start.");
-        lock (pool)
+        private class SharedUserContext
         {
-            foreach (var connectionList in pool)
-            {
-                var connectionNode = connectionList.Value.First;
-                while (connectionNode != null)
-                {
-                    var connection = connectionNode.Value;
-                    if (connection.LastUsed < DateTime.UtcNow.Subtract(maxUnusedDuration))
-                        RemoveConnectionFromPool(connection);
-                    if (actualSize == minSize)
-                    {
-                        poolCleanTimer.Stop();
-                        break;
-                    }
+            public readonly ConnectionSlot[] Slots;
+            public readonly SemaphoreSlim UserSemaphore;
+            private int _roundRobinCounter = 0;
 
-                    connectionNode = connectionNode.Next;
-                }
+            public SharedUserContext(int capacity)
+            {
+                Slots = new ConnectionSlot[capacity];
+                for (int i = 0; i < capacity; i++) Slots[i] = new ConnectionSlot();
+                UserSemaphore = new SemaphoreSlim(capacity, capacity);
+            }
+
+            public ConnectionSlot GetNextSlot()
+            {
+                var idx = (Interlocked.Increment(ref _roundRobinCounter) & 0x7FFFFFFF) % Slots.Length;
+                return Slots[idx];
             }
         }
-    }
 
-    #endregion
+        private readonly IPoolableAdapter adapter;
+        private readonly ILog log;
+        private readonly string _masterNodeName;
+        private readonly int? _port;
+        private readonly int _maxConnectionsPerUser;
+        private readonly int minSize;
+        private readonly TimeSpan maxUnusedDuration;
+        private int _currentTotalPhysicalConnectionsCount;
+        
+        private readonly ConcurrentDictionary<long, SharedUserContext> _userContexts;
+        private static readonly ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>> _vaultCache 
+            = new ConcurrentDictionary<long, Task<ClusterProjectCredentialVaultPart>>();
+            
+        private readonly Timer poolCleanTimer;
 
-    #region Fields
-
-    private readonly IPoolableAdapter adapter;
-    private readonly ILog log;
-    private readonly string _masterNodeName;
-    private readonly int? _port;
-    private readonly string _remoteTimeZone;
-    private readonly int maxSize;
-    private readonly TimeSpan maxUnusedDuration;
-    private readonly int minSize;
-    private readonly Dictionary<long, LinkedList<ConnectionInfo>> pool;
-    private readonly Timer poolCleanTimer;
-    private int actualSize;
-    
-    #endregion
-
-    #region IConnectionPool Members
-
-    public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
-    {
-        //log.DebugFormat("Thread {0} Requesting connectin for {1}",Thread.CurrentThread.ManagedThreadId, credentials.Username);
-        ConnectionInfo connection = null;
-        do
+        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int? port)
         {
-            lock (pool)
+            log = LogManager.GetLogger(System.Reflection.MethodBase.GetCurrentMethod().DeclaringType);
+            _masterNodeName = masterNodeName;
+            _port = port;
+            this.minSize = minSize;
+            _maxConnectionsPerUser = maxSize; 
+            this.adapter = adapter;
+            _userContexts = new ConcurrentDictionary<long, SharedUserContext>();
+
+            if (cleaningInterval > 0 && maxUnusedDuration > 0)
             {
-                if (pool.ContainsKey(credentials.Id) && pool[credentials.Id].Last != null)
+                this.maxUnusedDuration = TimeSpan.FromSeconds(maxUnusedDuration);
+                poolCleanTimer = new Timer(cleaningInterval * 1000);
+                poolCleanTimer.Elapsed += poolCleanTimer_Elapsed;
+                poolCleanTimer.AutoReset = false;
+                log.Debug($"ConnectionPool initialized. Cleaning interval: {cleaningInterval}s, Max unused: {maxUnusedDuration}s");
+            }
+        }
+
+        public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+        {
+            return Task.Run(async () => await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken))
+                       .GetAwaiter()
+                       .GetResult();
+        }
+
+        private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+        {
+            log.Debug($"[User:{credentials.Id}] Requesting connection.");
+            var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
+                log.Debug($"[User:{id}] Creating new SharedUserContext with capacity {_maxConnectionsPerUser}");
+                return new SharedUserContext(_maxConnectionsPerUser);
+            });
+
+            // Fast path: reuse existing active connection
+            for (int i = 0; i < userContext.Slots.Length; i++)
+            {
+                var s = userContext.Slots[i];
+                lock (s.SyncRoot)
                 {
-                    // Free connection found
-                    connection = pool[credentials.Id].Last.Value;
-                    // Remove it from cache
-                    pool[credentials.Id].RemoveLast();
+                    if (s.ConnectionInfo != null && adapter.IsConnected(s.ConnectionInfo.Connection))
+                    {
+                        s.ReferenceCount++;
+                        s.ConnectionInfo.LastUsed = DateTime.UtcNow;
+                        log.Debug($"[User:{credentials.Id}] Reusing existing connection from slot {i}. RefCount: {s.ReferenceCount}");
+                        return s.ConnectionInfo;
+                    }
+                }
+            }
+
+            log.Debug($"[User:{credentials.Id}] No idle connection found. Waiting for slot semaphore (Available: {userContext.UserSemaphore.CurrentCount})...");
+            
+            await EnsureVaultDataLoadedAsync(credentials);
+            await userContext.UserSemaphore.WaitAsync();
+
+            try
+            {
+                var slot = userContext.GetNextSlot();
+                lock (slot.SyncRoot)
+                {
+                    if (slot.ConnectionInfo != null && adapter.IsConnected(slot.ConnectionInfo.Connection))
+                    {
+                        log.Debug($"[User:{credentials.Id}] Slot became available with active connection during wait.");
+                        userContext.UserSemaphore.Release();
+                        slot.ReferenceCount++;
+                        return slot.ConnectionInfo;
+                    }
+
+                    log.Debug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
+                    var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
+                    slot.ConnectionInfo = newConnection;
+                    
+                    Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
+                    if (poolCleanTimer != null && !poolCleanTimer.Enabled && _currentTotalPhysicalConnectionsCount > minSize)
+                    {
+                        log.Debug("Starting cleanup timer.");
+                        poolCleanTimer.Start();
+                    }
+
+                    slot.ReferenceCount++;
+                    return slot.ConnectionInfo;
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error($"[User:{credentials.Id}] Connection setup failed", ex);
+                userContext.UserSemaphore.Release();
+                throw;
+            }
+        }
+
+        public void ReturnConnection(ConnectionInfo connection)
+        {
+            if (connection == null) return;
+
+            if (_userContexts.TryGetValue(connection.AuthCredentials.Id, out var userContext))
+            {
+                for (int i = 0; i < userContext.Slots.Length; i++)
+                {
+                    var slot = userContext.Slots[i];
+                    lock (slot.SyncRoot)
+                    {
+                        if (slot.ConnectionInfo == connection)
+                        {
+                            slot.ReferenceCount--;
+                            connection.LastUsed = DateTime.UtcNow;
+                            if (slot.ReferenceCount <= 0)
+                            {
+                                slot.ReferenceCount = 0;
+                                slot.LastReleasedTime = DateTime.UtcNow;
+                            }
+                            log.Debug($"[User:{connection.AuthCredentials.Id}] Connection returned to slot {i}. RefCount: {slot.ReferenceCount}");
+                            return;
+                        }
+                    }
+                }
+            }
+            log.Warn($"[User:{connection.AuthCredentials.Id}] Attempted to return a connection that is not managed by this pool.");
+        }
+
+        private void poolCleanTimer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            // clear logging thread properties
+            LogicalThreadContext.Properties.Clear();
+
+            log.Debug($"Cleanup cycle started. Current physical connections: {_currentTotalPhysicalConnectionsCount}");
+            int closedCount = 0;
+            try
+            {
+                foreach (var userEntry in _userContexts)
+                {
+                    var userContext = userEntry.Value;
+                    foreach (var slot in userContext.Slots)
+                    {
+                        ConnectionInfo connToRemove = null;
+                        lock (slot.SyncRoot)
+                        {
+                            if (slot.ConnectionInfo == null) continue;
+                            
+                            bool isExpired = (DateTime.UtcNow - slot.LastReleasedTime) > maxUnusedDuration;
+                            log.Debug($"[User:{userEntry.Key}] Checking slot. RefCount: {slot.ReferenceCount}, LastReleased: {slot.LastReleasedTime}, IsExpired: {isExpired}, will expire in: {(slot.LastReleasedTime + maxUnusedDuration) - DateTime.UtcNow}");
+                            if (slot.ReferenceCount == 0 && isExpired && _currentTotalPhysicalConnectionsCount > minSize)
+                            {
+                                connToRemove = slot.ConnectionInfo;
+                                slot.ConnectionInfo = null;
+                            }
+                        }
+
+                        if (connToRemove != null)
+                        {
+                            log.Debug($"[User:{userEntry.Key}] Closing idle expired connection.");
+                            RemovePhysicalConnection(connToRemove, userContext);
+                            closedCount++;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex) { log.Error("Pool cleanup error", ex); }
+            finally
+            {
+                if (closedCount > 0) log.Debug($"Cleanup finished. Closed {closedCount} connections.");
+                if (poolCleanTimer != null && _currentTotalPhysicalConnectionsCount > minSize)
+                {
+                    poolCleanTimer.Start();
                 }
                 else
                 {
-                    if (actualSize < maxSize)
-                    {
-                        // If there is space free, create new connection
-                        connection = ExpandPoolAndGetConnection(credentials, cluster, sshCaToken);
-                    }
-                    else if (HasAnyFreeConnection())
-                    {
-                        // If pool is full, drop oldest connection
-                        // Find oldest connection in pool
-                        var oldest = FindOldestConnection();
-                        // Drop it
-                        RemoveConnectionFromPool(oldest);
-                        // Expand pool with newly created one
-                        connection = ExpandPoolAndGetConnection(credentials, cluster, sshCaToken);
-                    }
-                    else
-                    {
-                        // Wait for any returned connection
-                        Monitor.Wait(pool);
-                    }
+                    log.Debug("Cleanup timer stopped (pool at or below minSize).");
                 }
             }
-            //log.InfoFormat("Thread {0} Got connection for {1}", Thread.CurrentThread.ManagedThreadId, credentials.Username);
-        } while (connection == null);
-
-        return connection;
-    }
-
-    public void ReturnConnection(ConnectionInfo connection)
-    {
-        connection.LastUsed = DateTime.UtcNow;
-        lock (pool)
-        {
-            AddConnectionToPool(connection);
-            Monitor.Pulse(pool);
-            //log.Debug(String.Format("Connection for user {0} returned.", connection.AuthCredentials.Username));
-        }
-    }
-
-    #endregion
-
-    #region Local Methods
-
-    private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
-    {
-        if (!cred.IsVaultDataLoaded)
-        {
-            var _vaultConnector = new VaultConnector();
-            var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(cred.Id).GetAwaiter().GetResult();
-            cred.ImportVaultData(vaultData);
         }
 
-        var connectionObject =
-            adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port);
-        var connection = new ConnectionInfo
+        private async Task EnsureVaultDataLoadedAsync(ClusterAuthenticationCredentials cred)
         {
-            Connection = connectionObject,
-            LastUsed = DateTime.UtcNow,
-            AuthCredentials = cred
-        };
-        adapter.Connect(connection.Connection);
-        return connection;
-    }
-
-    private ConnectionInfo ExpandPoolAndGetConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
-    {
-        var connection = InitializeConnection(cred, cluster, sshCaToken);
-        actualSize++;
-        if (poolCleanTimer != null && actualSize > minSize)
-            poolCleanTimer.Start();
-        log.DebugFormat("Connection pool expanded with acc {0} - actual size {1}", cred.Username, actualSize);
-        return connection;
-    }
-
-    private void RemoveConnectionFromPool(ConnectionInfo connection)
-    {
-        pool[connection.AuthCredentials.Id].Remove(connection);
-        actualSize--;
-        adapter.Disconnect(connection.Connection);
-        log.DebugFormat("Removed connection for {0} - actual size {1}", connection.AuthCredentials.Username,
-            actualSize);
-    }
-
-    private ConnectionInfo FindOldestConnection()
-    {
-        ConnectionInfo oldestConnection = null;
-        var oldestLastUsedTime = DateTime.UtcNow;
-        foreach (var list in pool)
-        foreach (var conn in list.Value)
-            if (DateTime.Compare(oldestLastUsedTime, conn.LastUsed) >= 0)
+            if (cred.IsVaultDataLoaded) return;
+            
+            log.Debug($"[User:{cred.Id}] Loading vault data...");
+            var vaultTask = _vaultCache.GetOrAdd(cred.Id, async id =>
             {
-                oldestConnection = conn;
-                oldestLastUsedTime = conn.LastUsed;
-            }
-
-        return oldestConnection;
-    }
-
-    private bool HasAnyFreeConnection()
-    {
-        var hasConnection = false;
-        foreach (var item in pool)
-            if (item.Value.Count > 0)
+                log.Debug($"[User:{id}] Fetching vault data from service (Shared Task).");
+                var connector = new VaultConnector();
+                return await connector.GetClusterAuthenticationCredentials(id);
+            });
+            
+            try 
             {
-                hasConnection = true;
-                break;
+                var vaultData = await vaultTask;
+                cred.ImportVaultData(vaultData);
             }
+            catch (Exception ex)
+            {
+                log.Error($"[User:{cred.Id}] Failed to load vault data", ex);
+                _vaultCache.TryRemove(cred.Id, out _);
+                throw;
+            }
+        }
 
-        return hasConnection;
+        private void RemovePhysicalConnection(ConnectionInfo connection, SharedUserContext context)
+        {
+            try 
+            { 
+                adapter.Disconnect(connection.Connection); 
+            }
+            catch (Exception ex)
+            {
+                log.Warn($"Error while disconnecting connection for user {connection.AuthCredentials.Id}", ex);
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _currentTotalPhysicalConnectionsCount);
+                context.UserSemaphore.Release();
+                log.Debug($"[User:{connection.AuthCredentials.Id}] Physical connection removed. Semaphore released.");
+            }
+        }
+        
+        private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
+        {
+            var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
+            var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
+            var username = connection.AuthCredentials.Username;
+            if (connectionObject is SshClient info)
+            {
+                username = info.ConnectionInfo.Username;
+            }
+            log.Info($"[User:({connection.AuthCredentials.Id},{username})] Initializing connection.");
+            adapter.Connect(connection.Connection);
+            log.Info($"[User:({connection.AuthCredentials.Id},{username})] Connection initialized.");
+            
+            return connection;
+        }
     }
-
-    private void AddConnectionToPool(ConnectionInfo connection)
-    {
-        if (!pool.ContainsKey(connection.AuthCredentials.Id))
-            pool.Add(connection.AuthCredentials.Id, new LinkedList<ConnectionInfo>());
-        pool[connection.AuthCredentials.Id].AddLast(connection);
-    }
-
-    #endregion
 }

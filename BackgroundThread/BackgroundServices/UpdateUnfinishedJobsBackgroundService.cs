@@ -1,56 +1,69 @@
-﻿using HEAppE.BackgroundThread.Configuration;
-using HEAppE.BusinessLogicTier.Factory;
-using HEAppE.DataAccessTier.UnitOfWork;
-using log4net;
-using Microsoft.Extensions.Hosting;
-using System;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
-using HEAppE.BusinessLogicTier;
+using HEAppE.BackgroundThread.Configuration;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
+using HEAppE.BusinessLogicTier.Factory;
+using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.UserOrg;
+using log4net;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
-/// <summary>
-///     Get all unfinished jobs from db and load their status from cluster
-///     and updates their status in DB
-/// </summary>
 internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.GetAllJobsInformationCheck);
-    protected readonly ILog _log;
-    protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
-    protected readonly IHttpContextKeys _httpContextKeys;
+    private readonly ILog _log;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IUserOrgService _userOrgService;
 
-    public UpdateUnfinishedJobsBackgroundService(ISshCertificateAuthorityService sshCertificateAuthorityService, IServiceScopeFactory scopeFactory)
+    public UpdateUnfinishedJobsBackgroundService(
+        IUserOrgService userOrgService, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, 
+        IServiceScopeFactory scopeFactory)
     {
-        _log = LogManager.GetLogger(GetType());
+        _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
-        _httpContextKeys = scopeFactory.CreateScope().ServiceProvider.GetRequiredService<IHttpContextKeys>();
+        _scopeFactory = scopeFactory;
+        _log = LogManager.GetLogger(GetType());
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        if (!JwtTokenIntrospectionConfiguration.IsEnabled)
+        await Task.Yield();
+
+        if (JwtTokenIntrospectionConfiguration.IsEnabled) return;
+
+        while (!stoppingToken.IsCancellationRequested)
         {
-            while (!stoppingToken.IsCancellationRequested)
+            using (IServiceScope scope = _scopeFactory.CreateScope())
             {
                 try
                 {
                     using IUnitOfWork unitOfWork = new DatabaseUnitOfWork();
-                    LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+                    IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
+
+                    await LogicFactory.GetLogicFactory()
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys)
                         .UpdateCurrentStateOfUnfinishedJobs();
                 }
                 catch (Exception ex)
                 {
-                    _log.Error("An error occured during execution of the UpdateUnfinishedJobs background service: ",
-                        ex);
+                    _log.Error("An error occured during execution of the UpdateUnfinishedJobs background service: ", ex);
                 }
+            }
 
+            try
+            {
                 await Task.Delay(_interval, stoppingToken);
+            }
+            catch (OperationCanceledException)
+            {
             }
         }
     }

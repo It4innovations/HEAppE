@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
 using HEAppE.BusinessLogicTier.Logic.DataTransfer;
@@ -9,6 +10,7 @@ using HEAppE.BusinessLogicTier.Logic.JobReporting;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.UnitOfWork;
+using HEAppE.Services.UserOrg;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Factory;
@@ -19,7 +21,7 @@ public abstract class LogicFactory
         new(Enum.GetValues(typeof(BusinessLogicType)).Length);
 
     /// <summary>
-    ///     Hack, initialized in Startup
+    ///  Service provider for dependency injection
     /// </summary>
     public static IServiceProvider ServiceProvider { get; set; }
 
@@ -60,15 +62,17 @@ public abstract class LogicFactory
 
     public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
-    public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork,
+    public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
-    public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork,
+    public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
-    public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork,
+    public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);
+
     public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService,
+        IHttpContextKeys httpContextKeys);
 
     public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);

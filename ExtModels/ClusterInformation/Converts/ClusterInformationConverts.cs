@@ -135,32 +135,42 @@ public static class ClusterInformationConverts
 
     public static ClusterNodeTypeExt ConvertIntToExt(this ClusterNodeType nodeType, IEnumerable<Project> projects, bool onlyActive)
     {
-        // get all projects
+        var safeProjects = projects?.Where(p => p != null) ?? Enumerable.Empty<Project>();
+        var allowedProjectIds = new HashSet<long>(safeProjects.Select(p => p.Id));
         var projectExts = new List<ProjectExt>();
+
         if (nodeType.Cluster != null)
         {
-            var dbProjects = nodeType.Cluster.ClusterProjects?.Where(x => !x.IsDeleted && x.Project != null && projects.Any(y=> y.Id == x.ProjectId)).Select(x => x.Project)
+            var dbProjects = nodeType.Cluster.ClusterProjects?
+                .Where(x => !x.IsDeleted && x.Project != null && allowedProjectIds.Contains(x.ProjectId))
+                .Select(x => x.Project)
                 .ToList();
-            if (onlyActive)
+
+            if (dbProjects != null)
             {
-                projectExts = dbProjects?
-                    .Where(x => x.EndDate >= DateTime.UtcNow)
-                    .Select(x => x.ConvertIntToExt())
-                    .ToList() ?? new List<ProjectExt>();
+                if (onlyActive)
+                {
+                    var now = DateTime.UtcNow;
+                    projectExts = dbProjects
+                        .Where(x => x.EndDate >= now)
+                        .Select(x => x.ConvertIntToExt())
+                        .ToList();
+                }
+                else
+                {
+                    projectExts = dbProjects
+                        .Select(x => x.ConvertIntToExt())
+                        .ToList();
+                }
             }
-            else
-            {
-                projectExts = dbProjects?
-                    .Select(x => x.ConvertIntToExt())
-                    .ToList() ?? new List<ProjectExt>();
-            }
-            
-            // select possible commands for specific project or command for all projects
+
             foreach (var project in projectExts)
-                project.CommandTemplates = nodeType.PossibleCommands.Where(c =>
-                        !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
+            {
+                project.CommandTemplates = nodeType.PossibleCommands?
+                    .Where(c => !c.IsDeleted && (!c.ProjectId.HasValue || c.ProjectId == project.Id))
                     .Select(command => command.ConvertIntToExt())
-                    .ToArray();
+                    .ToArray() ?? Array.Empty<CommandTemplateExt>();
+            }
         }
 
         var convert = new ClusterNodeTypeExt
@@ -176,11 +186,14 @@ public static class ClusterInformationConverts
             QualityOfService = nodeType.QualityOfService,
             ClusterAllocationName = nodeType.ClusterAllocationName,
             ClusterNodeTypeAggregation = nodeType.ClusterNodeTypeAggregation?.ConvertIntToExt(),
-            Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings
-                .Select(s => s.Accounting?.ConvertIntToExt()).ToArray(),
+            Accounting = nodeType.ClusterNodeTypeAggregation?.ClusterNodeTypeAggregationAccountings?
+                .Select(s => s.Accounting?.ConvertIntToExt())
+                .Where(a => a != null)
+                .ToArray() ?? Array.Empty<AccountingExt>(),
             ClusterId = nodeType.ClusterId,
             Projects = projectExts.ToArray()
         };
+
         return convert;
     }
 
@@ -236,7 +249,7 @@ public static class ClusterInformationConverts
             IsGeneric = commandTemplate.IsGeneric,
             IsEnabled = commandTemplate.IsEnabled,
             CreatedFromGenericTemplateId = commandTemplate.CreatedFromId,
-            TemplateParameters = commandTemplate.TemplateParameters.Where(w => w.IsVisible)
+            TemplateParameters = commandTemplate.TemplateParameters?.Where(w => w.IsVisible)
                 .Select(s => s.ConvertIntToExt())
                 .ToArray()
         };

@@ -12,7 +12,13 @@ public class SessionCodeValidator : AbstractValidator
     public override ValidationResult Validate()
     {
         var message = string.Empty;
-        if (!JwtTokenIntrospectionConfiguration.IsEnabled && !LexisAuthenticationConfiguration.UseBearerAuth)
+        //if not empty then validate structure
+        if( _validationObject is string validationObject && !string.IsNullOrEmpty(validationObject))
+        {
+            message = ValidateSessionCode(validationObject);
+        }
+        
+        /*if (!JwtTokenIntrospectionConfiguration.IsEnabled && !LexisAuthenticationConfiguration.UseBearerAuth)
         {
             if (_validationObject is null)
             {
@@ -23,6 +29,7 @@ public class SessionCodeValidator : AbstractValidator
                 message = ValidateSessionCode(validationObject);
             }
         }
+        */
 
         return new ValidationResult(string.IsNullOrEmpty(message), message);
     }
@@ -34,9 +41,11 @@ public class SessionCodeValidator : AbstractValidator
     /// <returns></returns>
     protected string ValidateSessionCode(string sessionCode)
     {
+        /*
         if (string.IsNullOrEmpty(sessionCode))
             _messageBuilder.AppendLine("SessionCode cannot be empty.");
         else if (!IsSessionCode(sessionCode)) _messageBuilder.AppendLine("SessionCode has wrong format.");
+        */
         return _messageBuilder.ToString();
     }
 }

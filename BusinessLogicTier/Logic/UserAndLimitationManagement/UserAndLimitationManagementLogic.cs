@@ -9,6 +9,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
 using HEAppE.Authentication;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -25,8 +26,10 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.ExternalAuthentication.KeyCloak;
+using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
+using HEAppE.Services.UserOrg;
 using log4net;
 using SshCaAPI;
 
@@ -36,13 +39,13 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IHttpClientFactory httpClientFactory, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        _userOrgHttpClient = httpClientFactory.CreateClient("userOrgApi");
+        _userOrgService = userOrgService;
     }
 
     #endregion
@@ -59,12 +62,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// </summary>
     private readonly ILog _log;
 
-    private readonly HttpClient _userOrgHttpClient;
-
-    /// <summary>
-    ///     Lock for creating user
-    /// </summary>
-    private readonly object _lockCreateUserObj = new();
+    private readonly IUserOrgService _userOrgService;
 
     /// <summary>
     ///     Session code expiration in seconds
@@ -80,20 +78,40 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 
     public AdaptorUser GetUserForSessionCode(string sessionCode)
     {
-        if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
+        bool hasFIPOrLEXISToken = !string.IsNullOrEmpty(_httpContextKeys.Context.FIPToken) 
+                                  || !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken);
+
+        if (!hasFIPOrLEXISToken && !string.IsNullOrEmpty(sessionCode))
+        {
+            _log.Info("Authenticating local user with session code.");
+            return AuthenticateLocalSession(sessionCode);
+        }
+
+        if (_httpContextKeys.Context.AdaptorUserId != 0)
         {
             return _unitOfWork.AdaptorUserRepository.GetById(_httpContextKeys.Context.AdaptorUserId);
         }
+
+        return AuthenticateLocalSession(sessionCode);
+    }
+
+    private AdaptorUser AuthenticateLocalSession(string sessionCode)
+    {
         var session = _unitOfWork.SessionCodeRepository.GetByUniqueCode(sessionCode);
-        if (session is null) throw new SessionCodeNotValidException("NotPresent", sessionCode);
+        if (session is null)
+            throw new UnauthorizedAccessException("Unauthorized");
 
         if (IsSessionExpired(session))
-            throw new SessionCodeNotValidException("Expired", sessionCode,
-                session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ"));
+            throw new SessionCodeNotValidException(
+                "Expired", 
+                sessionCode,
+                session.LastAccessTime.AddSeconds(_sessionExpirationSeconds).ToString("yyyy-MM-ddTHH:mm:ss.fffZ")
+            );
 
         session.LastAccessTime = DateTime.UtcNow;
         _unitOfWork.SessionCodeRepository.Update(session);
         _unitOfWork.Save();
+
         return session.User;
     }
     
@@ -199,7 +217,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
         var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
             .ListClusterNodeTypes();
@@ -341,14 +359,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         try
         {
             _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
-            
-            var requestUri =
-                $"{LexisAuthenticationConfiguration.EndpointPrefix}{LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint}";
-            _userOrgHttpClient.DefaultRequestHeaders.Clear();
-            _userOrgHttpClient.DefaultRequestHeaders.Add("X-Api-Token", lexisCredentials.OpenIdLexisAccessToken);
-            _userOrgHttpClient.DefaultRequestHeaders.Add("Bearer", lexisCredentials.OpenIdLexisAccessToken);
-            
-            var result = await _userOrgHttpClient.GetFromJsonAsync<UserInfoExtendedModel>(requestUri);
+            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
             return GetOrRegisterLexisCredentials(result);
         }
         catch (HttpRequestException ex)
@@ -356,6 +367,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             throw new AuthenticationTypeException("InvalidToken");
         }
     }
+    
+    
 
     /// <summary>
     ///     Get existing or create new HEAppE user, from the OpenId credentials.
@@ -374,61 +387,55 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                 Permissions = x.SystemPermissionTypes
             });
 
-            lock (_lockCreateUserObj)
+        IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
+            .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
+
+        DateTime changedTime = DateTime.UtcNow;
+        AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+        
+        if (user is null)
+        {
+            try 
             {
-                IEnumerable<AdaptorUserGroup> userLEXISGroups = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
-                    .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
-
-                DateTime changedTime = DateTime.UtcNow;
-                AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
-                if (user is null)
-                {
-                    user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
-                    _log.Info($"Created new HEAppE account for user: \"{user}\"");
-                }
-
-            var hasUserGroup = false;
-
-            //Set roles for group to IsDeleted
-            user.AdaptorUserUserGroupRoles.ForEach(f =>
-            {
-                f.IsDeleted = true;
-                f.ModifiedAt = changedTime;
-            });
-
-            foreach (var lexisProject in lexisProjects)
-            {
-                var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a =>
-                    string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
-
-                if (groupsWithProject is null || !groupsWithProject.Any())
-                {
-                    //_log.Warn(
-                    //    $"LEXIS AAI: User group with prefix \"{LexisAuthenticationConfiguration.HEAppEGroupNamePrefix}\" for Project Short Name \"{lexisProject.ProjectShortName}\" does not exist in HEAppE DB!");
-                    continue;
-                }
-
-                var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey)
-                    .Select(s => RoleMapping.MappingRoles[s]);
-                if (roleNames is null || !roleNames.Any())
-                {
-                    //_log.Warn(
-                    //    $"LEXIS AAI: Permissions for mapping is not correctly setup for Project Short Name \"{lexisProject.ProjectShortName}\"!");
-                    continue;
-                }
-
-                var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
-                foreach (var prefixedGroup in groupsWithProject)
-                    user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
-
-                hasUserGroup = true;
-                //_log.Info($"LEXIS AAI: User \"{user.Username}\" for Project Short Name \"{lexisProject.ProjectShortName}\" was added to groups: \"{string.Join(',', groupsWithProject.Select(s => s.Name))}\"");
-
+                user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
-            _unitOfWork.Save();
-            
-            return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
+            catch (Exception)
+            {
+                user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
+                if (user is null) throw;
+            }
         }
+
+        var hasUserGroup = false;
+
+        user.AdaptorUserUserGroupRoles.ForEach(f =>
+        {
+            f.IsDeleted = true;
+            f.ModifiedAt = changedTime;
+        });
+
+        foreach (var lexisProject in lexisProjects)
+        {
+            var groupsWithProject = userLEXISGroups.Where(x => lexisProject.ProjectResourceNames.Any(a =>
+                string.Equals(a, x.Project.AccountingString, StringComparison.InvariantCultureIgnoreCase)));
+
+            if (groupsWithProject is null || !groupsWithProject.Any()) continue;
+
+            var roleNames = lexisProject.Permissions.Where(RoleMapping.MappingRoles.ContainsKey)
+                .Select(s => RoleMapping.MappingRoles[s]);
+                
+            if (roleNames is null || !roleNames.Any()) continue;
+
+            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(roleNames);
+            foreach (var prefixedGroup in groupsWithProject)
+                user.CreateSpecificUserRoleForUser(prefixedGroup, userRole.RoleType);
+
+            hasUserGroup = true;
+        }
+
+        _unitOfWork.Save();
+        
+        return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
     }
 
     /// <summary>
@@ -438,43 +445,48 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// <returns>Newly created or existing HEAppE account.</returns>
     private AdaptorUser GetOrRegisterNewOpenIdUser(UserOpenId openIdUser)
     {
-        lock (_lockCreateUserObj)
+        var changedTime = DateTime.UtcNow;
+        var user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+    
+        if (user is null)
         {
-            var changedTime = DateTime.UtcNow;
-            var user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
-            if (user is null)
+            try
             {
                 user = CreateUser(openIdUser.UserName, openIdUser.Email, changedTime, AdaptorUserType.OpenId);
                 _log.Info($"OpenId: Created new HEAppE account for user: \"{user}\"");
             }
-
-            var hasUserGroup = false;
-
-            //Set roles for group to IsDeleted
-            user.AdaptorUserUserGroupRoles.ForEach(f =>
+            catch (Exception)
             {
-                f.IsDeleted = true;
-                f.ModifiedAt = changedTime;
-            });
+                user = _unitOfWork.AdaptorUserRepository.GetByName(openIdUser.UserName);
+                if (user is null) throw;
+            }
+        }
 
-            foreach (var project in openIdUser.Projects)
+        var hasUserGroup = false;
+
+        user.AdaptorUserUserGroupRoles.ForEach(f =>
+        {
+            f.IsDeleted = true;
+            f.ModifiedAt = changedTime;
+        });
+
+        foreach (var project in openIdUser.Projects)
+        {
+            if (!TryGetUserGroupByName(project.HEAppEGroupName, out var openIdGroup))
             {
-                if (!TryGetUserGroupByName(project.HEAppEGroupName, out var openIdGroup))
-                {
-                    _log.Warn($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
-                    continue;
-                }
-
-                var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(project.Roles);
-                user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
-
-                hasUserGroup = true;
-                _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
+                _log.Warn($"OpenId: User group(\"{project.HEAppEGroupName}\") does not exist in HEAppE database!");
+                continue;
             }
 
-            _unitOfWork.Save();
-            return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
+            var userRole = _unitOfWork.AdaptorUserRoleRepository.GetByRoleNames(project.Roles);
+            user.CreateSpecificUserRoleForUser(openIdGroup, userRole.RoleType);
+
+            hasUserGroup = true;
+            _log.Info($"OpenId: User \"{user.Username}\" was added to group: \"{openIdGroup.Name}\"");
         }
+
+        _unitOfWork.Save();
+        return !hasUserGroup ? throw new AuthenticationTypeException("NoUserGroup", user.Username) : user;
     }
 
     /// <summary>
@@ -606,16 +618,28 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser, IEnumerable<Project> projects)
     {
         List<ProjectReference> projectReferences = new();
-        var groupRoles = loggedUser.AdaptorUserUserGroupRoles.GroupBy(x => x.AdaptorUserGroup)
+        var validProjectIds = new HashSet<long>(
+            projects?.Where(x => x != null).Select(x => x.Id) ?? Enumerable.Empty<long>()
+        );
+        
+        var groupRoles = loggedUser.AdaptorUserUserGroupRoles
+            .GroupBy(x => x.AdaptorUserGroup)
             .Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
+
         foreach (var groupRole in groupRoles)
         {
-            var project = _unitOfWork.AdaptorUserGroupRepository.GetAllWithAdaptorUserGroupsAndActiveProjects()
+            var project = _unitOfWork.AdaptorUserGroupRepository
+                .GetAllWithAdaptorUserGroupsAndActiveProjects()
                 .FirstOrDefault(x => x.Id == groupRole.AdaptorUserGroupId)?.Project;
-            //if project.Id is present in projects array, then it is a project that user has access to
-            if (project is null || !projects.Any(x => x.Id == project.Id)) continue;
+
+            if (project is null || !validProjectIds.Contains(project.Id)) 
+            {
+                continue;
+            }
+            
             var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
             project.CommandTemplates = commandTemplates.ToList();
+
             projectReferences.Add(new ProjectReference
             {
                 Role = groupRole.AdaptorUserRole,
@@ -623,7 +647,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             });
         }
 
-        return projectReferences;
+        return projectReferences.Distinct();
     }
 
     #endregion

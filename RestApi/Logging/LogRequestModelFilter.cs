@@ -1,195 +1,138 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using System.Threading;
+using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
+using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
-using HEAppE.ServiceTier.UserAndLimitationManagement;
+using HEAppE.Services.UserOrg;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.RestApi.Logging;
 
-public class LogRequestModelFilter : ActionFilterAttribute
+public class LogRequestModelFilter : IAsyncActionFilter
 {
     private readonly ILogger<LogRequestModelFilter> _logger;
-    private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
-    private readonly IHttpContextKeys _httpContextKeys;
-    private static readonly HashSet<string> SensitiveProperties = new(StringComparer.OrdinalIgnoreCase)
+
+    private static readonly HashSet<string> SensitiveKeys = new(StringComparer.OrdinalIgnoreCase)
     {
-        "SessionCode", "Password", "Token", "Secret", "Key"
+        "SessionCode", "Password", "Token", "Secret", "Key", "sessionCode", "password", "token",
+        "Authorization", "Cookie", "Set-Cookie", "X-API-Key"
     };
 
-    public LogRequestModelFilter(ILogger<LogRequestModelFilter> logger, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    private static readonly ConcurrentDictionary<Type, PropertyInfo?> SessionCodePropertyCache = new();
+
+    private readonly JsonSerializerOptions _jsonOptions;
+
+    public LogRequestModelFilter(
+        ILogger<LogRequestModelFilter> logger,
+        IUserOrgService userOrgService,
+        ISshCertificateAuthorityService sshCertificateAuthorityService,
+        IHttpContextKeys httpContextKeys)
     {
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-        _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
-        _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
+
+        _jsonOptions = new JsonSerializerOptions
+        {
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            ReferenceHandler = ReferenceHandler.IgnoreCycles,
+            MaxDepth = 64,
+            TypeInfoResolver = new DefaultJsonTypeInfoResolver
+            {
+                Modifiers = { MaskSensitiveProperties }
+            }
+        };
     }
 
-    public override void OnActionExecuting(ActionExecutingContext context)
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        LogRequestDetailsAsync(context);
+        await next();
+    }
+
+    private void LogRequestDetailsAsync(ActionExecutingContext context)
     {
         try
         {
-            var (userId, userName) = ExtractUserInfo(context.ActionArguments);
-            var argumentsLog = ProcessActionArguments(context.ActionArguments);
-            
-            LogRequestInfo(context, userId, userName, argumentsLog);
+            var safeArguments = context.ActionArguments
+                .Where(kvp => !IsUnsafeType(kvp.Value))
+                .ToDictionary(k => k.Key, v => v.Value);
+
+            var serializedArgs = JsonSerializer.Serialize(safeArguments, _jsonOptions);
+
+            var safeHeaders = ExtractSafeHeaders(context.HttpContext.Request.Headers);
+            var serializedHeaders = JsonSerializer.Serialize(safeHeaders, _jsonOptions);
+
+            _logger.LogInformation(
+                "Action: {Action}, Headers: {Headers}, Arguments: {Arguments}",
+                context.ActionDescriptor.DisplayName, serializedHeaders, serializedArgs);
         }
         catch (Exception ex)
         {
-            // Log the exception but don't let it break the request pipeline
-            _logger.LogWarning(ex, "Failed to log request information for action {Action}", 
+            _logger.LogWarning(ex, "Failed to log request information for action {Action}",
                 context.ActionDescriptor.DisplayName);
         }
-        
-        base.OnActionExecuting(context);
     }
 
-    private (long userId, string userName) ExtractUserInfo(IDictionary<string, object> actionArguments)
+    private Dictionary<string, string> ExtractSafeHeaders(IHeaderDictionary headers)
     {
-        foreach (var argument in actionArguments.Values)
-        {
-            if (argument == null) continue;
+        var result = new Dictionary<string, string>();
 
-            var sessionCode = ExtractSessionCode(argument);
-            if (!string.IsNullOrEmpty(sessionCode))
+        foreach (var header in headers)
+        {
+            if (SensitiveKeys.Contains(header.Key))
             {
-                return GetUserInfo(sessionCode);
+                result.Add(header.Key, "***REDACTED***");
+            }
+            else
+            {
+                result.Add(header.Key, header.Value.ToString());
             }
         }
 
-        return (0, string.Empty);
+        return result;
     }
 
-    private string ExtractSessionCode(object model)
+    private static void MaskSensitiveProperties(JsonTypeInfo typeInfo)
     {
-        // Try to get SessionCode property
-        var sessionCodeProperty = model.GetType().GetProperty("SessionCode");
-        if (sessionCodeProperty?.GetValue(model) is string sessionCode && !string.IsNullOrEmpty(sessionCode))
+        if (typeInfo.Kind != JsonTypeInfoKind.Object) return;
+
+        foreach (var property in typeInfo.Properties)
         {
-            return sessionCode;
-        }
-
-        // If model is a GUID string, treat it as a session code
-        if (model is string strModel && Guid.TryParse(strModel, out _))
-        {
-            return strModel;
-        }
-
-        return null;
-    }
-
-    private Dictionary<string, object> ProcessActionArguments(IDictionary<string, object> actionArguments)
-    {
-        var argumentsLog = new Dictionary<string, object>();
-
-        foreach (var argument in actionArguments)
-        {
-            if (argument.Value == null)
+            if (SensitiveKeys.Contains(property.Name))
             {
-                argumentsLog[argument.Key] = null;
-                continue;
+                property.CustomConverter = new StaticMaskConverter();
             }
-
-            argumentsLog[argument.Key] = ShouldRedactModel(argument.Value) 
-                ? "***REDACTED***" 
-                : CloneAndRedactSensitiveData(argument.Value);
-        }
-
-        return argumentsLog;
-    }
-
-    private bool ShouldRedactModel(object model)
-    {
-        return model.GetType().Name.StartsWith("Authenticate", StringComparison.OrdinalIgnoreCase);
-    }
-
-    private object CloneAndRedactSensitiveData(object model)
-    {
-        try
-        {
-            var modelType = model.GetType();
-
-            // Handle primitive types and strings
-            if (modelType.IsPrimitive || model is string)
-            {
-                return model is string strModel && Guid.TryParse(strModel, out _) 
-                    ? "***REDACTED***" 
-                    : model;
-            }
-
-            // Handle complex objects
-            var copy = Activator.CreateInstance(modelType);
-            if (copy == null) return null;
-
-            var properties = modelType.GetProperties(BindingFlags.Public | BindingFlags.Instance);
-            
-            foreach (var property in properties)
-            {
-                if (!property.CanRead || !property.CanWrite) continue;
-
-                var value = property.GetValue(model);
-                var redactedValue = ShouldRedactProperty(property.Name) 
-                    ? "***REDACTED***" 
-                    : value;
-
-                property.SetValue(copy, redactedValue);
-            }
-
-            return copy;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to clone and redact model of type {ModelType}", model.GetType().Name);
-            return "***SERIALIZATION_ERROR***";
         }
     }
 
-    private bool ShouldRedactProperty(string propertyName)
+    private static bool IsUnsafeType(object? value)
     {
-        return SensitiveProperties.Contains(propertyName);
+        if (value == null) return false;
+        if (value is CancellationToken) return true;
+        if (value is System.IO.Stream) return true;
+        if (value is Delegate) return true;
+        return false;
     }
 
-    private void LogRequestInfo(ActionExecutingContext context, long userId, string userName, 
-        Dictionary<string, object> argumentsLog)
+    private class StaticMaskConverter : JsonConverter<object>
     {
-        try
+        public override object? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options) => null;
+        public override void Write(Utf8JsonWriter writer, object value, JsonSerializerOptions options)
         {
-            var serializedArgs = JsonSerializer.Serialize(argumentsLog, new JsonSerializerOptions
-            {
-                WriteIndented = false,
-                PropertyNamingPolicy = JsonNamingPolicy.CamelCase
-            });
-
-            _logger.LogInformation("Action: {Action}, UserId: {UserId}, UserName: {UserName}, Arguments: {Arguments}",
-                context.ActionDescriptor.DisplayName,
-                userId,
-                userName,
-                serializedArgs);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to serialize arguments for logging");
-        }
-    }
-
-    private (long userId, string userName) GetUserInfo(string sessionCode)
-    {
-        try
-        {
-            using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-            var authenticationLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var loggedUser = authenticationLogic.GetUserForSessionCode(sessionCode);
-            
-            return (loggedUser?.Id ?? -1, loggedUser?.Username ?? "Unknown Username");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogDebug(ex, "Failed to retrieve user information for session code");
-            return (-1, "Unknown Username");
+            writer.WriteStringValue("***REDACTED***");
         }
     }
 }
