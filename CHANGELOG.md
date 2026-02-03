@@ -26,10 +26,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - `User Group Role` assignment and unassignment.
 - Added HEAppE Admin Roles for Management and Reporting.
 - Added support for `X-API-Key` header authentication, allowing full system operation without requiring `SessionCodes`.
-- Established connection to `Expirio service`.
+- Added `Expirio service` adapter.
     - Implemented token exchange functionality.
-- Introduced optional LEXIS user access validation for Project Command Templates.
-    - This provides an additional security layer beyond the existing HEAppE project-level access control.
 
 
 ### Changed
