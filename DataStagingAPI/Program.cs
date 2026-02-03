@@ -16,6 +16,7 @@ using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExtModels;
 using HEAppE.FileTransferFramework;
 using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.RestApi.Logging;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
@@ -326,6 +327,7 @@ app.UseSwaggerUI(swaggerUI =>
     swaggerUI.RoutePrefix = APIAdoptions.SwaggerConfiguration.PrefixDocPath;
 });
 
+app.UseMiddleware<LogUserContextMiddleware>();
 app.UseMiddleware<LexisAuthMiddleware>();
 app.UseMiddleware<LexisTokenExchangeMiddleware>();
 app.UseAuthentication();

@@ -468,10 +468,9 @@ public class Startup
 
         app.UseMiddleware<ExceptionMiddleware>();
 
-        //if ()
-        {
-            app.UseMiddleware<LexisAuthMiddleware>();
-        }
+
+        app.UseMiddleware<LexisAuthMiddleware>();
+
         //if (JwtTokenIntrospectionConfiguration.IsEnabled || LexisAuthenticationConfiguration.UseBearerAuth)
         {
             app.UseMiddleware<LexisTokenExchangeMiddleware>();

@@ -21,6 +21,7 @@
     <ItemGroup>
         <ProjectReference Include="..\ExtModels\ExtModels.csproj"/>
         <ProjectReference Include="..\RestApiModels\RestApiModels.csproj"/>
+        <ProjectReference Include="..\RestApi\RestApi.csproj" />
         <ProjectReference Include="..\Services\Services.csproj" />
         <ProjectReference Include="..\ServiceTier\ServiceTier.csproj"/>
     </ItemGroup>
