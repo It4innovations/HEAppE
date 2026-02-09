@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## V6.3.0
+
+### Added
+- **Robust Role Validation**: Added `HashSet`-based deduplication and enhanced navigation property checks to ensure data integrity during system role synchronization.
+
+### Fixed
+- **EF Change Tracker Sync**: Resolved issues where the role assignment logic would fail to recognize recently added entities in the same transaction.
+
 ## V6.2.0
 
 ### Added
