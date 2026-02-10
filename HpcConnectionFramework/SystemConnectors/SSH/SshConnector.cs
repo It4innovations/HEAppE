@@ -94,6 +94,9 @@ public class SshConnector : IPoolableAdapter
             ClusterAuthenticationCredentialsAuthType.SshCertificateViaProxy => 
                 CreateConnectionObjectUsingSshCertificateViaProxy(proxy.Host, proxy.Type,
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
+            
+            ClusterAuthenticationCredentialsAuthType.Kerberos => 
+                CreateConnectionObjectUsingKerberos(masterNodeName, credentials, sshCaToken, port),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
         });
@@ -586,6 +589,43 @@ public class SshConnector : IPoolableAdapter
     {
         var client = new NoAuthenticationSshClient(masterNodeName, port, username);
         return client;
+    }
+
+    private SshClient CreateConnectionObjectUsingKerberos(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
+    {
+        try
+        {
+            string publicKey = credentials.PublicKey;
+            if (string.IsNullOrEmpty(credentials.PublicKey))
+            {
+                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
+            }
+            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
+                .GetAwaiter()
+                .GetResult();
+            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
+            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
+            var connectionInfo = port switch
+            {
+                null => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
+                _ => new PrivateKeyConnectionInfo(
+                    masterNodeName,
+                    port.Value,
+                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
+                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
+            };
+
+            var client = new SshClient(connectionInfo);
+            return client;
+        }
+        catch (Exception e)
+        {
+            throw e;
+        }
+        
     }
 
     #endregion

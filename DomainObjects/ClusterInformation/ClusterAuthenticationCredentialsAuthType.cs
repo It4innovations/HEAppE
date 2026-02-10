@@ -13,5 +13,6 @@ public enum ClusterAuthenticationCredentialsAuthType
     PrivateKeyInSshAgent = 9,
     PrivateKeyInVaultAndInSshAgent = 10,
     SshCertificate = 11,
-    SshCertificateViaProxy = 12
+    SshCertificateViaProxy = 12,
+    Kerberos = 13
 }
