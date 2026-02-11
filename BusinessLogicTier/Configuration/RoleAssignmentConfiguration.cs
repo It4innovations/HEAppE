@@ -1,7 +1,7 @@
 ﻿using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
-using log4net;
+using Microsoft.Extensions.Logging;
 using System.Linq;
 
 namespace HEAppE.BusinessLogicTier.Configuration;
@@ -16,7 +16,7 @@ public class RoleAssignmentConfiguration
     public static string[] Reporters { get; set; }
     public static string[] ManagementAdmins { get; set; }
 
-    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger)
+    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILogger logger)
     {
         AssignSpecificRole(Administrators, AdaptorUserRoleType.Administrator, group, unitOfWork, logger);
         AssignSpecificRole(Maintainers, AdaptorUserRoleType.Maintainer, group, unitOfWork, logger);
@@ -28,7 +28,7 @@ public class RoleAssignmentConfiguration
         unitOfWork.Save();
     }
 
-    private static void AssignSpecificRole(string[] usernames, AdaptorUserRoleType roleType, AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger)
+    private static void AssignSpecificRole(string[] usernames, AdaptorUserRoleType roleType, AdaptorUserGroup group, IUnitOfWork unitOfWork, ILogger logger)
     {
         if (usernames == null || usernames.Length == 0) return;
 
@@ -45,12 +45,12 @@ public class RoleAssignmentConfiguration
                 {
                     user.CreateSpecificUserRoleForUser(group, roleType);
                     unitOfWork.AdaptorUserRepository.Update(user);
-                    logger.Info($"SysUser '{username}' assigned to role '{roleType}' in group '{group.Name}'.");
+                    logger?.LogInformation($"SysUser '{username}' assigned to role '{roleType}' in group '{group.Name}'.");
                 }
             }
             else
             {
-                logger.Warn($"SysUser '{username}' found in config but not in Database");
+                logger?.LogWarning($"SysUser '{username}' found in config but not in Database");
             }
         }
     }

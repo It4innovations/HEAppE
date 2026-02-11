@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
@@ -19,6 +20,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 {
     protected readonly IUnitOfWork _unitOfWork;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    protected readonly ILogger _logger;
     private readonly IHttpContextKeys _httpContextKeys;
 
     #region Constructors
@@ -33,6 +35,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _logger = null;
     }
 
     #endregion
@@ -181,7 +184,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 
     private void ValidateWallTimeLimit(TaskSpecification task)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger)
             .GetClusterNodeTypeById(task.ClusterNodeTypeId);
         if (clusterNodeType == null)
         {
@@ -207,7 +210,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 
     private void ValidateRequestedCluster(JobSpecification job)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger)
             .GetClusterById(job.ClusterId);
 
         if (clusterNodeType == null)

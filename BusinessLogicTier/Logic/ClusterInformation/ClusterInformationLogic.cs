@@ -15,7 +15,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
-using log4net;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 using SshCaAPI.Configuration;
 
@@ -29,12 +29,12 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    internal ClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal ClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
     }
 
     #endregion
@@ -49,7 +49,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     /// <summary>
     ///     Log instance
     /// </summary>
-    protected readonly ILog _log;
+    protected readonly ILogger _logger;
     
     /// <summary>
     /// SSH CA service
@@ -172,7 +172,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 adaptorUserId: adaptorUserId.HasValue ? adaptorUserId.Value : null,
                 username: credential.Username
             );
-            _log.Info($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
+            _logger?.LogInformation($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
         }
         return credentials;
     }
@@ -186,7 +186,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             true,
             adaptorUserId: adaptorUserId.HasValue ? adaptorUserId.Value : null,
             username: credential.Username);
-        _log.Info($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
+        _logger?.LogInformation($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
         return credential;
     }
 
@@ -213,7 +213,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             {
                 if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
                 {
-                    _log.Info($"Automatic initialization of cluster accounts is enabled. Attempting to initialize accounts for project {projectId} on cluster {clusterId} for adaptor user {adaptorUserId}");
+                    _logger?.LogInformation($"Automatic initialization of cluster accounts is enabled. Attempting to initialize accounts for project {projectId} on cluster {clusterId} for adaptor user {adaptorUserId}");
                     var initializedCredentials = InitializeCredentials(projectId, clusterId, adaptorUserId);
                     return await GetNextAvailableUserCredentialsByAdaptorUser(clusterId, projectId, requireIsInitialized,
                         adaptorUserId.Value);
@@ -258,7 +258,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             // No user has been used from this cluster
             // return first usable account
             ClusterUserCache.SetLastUserId(cluster, serviceCredentials, firstCredentials.Id);
-            _log.DebugFormat("Using initial cluster account: {0}", firstCredentials.Username);
+            _logger?.LogDebug("Using initial cluster account: {0}", firstCredentials.Username);
             return firstCredentials;
         }
 
@@ -269,7 +269,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         creds ??= firstCredentials;
 
         ClusterUserCache.SetLastUserId(cluster, serviceCredentials, creds.Id);
-        _log.DebugFormat("Using cluster account: {0}", creds.Username);
+        _logger?.LogDebug("Using cluster account: {0}", creds.Username);
         
         
         return creds;
@@ -305,7 +305,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             if (isAutoInitEnabled && isNotInitializedError)
             {
-                _log.InfoFormat("Auto-initializing credentials for ClusterId: {0}, ProjectId: {1}, ServiceAccount: {2}", 
+                _logger?.LogInformation("Auto-initializing credentials for ClusterId: {0}, ProjectId: {1}, ServiceAccount: {2}", 
                     clusterId, projectId, onlyServiceAccounts);
                 
                 return await InitializeClusterCredentials(
@@ -323,7 +323,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         long projectId, 
         long adaptorUserId)
     {
-        _log.InfoFormat("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
+        _logger?.LogInformation("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
 
         //invoke management logic and run CreateSecureShellKey
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -384,7 +384,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         AdaptorUserProjectClusterUserCache.SetLastUserId(
             adaptorUserId, projectId, clusterId, serviceCredentials.Id, creds.Id);
         
-        _log.DebugFormat("Using cluster account: {0}", creds.Username);
+        _logger?.LogDebug("Using cluster account: {0}", creds.Username);
 
         return creds;
     }

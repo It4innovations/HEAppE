@@ -3,15 +3,15 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using HEAppE.DomainObjects.JobManagement.JobInformation;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.Utils;
 
 public class ResourceAccountingUtils
 {
-    public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILog logger)
+    public static void ComputeAccounting(SubmittedTaskInfo dbTaskInfo, SubmittedTaskInfo submittedTaskInfo, ILogger logger)
     {
-        logger.Info(
+        logger?.LogInformation(
             $"Choosing accounting for SubmittedTaskInfo: {dbTaskInfo.Id}, StartTime: {submittedTaskInfo.StartTime}, EndTime: {submittedTaskInfo.EndTime}");
 
         var accounting = dbTaskInfo?.NodeType
@@ -28,11 +28,11 @@ public class ResourceAccountingUtils
 
         if (accounting == null)
         {
-            logger.Info($"Accounting not found for SubmittedTaskInfo: {dbTaskInfo.Id}");
+            logger?.LogInformation($"Accounting not found for SubmittedTaskInfo: {dbTaskInfo.Id}");
             return;
         }
 
-        logger.Info($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
+        logger?.LogInformation($"Accounting {accounting.Id} found for SubmittedTaskInfo: {submittedTaskInfo.Id}");
 
         if (submittedTaskInfo.ParsedParameters == null || submittedTaskInfo.ParsedParameters.Count == 0)
             submittedTaskInfo.ParsedParameters = submittedTaskInfo.AllParameters
@@ -61,11 +61,11 @@ public class ResourceAccountingUtils
     }
 
     private static double CalculateAllocatedResources(string accountingFormula,
-        Dictionary<string, string> parsedParameters, ILog logger)
+        Dictionary<string, string> parsedParameters, ILogger logger)
     {
         if (accountingFormula == null || string.IsNullOrEmpty(accountingFormula)) return 0;
         accountingFormula = accountingFormula.Replace(" ", string.Empty);
-        logger.Info($"Using accounting formula: {accountingFormula}");
+        logger?.LogInformation($"Using accounting formula: {accountingFormula}");
         var accountingFormulaProperties =
             accountingFormula.Split("+-*/%()".ToCharArray(), StringSplitOptions.RemoveEmptyEntries);
         var filteredParsedParameters = parsedParameters.Where(w => accountingFormulaProperties.Contains(w.Key));
@@ -74,22 +74,22 @@ public class ResourceAccountingUtils
             try
             {
                 double value = 0;
-                logger.Info(
+                logger?.LogInformation(
                     $"Parsing accounting formula property: {accountingFormulaProperty.Key} with value: {accountingFormulaProperty.Value}");
                 if (!double.TryParse(accountingFormulaProperty.Value, out value))
                     if (TimeSpan.TryParse(accountingFormulaProperty.Value, out var time))
                         value = time.TotalHours;
-                logger.Info($"Parsed value: {value}");
+                logger?.LogInformation($"Parsed value: {value}");
 
                 accountingFormula =
                     accountingFormula.Replace(accountingFormulaProperty.Key, value.ToString().Replace(',', '.'));
             }
             catch (Exception ex)
             {
-                logger.Error(ex.Message);
+                logger?.LogError(ex.Message);
             }
 
-        logger.Info($"Parsed accounting formula: {accountingFormula}");
+        logger?.LogInformation($"Parsed accounting formula: {accountingFormula}");
 
         try
         {
@@ -98,7 +98,7 @@ public class ResourceAccountingUtils
         }
         catch (Exception ex)
         {
-            logger.Error(ex.Message);
+            logger?.LogError(ex.Message);
         }
 
         return 0;

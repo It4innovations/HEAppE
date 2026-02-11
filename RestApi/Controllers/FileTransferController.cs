@@ -46,7 +46,7 @@ public class FileTransferController : BaseController<FileTransferController>
     public FileTransferController(ILogger<FileTransferController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
         memoryCache)
     {
-        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _service = new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
     }
 
     #endregion
@@ -298,7 +298,7 @@ public class FileTransferController : BaseController<FileTransferController>
             var tasks = new List<Task<dynamic>>();
             foreach (var file in files)
             {
-                tasks.Add(new FileTransferService(_userOrgService, sshCertificateAuthorityService, httpContextKeys).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
+                tasks.Add(new FileTransferService(_userOrgService, sshCertificateAuthorityService, httpContextKeys, _logger).UploadFileToJobExecutionDir(file.OpenReadStream(), file.FileName, jobSpecificationId, taskSpecificationId, sessionCode));
             }
             Task.WaitAll(tasks);
 

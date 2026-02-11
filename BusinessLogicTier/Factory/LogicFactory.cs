@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Logic.AdminUserManagement;
 using HEAppE.BusinessLogicTier.Logic.ClusterInformation;
@@ -61,11 +62,11 @@ public abstract class LogicFactory
     public abstract IAdminUserManagementLogic CreateAdminUserManagementLogic(IUnitOfWork unitOfWork);
 
     public abstract IClusterInformationLogic CreateClusterInformationLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger);
     public abstract IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger);
     public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork);

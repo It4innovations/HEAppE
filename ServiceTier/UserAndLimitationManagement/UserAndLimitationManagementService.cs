@@ -8,7 +8,7 @@ using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using Microsoft.Extensions.Caching.Memory;
-using log4net;
+using Microsoft.Extensions.Logging;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.UserAndLimitationManagement;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
@@ -25,8 +25,6 @@ using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.OpenStackAPI.Configuration;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
-using log4net;
-using Microsoft.Extensions.Caching.Memory;
 using SshCaAPI;
 
 namespace HEAppE.ServiceTier.UserAndLimitationManagement;
@@ -36,13 +34,13 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     private ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys = null;
     private readonly IUserOrgService _userOrgService = null;
-    public UserAndLimitationManagementService(IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public UserAndLimitationManagementService(IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
         _cacheProvider = memoryCache;
         _userOrgService = userOrgService;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
     }
 
     public async Task<string> AuthenticateUserAsync(AuthenticationCredentialsExt credentials)
@@ -86,7 +84,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         {
             var message =
                 $"Credentials of class {credentials.GetType().Name} are not supported. Change the HEAppE.ServiceTier.UserAndLimitationManagementService.AuthenticateUser() method to add support for additional credential types.";
-            _log.Error(message);
+            _logger?.LogError(message);
             throw new ArgumentException(message);
         }
 
@@ -98,7 +96,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             result = await userLogic.AuthenticateUserAsync(credentialsIn);
             if (!string.IsNullOrEmpty(result))
             { 
-                _log.Info($"User {credentials.Username} authenticated successfully.");
+                _logger?.LogInformation($"User {credentials.Username} authenticated successfully.");
             }
         }
         return result;
@@ -127,11 +125,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
                 if (_cacheProvider.TryGetValue(memoryCacheKey, out OpenStackApplicationCredentialsExt value))
                 {
-                    _log.Info($"Using Memory Cache to get value for key.");
+                    _logger?.LogInformation($"Using Memory Cache to get value for key.");
                     return value;
                 }
 
-                _log.Info($"Reloading Memory Cache value for key.");
+                _logger?.LogInformation($"Reloading Memory Cache value for key.");
                 var appCreds = await userLogic.AuthenticateOpenIdUserToOpenStackAsync(user, projectId);
                 _cacheProvider.Set(memoryCacheKey, appCreds.ConvertIntToExt(),
                     TimeSpan.FromSeconds(OpenStackSettings.OpenStackSessionExpiration));
@@ -330,7 +328,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILog _log;
+    private readonly ILogger _logger;
 
     /// <summary>
     ///     Cache provider

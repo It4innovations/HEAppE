@@ -27,13 +27,14 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
 using log4net;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
 internal class JobManagementLogic : IJobManagementLogic
 {
-    protected static readonly ILog _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+    private readonly ILogger _logger;
     private readonly Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency;
     private readonly object _lockCreateJobObj = new();
     private readonly object _lockSubmitJobObj = new();
@@ -53,13 +54,14 @@ internal class JobManagementLogic : IJobManagementLogic
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
         _userOrgService = userOrgService;
+        _logger = null;
     }
 
     public async Task<SubmittedJobInfo> CreateJob(JobSpecification specification, AdaptorUser loggedUser,
         bool isExtraLong)
     {
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
-        var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
         //check if user is authorized to use CommandTemplates in the job specification
         //if jwt is enabled
         if (LexisAuthenticationConfiguration.CheckCommandTemplatePermissions && !string.IsNullOrEmpty(_httpContextKeys.Context.LEXISToken))
@@ -97,7 +99,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var credentials = await clusterLogic.GetNextAvailableUserCredentials(
             specification.ClusterId, specification.ProjectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
         CompleteJobSpecification(specification, loggedUser, clusterLogic, userLogic, credentials);
-        _logger.Info($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
+        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is creating a job specified as {specification}");
 
         foreach (var task in specification.Tasks)
         {
@@ -148,7 +150,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual SubmittedJobInfo SubmitJob(long createdJobInfoId, AdaptorUser loggedUser)
     {
-        _logger.Info($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
+        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is submitting the job with info Id {createdJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         if(jobInfo.Specification.Tasks.Any(x=>x.CommandTemplate.IsEnabled == false))
             throw new InvalidRequestException("CannotSubmitJobWithDisabledCommandTemplate");
@@ -160,7 +162,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 lock (_lockSubmitJobObj)
                 {
                     var isJobUserAvailable = true;
-                    var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+                    var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
                     isJobUserAvailable = clusterLogic.IsUserAvailableToRun(jobInfo.Specification.ClusterUser);
 
                     if (!isJobUserAvailable)
@@ -179,7 +181,7 @@ internal class JobManagementLogic : IJobManagementLogic
                 .SubmitJob(jobInfo.Specification, jobInfo.Specification.ClusterUser, _httpContextKeys.Context.SshCaToken);
 
 
-            jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks);
+            jobInfo = CombineSubmittedJobInfoFromCluster(jobInfo, submittedTasks, _logger);
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
             _unitOfWork.Save();
             return jobInfo;
@@ -190,7 +192,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public async Task<SubmittedJobInfo> GetActualTasksInfo(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger.Info($"User {loggedUser.GetLogIdentification()} is getting actual tasks info for the job with info Id {submittedJobInfoId}");
+        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is getting actual tasks info for the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var cluster = jobInfo.Specification.Cluster;
         var serviceAccount = await
@@ -207,7 +209,7 @@ internal class JobManagementLogic : IJobManagementLogic
             var actualUnfinishedSchedulerTaskInfo = actualUnfinishedSchedulerTasksInfo
                 .FirstOrDefault(w => w.ScheduledJobId == task.ScheduledJobId);
             if (actualUnfinishedSchedulerTaskInfo != null)
-                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
+                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo, _logger);
         }
 
         UpdateJobStateByTasks(jobInfo);
@@ -218,7 +220,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual async Task<SubmittedJobInfo> CancelJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"User {loggedUser.GetLogIdentification()} is canceling the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         if (jobInfo.State is >= JobState.Submitted and < JobState.Finished)
@@ -240,7 +242,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
             foreach (var task in jobInfo.Tasks)
             foreach (var actualUnfinishedSchedulerTaskInfo in actualUnfinishedSchedulerTasksInfo)
-                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo);
+                CombineSubmittedTaskInfoFromCluster(task, actualUnfinishedSchedulerTaskInfo, _logger);
 
             UpdateJobStateByTasks(jobInfo);
             _unitOfWork.SubmittedJobInfoRepository.Update(jobInfo);
@@ -262,7 +264,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public virtual bool DeleteJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger.Info($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
+        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is deleting the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         var clusterProject =
             _unitOfWork.ClusterProjectRepository.GetClusterProjectForClusterAndProject(jobInfo.Specification.ClusterId,
@@ -290,7 +292,7 @@ internal class JobManagementLogic : IJobManagementLogic
     
     public virtual bool ArchiveJob(long submittedJobInfoId, AdaptorUser loggedUser)
     {
-        _logger.Info($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
+        _logger?.LogInformation($"User {loggedUser.GetLogIdentification()} is archiving the job with info Id {submittedJobInfoId}");
         var jobInfo = GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
         
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
@@ -411,7 +413,7 @@ internal class JobManagementLogic : IJobManagementLogic
             //if some jobs need to be checked log
             if (userJobsGroup.Any())
             {
-                _logger.Info(
+                _logger?.LogInformation(
                     $"Triggered automatic check of unfinished jobs for cluster {cluster.Name} and project {project.Name}.");
             }
 
@@ -435,7 +437,7 @@ internal class JobManagementLogic : IJobManagementLogic
                                 .GetInstance(cluster.SchedulerType)
                                 .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: userJobGroup.First().Submitter.Id)
                                 .CancelJob(tasks, "Job cancelled automatically by exceeding waiting limit.", userJobGroup.Key, _httpContextKeys.Context.SshCaToken);
-                            tasks.ForEach(x => _logger.Warn($"Scheduled job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
+                            tasks.ForEach(x => _logger?.LogWarning($"Scheduled job {x.ScheduledJobId} was cancelled because it exceeded waiting limit."));
 
                         }
                         finally
@@ -458,7 +460,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
             if (cluster.UpdateJobStateByServiceAccount.Value)
                 actualUnfinishedSchedulerTasksInfo =
-                    (await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, jobGroup.SelectMany(s => s.Tasks), true))
+                    (await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, jobGroup.SelectMany(s => s.Tasks), true, _logger))
                         .ToList();
             else
             {
@@ -470,7 +472,7 @@ internal class JobManagementLogic : IJobManagementLogic
                  */
                 foreach (var userJobGroup in userJobsGroup)
                 {
-                    var states = await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, userJobGroup.SelectMany(s => s.Tasks), false);
+                    var states = await GetActualTasksStateInHPCScheduler(_unitOfWork, schedulerProxy, userJobGroup.SelectMany(s => s.Tasks), false, _logger);
                     actualUnfinishedSchedulerTasksInfo.AddRange(states);
                 }
             }
@@ -497,7 +499,7 @@ internal class JobManagementLogic : IJobManagementLogic
                         else if (submittedTask.State != actualUnfinishedSchedulerTaskInfo.State)
                         {
                             var submittedTaskInfo =
-                                CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo);
+                                CombineSubmittedTaskInfoFromCluster(submittedTask, actualUnfinishedSchedulerTaskInfo, _logger);
                             isNeedUpdateJobState = true;
                         }
                     }
@@ -522,7 +524,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public void CopyJobDataToTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash, string path)
     {
-        _logger.Info(string.Format("User {0} with job Id {1} is copying job data to temp {2}",
+        _logger?.LogInformation(string.Format("User {0} with job Id {1} is copying job data to temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var clusterProject =
@@ -538,7 +540,7 @@ internal class JobManagementLogic : IJobManagementLogic
 
     public void CopyJobDataFromTemp(long createdJobInfoId, AdaptorUser loggedUser, string hash)
     {
-        _logger.Info(string.Format("User {0} with job Id {1} is copying job data from temp {2}",
+        _logger?.LogInformation(string.Format("User {0} with job Id {1} is copying job data from temp {2}",
             loggedUser.GetLogIdentification(), createdJobInfoId, hash));
         var jobInfo = GetSubmittedJobInfoById(createdJobInfoId, loggedUser);
         var clusterProject =
@@ -582,7 +584,7 @@ internal class JobManagementLogic : IJobManagementLogic
             TasksPerNode = modelTasksPerNode,
             WallTimeInMinutes = modelWallTimeInMinutes,
             IsGpuPartition = clusterNodeType.ClusterNodeTypeAggregation != null && (clusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("ACN") || clusterNodeType.ClusterNodeTypeAggregation.AllocationType.Contains("GPU")),
-            ClusterUser = await LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+            ClusterUser = await LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger)
                 .GetNextAvailableUserCredentials(cluster.Id, project.Id, requireIsInitialized: true, adaptorUserId: loggedUser.Id)
         };
         
@@ -602,7 +604,7 @@ internal class JobManagementLogic : IJobManagementLogic
         var cluster = clusterLogic.GetClusterById(specification.ClusterId);
         specification.Cluster = cluster;
 
-        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
+        specification.FileTransferMethod = LogicFactory.GetLogicFactory().CreateFileTransferLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, null)
             .GetFileTransferMethodsByClusterId(cluster.Id)
             .FirstOrDefault(f => f.Id == specification.FileTransferMethodId.Value);
 
@@ -835,16 +837,16 @@ internal class JobManagementLogic : IJobManagementLogic
     }
 
     protected static SubmittedJobInfo CombineSubmittedJobInfoFromCluster(SubmittedJobInfo dbJobInfo,
-        IEnumerable<SubmittedTaskInfo> submittedTasksInfo)
+        IEnumerable<SubmittedTaskInfo> submittedTasksInfo, ILogger logger)
     {
         try
         {
             dbJobInfo.Tasks.ForEach(s =>
-                CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Specification.Id.ToString())));
+                CombineSubmittedTaskInfoFromCluster(s, submittedTasksInfo.First(f => f.Name == s.Specification.Id.ToString()), logger));
         }
         catch (Exception ex)
         {
-            _logger.Error("Error combining submitted job info from cluster: " + ex.Message);
+            logger?.LogError("Error combining submitted job info from cluster: " + ex.Message);
             throw new InvalidRequestException("ErrorCombiningJobInfoFromCluster", dbJobInfo.Id);
         }
         
@@ -854,7 +856,7 @@ internal class JobManagementLogic : IJobManagementLogic
     }
 
     private static async Task<IEnumerable<SubmittedTaskInfo>> GetActualTasksStateInHPCScheduler(IUnitOfWork unitOfWork,
-        Func<long, IRexScheduler> scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount)
+        Func<long, IRexScheduler> scheduler, IEnumerable<SubmittedTaskInfo> jobTasks, bool useServiceAccount, ILogger logger)
     {
         var unfinishedTasks = jobTasks
             .Where(w => w.State is > TaskState.Configuring and (<= TaskState.Running or TaskState.Canceled))
@@ -866,7 +868,7 @@ internal class JobManagementLogic : IJobManagementLogic
             ? await unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
                 jobSpecification.ClusterId, jobSpecification.ProjectId, requireIsInitialized: true, adaptorUserId: jobSpecification.Submitter.Id)
             : jobSpecification.ClusterUser;
-        _logger.Info($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
+        logger?.LogInformation($"Getting actual tasks state for job {jobSpecification.Id} using account {account.Username}");
         return scheduler(jobSpecification.Submitter.Id).GetActualTasksInfo(unfinishedTasks, account, null);
     }
 
@@ -884,9 +886,9 @@ internal class JobManagementLogic : IJobManagementLogic
     }
 
     protected static SubmittedTaskInfo CombineSubmittedTaskInfoFromCluster(SubmittedTaskInfo dbTaskInfo,
-        SubmittedTaskInfo clusterTaskInfo)
+        SubmittedTaskInfo clusterTaskInfo, ILogger logger)
     {
-        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, _logger);
+        ResourceAccountingUtils.ComputeAccounting(dbTaskInfo, clusterTaskInfo, logger);
 
         if (clusterTaskInfo is null)
         {

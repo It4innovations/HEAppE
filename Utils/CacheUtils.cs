@@ -1,9 +1,7 @@
-﻿using System.Reflection;
-using Microsoft.Extensions.Caching.Memory;
+﻿using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Primitives;
 using System.Threading;
-using log4net;
 
 namespace HEAppE.Utils;
 
@@ -28,10 +26,9 @@ public static class CacheUtils
     /// <summary>
     /// Invalidates all cache entries by cancelling the global reset token.
     /// </summary>
-    public static void InvalidateAllCache()
+    public static void InvalidateAllCache(ILogger logger)
     {
-        var logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
-        logger.Debug("Invalidating ALL cache entries via global reset token.");
+        logger?.LogDebug("Invalidating ALL cache entries via global reset token.");
         var oldTokenSource = Interlocked.Exchange(ref _globalResetToken, new CancellationTokenSource());
         oldTokenSource.Cancel();
         oldTokenSource.Dispose();

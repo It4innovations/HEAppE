@@ -39,7 +39,7 @@ public class DataStagingEndpoint : IApiRoute
                         logger.LogDebug(
                             """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
                         return Results.Ok(await
-                            (new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys)).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
+                            (new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger)).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
                                 model.SessionCode));
                     }
                     finally
@@ -71,7 +71,7 @@ public class DataStagingEndpoint : IApiRoute
 
                     logger.LogDebug(
                         """Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
-                    return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
+                    return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
                         model.TaskFileOffsets, model.SessionCode));
                 }
                 finally
@@ -110,7 +110,7 @@ public class DataStagingEndpoint : IApiRoute
 
                     logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """,
                         model);
-                    return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).ListChangedFilesForJob(submittedJobInfoId, sessionCode));
+                    return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).ListChangedFilesForJob(submittedJobInfoId, sessionCode));
                 }
                 finally
                 {
@@ -146,7 +146,7 @@ public class DataStagingEndpoint : IApiRoute
                         logger.LogDebug(
                             """Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """,
                             model);
-                        return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).DownloadFileFromCluster(model.SubmittedJobInfoId,
+                        return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).DownloadFileFromCluster(model.SubmittedJobInfoId,
                             model.RelativeFilePath, model.SessionCode));
                     }
                     finally
@@ -241,7 +241,7 @@ public class DataStagingEndpoint : IApiRoute
                     var tasks = new List<Task<dynamic>>();
                     foreach (var file in files)
                     {
-                        tasks.Add(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).UploadFileToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode));
+                        tasks.Add(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).UploadFileToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode));
                     }
                     Task.WaitAll(tasks);
 
@@ -292,7 +292,7 @@ public class DataStagingEndpoint : IApiRoute
                     var tasks = new List<Task<dynamic>>();
                     foreach (var file in files)
                     {
-                        tasks.Add(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys).UploadJobScriptToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode));
+                        tasks.Add(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).UploadJobScriptToProjectDir(file.OpenReadStream(), file.FileName, projectId, clusterId, sessionCode));
                     }
                     Task.WaitAll(tasks);
 
