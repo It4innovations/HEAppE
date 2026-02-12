@@ -152,6 +152,10 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         var credentials = clusterAuthenticationCredentials?.ToList();
 
+        //return ids of credentials for logging
+        var credentialIds = credentials?.Select(c => c.Id).ToList();
+        _log.Debug($"Found credentials for project {projectId} with adaptorUserId {adaptorUserId}: {string.Join(", ", credentialIds ?? new List<long>())}");
+        
         if (requireIsInitialized && (credentials == null || !credentials.Any()))
         {
             _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
@@ -183,7 +187,9 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         );
 
         var credentials = clusterAuthenticationCredentials?.ToList();
-
+        //return ids of credentials for logging
+        var credentialIds = credentials?.Select(c => c.Id).ToList();
+        _log.Debug($"Found credentials for project {projectId} with adaptorUserId {adaptorUserId} and username {username}: {string.Join(", ", credentialIds ?? new List<long>())}");
         if (requireIsInitialized && (credentials == null || !credentials.Any()))
         {
             _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId} and username {username}.");
