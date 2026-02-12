@@ -9,15 +9,15 @@ namespace HEAppE.DomainObjects.ClusterInformation;
 [Table("ClusterNodeType")]
 public class ClusterNodeType : IdentifiableDbEntity, ISoftDeletableEntity
 {
-    [Required] [StringLength(50)] public string Name { get; set; }
+    [Required] [StringLength(250)] public string Name { get; set; }
 
-    [Required] [StringLength(200)] public string Description { get; set; }
+    [Required] [StringLength(250)] public string Description { get; set; }
 
     public int? NumberOfNodes { get; set; }
 
     public int CoresPerNode { get; set; }
 
-    [StringLength(30)] public string Queue { get; set; }
+    [StringLength(250)] public string Queue { get; set; }
 
     [StringLength(40)] public string QualityOfService { get; set; }
 

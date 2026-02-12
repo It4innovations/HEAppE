@@ -21,16 +21,16 @@ public class Cluster : IdentifiableDbEntity, ISoftDeletableEntity
 
     #region Properties
 
-    [Required] [StringLength(50)] 
+    [Required] [StringLength(250)] 
     public string Name { get; set; }
 
     [Required] [StringLength(200)] 
     public string Description { get; set; }
 
-    [Required] [StringLength(50)] 
+    [Required] [StringLength(250)] 
     public string MasterNodeName { get; set; }
 
-    [StringLength(50)] 
+    [StringLength(250)] 
     public string DomainName { get; set; }
 
     public int? Port { get; set; }

@@ -14,7 +14,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
     public class AdaptorUser : IdentifiableDbEntity, ILogUserIdentification, ISoftDeletableEntity
     {
         [Required]
-        [StringLength(100)]
+        [StringLength(250)]
         public string Username { get; set; }
 
         [StringLength(128)]
@@ -23,7 +23,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         [Column(TypeName = "text")]
         public string PublicKey { get; set; }
 
-        [StringLength(100)]
+        [StringLength(250)]
         public string Email { get; set; }
         public bool Synchronize { get; set; }
 
