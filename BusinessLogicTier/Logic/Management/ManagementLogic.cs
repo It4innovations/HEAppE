@@ -925,17 +925,19 @@ public class ManagementLogic : IManagementLogic
             var project = clusterProjectCredential.ClusterProject.Project;
 
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
-            if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials, _httpContextKeys.Context.SshCaToken))
+            var status = scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials,
+                _httpContextKeys.Context.SshCaToken);
+            if (!status.Item1)
             {
                 _logger.Info(
-                    $"Test cluster access failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
+                    $"Test cluster access failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}. Error: {status.Item2}");
                 noAccessClusterIds.Add(cluster.Id);
                 clusterAccountAccess.Add(new ClusterAccessReport(){Cluster = cluster, IsClusterAccessible = false});
             }
             else
             {
                 _logger.Info(
-                    $"Test cluster access succeeded for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
+                    $"Test cluster access succeeded for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}. Message: {status.Item2}");
                 clusterAccountAccess.Add(new ClusterAccessReport(){Cluster = cluster, IsClusterAccessible = true});
             }
         }
