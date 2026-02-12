@@ -626,12 +626,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         var validProjectIds = new HashSet<long>(
             projects?.Where(x => x != null).Select(x => x.Id) ?? Enumerable.Empty<long>()
         );
-        
-        var groupRoles = loggedUser.AdaptorUserUserGroupRoles
-            .GroupBy(x => x.AdaptorUserGroup)
-            .Select(g => g.OrderBy(x => x.AdaptorUserRoleId).First());
+    
+        var allGroupRoles = loggedUser.AdaptorUserUserGroupRoles
+            .Where(x => !x.IsDeleted);
 
-        foreach (var groupRole in groupRoles)
+        foreach (var groupRole in allGroupRoles)
         {
             var project = _unitOfWork.AdaptorUserGroupRepository
                 .GetAllWithAdaptorUserGroupsAndActiveProjects()
@@ -641,7 +640,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             {
                 continue;
             }
-            
+        
             var commandTemplates = _unitOfWork.CommandTemplateRepository.GetCommandTemplatesByProjectId(project.Id);
             project.CommandTemplates = commandTemplates.ToList();
 
@@ -652,7 +651,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             });
         }
 
-        return projectReferences.Distinct();
+        return projectReferences;
     }
 
     #endregion
