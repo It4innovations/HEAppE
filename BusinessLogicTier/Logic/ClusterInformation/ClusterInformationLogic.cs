@@ -440,11 +440,14 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         }
         else
         {
+            var serviceAccount = await
+                _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId,
+                    projectId, false, adaptorUserId);
             notInitializedCredentials = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
                     .GetAuthenticationCredentialsForClusterAndProject(
                         clusterId, projectId, false, adaptorUserId);
-            
+            notInitializedCredentials.Append(serviceAccount);
         }
        
 
