@@ -981,92 +981,117 @@ public class ManagementLogic : IManagementLogic
         
         return clusterInitReports.Values.ToList();
     }
-    /// <summary>
-    /// Test cluster access for a specific account in a project.
-    /// </summary>
-    /// <param name="projectId"></param>
-    /// <param name="username"></param>
-    /// <param name="adaptorUserId"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidRequestException"></exception>
-    public async Task<List<ClusterAccessReport>> TestClusterAccessForAccount(long projectId, string username,
-        long? adaptorUserId)
+    public async Task<List<ClusterAccessReport>> TestClusterAccessForAccount(long projectId, string username, long? adaptorUserId, bool isAdministrator = false)
     {
         List<ClusterAccessReport> clusterAccountAccess = new();
-        var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)).ToList()
-            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId))
-                .Where(w =>
-                    w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
-                    w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+        List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = new();
 
-        if (!clusterAuthenticationCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
-
-        List<long> noAccessClusterIds = new();
-        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.Where(x=>!x.IsDeleted).DistinctBy(x => x.Username))
-        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).DistinctBy(x =>
-                     x.ClusterProject))
+        if (!string.IsNullOrEmpty(username))
         {
-            var cluster = clusterProjectCredential.ClusterProject.Cluster;
-            var project = clusterProjectCredential.ClusterProject.Project;
+            var specificCreds = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                .GetAuthenticationCredentialsProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator);
+            clusterAuthenticationCredentials.AddRange(specificCreds);
+        }
+        else
+        {
+            clusterAuthenticationCredentials.AddRange(
+                await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                    .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: isAdministrator ? null : adaptorUserId, isAdministrator: isAdministrator));
+        }
 
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
-            var status = scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials,
-                _httpContextKeys.Context.SshCaToken);
-            if (!status.Item1)
+        var targetCredentials = clusterAuthenticationCredentials
+            .Where(w =>
+                w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
+                w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId))
+            .ToList();
+
+        if (!targetCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
+
+        foreach (var clusterAuthCredentials in targetCredentials.Where(x => !x.IsDeleted).DistinctBy(x => x.Username))
+        {
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials
+                         .Where(x => !x.IsDeleted && x.ClusterProject.ProjectId == projectId)
+                         .DistinctBy(x => x.ClusterProject))
             {
-                _logger.Info(
-                    $"Test cluster access failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}. Error: {status.Item2}");
-                noAccessClusterIds.Add(cluster.Id);
-                clusterAccountAccess.Add(new ClusterAccessReport(){Cluster = cluster, IsClusterAccessible = false});
-            }
-            else
-            {
-                _logger.Info(
-                    $"Test cluster access succeeded for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}. Message: {status.Item2}");
-                clusterAccountAccess.Add(new ClusterAccessReport(){Cluster = cluster, IsClusterAccessible = true});
+                var cluster = clusterProjectCredential.ClusterProject.Cluster;
+                var project = clusterProjectCredential.ClusterProject.Project;
+
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
+                
+                var status = scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials,
+                    _httpContextKeys.Context.SshCaToken);
+                
+                if (!status.Item1)
+                {
+                    _logger.Info(
+                        $"Test cluster access failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}. Error: {status.Item2}");
+                    clusterAccountAccess.Add(new ClusterAccessReport 
+                    { 
+                        Cluster = cluster, 
+                        IsClusterAccessible = false
+                    });
+                }
+                else
+                {
+                    _logger.Info(
+                        $"Test cluster access succeeded for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}. Message: {status.Item2}");
+                    clusterAccountAccess.Add(new ClusterAccessReport 
+                    { 
+                        Cluster = cluster, 
+                        IsClusterAccessible = true 
+                    });
+                }
             }
         }
-        _logger.Info($"Tested cluster access for project {projectId} with username {username} with results: {string.Join(", ", clusterAccountAccess.Select(x => $"{x.Cluster.Name}: {x.IsClusterAccessible}"))}");
+        
+        _logger.Info($"Tested cluster access for project {projectId} with username {username} (Admin: {isAdministrator}) with results: {string.Join(", ", clusterAccountAccess.Select(x => $"{x.Cluster.Name}: {x.IsClusterAccessible}"))}");
         return clusterAccountAccess;
     }
 
-
-    /// <summary>
-    /// Test cluster access for a specific account in a project.
-    /// </summary>
-    /// <param name="projectId"></param>
-    /// <param name="username"></param>
-    /// <param name="adaptorUserId"></param>
-    /// <returns></returns>
-    /// <exception cref="InvalidRequestException"></exception>
     public async Task<List<ClusterAccountStatus>> ClusterAccountStatus(long projectId, string username,
-        long? adaptorUserId)
+        long? adaptorUserId, bool isAdministrator = false)
     {
         List<ClusterAccountStatus> clusterAccountStatusList = new();
-        var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)).ToList()
-            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId))
-                .Where(w =>
-                    w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+        List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = new();
 
-        var clusterAuthenticationCredentialsEnumerable = clusterAuthenticationCredentials as ClusterAuthenticationCredentials[] ?? clusterAuthenticationCredentials.ToArray();
-        if (!clusterAuthenticationCredentialsEnumerable.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
-        
-        foreach (var clusterAuthCredentials in clusterAuthenticationCredentialsEnumerable.Where(x=>!x.IsDeleted).DistinctBy(x => x.Username))
-        foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).DistinctBy(x =>
-                     x.ClusterProject))
+        if (!string.IsNullOrEmpty(username))
         {
-            var cluster = clusterProjectCredential.ClusterProject.Cluster;
-            var project = clusterProjectCredential.ClusterProject.Project;
-
-            clusterAccountStatusList.Add(new ClusterAccountStatus()
-            {
-                Cluster = cluster,
-                Project = project,
-                IsInitialized = clusterProjectCredential.IsInitialized
-            });
+            var specificCreds = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                .GetAuthenticationCredentialsProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator);
+            clusterAuthenticationCredentials.AddRange(specificCreds);
         }
+        else
+        {
+            clusterAuthenticationCredentials.AddRange(
+                await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                    .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: isAdministrator ? null : adaptorUserId, isAdministrator: isAdministrator));
+        }
+
+        var targetCredentials = clusterAuthenticationCredentials
+            .Where(w => w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId))
+            .ToList();
+
+        if (!targetCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
+        
+        foreach (var clusterAuthCredentials in targetCredentials.Where(x => !x.IsDeleted).DistinctBy(x => x.Username))
+        {
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials
+                         .Where(x => !x.IsDeleted && x.ClusterProject.ProjectId == projectId)
+                         .DistinctBy(x => x.ClusterProject))
+            {
+                var cluster = clusterProjectCredential.ClusterProject.Cluster;
+                var project = clusterProjectCredential.ClusterProject.Project;
+
+                clusterAccountStatusList.Add(new ClusterAccountStatus
+                {
+                    Cluster = cluster,
+                    Project = project,
+                    IsInitialized = clusterProjectCredential.IsInitialized
+                });
+            }
+        }
+        
         return clusterAccountStatusList;
     }
     

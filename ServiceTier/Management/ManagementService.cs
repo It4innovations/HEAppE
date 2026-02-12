@@ -477,9 +477,10 @@ public class ManagementService : IManagementService
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
             return (await managementLogic.InitializeClusterScriptDirectory(projectId, overwriteExistingProjectRootDirectory,
-                adaptorUserId: loggedUser.Id, username: username)).Select(x => x.ConvertIntToExt()).ToList();
+                adaptorUserId: loggedUser.Id, username: username, isAdministrator:isAdministrator)).Select(x => x.ConvertIntToExt()).ToList();
         }
     }
 
@@ -505,8 +506,9 @@ public class ManagementService : IManagementService
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return (await managementLogic.TestClusterAccessForAccount(projectId, username, loggedUser.Id))
+            return (await managementLogic.TestClusterAccessForAccount(projectId, username, loggedUser.Id, isAdministrator))
                 .Select(x => x.ConvertIntToExt())
                 .ToList();
         }
@@ -542,8 +544,9 @@ public class ManagementService : IManagementService
                 projects.AddRange(managementAdminProjects);
             }
             //get all user projects for conversion
+            bool isAdministrator = loggedUser.AdaptorUserUserGroupRoles.Any(r => r.AdaptorUserRoleId == (long)AdaptorUserRoleType.Administrator);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            return (await managementLogic.ClusterAccountStatus(projectId, username, loggedUser.Id))
+            return (await managementLogic.ClusterAccountStatus(projectId, username, loggedUser.Id, isAdministrator))
                 .Select(x => x.ConvertIntToExt(projects, true))
                 .ToList();
         }

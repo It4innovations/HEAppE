@@ -66,8 +66,8 @@ public interface IManagementLogic
         long? adaptorUserId, string username, bool isAdministrator = false);
     
     public Task<List<ClusterAccessReport>> TestClusterAccessForAccount(long projectId, string username,
-        long? adaptorUserId);
-    public Task<List<ClusterAccountStatus>> ClusterAccountStatus(long projectId, string username, long? adaptorUserId);
+        long? adaptorUserId, bool isAdministrator = false);
+    public Task<List<ClusterAccountStatus>> ClusterAccountStatus(long projectId, string username, long? adaptorUserId, bool isAdministrator = false);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
     CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,
