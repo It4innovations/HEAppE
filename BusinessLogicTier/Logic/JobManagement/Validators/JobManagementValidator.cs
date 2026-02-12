@@ -260,7 +260,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
                           ?? throw new RequestedObjectDoesNotExistException("ProjectNotFound");
             var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                    projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
+                    projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
             return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
                 .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken).ToList();
         }

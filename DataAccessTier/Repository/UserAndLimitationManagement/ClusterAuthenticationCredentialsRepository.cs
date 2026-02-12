@@ -101,7 +101,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForClusterAndProject(
-        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
+        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
@@ -119,7 +119,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForUsernameAndProject(
-        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
@@ -130,7 +130,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(long projectId,
-        bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
+        bool requireIsInitialized, long? adaptorUserId, ILogger logger)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
@@ -146,7 +146,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     }
     
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(
-        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac => cac.Username == username &&

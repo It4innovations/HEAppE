@@ -92,7 +92,7 @@ public class ManagementLogic : IManagementLogic
         var cluster = commandTemplate.ClusterNodeType.Cluster;
         var serviceAccount = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
+                projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
@@ -248,7 +248,7 @@ public class ManagementLogic : IManagementLogic
 
         var cluster = commandTemplate.ClusterNodeType.Cluster;
         var serviceAccount = await
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
             .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
@@ -707,7 +707,7 @@ public class ManagementLogic : IManagementLogic
         {
             var existingCredentials = await 
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId);
+                    .GetAuthenticationCredentialsForUsernameAndProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger);
             if (existingCredentials.Any())
             {
                 //get existing secure key
@@ -740,7 +740,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public async Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId)
     {
-        var clusterAuthenticationCredentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username)).Where(
+        var clusterAuthenticationCredentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username, _logger)).Where(
             w => 
                  w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
                  w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
@@ -781,7 +781,7 @@ public class ManagementLogic : IManagementLogic
     /// <exception cref="RequestedObjectDoesNotExistException"></exception>
     public async Task RemoveSecureShellKey(string username, long projectId)
     {
-        var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username);
+        var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username, _logger);
 
         var list = clusterAuthenticationCredentials.ToList();
         
@@ -908,8 +908,8 @@ public class ManagementLogic : IManagementLogic
     {
         List<ClusterAccessReport> clusterAccountAccess = new();
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)).ToList()
-            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId))
+            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId, _logger)).ToList()
+            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId, _logger))
                 .Where(w =>
                     w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
                     w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
@@ -957,8 +957,8 @@ public class ManagementLogic : IManagementLogic
     {
         List<ClusterAccountStatus> clusterAccountStatusList = new();
         var clusterAuthenticationCredentials = string.IsNullOrEmpty(username)
-            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId)).ToList()
-            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId))
+            ? (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllGenerated(projectId, _logger)).ToList()
+            : (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForUsernameAndProject(username, projectId, false, adaptorUserId, _logger))
                 .Where(w =>
                     w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
 
@@ -2033,7 +2033,7 @@ public class ManagementLogic : IManagementLogic
         {
             var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(
-                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId);
+                    clusterProject.ClusterId, project.Id, requireIsInitialized: false, adaptorUserId: adaptorUserId, _logger);
 
             if (serviceAccount == null)
             {

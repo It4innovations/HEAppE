@@ -103,7 +103,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             throw new InvalidRequestException("UserNoAccessToClusterNode", loggedUser, clusterNodeId);
 
         var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
-            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+            ?.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
 
         if (serviceAccount is null)
             throw new InvalidRequestException("ProjectNoReferenceToCluster", projectId, cluster.Id);
@@ -143,7 +143,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             var cluster = commandTemplate.ClusterNodeType.Cluster;
             var serviceAccountCredentials = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
-                    projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id);
+                    projectId, requireIsInitialized: true, adaptorUserId: loggedUser.Id, _logger);
             if (serviceAccountCredentials is null)
                 throw new RequestedObjectDoesNotExistException("ServiceAccountCredentialsNotDefinedInCommandTemplate");
 
@@ -162,7 +162,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     {
         var credentials = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                clusterId, projectId, false, null);
+                clusterId, projectId, false, null, _logger);
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
         foreach (var credential in credentials)
         {
@@ -227,7 +227,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         {
             credentials = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
-                    clusterId, projectId, requireIsInitialized, null);
+                    clusterId, projectId, requireIsInitialized, null, _logger);
         }
         catch(NotAllowedException ex)
         {
@@ -247,7 +247,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNotFound", clusterId, projectId);
 
         var serviceCredentials = await
-            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, null)
+            _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, null, _logger)
             ?? throw new RequestedObjectDoesNotExistException("ClusterProjectCombinationNoServiceAccount", clusterId, projectId);
 
         var firstCredentials = credentials.FirstOrDefault();
@@ -286,7 +286,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             if (onlyServiceAccounts)
             {
                 var serviceAccount = await _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, adaptorUserId);
+                    .GetServiceAccountCredentials(clusterId, projectId, requireIsInitialized, adaptorUserId, _logger);
 
                 return serviceAccount != null 
                     ? new List<ClusterAuthenticationCredentials> { serviceAccount } 
@@ -295,7 +295,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             else
             {
                 return await _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, requireIsInitialized, adaptorUserId);
+                    .GetAuthenticationCredentialsForClusterAndProject(clusterId, projectId, requireIsInitialized, adaptorUserId, _logger);
             }
         }
         catch (NotAllowedException ex)
@@ -434,7 +434,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         if (onlyServiceAccounts)
         {
             var serviceAccount = await
-                                     _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId)
+                                     _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(clusterId, projectId, false, adaptorUserId, _logger)
                                  ?? throw new RequestedObjectDoesNotExistException("ClusterAuthenticationCredentialsNoServiceAccount", clusterId, projectId, adaptorUserId);
             notInitializedCredentials = new List<ClusterAuthenticationCredentials> { serviceAccount };
         }
@@ -443,7 +443,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             notInitializedCredentials = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
                     .GetAuthenticationCredentialsForClusterAndProject(
-                        clusterId, projectId, false, adaptorUserId);
+                        clusterId, projectId, false, adaptorUserId, _logger);
             
         }
        
