@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using HEAppE.BackgroundThread.Configuration;
 using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement;
@@ -16,7 +17,7 @@ public class RoleAssignmentBackgroundService : BackgroundService
 {
     private readonly IServiceScopeFactory _scopeFactory;
     private static readonly ILog _log = LogManager.GetLogger(typeof(RoleAssignmentBackgroundService));
-    private readonly TimeSpan _interval = TimeSpan.FromHours(1);
+    private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.RoleAssignmentSyncCheck);
 
     public RoleAssignmentBackgroundService(IServiceScopeFactory scopeFactory)
     {
