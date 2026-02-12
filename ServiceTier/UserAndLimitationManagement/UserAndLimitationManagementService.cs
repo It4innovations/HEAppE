@@ -328,7 +328,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
 
     /// <summary>
     ///     Cache provider

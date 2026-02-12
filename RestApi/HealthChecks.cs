@@ -145,7 +145,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null, ILogger log
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/SQL";
-    readonly ILogger _logger = logger;
+    readonly ILogger? _logger = logger;
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -205,7 +205,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null, ILogger logger 
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/Vault";
-    readonly ILogger _logger = logger;
+    readonly ILogger? _logger = logger;
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {

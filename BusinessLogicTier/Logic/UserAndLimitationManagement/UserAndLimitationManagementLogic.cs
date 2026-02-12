@@ -60,7 +60,7 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
 
     private readonly IUserOrgService _userOrgService;
 

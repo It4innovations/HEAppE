@@ -15,7 +15,7 @@ public static class CacheUtils
     /// <summary>
     /// Removes a specific key from the cache with logging.
     /// </summary>
-    public static void RemoveKeyFromCache(this IMemoryCache _cacheProvider, ILogger _logger, string key,
+    public static void RemoveKeyFromCache(this IMemoryCache _cacheProvider, ILogger? _logger, string key,
         string calledMethodName)
     {
         _logger.LogDebug($"Endpoint: \"Management\" Method: \"{calledMethodName}\"");

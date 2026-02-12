@@ -56,9 +56,9 @@ public class NoAuthenticationSshClient : SshClient
     private readonly string _userName;
 
     /// <summary>
-    ///     Log4Net logger
+    ///     Logger
     /// </summary>
-    protected ILogger _logger;
+    protected ILogger? _logger;
 
     #endregion
 

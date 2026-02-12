@@ -41,7 +41,7 @@ internal class JobReportingLogic : IJobReportingLogic
     /// <summary>
     ///     Log instance
     /// </summary>
-    protected readonly ILogger _logger;
+    protected readonly ILogger? _logger;
 
     #endregion
 

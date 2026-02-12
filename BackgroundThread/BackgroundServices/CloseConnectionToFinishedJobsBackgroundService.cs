@@ -20,7 +20,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
     private readonly ILog _log;
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;

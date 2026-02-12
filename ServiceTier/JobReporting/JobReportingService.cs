@@ -26,7 +26,7 @@ public class JobReportingService : IJobReportingService
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;

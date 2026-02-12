@@ -29,7 +29,7 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 public class SshConnector : IPoolableAdapter
 {
     private ISshCertificateAuthorityService _sshCaService;
-    private ILogger _logger;
+    private ILogger? _logger;
 
     public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {

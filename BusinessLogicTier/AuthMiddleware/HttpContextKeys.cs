@@ -49,7 +49,7 @@ public class HttpContextKeys : IHttpContextKeys
 {
     private readonly IRequestContext _context;
     public IRequestContext Context => _context;
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
 
     public HttpContextKeys(IRequestContext context)
     {

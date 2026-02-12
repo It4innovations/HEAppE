@@ -33,7 +33,7 @@ namespace HEAppE.BusinessLogicTier.Logic.JobManagement;
 
 internal class JobManagementLogic : IJobManagementLogic
 {
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
     private readonly Dictionary<TaskSpecification, TaskSpecification> _extraLongTaskDecomposedDependency;
     private readonly object _lockCreateJobObj = new();
     private readonly object _lockSubmitJobObj = new();

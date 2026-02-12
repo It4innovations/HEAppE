@@ -37,7 +37,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management;
 
 public class ManagementLogic : IManagementLogic
 {
-    protected readonly ILogger _logger;
+    protected readonly ILogger? _logger;
 
     /// <summary>
     ///     Script Configuration

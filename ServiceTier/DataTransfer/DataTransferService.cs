@@ -23,7 +23,7 @@ public class DataTransferService : IDataTransferService
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
     public DataTransferService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
     {
         _userOrgService = userOrgService;

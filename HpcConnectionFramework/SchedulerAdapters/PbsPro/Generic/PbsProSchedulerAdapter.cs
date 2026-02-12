@@ -54,7 +54,7 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILogger _logger;
+    protected ILogger? _logger;
 
     /// <summary>
     ///     SSH tunnel

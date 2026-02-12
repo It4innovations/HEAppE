@@ -5,7 +5,6 @@ using System.Linq;
 using System.Runtime;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
-using log4net;
 using Renci.SshNet;
 using Renci.SshNet.Sftp;
 using HEAppE.ConnectionPool;

@@ -15,7 +15,7 @@ namespace HEAppE.RestApi.Services;
 public class RoleAssignmentService : IHostedService
 {
     private readonly IServiceProvider _serviceProvider;
-    private readonly ILogger _logger ;
+    private readonly ILogger? _logger ;
 
     public RoleAssignmentService(IServiceProvider serviceProvider)
     {

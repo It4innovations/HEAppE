@@ -68,7 +68,7 @@ public class FileTransferLogic : IFileTransferLogic
     /// <summary>
     ///     _logger
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
     
     /// <summary>
     /// Ssh CA service

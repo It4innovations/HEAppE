@@ -30,7 +30,7 @@ public abstract class AbstractFileSystemManager : IRexFileSystemManager
 
     #region Instances
 
-    protected ILogger _logger;
+    protected ILogger? _logger;
     protected Dictionary<SynchronizableFiles, Dictionary<string, IFileSynchronizer>> _fileSynchronizers;
 
     protected readonly ScriptsConfiguration _scripts = HPCConnectionFrameworkConfiguration.ScriptsSettings;

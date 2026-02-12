@@ -20,7 +20,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 {
     protected readonly IUnitOfWork _unitOfWork;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
-    protected readonly ILogger _logger;
+    protected readonly ILogger? _logger;
     private readonly IHttpContextKeys _httpContextKeys;
 
     #region Constructors

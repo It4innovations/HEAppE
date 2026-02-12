@@ -49,7 +49,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     /// <summary>
     ///     Log instance
     /// </summary>
-    protected readonly ILogger _logger;
+    protected readonly ILogger? _logger;
     
     /// <summary>
     /// SSH CA service

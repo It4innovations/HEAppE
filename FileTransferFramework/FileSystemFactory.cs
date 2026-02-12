@@ -26,7 +26,7 @@ public abstract class FileSystemFactory
 
     #region Instances
 
-    protected static readonly ILogger _logger;
+    protected static readonly ILogger? _logger;
     private readonly Dictionary<FileTransferMethod, IConnectionPool> _schedulerConnPoolSingletons = new();
     private static FileSystemFactory _windowsSharedFactorySingleton;
     private static FileSystemFactory _sftpFactorySingleton;

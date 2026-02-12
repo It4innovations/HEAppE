@@ -229,7 +229,7 @@ public class ClusterInformationService : IClusterInformationService
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
 
     /// <summary>
     ///     Cache provider

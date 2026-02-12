@@ -14,7 +14,7 @@ namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 public class LexisAuthMiddleware
 {
     private readonly RequestDelegate _next;
-    private readonly ILogger _logger = null;
+    private readonly ILogger? _logger = null;
 
     public LexisAuthMiddleware(RequestDelegate next)
     {

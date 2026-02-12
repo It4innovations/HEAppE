@@ -77,7 +77,7 @@ public class SSHGenerator
     /// <summary>
     ///     _logger
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
 
     #endregion
 

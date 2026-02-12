@@ -36,7 +36,7 @@ public class ManagementService : IManagementService
 {
     #region Instances
 
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;

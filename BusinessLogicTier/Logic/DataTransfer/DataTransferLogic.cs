@@ -53,7 +53,7 @@ public class DataTransferLogic : IDataTransferLogic
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger _logger;
+    private readonly ILogger? _logger;
 
     /// <summary>
     ///     Unit of work
