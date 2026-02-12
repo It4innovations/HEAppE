@@ -19,6 +19,7 @@ using SshCaAPI;
 using SshCaAPI.Configuration;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
@@ -28,9 +29,12 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 public class SshConnector : IPoolableAdapter
 {
     private ISshCertificateAuthorityService _sshCaService;
-    public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    private ILogger _logger;
+
+    public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         _sshCaService = sshCertificateAuthorityService;
+        _logger = logger;
     }
     #region Local Methods
 
@@ -83,10 +87,10 @@ public class SshConnector : IPoolableAdapter
                     credentials.PrivateKeyPassphrase, port),
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent
-                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
+                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username, _logger),
 
             ClusterAuthenticationCredentialsAuthType.PrivateKeyInVaultAndInSshAgent
-                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username),
+                => CreateConnectionObjectUsingNoAuthentication(masterNodeName, port, credentials.Username, _logger),
             
             ClusterAuthenticationCredentialsAuthType.SshCertificate => 
                 CreateConnectionObjectUsingSshCertificate(masterNodeName, credentials, sshCaToken, port),
@@ -582,9 +586,9 @@ public class SshConnector : IPoolableAdapter
     /// <param name="username">Username</param>
     /// <returns></returns>
     private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, int? port,
-        string username)
+        string username, ILogger logger)
     {
-        var client = new NoAuthenticationSshClient(masterNodeName, port, username);
+        var client = new NoAuthenticationSshClient(masterNodeName, port, username, logger);
         return client;
     }
 

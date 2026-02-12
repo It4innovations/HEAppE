@@ -10,7 +10,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Data.SqlClient;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
-using log4net;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
 using HEAppE.DataAccessTier;
@@ -18,6 +17,7 @@ using HEAppE.DataAccessTier.Vault.Settings;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.RestApi.Configuration;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.RestApi;
 
@@ -66,14 +66,14 @@ public class HEAppEHealth
         return DateTime.SpecifyKind(new SqlDateTime(DateTime.UtcNow).Value, DateTimeKind.Utc);
     }
 
-    public static async Task<HealthExt> GetHealth(ILog log)
+    public static async Task<HealthExt> GetHealth(ILogger logger)
     {
         bool isHealthy = false, databaseIsHealthy = false, vaultIsHealthy = false;
         dynamic vaultInfo = null;
         int? timeoutMs = 1000; // let it be constant for now...
         var cancellationToken = new CancellationTokenSource(timeoutMs.Value).Token;
-        var taskDatabaseCanConnect = SqlServerHealthCheck.DatabaseCanConnectAsync(log, MiddlewareContextSettings.ConnectionString, cancellationToken);
-        var taskGetVaultHealth = VaultHealthCheck.GetVaultHealth(log, VaultConnectorSettings.VaultBaseAddress, timeoutMs.Value);
+        var taskDatabaseCanConnect = SqlServerHealthCheck.DatabaseCanConnectAsync(logger, MiddlewareContextSettings.ConnectionString, cancellationToken);
+        var taskGetVaultHealth = VaultHealthCheck.GetVaultHealth(logger, VaultConnectorSettings.VaultBaseAddress, timeoutMs.Value);
         await Task.WhenAll(taskDatabaseCanConnect, taskGetVaultHealth);
 
         if (taskDatabaseCanConnect.IsCompletedSuccessfully && taskDatabaseCanConnect.Result)
@@ -141,10 +141,11 @@ public class HEAppEHealth
     }
 }
 
-public class SqlServerHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
+public class SqlServerHealthCheck(IMemoryCache cacheProvider = null, ILogger logger = null) : IHealthCheck
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/SQL";
+    readonly ILogger _logger = logger;
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -154,7 +155,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null) : IHealthCh
             if (_cacheProvider == null || !_cacheProvider.TryGetValue(_cacheKey, out cacheEntry))
             {
                 cacheEntry = new Dictionary<string, object> {
-                    {"canConnect", await DatabaseCanConnectAsync(LogManager.GetLogger(GetType()), MiddlewareContextSettings.ConnectionString, new CancellationTokenSource(1000).Token) },
+                    {"canConnect", await DatabaseCanConnectAsync(_logger, MiddlewareContextSettings.ConnectionString, new CancellationTokenSource(1000).Token) },
                     {"timestamp", HEAppEHealth.GetCurrentTimestamp() }
                 };
                 _cacheProvider?.Set(_cacheKey, cacheEntry, TimeSpan.FromMilliseconds(HealthCheckSettings.HealthChecksCacheExpirationMs));
@@ -166,7 +167,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null) : IHealthCh
         return result;
     }
 
-    public static async Task<bool> DatabaseCanConnectAsync(ILog log, string connectionString, CancellationToken cancellationToken)
+    public static async Task<bool> DatabaseCanConnectAsync(ILogger logger, string connectionString, CancellationToken cancellationToken)
     {
         try
         {
@@ -193,17 +194,18 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null) : IHealthCh
         }
         catch (Exception e)
         {
-            log?.Error($"Database connection health check failed. Exception {e}");
+            logger?.LogError(e, $"Database connection health check failed.");
             return false;
         }
         return true;
     }
 }
 
-public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
+public class VaultHealthCheck(IMemoryCache cacheProvider = null, ILogger logger = null) : IHealthCheck
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/Vault";
+    readonly ILogger _logger = logger;
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -214,7 +216,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
 
             if (_cacheProvider == null || !_cacheProvider.TryGetValue(_cacheKey, out _cacheEntry))
             {
-                vaultInfo = await GetVaultHealth(LogManager.GetLogger(GetType()), VaultConnectorSettings.VaultBaseAddress, 1000);
+                vaultInfo = await GetVaultHealth(_logger, VaultConnectorSettings.VaultBaseAddress, 1000);
                 if (vaultInfo != null)
                     vaultInfo = HEAppEHealth.ConstructExtVaultInfo_(vaultInfo);
                 _cacheEntry = new Dictionary<string, object>() {
@@ -236,7 +238,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
         }
         return result;
     }
-    public static async Task<object> GetVaultHealth(ILog log, string vaultBaseAddress, int timeoutMs)
+    public static async Task<object> GetVaultHealth(ILogger logger, string vaultBaseAddress, int timeoutMs)
     {
         using var httpClient = new HttpClient
         {
@@ -249,12 +251,12 @@ public class VaultHealthCheck(IMemoryCache cacheProvider = null) : IHealthCheck
         {
             var result = await httpClient.GetStringAsync(path);
             var response = JsonConvert.DeserializeObject<ExpandoObject>(result, new ExpandoObjectConverter());
-            log?.Warn($"Obtained health information");
+            logger?.LogWarning($"Obtained health information");
             return response;
         }
         catch (Exception e)
         {
-            log?.Error($"Vault health check failed. Exception {e}");
+            logger?.LogError(e, $"Vault health check failed.");
         }
 
         return null;

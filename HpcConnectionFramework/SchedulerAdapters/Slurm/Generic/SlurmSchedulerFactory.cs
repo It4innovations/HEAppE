@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -58,7 +59,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             uniqueIdentifier, 
             key => new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: null),
                 CreateSchedulerAdapter()
             )
         );
@@ -105,7 +106,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var masterNodeName = configuration.MasterNodeName;
@@ -113,7 +114,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
         // OPRAVA: Použití ConcurrentDictionary.GetOrAdd pro atomickou inicializaci
         return _connectorSingletons.GetOrAdd(
             masterNodeName, 
-            key => new SshConnector(sshCertificateAuthorityService)
+            key => new SshConnector(sshCertificateAuthorityService, logger)
         );
     }
 

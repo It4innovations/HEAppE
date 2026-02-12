@@ -26,7 +26,6 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
-using log4net;
 using Microsoft.Extensions.Logging;
 using SshCaAPI;
 

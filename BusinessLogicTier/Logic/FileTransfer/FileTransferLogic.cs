@@ -230,7 +230,7 @@ public class FileTransferLogic : IFileTransferLogic
         }
 
 
-        var certGenerator = new SSHGenerator();
+        var certGenerator = new SSHGenerator(_logger);
         publicKey = certGenerator.ToPuTTYPublicKey("");
 
         while (_unitOfWork.FileTransferTemporaryKeyRepository.ContainsActiveTemporaryKey(publicKey))

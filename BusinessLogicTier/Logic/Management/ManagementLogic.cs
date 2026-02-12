@@ -750,7 +750,7 @@ public class ManagementLogic : IManagementLogic
         _logger?.LogInformation($"Recreating SSH key for user {username}.");
 
         var modificationDate = DateTime.UtcNow;
-        SSHGenerator sshGenerator = new();
+        SSHGenerator sshGenerator = new(_logger);
         var passphrase = StringUtils.GetRandomString();
         var secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
 
@@ -2020,7 +2020,7 @@ public class ManagementLogic : IManagementLogic
             .ToList();
         if (!clusterProjects.Any()) throw new InputValidationException("ProjectNoAssignToCluster");
 
-        SSHGenerator sshGenerator = new();
+        SSHGenerator sshGenerator = new(_logger);
         var passphrase = StringUtils.GetRandomString();
         var secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
 

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Microsoft.Extensions.Logging;
 using HEAppE.ConnectionPool;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
@@ -53,7 +54,7 @@ public class PbsProSchedulerFactory : SchedulerFactory
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: null),
                 CreateSchedulerAdapter()
             );
         return _schedulerSingletons[uniqueIdentifier];
@@ -82,11 +83,11 @@ public class PbsProSchedulerFactory : SchedulerFactory
     /// </summary>
     /// <param name="configuration">Cluster configuration data</param>
     /// <returns></returns>
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)
     {
         var masterNodeName = configuration.MasterNodeName;
         if (!_connectorSingletons.ContainsKey(masterNodeName))
-            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService);
+            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService, logger);
 
         return _connectorSingletons[masterNodeName];
     }

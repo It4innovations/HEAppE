@@ -17,7 +17,7 @@ using HEAppE.ExtModels.JobManagement.Converts;
 using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore;
 using SshCaAPI;
 
@@ -27,7 +27,7 @@ public class JobManagementService : IJobManagementService
 {
     #region Instances
 
-    private readonly ILog _logger;
+    private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
@@ -36,12 +36,12 @@ public class JobManagementService : IJobManagementService
 
     #region Constructors
 
-    public JobManagementService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public JobManagementService(IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
     {
         _userOrgService = userOrgService;
-        _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _logger = logger;
     }
 
     #endregion
@@ -123,7 +123,7 @@ public class JobManagementService : IJobManagementService
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
             if (archiveLogs)
             {
-                _logger.Info($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
+                _logger?.LogInformation($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
                 jobLogic.ArchiveJob(submittedJobInfoId, loggedUser);
             }
             return jobLogic.DeleteJob(submittedJobInfoId, loggedUser);
