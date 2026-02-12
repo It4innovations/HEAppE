@@ -380,7 +380,7 @@ public class ManagementLogic : IManagementLogic
                 throw new InputValidationException("ProjectAlreadyExist");
             }
             
-            RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger);
+            RoleAssignmentConfiguration.AssignAllRolesFromConfig(defaultAdaptorUserGroup, _unitOfWork, _logger, true);
 
             var adaptorUserGroup = loggedUser.UserType switch
             {
@@ -389,8 +389,13 @@ public class ManagementLogic : IManagementLogic
                 AdaptorUserType.Lexis => lexisAdaptorUserGroup,
                 _ => defaultAdaptorUserGroup
             };
-
+            
             loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.ManagementAdmin);
+            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Manager);
+            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Reporter);
+            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.GroupReporter);
+            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Maintainer);
+            loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
             _unitOfWork.AdaptorUserRepository.Update(loggedUser);
             _unitOfWork.Save();
 

@@ -17,7 +17,7 @@ public class RoleAssignmentConfiguration
     public static string[] Reporters { get; set; }
     public static string[] ManagementAdmins { get; set; }
 
-    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger)
+    public static void AssignAllRolesFromConfig(AdaptorUserGroup group, IUnitOfWork unitOfWork, ILog logger, bool doNotSave = false)
     {
         AssignSpecificRole(Administrators, AdaptorUserRoleType.Administrator, group, unitOfWork, logger);
         AssignSpecificRole(Maintainers, AdaptorUserRoleType.Maintainer, group, unitOfWork, logger);
@@ -26,6 +26,7 @@ public class RoleAssignmentConfiguration
         AssignSpecificRole(Reporters, AdaptorUserRoleType.Reporter, group, unitOfWork, logger);
         AssignSpecificRole(GroupReporters, AdaptorUserRoleType.GroupReporter, group, unitOfWork, logger);
         AssignSpecificRole(ManagementAdmins, AdaptorUserRoleType.ManagementAdmin, group, unitOfWork, logger);
+        if (doNotSave) return;
         unitOfWork.Save();
     }
 
