@@ -636,7 +636,7 @@ public class ManagementLogic : IManagementLogic
     /// <param name="projectId"></param>
     /// <param name="adaptorUserId"></param>
     /// <returns></returns>
-    public async Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId)
+    public async Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId, bool isAdministrator)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project is null)
@@ -654,7 +654,7 @@ public class ManagementLogic : IManagementLogic
             _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
         }
         
-        return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId))
+        return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator))
             .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
@@ -662,7 +662,7 @@ public class ManagementLogic : IManagementLogic
     }
     
     public async Task<List<SecureShellKey>> RenameClusterAuthenticationCredentials(string oldUsername,
-        string newUsername, string newPassword, long projectId, long? adaptorUserId)
+        string newUsername, string newPassword, long projectId, long? adaptorUserId, bool isAdministrator)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
         if (project is null)
@@ -670,8 +670,12 @@ public class ManagementLogic : IManagementLogic
             _logger.Error($"Project with ID {projectId} not found or has already ended.");
             throw new RequestedObjectDoesNotExistException("ProjectNotFound");
         }
-
-        if (project.IsOneToOneMapping)
+        
+        if (isAdministrator)
+        {
+            _logger.Info($"Administrator is renaming credentials for project ID {projectId}. Mapping check bypassed.");
+        }
+        else if (project.IsOneToOneMapping)
         {
             _logger.Info($"Project with ID {projectId} is one-to-one mapping, returning only service account credentials for user {adaptorUserId}.");
         }
@@ -680,9 +684,11 @@ public class ManagementLogic : IManagementLogic
             _logger.Info($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
         }
         
-        var credentials =  (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId))
+        var credentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                .GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator))
             .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .ToList();
+
         foreach (var cred in credentials)
         {
             cred.Username = newUsername;
@@ -690,8 +696,13 @@ public class ManagementLogic : IManagementLogic
             await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(cred);
             _logger.Info($"Renamed ClusterAuthenticationCredentials ID '{cred.Id}' username to '{newUsername}'.");
         }
+
         _unitOfWork.Save();
-        return credentials.Select(SSHGenerator.GetPublicKeyFromPrivateKey).DistinctBy(x=>x.Username).ToList();
+
+        return credentials
+            .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
+            .DistinctBy(x => x.Username)
+            .ToList();
     }
 
     /// <summary>
@@ -816,49 +827,129 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.Save();
     }
 
-    /// <summary>
-    ///     Initialize cluster script directory and create symbolic link for user
-    /// </summary>
-    /// <param name="projectId"></param>
-    /// <param name="overwriteExistingProjectRootDirectory"></param>
-    /// <param name="adaptorUserId"></param>
-    /// <param name="username"></param>
-    /// <returns></returns>
-    /// <exception cref="RequestedObjectDoesNotExistException"></exception>
+    public async Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId, bool isAdministrator)
+    {
+        var clusterAuthenticationCredentials = (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username)).Where(
+            w => 
+                 w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
+                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId));
+
+        var credsList = clusterAuthenticationCredentials.ToList();
+
+        if (!credsList.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
+
+        var modificationDate = DateTime.UtcNow;
+        SSHGenerator sshGenerator = new();
+        var passphrase = StringUtils.GetRandomString();
+        var secureShellKey = sshGenerator.GetEncryptedSecureShellKey(username, passphrase);
+
+        foreach (var credentials in credsList)
+        {
+            credentials.PrivateKey = secureShellKey.PrivateKeyPEM;
+            credentials.PrivateKeyPassphrase = passphrase;
+            credentials.PublicKeyFingerprint = secureShellKey.PublicKeyFingerprint;
+            credentials.CipherType = secureShellKey.CipherType;
+            credentials.ClusterProjectCredentials.ForEach(cpc =>
+            {
+                cpc.IsDeleted = false;
+                cpc.ModifiedAt = modificationDate;
+                cpc.ClusterProject.Project.ModifiedAt = modificationDate;
+            });
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(credentials);
+        }
+
+        _unitOfWork.Save();
+        return secureShellKey;
+    }
+
+    public async Task RemoveSecureShellKey(string username, long projectId, bool isAdministrator = false)
+    {
+        var clusterAuthenticationCredentials = await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAllByUserNameAsync(username);
+        
+        var filteredCredentials = clusterAuthenticationCredentials.Where(
+            w => 
+                 w.AuthenticationType != ClusterAuthenticationCredentialsAuthType.PrivateKeyInSshAgent &&
+                 w.ClusterProjectCredentials.Any(a => a.ClusterProject.ProjectId == projectId)).ToList();
+
+        if (!filteredCredentials.Any()) throw new InvalidRequestException("HPCIdentityNotFound");
+
+        var modificationDate = DateTime.UtcNow;
+
+        foreach (var credentials in filteredCredentials)
+        {
+            credentials.IsDeleted = true;
+            credentials.ClusterProjectCredentials.ForEach(cpc =>
+            {
+                cpc.IsDeleted = true;
+                cpc.ModifiedAt = modificationDate;
+                cpc.ClusterProject.Project.ModifiedAt = modificationDate;
+            });
+            await _unitOfWork.ClusterAuthenticationCredentialsRepository.UpdateAsync(credentials);
+        }
+
+        _unitOfWork.Save();
+    }
+
     public async Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
-        bool overwriteExistingProjectRootDirectory, long? adaptorUserId, string username)
+        bool overwriteExistingProjectRootDirectory, long? adaptorUserId, string username, bool isAdministrator = false)
     {
         var project = _unitOfWork.ProjectRepository.GetById(projectId);
-        var isOneToOneMapping = project.IsOneToOneMapping;
+        if (project == null) 
+            throw new RequestedObjectDoesNotExistException("ProjectNotFound", projectId);
+        
+        List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = new();
 
-        List<ClusterAuthenticationCredentials> clusterAuthenticationCredentials = [];
-        if (isOneToOneMapping)
+        if (!string.IsNullOrEmpty(username))
         {
-            foreach (var cp in project.ClusterProjects)
-                foreach (var cpc in cp.ClusterProjectCredentials)
-                    clusterAuthenticationCredentials.AddRange(
-                        await _unitOfWork.ClusterAuthenticationCredentialsRepository
-                            .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: cpc.AdaptorUserId));
+            var specificCreds = await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                .GetAuthenticationCredentialsProject(username, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: isAdministrator);
+            
+            clusterAuthenticationCredentials.AddRange(specificCreds);
         }
         else
         {
-            clusterAuthenticationCredentials.AddRange(
-                await _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: null));
+            if (isAdministrator)
+            {
+                clusterAuthenticationCredentials.AddRange(
+                    await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                        .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: null, isAdministrator: true));
+            }
+            else
+            {
+                if (project.IsOneToOneMapping)
+                {
+                     clusterAuthenticationCredentials.AddRange(
+                            await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                                .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, isAdministrator: false));
+                }
+                else
+                {
+                    clusterAuthenticationCredentials.AddRange(
+                        await _unitOfWork.ClusterAuthenticationCredentialsRepository
+                            .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: null, isAdministrator: false));
+                }
+            }
         }
 
-        Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();
         if (!clusterAuthenticationCredentials.Any())
             throw new RequestedObjectDoesNotExistException("NotExistingPublicKey");
 
-        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.Where(x => string.IsNullOrEmpty(username) || x.Username == username).OrderBy(x => x.Username))
+        Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();
+
+        foreach (var clusterAuthCredentials in clusterAuthenticationCredentials.DistinctBy(x => x.Id).OrderBy(x => x.Username))
         {
-            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials.Where(x=>!x.IsDeleted).OrderByDescending(x => x.IsServiceAccount))
+            foreach (var clusterProjectCredential in clusterAuthCredentials.ClusterProjectCredentials
+                         .Where(x => !x.IsDeleted && x.ClusterProject.ProjectId == projectId)
+                         .OrderByDescending(x => x.IsServiceAccount))
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
                 var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId);
+                
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                    .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId);
+                
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
+                
                 var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory, localBasepath,
                     cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken);
 
@@ -866,31 +957,21 @@ public class ManagementLogic : IManagementLogic
                     clusterProjectCredential.IsInitialized = isInitialized;
 
                 clusterProjectCredential.IsInitialized = isInitialized;            
+                
+                if (!clusterInitReports.ContainsKey(cluster))
+                {
+                    clusterInitReports.Add(cluster, new ClusterInitReport { Cluster = cluster });
+                }
+
                 if (isInitialized)
                 {
-                    if (!clusterInitReports.ContainsKey(cluster))
-                        clusterInitReports.Add(cluster, new ClusterInitReport
-                        {
-                            Cluster = cluster,
-                            NumberOfInitializedAccounts = 1
-                        });
-                    else
-                        clusterInitReports[cluster].NumberOfInitializedAccounts++;
-                    _logger.Info(
-                        $"Initialized cluster script directory for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
+                    clusterInitReports[cluster].NumberOfInitializedAccounts++;
+                    _logger.Info($"Initialized cluster script directory for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
                 }
                 else
                 {
-                    if (!clusterInitReports.ContainsKey(cluster))
-                        clusterInitReports.Add(cluster, new ClusterInitReport
-                        {
-                            Cluster = cluster,
-                            NumberOfNotInitializedAccounts = 1
-                        });
-                    else
-                        clusterInitReports[cluster].NumberOfNotInitializedAccounts++;
-                    _logger.Error(
-                        $"Initialization of cluster script directory failed for project {project.Id} on cluster {cluster.Id} with account {clusterProjectCredential.ClusterAuthenticationCredentials.Username}.");
+                    clusterInitReports[cluster].NumberOfNotInitializedAccounts++;
+                    _logger.Error($"Initialization of cluster script directory failed for project {project.Id} on cluster {cluster.Id} with account {clusterAuthCredentials.Username}.");
                 }
             }
         }
@@ -900,7 +981,6 @@ public class ManagementLogic : IManagementLogic
         
         return clusterInitReports.Values.ToList();
     }
-
     /// <summary>
     /// Test cluster access for a specific account in a project.
     /// </summary>
