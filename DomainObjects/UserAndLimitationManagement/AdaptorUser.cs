@@ -58,15 +58,18 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
         /// <returns></returns>
         public void CreateSpecificUserRoleForUser(AdaptorUserGroup group, AdaptorUserRoleType roleType)
         {
-            AdaptorUserUserGroupRole adaptorUserWithGroupRole = AdaptorUserUserGroupRoles.FirstOrDefault(f => f.AdaptorUserGroup == group);
-            if (adaptorUserWithGroupRole is null)
+            long roleId = (long)roleType;
+            AdaptorUserUserGroupRole existingRole = AdaptorUserUserGroupRoles
+                .FirstOrDefault(f => f.AdaptorUserGroup == group && f.AdaptorUserRoleId == roleId);
+
+            if (existingRole is null)
             {
                 var adaptorUserUserGroupRole = new AdaptorUserUserGroupRole()
                 {
                     AdaptorUserId = Id,
                     AdaptorUserGroup = group,
                     AdaptorUserGroupId = group.Id,
-                    AdaptorUserRoleId = (long)roleType,
+                    AdaptorUserRoleId = roleId,
                     IsDeleted = false
                 };
 
@@ -74,24 +77,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
             }
             else
             {
-                var adaptorUserRoleType = (AdaptorUserRoleType)adaptorUserWithGroupRole.AdaptorUserRoleId;
-                if (adaptorUserRoleType != roleType)
-                {
-                    var role = (long)roleType;
-
-                    AdaptorUserUserGroupRoles.Remove(adaptorUserWithGroupRole);
-                    var adaptorUserUserGroupRole = new AdaptorUserUserGroupRole()
-                    {
-                        AdaptorUserId = Id,
-                        AdaptorUserGroup = group,
-                        AdaptorUserGroupId = group.Id,
-                        AdaptorUserRoleId = role,
-                    };
-
-                    AdaptorUserUserGroupRoles.Add(adaptorUserUserGroupRole);
-                }
-
-                adaptorUserWithGroupRole.IsDeleted = false;
+                existingRole.IsDeleted = false;
             }
         }
 

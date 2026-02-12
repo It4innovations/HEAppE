@@ -398,8 +398,9 @@ public class ManagementLogic : IManagementLogic
             loggedUser.CreateSpecificUserRoleForUser(adaptorUserGroup, AdaptorUserRoleType.Submitter);
             _unitOfWork.AdaptorUserRepository.Update(loggedUser);
             _unitOfWork.Save();
-
+            
             _logger.Info($"Created project with id {project.Id}.");
+            _logger.Info($"Assigned user '{loggedUser.Username}' to project '{project.Name}' with roles: {string.Join(", ", loggedUser.AdaptorUserUserGroupRoles.Where(r => r.AdaptorUserGroupId == adaptorUserGroup.Id).Select(r => r.AdaptorUserRoleId))}");
             transactionScope.Complete();
         }
 
