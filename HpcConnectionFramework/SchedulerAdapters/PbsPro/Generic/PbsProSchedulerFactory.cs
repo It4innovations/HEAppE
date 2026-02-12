@@ -48,13 +48,13 @@ public class PbsProSchedulerFactory : SchedulerFactory
     /// <param name="configuration">Cluster configuration data</param>
     /// <param name="jobInfoProject"></param>
     /// <returns></returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, ILogger? logger)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: null),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: logger),
                 CreateSchedulerAdapter()
             );
         return _schedulerSingletons[uniqueIdentifier];

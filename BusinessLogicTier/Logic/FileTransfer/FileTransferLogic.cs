@@ -133,7 +133,7 @@ public class FileTransferLogic : IFileTransferLogic
                     : null;
                 
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
-                    .CreateScheduler(cluster, tempKey.Key.Project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId);
+                    .CreateScheduler(cluster, tempKey.Key.Project, _sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: _logger);
                 scheduler.RemoveDirectFileTransferAccessForUser(tempKey.Select(s => s.PublicKey),
                     tempKey.Key.ClusterUser, tempKey.Key.Cluster, tempKey.Key.Project, _httpContextKeys.Context.SshCaToken);
             }
@@ -264,7 +264,7 @@ public class FileTransferLogic : IFileTransferLogic
                 PublicKey = publicKey
             });
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService,adaptorUserId: loggedUser.Id)
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, logger: _logger)
             .AllowDirectFileTransferAccessForUserToJob(publicKey, jobInfo, _httpContextKeys.Context.SshCaToken);
 
         await _unitOfWork.SaveAsync();
@@ -286,7 +286,7 @@ public class FileTransferLogic : IFileTransferLogic
 
         if (temporaryKey is null) throw new FileTransferTemporaryKeyException("PublicKeyMismatch");
 
-        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+        SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, jobInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, logger: _logger)
             .RemoveDirectFileTransferAccessForUser(
                 new[] { temporaryKey.PublicKey }, temporaryKey.SubmittedJob.Specification.ClusterUser,
                 jobInfo.Specification.Cluster, jobInfo.Project, _httpContextKeys.Context.SshCaToken);

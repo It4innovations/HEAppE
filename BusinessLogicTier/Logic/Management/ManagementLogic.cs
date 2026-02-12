@@ -94,7 +94,7 @@ public class ManagementLogic : IManagementLogic
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                 projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _logger)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
             .ToList();
 
@@ -250,7 +250,7 @@ public class ManagementLogic : IManagementLogic
         var serviceAccount = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id, projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId, logger: _logger);
         var commandTemplateParameters = SchedulerFactory.GetInstance(cluster.SchedulerType)
-            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
+            .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _logger)
             .GetParametersFromGenericUserScript(cluster, serviceAccount, executableFile, _httpContextKeys.Context.SshCaToken)
             .ToList();
 
@@ -851,7 +851,7 @@ public class ManagementLogic : IManagementLogic
             {
                 var cluster = clusterProjectCredential.ClusterProject.Cluster;
                 var localBasepath = clusterProjectCredential.ClusterProject.ScratchStoragePath;
-                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId);
+                var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _logger);
                 string path = Path.Combine(project.AccountingString, _scripts.InstanceIdentifierPath); 
                 var isInitialized = scheduler.InitializeClusterScriptDirectory(path, overwriteExistingProjectRootDirectory, localBasepath,
                     cluster, clusterAuthCredentials, clusterProjectCredential.IsServiceAccount, _httpContextKeys.Context.SshCaToken);
@@ -924,7 +924,7 @@ public class ManagementLogic : IManagementLogic
             var cluster = clusterProjectCredential.ClusterProject.Cluster;
             var project = clusterProjectCredential.ClusterProject.Project;
 
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, logger: _logger);
             if (!scheduler.TestClusterAccessForAccount(cluster, clusterAuthCredentials, _httpContextKeys.Context.SshCaToken))
             {
                 _logger?.LogInformation(
@@ -2389,7 +2389,7 @@ public class ManagementLogic : IManagementLogic
                 }
             }
             // prepare task
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null, logger: _logger);
             tasks.Add(scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential));
         }
 

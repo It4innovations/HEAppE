@@ -49,7 +49,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId, ILogger? logger)
     {
         // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
@@ -59,7 +59,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             uniqueIdentifier, 
             key => new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: null),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: logger),
                 CreateSchedulerAdapter()
             )
         );

@@ -111,7 +111,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
             ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
 
-        var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId:loggedUser.Id)
+        var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId:loggedUser.Id, logger: _logger)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
         return scheduler.GetCurrentClusterNodeUsage(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken);
@@ -149,7 +149,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             var commandTemplateParameters = new List<string> { scriptPath };
             commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, logger: _logger)
                 .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken).ToList());
             return commandTemplateParameters;
         }
@@ -465,7 +465,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             var scheduler = SchedulerFactory
                 .GetInstance(initCluster.SchedulerType)
-                .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId);
+                .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId, _logger);
 
             string path = Path.Combine(initProject.AccountingString,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
