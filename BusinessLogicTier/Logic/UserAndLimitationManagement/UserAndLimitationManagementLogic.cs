@@ -391,13 +391,18 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
             .Where(w => w.Name.StartsWith(LexisAuthenticationConfiguration.HEAppEGroupNamePrefix));
 
         DateTime changedTime = DateTime.UtcNow;
+        if (string.IsNullOrEmpty(lexisUser.Email))
+        {
+            throw new AuthenticationTypeException("MissingEmailInUserInfoFromUserOrg");
+        }
         AdaptorUser user = _unitOfWork.AdaptorUserRepository.GetByEmailIgnoreQueryFilters(lexisUser.Email);
         
         if (user is null)
         {
             try 
             {
-                user = CreateUser(lexisUser.UserName, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
+                string username = $"{LexisAuthenticationConfiguration.HEAppEUserPrefix}{lexisUser.KeycloakSid}_{lexisUser.UserName}";
+                user = CreateUser(username, lexisUser.Email, changedTime, AdaptorUserType.Lexis);
             }
             catch (Exception)
             {

@@ -6,7 +6,7 @@
 # from folder /heappe-core
 cd DataAccessTier 
 $env:ASPNETCORE_RUNTYPE_ENVIRONMENT='LocalWindows'
-dotnet ef migrations add <MigrationName> -c MiddlewareContext -o Migrations
+dotnet ef migrations add ExpandMaxLenghtOfClusterAndUserAttributes -c MiddlewareContext -o Migrations
 ```
 
 ### Dotnet core - Update database:
@@ -47,7 +47,9 @@ protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
 {
     optionsBuilder.UseLazyLoadingProxies();
     // Connection to the SQL server running in the docker container via port 6000
-    optionsBuilder.UseSqlServer("Server=localhost,6000;Database=heappe;User=SA;Password=<password>;");
+   optionsBuilder.UseSqlServer("Server=localhost,6000;Database=heappe_migration;User=SA;Password=<password>;TrustServerCertificate=True;");
+   optionsBuilder.ConfigureWarnings(w => 
+            w.Ignore(RelationalEventId.PendingModelChangesWarning));
 }
 ```
 

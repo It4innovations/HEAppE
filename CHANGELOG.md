@@ -11,6 +11,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - **Robust Role Validation**: Added `HashSet`-based deduplication and enhanced navigation property checks to ensure data integrity during system role synchronization.
 - Extended `TestClusterAccessForAccount` endpoint response with cluster access test output detailed messages.
+- Increased string length for selected attributes of `Cluster`, `ClusterNodeType` and `AdaptorUser` domain object properties to 250.
+
 
 ### Fixed
 - **EF Change Tracker Sync**: Resolved issues where the role assignment logic would fail to recognize recently added entities in the same transaction.
