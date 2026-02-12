@@ -77,9 +77,7 @@ namespace HEAppE.DomainObjects.UserAndLimitationManagement
                 var adaptorUserRoleType = (AdaptorUserRoleType)adaptorUserWithGroupRole.AdaptorUserRoleId;
                 if (adaptorUserRoleType != roleType)
                 {
-                    var role = adaptorUserWithGroupRole.IsDeleted 
-                        ? (long)roleType 
-                        : (long)adaptorUserRoleType.GetHighestRole(roleType);
+                    var role = (long)roleType;
 
                     AdaptorUserUserGroupRoles.Remove(adaptorUserWithGroupRole);
                     var adaptorUserUserGroupRole = new AdaptorUserUserGroupRole()
