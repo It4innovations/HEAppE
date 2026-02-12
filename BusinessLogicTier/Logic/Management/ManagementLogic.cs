@@ -2399,9 +2399,9 @@ public class ManagementLogic : IManagementLogic
             foreach (var checkLog in rows.OrderBy(cl => cl.CreatedAt))
                 _unitOfWork.ClusterProjectRepository.AddClusterProjectCredentialCheckLog(checkLog);
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            _logger?.LogError("An error has occured.", e);
+            _logger?.LogError(ex, "An error has occured.");
         }
         _unitOfWork.Save();
 

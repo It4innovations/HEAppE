@@ -14,7 +14,7 @@ using HEAppE.ExtModels.JobReporting.Models.DetailedReport;
 using HEAppE.ExtModels.JobReporting.Models.ListReport;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
-using log4net;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.ServiceTier.JobReporting;
@@ -26,7 +26,7 @@ public class JobReportingService : IJobReportingService
     /// <summary>
     ///     Logger
     /// </summary>
-    private static ILog _logger;
+    private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
@@ -43,7 +43,7 @@ public class JobReportingService : IJobReportingService
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
-        _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = null;
     }
 
     #endregion
@@ -55,7 +55,7 @@ public class JobReportingService : IJobReportingService
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter);
-            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
             return jobReportingLogic.UserGroupListReport(projects, loggedUser.Id)
                 .Where(s => s != null)
                 .Select(s => s.ConvertIntToExt());
@@ -70,7 +70,7 @@ public class JobReportingService : IJobReportingService
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter); 
-            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
             var projectIds = projects.Select(p => p.Id).ToList();
             var reporterGroups = loggedUser.Groups
                 .Where(g => projectIds.Contains(g.ProjectId ?? 0))
@@ -95,7 +95,7 @@ public class JobReportingService : IJobReportingService
             if (group == null) throw new NotAllowedException("NotAllowedToRequestReport");
 
             if (!projects.Any(x => x.Id == group.ProjectId)) throw new NotAllowedException("NotAllowedToRequestReport");
-            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
             return jobReportingLogic.UserGroupResourceUsageReport(groupId, startTime, endTime, subProjects)
                 .ConvertIntToExt();
         }
@@ -110,7 +110,7 @@ public class JobReportingService : IJobReportingService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Reporter);
 
-            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
             var userGroupIds = loggedUser.Groups.Select(x => x.Id).Distinct().ToList();
 
             //get only groups which are in projects which are allowed for logged user
@@ -137,7 +137,7 @@ public class JobReportingService : IJobReportingService
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Reporter);
-            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+            var jobReportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
             var projectIds = projects.Select(p => p.Id).ToList();
             var userGroupIds = loggedUser.Groups
                 .Where(x => projectIds.Contains(x.ProjectId ?? 0))
@@ -154,7 +154,7 @@ public class JobReportingService : IJobReportingService
             (var loggedUser, var projects) =
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter);
-            var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+            var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
             return reportingLogic.AggregatedJobsByStateReport(projects).Select(s => s.ConvertIntToExt());
         }
     }
@@ -167,7 +167,7 @@ public class JobReportingService : IJobReportingService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.GroupReporter);
 
-            var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork);
+            var reportingLogic = LogicFactory.GetLogicFactory().CreateJobReportingLogic(unitOfWork, _logger);
 
             var allowedProjectIds = projects != null 
                 ? new HashSet<long>(projects.Where(p => p != null).Select(p => p.Id)) 

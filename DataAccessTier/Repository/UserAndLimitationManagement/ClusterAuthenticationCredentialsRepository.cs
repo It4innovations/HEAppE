@@ -2,10 +2,10 @@
 using HEAppE.DataAccessTier.Vault;
 using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.Exceptions.External;
-using log4net;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -17,7 +17,6 @@ namespace HEAppE.DataAccessTier.Repository.UserAndLimitationManagement;
 internal class ClusterAuthenticationCredentialsRepository : GenericRepository<ClusterAuthenticationCredentials>,
     IClusterAuthenticationCredentialsRepository
 {
-    private static readonly ILog _log = LogManager.GetLogger(typeof(ClusterAuthenticationCredentialsRepository));
     private readonly IVaultConnector _vaultConnector;
 
     #region Constructors
@@ -32,14 +31,14 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
     
     private async Task<IEnumerable<ClusterAuthenticationCredentials>> WithVaultData(
-        IEnumerable<ClusterAuthenticationCredentials> credentials)
+        IEnumerable<ClusterAuthenticationCredentials> credentials, ILogger logger)
     {
         if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
 
         var result = new List<ClusterAuthenticationCredentials>();
         foreach (var item in credentials.Where(c => c != null))
         {
-            _log.Debug($"Importing VaultInfo for id:{item.Id}");
+            logger?.LogDebug($"Importing VaultInfo for id:{item.Id}");
             var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
             item.ImportVaultData(vaultData);
             result.Add(item);
@@ -96,13 +95,13 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
     public override async Task<IList<ClusterAuthenticationCredentials>> GetAllAsync()
     {
         var credentials = _dbSet.Include(x=>x.ClusterProjectCredentials).ToList();
-        var result = await WithVaultData(credentials);
+        var result = await WithVaultData(credentials, logger: null);
         return result.ToList();
     }
 
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForClusterAndProject(
-        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId)
+        long clusterId, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterProject =
@@ -112,26 +111,26 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).ToList();
         if(requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
             
         }
-        return await WithVaultData(credentials);
+        return await WithVaultData(credentials, logger);
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsForUsernameAndProject(
-        string username, long projectId, bool requireIsInitialized, long? adaptorUserId)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
             cac.Username == username &&
             cac.ClusterProjectCredentials.Any(cpc => cpc.ClusterProject.ProjectId == projectId && (isOneToOneMapping ? cpc.AdaptorUserId == adaptorUserId : cpc.AdaptorUserId == null) && (!requireIsInitialized || cpc.IsInitialized)));
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
-        return (await WithVaultData(credentials)).ToList();
+        return (await WithVaultData(credentials, logger)).ToList();
     }
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(long projectId,
-        bool requireIsInitialized, long? adaptorUserId)
+        bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac =>
@@ -139,15 +138,15 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
         if(requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
-        return (await WithVaultData(credentials));
+        return (await WithVaultData(credentials, logger));
     }
     
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAuthenticationCredentialsProject(
-        string username, long projectId, bool requireIsInitialized, long? adaptorUserId)
+        string username, long projectId, bool requireIsInitialized, long? adaptorUserId, ILogger logger = null)
     {
         var isOneToOneMapping = _context.Projects.Find(projectId).IsOneToOneMapping;
         var clusterAuthenticationCredentials = _context.ClusterAuthenticationCredentials.Where(cac => cac.Username == username &&
@@ -155,11 +154,11 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
         if(requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
-        return (await WithVaultData(credentials));
+        return (await WithVaultData(credentials, logger));
     }
 
     /*
@@ -212,7 +211,8 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         long clusterId,
         long projectId,
         bool requireIsInitialized,
-        long? adaptorUserId)
+        long? adaptorUserId,
+        ILogger logger = null)
     {
         // 1. Get mapping type (this is fast)
         var project = await _context.Projects
@@ -247,7 +247,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         if (requireIsInitialized && cred == null)
         {
-            _log.Info($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
+            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
@@ -256,24 +256,24 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGeneratedWithFingerprint(string fingerprint,
-        long projectId)
+        long projectId, ILogger logger = null)
     {
         var credentials = _context.ClusterAuthenticationCredentials
             .Where(x => x.PublicKeyFingerprint == fingerprint &&
                         x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
-        return (await WithVaultData(credentials));
+        return (await WithVaultData(credentials, logger));
     }
 
-    public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId)
+    public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId, ILogger logger = null)
     {
         var credentials = _context.ClusterAuthenticationCredentials
             .Where(x => x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
             .ToList();
-        return (await WithVaultData(credentials));
+        return (await WithVaultData(credentials, logger));
     }
 
-    public async Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username)
+    public async Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username, ILogger logger = null)
     {
         //with all
         var credentials = _dbSet
@@ -281,7 +281,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
             .ThenInclude(cpc => cpc.ClusterProject)
             .Where(c => c.Username == username)
             .ToList();
-        return (await WithVaultData(credentials)).ToList();
+        return (await WithVaultData(credentials, logger)).ToList();
     }
 
     #endregion

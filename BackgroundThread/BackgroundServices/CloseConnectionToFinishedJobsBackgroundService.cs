@@ -11,6 +11,7 @@ using HEAppE.Services.UserOrg;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
@@ -19,6 +20,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
     private readonly ILog _log;
+    private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
@@ -29,6 +31,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
         IServiceScopeFactory scopeFactory)
     {
         _log = LogManager.GetLogger(GetType());
+        _logger = null;
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _scopeFactory = scopeFactory;
@@ -50,7 +53,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     var dataTransferLogic = LogicFactory.GetLogicFactory()
-                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _logger);
 
                     var jobManagementLogic = LogicFactory.GetLogicFactory()
                         .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);

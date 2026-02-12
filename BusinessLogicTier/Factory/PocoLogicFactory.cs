@@ -30,9 +30,9 @@ public class PocoLogicFactory : LogicFactory
         return new ClusterInformationLogic(unitOfWork, sshCertificateAuthorityService, httpContextKeys, logger);
     }
 
-    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public override IDataTransferLogic CreateDataTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
     {
-        return new DataTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        return new DataTransferLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
     }
 
     public override IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService  userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
@@ -45,9 +45,9 @@ public class PocoLogicFactory : LogicFactory
         return new JobManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
     }
 
-    public override IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork)
+    public override IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork, ILogger logger)
     {
-        return new JobReportingLogic(unitOfWork);
+        return new JobReportingLogic(unitOfWork, logger);
     }
 
 

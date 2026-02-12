@@ -8,7 +8,6 @@ using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using Microsoft.Extensions.Caching.Memory;
-using Newtonsoft.Json;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
@@ -20,10 +19,9 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
 using HEAppE.Utils;
-using log4net;
-using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Primitives;
 using SshCaAPI;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.ServiceTier.ClusterInformation;
 
@@ -38,7 +36,7 @@ public class ClusterInformationService : IClusterInformationService
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = httpContextKeys ?? throw new ArgumentNullException(nameof(httpContextKeys));
         _cacheProvider = cacheProvider;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = null;
     }
     
     private void SetCacheWithGlobalToken<T>(string key, T value, int expirationMinutes)
@@ -181,12 +179,12 @@ public class ClusterInformationService : IClusterInformationService
 
             if (_cacheProvider.TryGetValue(memoryCacheKey, out IEnumerable<string> value))
             {
-                _log.Info($"Using Memory Cache to get value for key.");
+                _logger?.LogInformation($"Using Memory Cache to get value for key.");
                 return value;
             }
 
-            _log.Info($"Reloading Memory Cache value for key.");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+            _logger?.LogInformation($"Reloading Memory Cache value for key.");
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var result =
                 await clusterLogic.GetCommandTemplateParametersName(commandTemplateId, projectId, userScriptPath, loggedUser);
             SetCacheWithGlobalToken(memoryCacheKey, result, _cacheLimitForGetCommandTemplateParametersName);
@@ -214,12 +212,12 @@ public class ClusterInformationService : IClusterInformationService
 
             if (_cacheProvider.TryGetValue(memoryCacheKey, out ClusterNodeUsageExt value))
             {
-                _log.Info($"Using Memory Cache to get value for key.");
+                _logger?.LogInformation($"Using Memory Cache to get value for key.");
                 return value;
             }
 
-            _log.Info($"Reloading Memory Cache value for key.");
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork,  _sshCertificateAuthorityService, _httpContextKeys);
+            _logger?.LogInformation($"Reloading Memory Cache value for key.");
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork,  _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var nodeUsage = await clusterLogic.GetCurrentClusterNodeUsage(clusterNodeId, loggedUser, projectId);
             SetCacheWithGlobalToken(memoryCacheKey, nodeUsage.ConvertIntToExt(), _cacheLimitForGetCurrentClusterUsage);
             return nodeUsage.ConvertIntToExt();
@@ -231,7 +229,7 @@ public class ClusterInformationService : IClusterInformationService
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILog _log;
+    private readonly ILogger _logger;
 
     /// <summary>
     ///     Cache provider

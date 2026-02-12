@@ -12,9 +12,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
-using IdentityModel.Client;
-using log4net;
-using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
@@ -51,17 +49,17 @@ public class HttpContextKeys : IHttpContextKeys
 {
     private readonly IRequestContext _context;
     public IRequestContext Context => _context;
-    private readonly ILog _log;
+    private readonly ILogger _logger;
 
     public HttpContextKeys(IRequestContext context)
     {
         _context = context;
-        _log = LogManager.GetLogger(typeof(HttpContextKeys));
+        _logger = null;
     }
 
     public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService)
     {
-        _log.Info("Authorizing with UserOrg");
+        _logger?.LogInformation("Authorizing with UserOrg");
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
         var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
@@ -70,7 +68,7 @@ public class HttpContextKeys : IHttpContextKeys
         {
             if (LexisAuthenticationConfiguration.UseBearerAuth)
             {
-                _log.Info("Using Bearer authentication for Lexis");
+                _logger?.LogInformation("Using Bearer authentication for Lexis");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = Context.LEXISToken
@@ -78,7 +76,7 @@ public class HttpContextKeys : IHttpContextKeys
             }
             else if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
-                _log.Info("Using Bearer authentication with JWT token introspection");
+                _logger?.LogInformation("Using Bearer authentication with JWT token introspection");
                 user = await userLogic.HandleTokenAsApiKeyAuthenticationAsync(new LexisCredentials
                 {
                     OpenIdLexisAccessToken = (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) ? 
@@ -88,7 +86,7 @@ public class HttpContextKeys : IHttpContextKeys
             
             if(user != null)
             {
-                _log.Info($"Authorized user: {user.Username}:{user.Email} (ID: {user.Id})");
+                _logger?.LogInformation($"Authorized user: {user.Username}:{user.Email} (ID: {user.Id})");
                 _context.AdaptorUserId = user.Id;
                 _context.UserInfo = $"{user.Username}:{user.Email}";
             }
@@ -97,14 +95,14 @@ public class HttpContextKeys : IHttpContextKeys
         }
         catch (Exception ex)
         {
-            _log.Error("Error during authorization", ex);
+            _logger?.LogError(ex, "Error during authorization");
             throw;
         }
     }
 
     public async Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient)
     {
-        _log.Info($"Exchanging token for SSH CA token from {tokenExchangeAddress}");
+        _logger?.LogInformation($"Exchanging token for SSH CA token from {tokenExchangeAddress}");
         var clientId = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientId;
         var clientSecret = JwtTokenIntrospectionConfiguration.TokenExchangeConfiguration.ClientSecret;
 

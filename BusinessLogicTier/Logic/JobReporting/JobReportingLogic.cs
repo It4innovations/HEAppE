@@ -10,7 +10,7 @@ using HEAppE.DomainObjects.JobManagement.JobInformation;
 using HEAppE.DomainObjects.JobReporting;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.Exceptions.External;
-using log4net;
+using Microsoft.Extensions.Logging;
 using Project = HEAppE.DomainObjects.JobManagement.Project;
 
 namespace HEAppE.BusinessLogicTier.Logic.JobReporting;
@@ -23,10 +23,10 @@ internal class JobReportingLogic : IJobReportingLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    internal JobReportingLogic(IUnitOfWork unitOfWork)
+    internal JobReportingLogic(IUnitOfWork unitOfWork, ILogger logger)
     {
         _unitOfWork = unitOfWork;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = logger;
     }
 
     #endregion
@@ -41,7 +41,7 @@ internal class JobReportingLogic : IJobReportingLogic
     /// <summary>
     ///     Log instance
     /// </summary>
-    protected readonly ILog _log;
+    protected readonly ILogger _logger;
 
     #endregion
 

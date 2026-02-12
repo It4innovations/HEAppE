@@ -16,7 +16,6 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.ExtModels.Management.Converts;
 using HEAppE.ExtModels.Management.Models;
 using HEAppE.ServiceTier.UserAndLimitationManagement;
-using log4net;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -29,6 +28,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.ExtModels.UserAndLimitationManagement.Converts;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.Services.UserOrg;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.ServiceTier.Management;
 
@@ -36,7 +36,7 @@ public class ManagementService : IManagementService
 {
     #region Instances
 
-    private readonly ILog _logger;
+    private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
@@ -50,7 +50,7 @@ public class ManagementService : IManagementService
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _httpContextKeys = httpContextKeys;
-        _logger = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = null;
     }
 
     #endregion
@@ -61,7 +61,7 @@ public class ManagementService : IManagementService
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelProjectId, long modelClusterNodeTypeId, string modelSessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"CreateCommandTemplateModel: Name: {modelName}, Description: {modelDescription}, ExtendedAllocationCommand: {modelExtendedAllocationCommand}, ExecutableFile: {modelExecutableFile}, PreparationScript: {modelPreparationScript}, ProjectId: {modelProjectId}, ClusterNodeTypeId: {modelClusterNodeTypeId}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -80,7 +80,7 @@ public class ManagementService : IManagementService
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"CreateCommandTemplateFromGeneric: GenericCommandTemplateId: {genericCommandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -99,7 +99,7 @@ public class ManagementService : IManagementService
         string modelExtendedAllocationCommand, string modelExecutableFile, string modelPreparationScript,
         long modelClusterNodeTypeId, bool modelIsEnabled, string modelSessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"ModifyCommandTemplateModel: Id: {modelId}, Name: {modelName}, Description: {modelDescription}, ExtendedAllocationCommand: {modelExtendedAllocationCommand}, ExecutableFile: {modelExecutableFile}, PreparationScript: {modelPreparationScript}, ClusterNodeTypeId: {modelClusterNodeTypeId}, IsEnabled: {modelIsEnabled}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -122,7 +122,7 @@ public class ManagementService : IManagementService
         string description, string extendedAllocationCommand, string executableFile, string preparationScript,
         string sessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"ModifyCommandTemplateFromGeneric: Id: {commandTemplateId}, Name: {name}, ProjectId: {projectId}, Description: {description}, ExtendedAllocationCommand: {extendedAllocationCommand}, ExecutableFile: {executableFile}, PreparationScript: {preparationScript}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -142,7 +142,7 @@ public class ManagementService : IManagementService
 
     public void RemoveCommandTemplate(long commandTemplateId, string sessionCode)
     {
-        _logger.Info($"RemoveCommandTemplate: Id: {commandTemplateId}");
+        _logger?.LogInformation($"RemoveCommandTemplate: Id: {commandTemplateId}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplate = unitOfWork.CommandTemplateRepository.GetById(commandTemplateId)
@@ -200,7 +200,7 @@ public class ManagementService : IManagementService
     public ProjectExt CreateProject(string accountingString, UsageType usageType, string name, string description,
         DateTime startDate, DateTime endDate, bool useAccountingStringForScheduler, string piEmail, bool isOneToOneMapping, string sessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"CreateProject: AccountingString: {accountingString}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, PiEmail: {piEmail}, IsOneToOneMapping: {isOneToOneMapping}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -217,7 +217,7 @@ public class ManagementService : IManagementService
     public ProjectExt ModifyProject(long id, UsageType usageType, string name, string description, DateTime startDate,
         DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping, string sessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"ModifyProject: Id: {id}, UsageType: {usageType}, Name: {name}, Description: {description}, StartDate: {startDate}, EndDate: {endDate}, UseAccountingStringForScheduler: {useAccountingStringForScheduler}, IsOneToOneMapping: {isOneToOneMapping}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -232,7 +232,7 @@ public class ManagementService : IManagementService
 
     public void RemoveProject(long id, string sessionCode)
     {
-        _logger.Info($"RemoveProject: Id: {id}");
+        _logger?.LogInformation($"RemoveProject: Id: {id}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -269,7 +269,7 @@ public class ManagementService : IManagementService
     public ClusterProjectExt CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
         string sessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"CreateProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -284,7 +284,7 @@ public class ManagementService : IManagementService
     public ClusterProjectExt ModifyProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath, string projectStoragePath,
         string sessionCode)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"ModifyProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}, ScratchStoragePath: {scratchStoragePath}, ProjectStoragePath: {projectStoragePath}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -298,7 +298,7 @@ public class ManagementService : IManagementService
 
     public void RemoveProjectAssignmentToCluster(long projectId, long clusterId, string sessionCode)
     {
-        _logger.Info($"RemoveProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}");
+        _logger?.LogInformation($"RemoveProjectAssignmentToCluster: ProjectId: {projectId}, ClusterId: {clusterId}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -319,13 +319,13 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
@@ -348,13 +348,13 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
@@ -380,13 +380,13 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
@@ -410,13 +410,13 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
@@ -436,13 +436,13 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
@@ -464,13 +464,13 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
@@ -492,13 +492,13 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
             }
@@ -522,7 +522,7 @@ public class ManagementService : IManagementService
             if (project.IsOneToOneMapping)
             {
                 // In one-to-one mapping, the session code is used to identify the user
-                _logger.Info($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is in one-to-one mapping mode. Using session code to identify user (needed role: Submitter).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.Submitter, projectId, true);
                 (_, var submitterProjects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -531,7 +531,7 @@ public class ManagementService : IManagementService
             }
             else
             {
-                _logger.Info($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
+                _logger?.LogInformation($"Selected project with Id: {projectId} is not in one-to-one mapping mode. Using session code to identify user (needed role: ManagementAdmin).");
                 loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin, projectId, true);
                 (_, var managementAdminProjects) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
@@ -563,7 +563,7 @@ public class ManagementService : IManagementService
         string modelQuery,
         string modelDescription, long modelCommandTemplateId, string modelSessionCode, bool isVisible = true)
     {
-        _logger.Info(
+        _logger?.LogInformation(
             $"CreateCommandTemplateParameter: Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}, CommandTemplateId: {modelCommandTemplateId}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
@@ -573,7 +573,7 @@ public class ManagementService : IManagementService
             //command template has no project assigned
             if (!commandTemplate.ProjectId.HasValue)
             {
-                _logger.Warn($"Method: CreateCommandTemplateParameter: Command Template with Id: {modelCommandTemplateId} has no reference to Project.");
+                _logger?.LogWarning($"Method: CreateCommandTemplateParameter: Command Template with Id: {modelCommandTemplateId} has no reference to Project.");
                 throw new RequestedObjectDoesNotExistException("CommandTemplateHasNoProjectAssigned", modelCommandTemplateId);
             }
 
@@ -590,7 +590,7 @@ public class ManagementService : IManagementService
         string modelQuery,
         string modelDescription, string modelSessionCode)
     {
-        _logger.Info($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
+        _logger?.LogInformation($"ModifyCommandTemplateParameter: Id: {id}, Identifier: {modelIdentifier}, Query: {modelQuery}, Description: {modelDescription}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
@@ -600,7 +600,7 @@ public class ManagementService : IManagementService
             //command template has no project assigned
             if (!commandTemplateParameter.CommandTemplate.ProjectId.HasValue)
             {
-                _logger.Warn($"Method: ModifyCommandTemplateParameter: Command Template Parameter with Id: {id} for Command Template with Id: {commandTemplateParameter.CommandTemplateId} has no reference to Project.");
+                _logger?.LogWarning($"Method: ModifyCommandTemplateParameter: Command Template Parameter with Id: {id} for Command Template with Id: {commandTemplateParameter.CommandTemplateId} has no reference to Project.");
                 throw new RequestedObjectDoesNotExistException("CommandTemplateParameterHasNoProjectAssigned", id, commandTemplateParameter.CommandTemplateId);
             }
 
@@ -616,7 +616,7 @@ public class ManagementService : IManagementService
 
     public string RemoveCommandTemplateParameter(long id, string modelSessionCode)
     {
-        _logger.Info($"RemoveCommandTemplateParameter: Id: {id}");
+        _logger?.LogInformation($"RemoveCommandTemplateParameter: Id: {id}");
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var commandTemplateParameter = unitOfWork.CommandTemplateParameterRepository.GetById(id)
@@ -743,7 +743,7 @@ public class ManagementService : IManagementService
             .ContinueWith(t =>
             {
                 if (t.IsFaulted)
-                    _logger.Error(
+                    _logger?.LogError(
                         $"Error while computing accounting for project {projectId} with session code {modelSessionCode}: {t.Exception}");
             });
     }
@@ -755,7 +755,7 @@ public class ManagementService : IManagementService
         {
             var user = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager, projectId, true);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            _logger.Info(
+            _logger?.LogInformation(
                 $"User {user.Username} is computing accounting for project {projectId} from {modelStartTime} to {modelEndTime}");
             managementLogic.ComputeAccounting(modelStartTime, modelEndTime, projectId);
         }
@@ -792,7 +792,7 @@ public class ManagementService : IManagementService
                 UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                     AdaptorUserRoleType.ManagementAdmin);
             var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+            var clusterLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var clusters = clusterLogic.ListAvailableClusters().Select(s => s.ConvertIntToExtendedExt(projects, false)).ToList();
             return clusters;
         }
