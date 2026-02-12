@@ -44,8 +44,6 @@ public class RoleAssignmentService : IHostedService
             {
                 foreach (var userGroup in userGroups)
                 {
-                    // 2. Pro KAŽDOU skupinu vytvoříme nový, čistý UnitOfWork
-                    // Tím se vyhneme chybě "already being tracked"
                     using (IUnitOfWork workerUow = new DatabaseUnitOfWork())
                     {
                         _log.Debug($"Processing roles for group: {userGroup.Name}");
