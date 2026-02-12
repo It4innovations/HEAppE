@@ -3,9 +3,9 @@ using System.Threading.Tasks;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;
-using log4net;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Services.Expirio.Configuration;
 using Services.Expirio.Models;
 
@@ -23,13 +23,13 @@ public class LexisTokenExchangeMiddleware
 
     public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService, IExpirioService expirioService)
     {
-        var log = LogManager.GetLogger(typeof(LexisTokenExchangeMiddleware));
+        ILogger? logger = null;
         if ((LexisAuthenticationConfiguration.UseBearerAuth && 
             !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) &&
         context.Request.Headers.TryGetValue("Authorization", out var authHeaderLexis) &&
         authHeaderLexis.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            log.Info("LexisTokenExchangeMiddleware: Extracting LEXIS token from Authorization header"); 
+            logger.LogInformation("LexisTokenExchangeMiddleware: Extracting LEXIS token from Authorization header"); 
             var incomingToken = authHeaderLexis.ToString()["Bearer ".Length..].Trim();
             var contextKeysService = context.RequestServices
                 .GetRequiredService<IHttpContextKeys>();
@@ -39,7 +39,7 @@ public class LexisTokenExchangeMiddleware
             context.Request.Headers.TryGetValue("Authorization", out var authHeader) &&
             authHeader.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase))
         {
-            log.Info("LexisTokenExchangeMiddleware: Exchanging LEXIS token for FIP token");
+            logger.LogInformation("LexisTokenExchangeMiddleware: Exchanging LEXIS token for FIP token");
             var incomingToken = authHeader.ToString()["Bearer ".Length..].Trim();
             var contextKeysService = context.RequestServices
                 .GetRequiredService<IHttpContextKeys>();
@@ -48,7 +48,7 @@ public class LexisTokenExchangeMiddleware
             {
                 if (JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.UseExpirioServiceForTokenExchange)
                 {
-                    log.Info("LexisTokenExchangeMiddleware: Using Expirio service for token exchange");
+                    logger.LogInformation("LexisTokenExchangeMiddleware: Using Expirio service for token exchange");
                     ExchangeRequest request = new ExchangeRequest()
                     {
                         ProviderName = ExpirioSettings.ProviderName,
@@ -61,7 +61,7 @@ public class LexisTokenExchangeMiddleware
                 }
                 else
                 {
-                    log.Info("LexisTokenExchangeMiddleware: Using LexisTokenService for token exchange");
+                    logger.LogInformation("LexisTokenExchangeMiddleware: Using LexisTokenService for token exchange");
                     var exchanged = await lexisTokenService.ExchangeLexisTokenForFipAsync(incomingToken);
                     context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
                     contextKeysService.Context.FIPToken = exchanged;

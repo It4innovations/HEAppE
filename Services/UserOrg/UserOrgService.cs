@@ -5,6 +5,7 @@ using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
 using HEAppE.HpcConnectionFramework.Configuration;
+using Microsoft.Extensions.Logging;
 using log4net;
 
 namespace HEAppE.Services.UserOrg;
@@ -20,7 +21,6 @@ public interface IUserOrgService
 public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgService
 {
     private readonly IHttpClientFactory _httpClientFactory = httpClientFactory;
-    private readonly ILog _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     private const string ClientName = "userOrgApi";
 
     private string BuildUrl(params string[] segments)

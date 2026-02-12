@@ -8,7 +8,6 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
-using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -19,7 +18,6 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
-    private readonly ILog _log;
     private readonly ILogger? _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
@@ -30,7 +28,6 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IServiceScopeFactory scopeFactory)
     {
-        _log = LogManager.GetLogger(GetType());
         _logger = null;
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
@@ -70,13 +67,13 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                         }
                         catch (Exception closeEx)
                         {
-                            _log.Warn($"Failed to close tunnels for task {task.Id}: ", closeEx);
+                            _logger?.LogWarning($"Failed to close tunnels for task {task.Id}: ", closeEx);
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _log.Error("An error occured during execution of the CloseConnectionToFinishedJobs background service: ", ex);
+                    _logger.LogError(ex, "An error occured during execution of the CloseConnectionToFinishedJobs background service: ");
                 }
             }
 

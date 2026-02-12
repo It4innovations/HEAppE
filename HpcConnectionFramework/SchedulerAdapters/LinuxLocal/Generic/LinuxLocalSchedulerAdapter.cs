@@ -74,7 +74,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     #region Instances
 
     /// <summary>
-    ///     Log4Net logger
+    ///     Logger
     /// </summary>
     protected ILogger? _logger;
 

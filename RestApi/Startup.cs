@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Net;
 using System.Linq;
 using System.Net.Http;
 using System.Reflection;
@@ -55,7 +56,6 @@ using JwtTokenIntrospectionConfiguration = HEAppE.ExternalAuthentication.Configu
 using Services.Expirio;
 using Services.Expirio.Configuration;
 using Polly;
-using System.Net;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.Services.AuthMiddleware;
 using HEAppE.Services.Expirio;

@@ -12,7 +12,7 @@ using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.Utils;
-using log4net;
+using Microsoft.Extensions.Logging;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
 
@@ -30,7 +30,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory)
     {
         _conversionAdapterFactory = conversionAdapterFactory;
-        _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
+        _logger = null;
     }
 
     #endregion
@@ -50,7 +50,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     /// <summary>
     ///     Logger
     /// </summary>
-    protected readonly ILog _log;
+    protected readonly ILogger? _logger;
 
     #endregion
 

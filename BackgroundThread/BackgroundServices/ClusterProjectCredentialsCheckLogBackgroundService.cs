@@ -7,9 +7,9 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
-using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
@@ -17,7 +17,7 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IntervalMinutes);
-    private readonly ILog _log;
+    private readonly ILogger? _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
@@ -25,7 +25,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IServiceScopeFactory scopeFactory)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = null;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
     }
@@ -55,7 +55,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
                 }
                 catch (Exception ex)
                 {
-                    _log.Error("An error occured during execution of the ClusterProjectCredentialsCheckLog background service: ", ex);
+                    _logger?.LogError(ex, "An error occured during execution of the ClusterProjectCredentialsCheckLog background service. ");
                 }
             }
 

@@ -8,9 +8,9 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.Services.UserOrg;
-using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using SshCaAPI;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
@@ -18,7 +18,7 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class ClusterAccountRotationJobBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.ClusterAccountRotationJobCheck);
-    private readonly ILog _log;
+    private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
@@ -28,7 +28,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IServiceScopeFactory scopeFactory)
     {
-        _log = LogManager.GetLogger(GetType());
+        _logger = null;
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
@@ -57,21 +57,21 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                         {
                             try
                             {
-                                _log.Info($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
+                                _logger.LogInformation($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
                                 LogicFactory.GetLogicFactory()
                                     .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys)
                                     .SubmitJob(job.Id, job.Submitter);
                             }
                             catch (Exception jobEx)
                             {
-                                _log.Error($"Failed to resubmit job {job.Id}: ", jobEx);
+                                _logger.LogError($"Failed to resubmit job {job.Id}: ", jobEx);
                             }
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    _log.Error("An error occured during execution of the ClusterAccountRotationJob background service: ", ex);
+                    _logger.LogError(ex, "An error occured during execution of the ClusterAccountRotationJob background service: ");
                 }
             }
 
