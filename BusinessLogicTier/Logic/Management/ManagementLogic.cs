@@ -2483,42 +2483,69 @@ public class ManagementLogic : IManagementLogic
 
     public async Task<dynamic> CheckClusterProjectCredentialsStatus()
     {
-        var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository.GetAllClusterProjectCredentialsUntracked();
-        List<Task<ClusterProjectCredentialCheckLog>> tasks = [];
-        foreach (var clusterProjectCredential in clusterProjectCredentials)
-        {
-            var clusterProject = clusterProjectCredential.ClusterProject;
-            var cluster = clusterProject.Cluster;
-            var project = clusterProject.Project;
-            var clusterAuthCredentials = clusterProjectCredential.ClusterAuthenticationCredentials;
-            if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse)
-            {
-                if (!clusterProjectCredential.IsInitialized)
-                {
-                    //invoke ClusterInformationLogic
-                    var clusterInformationLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
-                    await clusterInformationLogic.InitializeCredential(clusterAuthCredentials, project.Id, null);
-                    
-                }
-            }
-            // prepare task
-            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
-            tasks.Add(scheduler.CheckClusterProjectCredentialStatus(clusterProjectCredential));
-        }
+        _logger.Info("Starting CheckClusterProjectCredentialsStatus background task.");
+        var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository
+            .GetAllClusterProjectCredentialsUntracked()
+            .ToList();
+        
+        const int batchSize = 20;
 
+        foreach (var batch in clusterProjectCredentials.Chunk(batchSize))
+        {
+            var tasks = batch.Select(ProcessCredentialAsync).ToList();
+
+            try
+            {
+                _logger.Info($"Processing a batch of {tasks.Count} credentials.");
+                var results = await Task.WhenAll(tasks);
+
+                foreach (var log in results.Where(x => x != null).OrderBy(cl => cl.CreatedAt))
+                {
+                    _unitOfWork.ClusterProjectRepository.AddClusterProjectCredentialCheckLog(log);
+                }
+                _logger.Info($"Finished processing a batch of {tasks.Count} credentials. Saving results to the database.");
+                _unitOfWork.Save();
+            }
+            catch (Exception e)
+            {
+                _logger.Error($"An error occurred during processing a batch of {batchSize} credentials.", e);
+            }
+        }
+        _logger.Info("Finished processing all credential batches.");
+        return null;
+    }
+
+    private async Task<ClusterProjectCredentialCheckLog> ProcessCredentialAsync(ClusterProjectCredential credential)
+    {
         try
         {
-            var rows = await Task.WhenAll(tasks);
-            foreach (var checkLog in rows.OrderBy(cl => cl.CreatedAt))
-                _unitOfWork.ClusterProjectRepository.AddClusterProjectCredentialCheckLog(checkLog);
-        }
-        catch (Exception e)
-        {
-            _logger.Error("An error has occured.", e);
-        }
-        _unitOfWork.Save();
+            var clusterProject = credential.ClusterProject;
+            var cluster = clusterProject.Cluster;
+            var project = clusterProject.Project;
 
-        return null;
+            if (BusinessLogicConfiguration.AutoInitializeProjectCredentialsOnFirstUse && !credential.IsInitialized)
+            {
+                try
+                {
+                    var clusterInformationLogic = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+                    await clusterInformationLogic.InitializeCredentialInBackgroundTask(credential.ClusterAuthenticationCredentials, project.Id, null);
+                }
+                catch (Exception ex)
+                {
+                     _logger.Error($"Auto-initialization failed for credential ID {credential.ClusterAuthenticationCredentialsId}, UserName {credential.ClusterAuthenticationCredentials.Username}", ex);
+                }
+            }
+
+            var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
+                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: null);
+            
+            return await scheduler.CheckClusterProjectCredentialStatus(credential);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error($"Failed to check status for credential ID ID {credential.ClusterAuthenticationCredentialsId}, UserName {credential.ClusterAuthenticationCredentials.Username}", ex);
+            return null;
+        }
     }
     
     

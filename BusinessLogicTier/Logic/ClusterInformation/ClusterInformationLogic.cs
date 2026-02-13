@@ -177,7 +177,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         return credentials;
     }
     
-    public async Task<ClusterAuthenticationCredentials> InitializeCredential(
+    public async Task<ClusterAuthenticationCredentials> InitializeCredentialInBackgroundTask(
         ClusterAuthenticationCredentials credential, long projectId, long? adaptorUserId)
     {
         var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
@@ -185,7 +185,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
             projectId,
             true,
             adaptorUserId: adaptorUserId.HasValue ? adaptorUserId.Value : null,
-            username: credential.Username);
+            username: credential.Username, isAdministrator:true);
         _log.Info($"Initialized credential {credential.Username} for project {projectId} with status: {status}");
         return credential;
     }
