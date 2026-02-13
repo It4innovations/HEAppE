@@ -648,7 +648,7 @@ public class ManagementLogic : IManagementLogic
             _logger?.LogInformation($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
         }
         
-        return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId))
+        return (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger))
             .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .Select(SSHGenerator.GetPublicKeyFromPrivateKey)
             .DistinctBy(x=>x.Username)
@@ -674,7 +674,7 @@ public class ManagementLogic : IManagementLogic
             _logger?.LogInformation($"Project with ID {projectId} is not one-to-one mapping, returning all SSH keys for project.");
         }
         
-        var credentials =  (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId))
+        var credentials =  (await _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsProject(oldUsername, projectId, requireIsInitialized: false, adaptorUserId: adaptorUserId, logger: _logger))
             .Where(x => !x.IsDeleted && !string.IsNullOrEmpty(x.PrivateKey))
             .ToList();
         foreach (var cred in credentials)
@@ -832,13 +832,13 @@ public class ManagementLogic : IManagementLogic
                 foreach (var cpc in cp.ClusterProjectCredentials)
                     clusterAuthenticationCredentials.AddRange(
                         await _unitOfWork.ClusterAuthenticationCredentialsRepository
-                            .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: cpc.AdaptorUserId));
+                            .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: cpc.AdaptorUserId, logger: _logger));
         }
         else
         {
             clusterAuthenticationCredentials.AddRange(
                 await _unitOfWork.ClusterAuthenticationCredentialsRepository
-                    .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: null));
+                    .GetAuthenticationCredentialsProject(projectId, requireIsInitialized: false, adaptorUserId: null, logger: _logger));
         }
 
         Dictionary<Cluster, ClusterInitReport> clusterInitReports = new();

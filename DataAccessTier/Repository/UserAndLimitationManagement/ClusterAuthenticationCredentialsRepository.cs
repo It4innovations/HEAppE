@@ -212,7 +212,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         long projectId,
         bool requireIsInitialized,
         long? adaptorUserId,
-        ILogger logger = null)
+        ILogger logger)
     {
         // 1. Get mapping type (this is fast)
         var project = await _context.Projects
@@ -256,7 +256,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
 
     public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGeneratedWithFingerprint(string fingerprint,
-        long projectId, ILogger logger = null)
+        long projectId, ILogger logger)
     {
         var credentials = _context.ClusterAuthenticationCredentials
             .Where(x => x.PublicKeyFingerprint == fingerprint &&
@@ -265,7 +265,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return (await WithVaultData(credentials, logger));
     }
 
-    public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId, ILogger logger = null)
+    public async Task<IEnumerable<ClusterAuthenticationCredentials>> GetAllGenerated(long projectId, ILogger logger)
     {
         var credentials = _context.ClusterAuthenticationCredentials
             .Where(x => x.ClusterProjectCredentials.Any(y => y.ClusterProject.ProjectId == projectId))
@@ -273,7 +273,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         return (await WithVaultData(credentials, logger));
     }
 
-    public async Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username, ILogger logger = null)
+    public async Task<IList<ClusterAuthenticationCredentials>> GetAllByUserNameAsync(string username, ILogger logger)
     {
         //with all
         var credentials = _dbSet
