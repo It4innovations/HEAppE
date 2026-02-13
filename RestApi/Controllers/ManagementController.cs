@@ -311,12 +311,12 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult CreateCommandTemplateFromGeneric(CreateCommandTemplateFromGenericModel fromGenericModel)
+    public async Task<IActionResult> CreateCommandTemplateFromGeneric(CreateCommandTemplateFromGenericModel fromGenericModel)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"CreateCommandTemplateFromGeneric\"");
         var validationResult = new ManagementValidator(fromGenericModel).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        var commandTemplate = _managementService.CreateCommandTemplateFromGeneric(
+        var commandTemplate = await _managementService.CreateCommandTemplateFromGeneric(
             fromGenericModel.GenericCommandTemplateId, fromGenericModel.Name, fromGenericModel.ProjectId,
             fromGenericModel.Description, fromGenericModel.ExtendedAllocationCommand, fromGenericModel.ExecutableFile,
             fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
@@ -388,12 +388,12 @@ public class ManagementController : BaseController<ManagementController>
     [ProducesResponseType(StatusCodes.Status413RequestEntityTooLarge)]
     [ProducesResponseType(StatusCodes.Status429TooManyRequests)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status500InternalServerError)]
-    public IActionResult ModifyCommandTemplateFromGeneric(ModifyCommandTemplateFromGenericModel fromGenericModel)
+    public async Task<IActionResult> ModifyCommandTemplateFromGeneric(ModifyCommandTemplateFromGenericModel fromGenericModel)
     {
         _logger.LogDebug("Endpoint: \"Management\" Method: \"ModifyCommandTemplateFromGeneric\"");
         var validationResult = new ManagementValidator(fromGenericModel).Validate();
         if (!validationResult.IsValid) throw new InputValidationException(validationResult.Message);
-        var commandTemplate = _managementService.ModifyCommandTemplateFromGeneric(fromGenericModel.CommandTemplateId,
+        var commandTemplate = await _managementService.ModifyCommandTemplateFromGeneric(fromGenericModel.CommandTemplateId,
             fromGenericModel.Name, fromGenericModel.ProjectId, fromGenericModel.Description,
             fromGenericModel.ExtendedAllocationCommand,
             fromGenericModel.ExecutableFile, fromGenericModel.PreparationScript, fromGenericModel.SessionCode);
