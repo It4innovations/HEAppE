@@ -25,6 +25,8 @@ public sealed class BackGroundThreadConfiguration
     /// </summary>
     public static int FileTransferKeyRemovalCheck { get; set; } = 10800;
 
+    public static int RoleAssignmentSyncCheck { get; set; } = 3600; //hour
+
     public sealed class ClusterProjectCredentialsCheckConfiguration
     {
         public static bool IsEnabled { get; set; } = false;

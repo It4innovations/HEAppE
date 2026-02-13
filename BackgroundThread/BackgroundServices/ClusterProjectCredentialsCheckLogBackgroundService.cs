@@ -11,6 +11,7 @@ using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -34,7 +35,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
     {
         await Task.Yield();
 
-        if (!BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IsEnabled || JwtTokenIntrospectionConfiguration.IsEnabled)
+        if (!BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IsEnabled || SshCaSettings.UseCertificateAuthorityForAuthentication)
         {
             return;
         }

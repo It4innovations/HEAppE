@@ -193,7 +193,7 @@
     <value>The specified public key is not defined in the HEAppE.</value>
   </data>
   <data name="InvalidRequestException_HPCIdentityNotFound" xml:space="preserve">
-    <value>The specified HPC identity is not defined in HEAppE!</value>
+    <value>The specified HPC identity is not defined in HEAppE or is not referenced to the triggerer.</value>
   </data>
   <data name="InputValidationException_SubmittingJobNotInConfiguringState" xml:space="preserve">
     <value>Unable to submit the job (incorrect job state).</value>

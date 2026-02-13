@@ -114,6 +114,13 @@ public class ExceptionMiddleware
         var logLevel = LogLevel.Error;
         switch (exception)
         {
+            case InsufficientRoleException:
+            case UnauthorizedAccessException:
+                problem.Title = "Unauthorized Access";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
             case InputValidationException:
             case RequestedObjectDoesNotExistException:
                 problem.Title = "Validation Problem";
@@ -122,7 +129,7 @@ public class ExceptionMiddleware
                 logLevel = LogLevel.Warning;
                 break;
             case SessionCodeNotValidException:
-            case AdaptorUserNotAuthorizedForJobException:    
+            case AdaptorUserNotAuthorizedForJobException:
                 problem.Title = "Session Code Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
@@ -179,12 +186,6 @@ public class ExceptionMiddleware
                     "Not found." => StatusCodes.Status404NotFound,
                     _ => StatusCodes.Status400BadRequest
                 };
-                break;
-            case UnauthorizedAccessException:
-                problem.Title = "Unauthorized Access";
-                problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status401Unauthorized;
-                logLevel = LogLevel.Warning;
                 break;
             default:
                 problem.Title = "Problem";

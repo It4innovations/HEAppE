@@ -245,7 +245,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         //check that at least one project is available
         if (!groups.Any())
         {
-            throw new InsufficientRoleException("MissingRoleForAnyGroup", allowedRole.ToString());
+            throw new InsufficientRoleException($"MissingRole:{allowedRole.ToString()}");
         }
         var projects = groups
             .Select(r => r.AdaptorUserGroup.Project)
@@ -321,7 +321,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
             if (project is null || (!overrideProjectValidityCheck && project.EndDate < DateTime.UtcNow))
                 throw new RequestedObjectDoesNotExistException("ProjectNotFound");
 
-            throw new InsufficientRoleException("MissingRoleForProject", requiredUserRole.ToString(), projectId);
+            throw new InsufficientRoleException($"MissingRole:{requiredUserRole.ToString()}_ForProject:{projectId}");
         }
     }
 

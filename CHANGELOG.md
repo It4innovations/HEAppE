@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+
+## V6.2.1
+
+### Added
+- **Robust Role Validation**: Added `HashSet`-based deduplication and enhanced navigation property checks to ensure data integrity during system role synchronization.
+- Extended `TestClusterAccessForAccount` logging to handle error states more efectively.
+- Increased string length for selected attributes of `Cluster`, `ClusterNodeType` and `AdaptorUser` domain object properties to 250.
+
+
+### Fixed
+- **EF Change Tracker Sync**: Resolved issues where the role assignment logic would fail to recognize recently added entities in the same transaction.
+- Fixed error in automatic procedure for the cluster script initialization on the cluster side.
+- Removed external network configuration from the docker compose to allow run multiple HEAppE instances at one VM.
+- Fixed UserRole Assignment for User which created new Project.
+
 ## V6.2.0
 
 ### Added

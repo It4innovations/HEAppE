@@ -402,19 +402,19 @@ public class RexSchedulerWrapper : IRexScheduler
         }
     }
 
-    public bool TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, string sshCaToken)
+    public (bool,string) TestClusterAccessForAccount(Cluster cluster, ClusterAuthenticationCredentials clusterAuthCredentials, string sshCaToken)
     {
         try
         {
             var schedulerConnection = _connectionPool.GetConnectionForUser(clusterAuthCredentials, cluster, sshCaToken);
             _connectionPool.ReturnConnection(schedulerConnection);
-            return true;
+            return (true, "Cluster access test successful");
         }
         catch (Exception ex)
         {
             _log.Error(
                 $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
-            return false;
+            return (false, $"Cluster access test failed for project {clusterAuthCredentials.ClusterProjectCredentials.First().ClusterProject.ProjectId} - {ex.Message}");
         }
     }
 
