@@ -26,8 +26,6 @@ release_msg_job:
     - TAG_MESSAGE_BASE64=$(echo -n "${TAG_MESSAGE}" | base64 -w 0)
     - echo "TAG_NAME=${TAG_NAME}" >> release_variables.env
     - echo "TAG_MESSAGE=${TAG_MESSAGE_BASE64}" >> release_variables.env
-  before_script:
-    - apk update && apk upgrade
   variables:
     GIT_STRATEGY: clone
   artifacts:
@@ -167,9 +165,6 @@ push_to_github_job:
           "draft": false,
           "prerelease": false
         }' https://api.github.com/repos/It4innovations/HEAppE/releases
-  before_script:
-    - apk update && apk upgrade
-    - apk add --no-cache git curl jq
   variables:
     GIT_STRATEGY: clone
   tags:
