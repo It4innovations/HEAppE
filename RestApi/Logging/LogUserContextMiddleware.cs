@@ -2,6 +2,7 @@ using HEAppE.BusinessLogicTier;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.Factory.UnitOfWork;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.Utils;
 using Microsoft.AspNetCore.Http;
@@ -30,9 +31,9 @@ namespace HEAppE.RestApi.Logging
             _sshCertificateAuthorityService = sshCertificateAuthorityService;
         }
 
-        public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService)
+        public async Task Invoke(HttpContext context, IHttpContextKeys httpContextKeys, IUserOrgService userOrgService, IExpirioService expirioService)
         {
-            var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService);
+            var (userId, userName, email) = await ExtractUserInfo(context, httpContextKeys, userOrgService, expirioService);
 
             LoggingUtils.AddUserPropertiesToLogThreadContext(userId, userName, email);
 
@@ -46,7 +47,7 @@ namespace HEAppE.RestApi.Logging
             }
         }
 
-        private async Task<(long userId, string userName, string email)> ExtractUserInfo(HttpContext context, IHttpContextKeys keys, IUserOrgService userOrg)
+        private async Task<(long userId, string userName, string email)> ExtractUserInfo(HttpContext context, IHttpContextKeys keys, IUserOrgService userOrg, IExpirioService expirioService)
         {
             var sessionCode = await ExtractSessionCode(context);
 
@@ -65,7 +66,7 @@ namespace HEAppE.RestApi.Logging
             }
             else
             {
-                var userInfo = await Task.Run(() => GetUserInfo(sessionCode, keys, userOrg));
+                var userInfo = await Task.Run(() => GetUserInfo(sessionCode, keys, userOrg, expirioService));
                 userId = userInfo.userId;
                 userName = userInfo.userName;
                 email = userInfo.email;
@@ -100,13 +101,13 @@ namespace HEAppE.RestApi.Logging
             return null;
         }
 
-        private (long userId, string userName, string email) GetUserInfo(string sessionCode, IHttpContextKeys keys, IUserOrgService userOrg)
+        private (long userId, string userName, string email) GetUserInfo(string sessionCode, IHttpContextKeys keys, IUserOrgService userOrg, IExpirioService expirioService)
         {
             try
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
-                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys);
+                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys, expirioService);
                 
                 var loggedUser = logic.GetUserForSessionCode(sessionCode);
 

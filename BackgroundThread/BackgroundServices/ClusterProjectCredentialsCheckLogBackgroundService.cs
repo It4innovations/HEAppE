@@ -7,6 +7,7 @@ using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.BusinessLogicTier.Logic.Management;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.Expirio;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -20,14 +21,17 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
     private readonly ILog _log;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
+    private readonly IExpirioService _expirioService;
 
     public ClusterProjectCredentialsCheckLogBackgroundService(
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        IExpirioService expirioService)
     {
         _log = LogManager.GetLogger(GetType());
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
+        _expirioService = expirioService;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -49,7 +53,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory()
-                        .CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, httpContextKeys, _expirioService);
                     
                     await managementLogic.CheckClusterProjectCredentialsStatus();
                 }

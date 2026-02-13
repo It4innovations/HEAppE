@@ -44,7 +44,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     #region AbstractFileSystemManager Members
 
-    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken)
+    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken)
     {
         var basePath = jobInfo.Specification.Cluster.ClusterProjects
             .Find(cp => cp.ProjectId == jobInfo.Specification.ProjectId)?.ScratchStoragePath;
@@ -54,7 +54,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         var partPath = localBasePath.Replace(basePath, string.Empty);
 
         var connection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
+            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         _logger.LogInformation($"Downloading file {relativeFilePath} from cluster");
         try
         {
@@ -76,10 +76,10 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     }
 
     public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
-        string absoluteFilePath, string sshCaToken)
+        string absoluteFilePath, string sshCaToken, string lexisToken)
     {
         _logger.LogInformation($"Downloading file {absoluteFilePath} from cluster");
-        var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser, jobSpecification.Cluster, sshCaToken);
+        var connection = _connectionPool.GetConnectionForUser(jobSpecification.ClusterUser, jobSpecification.Cluster, sshCaToken, lexisToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -94,12 +94,12 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         }
     }
 
-    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
+    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
         var connection =
-            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken);
+            _connectionPool.GetConnectionForUser(jobInfo.Specification.ClusterUser, jobInfo.Specification.Cluster, sshCaToken, lexisToken);
         try
         {
             var remotePath = jobClusterDirectoryPath;
@@ -114,9 +114,9 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite,
         DateTime? lastModificationLimit, string[] excludedFiles, ClusterAuthenticationCredentials credentials,
-        Cluster cluster, string sshCaToken)
+        Cluster cluster, string sshCaToken, string lexisToken)
     {
-        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -141,9 +141,9 @@ public class SftpFileSystemManager : AbstractFileSystemManager
 
     protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone,
         string taskClusterDirectoryPath, DateTime? lastModificationLimit, ClusterAuthenticationCredentials credentials,
-        Cluster cluster, string sshCaToken)
+        Cluster cluster, string sshCaToken, string lexisToken)
     {
-        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);
@@ -157,7 +157,7 @@ public class SftpFileSystemManager : AbstractFileSystemManager
     }
 
     protected override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
-        ClusterAuthenticationCredentials credentials, string sshCaToken)
+        ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         var synchronizer = (SftpFullNameSynchronizer)_synchronizerFactory.CreateFileSynchronizer(fileInfo, credentials);
         synchronizer.ConnectionPool = _connectionPool;
@@ -302,10 +302,10 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         return results;
     }
 
-    public override bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+    public override bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
         bool result = false;
-        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var sftpClient = (SftpClient)connection.Connection;
@@ -348,12 +348,12 @@ public class SftpFileSystemManager : AbstractFileSystemManager
         return result;
     }
     
-    public override bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+    public override bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken,
         bool? ownerCanExecute = null, bool? groupCanExecute = null)
     {
         bool result = false;
         absoluteFilePath = absoluteFilePath.Replace('\\', '/');
-        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken);
+        var connection = _connectionPool.GetConnectionForUser(credentials, cluster, sshCaToken, lexisToken);
         try
         {
             var client = new SftpClientAdapter((SftpClient)connection.Connection);

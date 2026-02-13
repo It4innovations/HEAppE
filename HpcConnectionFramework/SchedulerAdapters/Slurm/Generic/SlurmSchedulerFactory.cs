@@ -7,6 +7,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.Services.Expirio;
 using SshCaAPI;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
@@ -48,7 +49,12 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(
+        Cluster configuration, 
+        Project project, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, 
+        long? adaptorUserId,
+        IExpirioService expirio)
     {
         // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
@@ -58,7 +64,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             uniqueIdentifier, 
             key => new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio),
                 CreateSchedulerAdapter()
             )
         );
@@ -105,7 +111,10 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateSchedulerConnector(
+        Cluster configuration, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, 
+        IExpirioService expirio)
     {
         // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var masterNodeName = configuration.MasterNodeName;
@@ -113,7 +122,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
         // OPRAVA: Použití ConcurrentDictionary.GetOrAdd pro atomickou inicializaci
         return _connectorSingletons.GetOrAdd(
             masterNodeName, 
-            key => new SshConnector(sshCertificateAuthorityService)
+            key => new SshConnector(sshCertificateAuthorityService, expirio)
         );
     }
 

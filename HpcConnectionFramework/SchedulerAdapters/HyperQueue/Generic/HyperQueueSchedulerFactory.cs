@@ -6,6 +6,7 @@ using HEAppE.DomainObjects.JobManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic.ConversionAdapter;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.Services.Expirio;
 using SshCaAPI;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
@@ -41,13 +42,18 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
 
     #region SchedulerFactory Members
 
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(
+        Cluster configuration, 
+        Project project, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, 
+        long? adaptorUserId,
+        IExpirioService expirio)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_schedulerSingletons.ContainsKey(uniqueIdentifier))
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio),
                 CreateSchedulerAdapter()
             );
         return _schedulerSingletons[uniqueIdentifier];
@@ -63,11 +69,11 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
         return _convertorSingleton ??= new HyperQueueDataConvertor(new HyperQueueConversionAdapterFactory());
     }
 
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio)
     {
         var masterNodeName = configuration.MasterNodeName;
         if (!_connectorSingletons.ContainsKey(masterNodeName))
-            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService);
+            _connectorSingletons[masterNodeName] = new SshConnector(sshCertificateAuthorityService, expirio);
 
         return _connectorSingletons[masterNodeName];
     }

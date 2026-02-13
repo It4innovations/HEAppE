@@ -42,6 +42,7 @@ using System.Threading.Tasks;
 using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.ExtModels.UserAndLimitationManagement.Models;
 using HEAppE.Services.UserOrg;
+using HEAppE.Services.Expirio;
 
 namespace HEAppE.RestApi.Controllers;
 
@@ -57,11 +58,11 @@ public class ManagementController : BaseController<ManagementController>
     /// </summary>
     /// <param name="logger">Logger instance</param>
     /// <param name="memoryCache">Memory cache provider</param>
-    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public ManagementController(ILogger<ManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
         memoryCache)
     {
-        _managementService = new ManagementService(userOrgService, sshCertificateAuthorityService, httpContextKeys);
-        _userAndManagementService = new UserAndLimitationManagementService(memoryCache, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _managementService = new ManagementService(userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
+        _userAndManagementService = new UserAndLimitationManagementService(memoryCache, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
     }
 
     #endregion

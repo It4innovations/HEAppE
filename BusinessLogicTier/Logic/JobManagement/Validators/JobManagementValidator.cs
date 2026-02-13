@@ -10,6 +10,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.Services.Expirio;
 using HEAppE.Utils.Validation;
 using SshCaAPI;
 
@@ -20,6 +21,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
     protected readonly IUnitOfWork _unitOfWork;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly IExpirioService _expirioService;
 
     #region Constructors
 
@@ -27,12 +29,14 @@ internal class JobManagementValidator : AsyncAbstractValidator
     ///     Constructor
     /// </summary>
     /// <param name="validationObj">Validation Object</param>
-    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, 
+                                    IHttpContextKeys httpContextKeys, IExpirioService expirioService)
         : base(validationObj)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _expirioService = expirioService;
     }
 
     #endregion
@@ -181,7 +185,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 
     private void ValidateWallTimeLimit(TaskSpecification task)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService)
             .GetClusterNodeTypeById(task.ClusterNodeTypeId);
         if (clusterNodeType == null)
         {
@@ -207,7 +211,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 
     private void ValidateRequestedCluster(JobSpecification job)
     {
-        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var clusterNodeType = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService)
             .GetClusterById(job.ClusterId);
 
         if (clusterNodeType == null)
@@ -258,8 +262,8 @@ internal class JobManagementValidator : AsyncAbstractValidator
             var serviceAccount = await
                 _unitOfWork.ClusterAuthenticationCredentialsRepository.GetServiceAccountCredentials(cluster.Id,
                     projectId, requireIsInitialized: true, adaptorUserId: adaptorUserId);
-            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId)
-                .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken).ToList();
+            return SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId, _expirioService)
+                .GetParametersFromGenericUserScript(cluster, serviceAccount, userScriptPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken).ToList();
         }
         catch (Exception)
         {

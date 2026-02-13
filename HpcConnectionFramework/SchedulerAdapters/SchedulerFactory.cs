@@ -12,6 +12,7 @@ using HEAppE.HpcConnectionFramework.SchedulerAdapters.HyperQueue.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.PbsPro.Generic;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
+using HEAppE.Services.Expirio;
 using SshCaAPI;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters;
@@ -53,7 +54,12 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Get scheduler connection pool
     /// </summary>
-    protected IConnectionPool GetSchedulerConnectionPool(Cluster clusterConf, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService,long? adaptorUserId)
+    protected IConnectionPool GetSchedulerConnectionPool(
+        Cluster clusterConf, 
+        Project project, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService,
+        long? adaptorUserId,
+        IExpirioService expirio)
     {
         if (!project.IsOneToOneMapping)
             adaptorUserId = null;
@@ -95,7 +101,7 @@ public abstract class SchedulerFactory
                     connectionPoolMaxSize,
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
-                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService),
+                    CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, expirio),
                     clusterConf.Port);
             });
     }
@@ -120,7 +126,12 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Create scheduler
     /// </summary>
-    public abstract IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId);
+    public abstract IRexScheduler CreateScheduler(
+        Cluster configuration, 
+        Project project, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, 
+        long? adaptorUserId,
+        IExpirioService expirio);
 
     /// <summary>
     ///     Create scheduler adapter
@@ -135,7 +146,7 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Create scheduler connector
     /// </summary>
-    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService);
+    protected abstract IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio);
 
     #endregion
 }

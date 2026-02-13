@@ -11,32 +11,32 @@ namespace HEAppE.FileTransferFramework;
 
 public interface IRexFileSystemManager
 {
-    void CopyInputFilesToCluster(SubmittedJobInfo jobSpecification, string localJobDirectory, string sshCaToken);
+    void CopyInputFilesToCluster(SubmittedJobInfo jobSpecification, string localJobDirectory, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    ICollection<JobFileContent> CopyStdOutputFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    ICollection<JobFileContent> CopyStdErrorFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    ICollection<JobFileContent> CopyProgressFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
-    ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    ICollection<JobFileContent> CopyLogFilesFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
 
     ICollection<JobFileContent> DownloadPartOfJobFileFromCluster(SubmittedTaskInfo taskSpecification,
-        SynchronizableFiles fileType, long offset, string instancePath, string subPath, string sshCaToken);
+        SynchronizableFiles fileType, long offset, string instancePath, string subPath, string sshCaToken, string lexisToken);
 
-    void CopyCreatedFilesFromCluster(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime, string sshCaToken);
+    void CopyCreatedFilesFromCluster(SubmittedJobInfo jobSpecification, DateTime jobSubmitTime, string sshCaToken, string lexisToken);
 
-    ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken);
-    ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken);
+    ICollection<FileInformation> ListChangedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken);
+    ICollection<FileInformation> ListArchivedFilesForJob(SubmittedJobInfo jobInfo, DateTime jobSubmitTime, string sshCaToken, string lexisToken);
 
-    byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken);
+    byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken);
 
-    byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath, string sshCaToken);
+    byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification, string absoluteFilePath, string sshCaToken, string lexisToken);
 
-    void DeleteSessionFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken);
+    void DeleteSessionFromCluster(SubmittedJobInfo jobSpecification, string sshCaToken, string lexisToken);
     
-    bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken);
+    bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken);
     
-    bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+    bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken,
         bool? ownerCanExecute = null, bool? groupCanExecute = null);
 }

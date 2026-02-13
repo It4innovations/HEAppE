@@ -7,6 +7,7 @@ using HEAppE.BusinessLogicTier.Configuration;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,14 +23,17 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
+    private readonly IExpirioService _expirioService;
 
     public ClusterAccountRotationJobBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory, 
+        IExpirioService expirioService)
     {
         _log = LogManager.GetLogger(GetType());
         _userOrgService = userOrgService;
+        _expirioService = expirioService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
     }
@@ -59,7 +63,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                             {
                                 _log.Info($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
                                 LogicFactory.GetLogicFactory()
-                                    .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys)
+                                    .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService)
                                     .SubmitJob(job.Id, job.Submitter);
                             }
                             catch (Exception jobEx)

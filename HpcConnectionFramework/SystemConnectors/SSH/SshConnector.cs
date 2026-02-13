@@ -19,6 +19,10 @@ using SshCaAPI;
 using SshCaAPI.Configuration;
 using ConnectionInfo = Renci.SshNet.ConnectionInfo;
 using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
+using HEAppE.Services.Expirio;
+using Services.Expirio.Models;
+using System.Threading.Tasks;
+
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 
@@ -28,9 +32,11 @@ namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
 public class SshConnector : IPoolableAdapter
 {
     private ISshCertificateAuthorityService _sshCaService;
-    public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService)
+    private IExpirioService _expirio;
+    public SshConnector(ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio)
     {
         _sshCaService = sshCertificateAuthorityService;
+        _expirio = expirio;
     }
     #region Local Methods
 
@@ -43,7 +49,7 @@ public class SshConnector : IPoolableAdapter
     /// <param name="port">Port</param>
     /// <returns></returns>
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, string sshCaToken, int? port)
+        ClusterProxyConnection proxy, string sshCaToken, string lexisToken, int? port)
     {
         SshClient sshClient = (SshClient)(credentials.AuthenticationType switch
         {
@@ -96,10 +102,11 @@ public class SshConnector : IPoolableAdapter
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
             
             ClusterAuthenticationCredentialsAuthType.Kerberos => 
-                CreateConnectionObjectUsingKerberos(masterNodeName, credentials, sshCaToken, port),
+                CreateConnectionObjectUsingKerberos(masterNodeName, credentials.Username, proxy.Host, lexisToken), //TODO: WHAT is the address
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
         });
+        //TODO: support these properties
         sshClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
         sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
         sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);
@@ -133,7 +140,7 @@ public class SshConnector : IPoolableAdapter
     /// <param name="connection"></param>
     /// <returns></returns>
     public bool IsConnected(object connection)
-    {
+    {//TODO: do this implementation
         if (connection is SshClient sshClient)
         {
             if (!sshClient.IsConnected) return false;
@@ -591,41 +598,19 @@ public class SshConnector : IPoolableAdapter
         return client;
     }
 
-    private SshClient CreateConnectionObjectUsingKerberos(string masterNodeName, ClusterAuthenticationCredentials credentials, string sshCaToken, int? port)
+    private async Task<byte[]> GetKerberosTicket(string lexisToken)
     {
-        try
-        {
-            string publicKey = credentials.PublicKey;
-            if (string.IsNullOrEmpty(credentials.PublicKey))
-            {
-                publicKey = SSHGenerator.GetPublicKeyFromPrivateKey(credentials).PublicKeyInAuthorizedKeysFormat;
-            }
-            var response = _sshCaService.SignAsync(publicKey, sshCaToken, masterNodeName)
-                .GetAwaiter()
-                .GetResult();
-            using var stream = new MemoryStream(Encoding.UTF8.GetBytes(credentials.PrivateKey));
-            using var certificateStream = new MemoryStream(Encoding.UTF8.GetBytes(response.SshCert));
-            var connectionInfo = port switch
-            {
-                null => new PrivateKeyConnectionInfo(
-                    masterNodeName,
-                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
-                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream)),
-                _ => new PrivateKeyConnectionInfo(
-                    masterNodeName,
-                    port.Value,
-                    !SshCaSettings.UsePosixAccountFromCertificate || string.IsNullOrEmpty(response.PosixUsername) ? credentials.Username : response.PosixUsername,
-                    new PrivateKeyFile(stream, credentials.PrivateKeyPassphrase, certificateStream))
-            };
+        //TODO: where does provider name comes from?
+        KerberosExchangeRequest request = new() { ProviderName = "e_infra" };
+        string ticket = await _expirio.ExchangeTokenForKerberosAsync(request, lexisToken);
+        return Convert.FromBase64String(ticket);
+    }
 
-            var client = new SshClient(connectionInfo);
-            return client;
-        }
-        catch (Exception e)
-        {
-            throw e;
-        }
-        
+    private SshClient CreateConnectionObjectUsingKerberos(string masterNodeName, string username, string address, string lexisToken)
+    {
+        byte[] krbtkt = GetKerberosTicket(lexisToken).GetAwaiter().GetResult();
+        Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
+        return new KerberosSshClient(masterNodeName, address, username);
     }
 
     #endregion

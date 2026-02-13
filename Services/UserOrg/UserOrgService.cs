@@ -4,15 +4,15 @@ using System.Net.Http.Headers;
 using HEAppE.Exceptions.External;
 using HEAppE.ExternalAuthentication.Configuration;
 using HEAppE.ExternalAuthentication.DTO.LexisAuth;
-using HEAppE.HpcConnectionFramework.Configuration;
+//using HEAppE.HpcConnectionFramework.Configuration;
 using log4net;
 
 namespace HEAppE.Services.UserOrg;
 
 public interface IUserOrgService
 {
-    Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken);
-    Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier);
+    Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, string instanceId);
+    Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, string instanceId);
     void ValidatePermissions(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string commandTemplateName);
     bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName);
 }
@@ -32,24 +32,24 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         return string.Join("/", cleanedSegments);
     }
 
-    public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken)
+    public async Task<UserInfoExtendedModel> GetUserInfoAsync(string accessToken, string instanceId)
     {
         string relativeUri = BuildUrl(
             LexisAuthenticationConfiguration.EndpointPrefix, 
             LexisAuthenticationConfiguration.ExtendedUserInfoEndpoint
         );
-        var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
+        var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken, instanceId);
         return await SendAsync<UserInfoExtendedModel>(request);
     }
 
-    public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier)
+    public async Task<CommandTemplatePermissionsModel> GetCommandTemplatePermissionsAsync(string accessToken, string heappeInstanceIdentifier, string instanceId)
     {
         string relativeUri = BuildUrl(
             LexisAuthenticationConfiguration.EndpointPrefix, 
             LexisAuthenticationConfiguration.CommandTemplatePermissions, 
             heappeInstanceIdentifier
         );
-        var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken);
+        var request = CreateRequest(HttpMethod.Get, relativeUri, accessToken, instanceId);
         return await SendAsync<CommandTemplatePermissionsModel>(request);
     }
 
@@ -76,13 +76,13 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
         return template != null && template.Enabled;
     }
 
-    private HttpRequestMessage CreateRequest(HttpMethod method, string relativeUri, string accessToken, object body = null)
+    private HttpRequestMessage CreateRequest(HttpMethod method, string relativeUri, string accessToken, string instanceId, object body = null)
     {
         var request = new HttpRequestMessage(method, relativeUri);
         request.Headers.Add("X-Api-Token", accessToken);
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
         
-        string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+        //string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
         string version = (GlobalContext.Properties["instanceVersion"] ?? "unknown").ToString();
         
         request.Headers.UserAgent.ParseAdd($"HEAppE-{instanceId}/{version}");

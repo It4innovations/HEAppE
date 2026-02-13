@@ -10,6 +10,7 @@ using HEAppE.ExtModels.ClusterInformation.Models;
 using HEAppE.RestApi.Authentication;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.ClusterInformation;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.ClusterInformation;
 using Microsoft.AspNetCore.Authorization;
@@ -43,10 +44,10 @@ public class ClusterInformationController : BaseController<ClusterInformationCon
     /// <param name="logger">Logger instance</param>
     /// <param name="cacheProvider">Memory cache instance</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) :
-        base(logger, cacheProvider)
+    public ClusterInformationController(ILogger<ClusterInformationController> logger, IMemoryCache cacheProvider, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
+                                        IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger, cacheProvider)
     {
-        _service = new ClusterInformationService(cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        _service = new ClusterInformationService(cacheProvider, userOrgService, sshCertificateAuthorityService, httpContextKeys, expirioService);
     }
 
     #endregion

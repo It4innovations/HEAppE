@@ -46,7 +46,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
     /// <param name="port">Port</param>
     /// <returns></returns>
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, string sshCaToken, int? port)
+        ClusterProxyConnection proxy, string sshCaToken, string lexisToken, int? port)
     {
         var sftpClient = (SftpClient)(credentials.AuthenticationType switch
         {

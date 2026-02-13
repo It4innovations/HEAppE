@@ -41,10 +41,11 @@ public class SshClientAdapter
         if (_sshClient is NoAuthenticationSshClient ownSshCommand)
             return ownSshCommand.RunShellCommand(command);
         
+        if (_sshClient is KerberosSshClient krbSshCommand)
+            return krbSshCommand.RunCommand(command);
+        
         return new SshCommandWrapper(_sshClient.RunCommand(command));
     }
-
-
 
     /// <summary>
     ///     Connect

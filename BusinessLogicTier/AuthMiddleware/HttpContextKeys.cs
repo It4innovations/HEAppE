@@ -11,6 +11,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement.Authentication;
 using HEAppE.DomainObjects.UserAndLimitationManagement.Enums;
 using HEAppE.ExternalAuthentication;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using IdentityModel.Client;
 using log4net;
@@ -40,7 +41,7 @@ public class RequestContext : IRequestContext
 
 public interface IHttpContextKeys
 {
-    Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService);
+    Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService, IExpirioService expirioService);
     Task<string> ExchangeSshCaToken(string tokenExchangeAddress, HttpClient httpClient);
     
     IRequestContext Context { get;  }
@@ -59,12 +60,12 @@ public class HttpContextKeys : IHttpContextKeys
         _log = LogManager.GetLogger(typeof(HttpContextKeys));
     }
 
-    public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService)
+    public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService, IExpirioService expirioService)
     {
         _log.Info("Authorizing with UserOrg");
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
+        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this, expirioService);
         AdaptorUser user = null;
         try
         {

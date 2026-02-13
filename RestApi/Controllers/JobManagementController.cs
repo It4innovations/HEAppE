@@ -5,6 +5,7 @@ using HEAppE.ExtModels.JobManagement.Models;
 using HEAppE.OpenStackAPI.DTO.JsonTypes.Authentication;
 using HEAppE.RestApi.InputValidator;
 using HEAppE.RestApiModels.JobManagement;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using HEAppE.ServiceTier.JobManagement;
 using HEAppE.Utils;
@@ -39,12 +40,12 @@ public class JobManagementController : BaseController<JobManagementController>
     /// <param name="logger">Logger</param>
     /// <param name="memoryCache">Memory cache provider</param>
     /// <param name="sshCertificateAuthorityService">SSH Certificate Authority service</param>
-    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys) : base(logger,
+    public JobManagementController(ILogger<JobManagementController> logger, IMemoryCache memoryCache, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService) : base(logger,
         memoryCache)
     {
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+        _service = new JobManagementService(userOrgService, _sshCertificateAuthorityService, _httpContextKeys, expirioService);
     }
 
     #endregion

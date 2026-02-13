@@ -13,6 +13,7 @@ using IdentityModel.Client;
 using log4net;
 using SshCaAPI;
 using SshCaAPI.Configuration;
+using HEAppE.Services.Expirio;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -83,12 +84,13 @@ public static class JwtIntrospectionExtensions
                                 .GetRequiredService<ISshCertificateAuthorityService>();
                             var userOrgService = context.HttpContext.RequestServices
                                 .GetRequiredService<IUserOrgService>();
-
+                            var expirioService = context.HttpContext.RequestServices
+                                .GetRequiredService<IExpirioService>();
                             try
                             {
                                 await context.HttpContext.RequestServices
                                     .GetRequiredService<IHttpContextKeys>()
-                                    .Authorize(sshCaService, userOrgService);
+                                    .Authorize(sshCaService, userOrgService, expirioService);
                             }
                             catch
                             {

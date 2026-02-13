@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Authorization;
 using SshCaAPI;
+using HEAppE.Services.Expirio;
 
 namespace HEAppE.BusinessLogicTier.AuthMiddleware;
 
@@ -20,7 +21,7 @@ public class LexisAuthMiddleware
         _next = next;
     }
 
-    public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService)
+    public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService, IExpirioService expirioService)
     {
         var log = LogManager.GetLogger(typeof(LexisAuthMiddleware));
         log.Info("AuthMiddleware invoked for request: " + context.Request.Path);
@@ -42,7 +43,7 @@ public class LexisAuthMiddleware
             
             try
             {
-                await keys.Authorize(sshCaService, userOrgService);
+                await keys.Authorize(sshCaService, userOrgService, expirioService);
                 var identity = new ClaimsIdentity(new[] { new Claim("raw_token", token) }, "Lexis");
                 context.User = new ClaimsPrincipal(identity);
             }

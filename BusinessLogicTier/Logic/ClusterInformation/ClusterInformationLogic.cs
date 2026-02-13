@@ -15,6 +15,7 @@ using HEAppE.DomainObjects.UserAndLimitationManagement;
 using HEAppE.Exceptions.External;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters;
+using HEAppE.Services.Expirio;
 using log4net;
 using SshCaAPI;
 using SshCaAPI.Configuration;
@@ -29,11 +30,12 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     ///     Constructor
     /// </summary>
     /// <param name="unitOfWork">Unit of work</param>
-    internal ClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal ClusterInformationLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, IExpirioService expirioService)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
+        _expirioService = expirioService;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
     }
 
@@ -60,6 +62,11 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     /// HTTP context keys
     /// </summary>
     private readonly IHttpContextKeys _httpContextKeys;
+
+        /// <summary>
+    /// Expirio service
+    /// </summary>
+    private readonly IExpirioService _expirioService;
 
     #endregion
 
@@ -111,10 +118,10 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var schedulerFactory = SchedulerFactory.GetInstance(cluster.SchedulerType)
             ?? throw new InvalidOperationException("SchedulerFactoryInstanceIsNull");
 
-        var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId:loggedUser.Id)
+        var scheduler = schedulerFactory.CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId:loggedUser.Id, _expirioService)
             ?? throw new InvalidOperationException("SchedulerInitializationFailed");
 
-        return scheduler.GetCurrentClusterNodeUsage(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken);
+        return scheduler.GetCurrentClusterNodeUsage(nodeType, serviceAccount, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken);
     }
 
 
@@ -149,8 +156,8 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             var commandTemplateParameters = new List<string> { scriptPath };
             commandTemplateParameters.AddRange(SchedulerFactory.GetInstance(cluster.SchedulerType)
-                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-                .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken).ToList());
+                .CreateScheduler(cluster, project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id, _expirioService)
+                .GetParametersFromGenericUserScript(cluster, serviceAccountCredentials, userScriptPath, _httpContextKeys.Context.SshCaToken, _httpContextKeys.Context.LEXISToken).ToList());
             return commandTemplateParameters;
         }
 
@@ -163,7 +170,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var credentials = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
                 clusterId, projectId, false, null);
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
         foreach (var credential in credentials)
         {
             var status = await managementLogic.InitializeClusterScriptDirectory(
@@ -180,7 +187,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     public async Task<ClusterAuthenticationCredentials> InitializeCredential(
         ClusterAuthenticationCredentials credential, long projectId, long? adaptorUserId)
     {
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
         var status = await managementLogic.InitializeClusterScriptDirectory(
             projectId,
             true,
@@ -326,7 +333,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         _log.InfoFormat("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
 
         //invoke management logic and run CreateSecureShellKey
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService);
         await managementLogic.CreateSecureShellKey(
             credentials: new List<(string, string)> { ($"account_{projectId}_{adaptorUserId}", string.Empty) },
             projectId: projectId,
@@ -465,7 +472,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
 
             var scheduler = SchedulerFactory
                 .GetInstance(initCluster.SchedulerType)
-                .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId);
+                .CreateScheduler(initCluster, initProject, _sshCertificateAuthorityService, adaptorUserId, _expirioService);
 
             string path = Path.Combine(initProject.AccountingString,
                 HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath);
@@ -476,7 +483,8 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 initCluster,
                 credential,
                 clusterProjectCredential.IsServiceAccount,
-                _httpContextKeys.Context.SshCaToken);
+                _httpContextKeys.Context.SshCaToken, 
+                _httpContextKeys.Context.LEXISToken);
 
             if (isInitialized)
             {

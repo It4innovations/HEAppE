@@ -6,6 +6,7 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
@@ -21,13 +22,16 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
+    private readonly IExpirioService _expirioService;
 
     public UpdateUnfinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory, 
+        IExpirioService expirioService)
     {
         _userOrgService = userOrgService;
+        _expirioService = expirioService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
         _log = LogManager.GetLogger(GetType());
@@ -49,7 +53,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     await LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys)
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService)
                         .UpdateCurrentStateOfUnfinishedJobs();
                 }
                 catch (Exception ex)

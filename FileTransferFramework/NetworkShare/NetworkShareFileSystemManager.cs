@@ -35,12 +35,12 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
 
     #region AbstractFileSystemManager Members
 
-    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken)
+    public override byte[] DownloadFileFromCluster(SubmittedJobInfo jobInfo, string relativeFilePath, string sshCaToken, string lexisToken)
     {
         throw new NotImplementedException();
     }
 
-    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken)
+    public override void DeleteSessionFromCluster(SubmittedJobInfo jobInfo, string sshCaToken, string lexisToken)
     {
         var jobClusterDirectoryPath =
             FileSystemUtils.GetJobClusterDirectoryPath(jobInfo.Specification, _scripts.InstanceIdentifierPath, _scripts.SubExecutionsPath);
@@ -50,20 +50,20 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
 
     protected override void CopyAll(string hostTimeZone, string source, string target, bool overwrite,
         DateTime? lastModificationLimit,
-        string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+        string[] excludedFiles, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
         FileSystemUtils.CopyAll(source, target, overwrite, lastModificationLimit, excludedFiles);
     }
 
     protected override ICollection<FileInformation> ListChangedFilesForTask(string hostTimeZone,
         string taskClusterDirectoryPath, DateTime? jobSubmitTime,
-        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster, string sshCaToken)
+        ClusterAuthenticationCredentials clusterAuthenticationCredentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
         throw new NotImplementedException();
     }
 
     protected override IFileSynchronizer CreateFileSynchronizer(FullFileSpecification fileInfo,
-        ClusterAuthenticationCredentials credentials, string sshCaToken)
+        ClusterAuthenticationCredentials credentials, string sshCaToken, string lexisToken)
     {
         return _synchronizerFactory.CreateFileSynchronizer(fileInfo, credentials);
     }
@@ -86,12 +86,12 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
     }
 
     public override byte[] DownloadFileFromClusterByAbsolutePath(JobSpecification jobSpecification,
-        string absoluteFilePath, string sshCaToken)
+        string absoluteFilePath, string sshCaToken, string lexisToken)
     {
         throw new NotImplementedException();
     }
 
-    public override bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+    public override bool UploadFileToClusterByAbsolutePath(Stream fileStream, string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
     {
         try
         {
@@ -105,7 +105,7 @@ public class NetworkShareFileSystemManager : AbstractFileSystemManager
         return true;
     }
     
-    public override bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken,
+    public override bool ModifyAbsolutePathFileAttributes(string absoluteFilePath, ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken,
         bool? ownerCanExecute = null, bool? groupCanExecute = null)
     {
         return false;

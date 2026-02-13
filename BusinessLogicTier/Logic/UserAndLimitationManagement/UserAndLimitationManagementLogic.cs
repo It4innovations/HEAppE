@@ -29,6 +29,7 @@ using HEAppE.ExternalAuthentication.KeyCloak;
 using HEAppE.HpcConnectionFramework.Configuration;
 using HEAppE.OpenStackAPI;
 using HEAppE.OpenStackAPI.DTO;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using log4net;
 using SshCaAPI;
@@ -39,13 +40,15 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
 {
     #region Constructors
 
-    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal UserAndLimitationManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
+                                              IHttpContextKeys httpContextKeys, IExpirioService expirioService)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
         _log = LogManager.GetLogger(MethodBase.GetCurrentMethod().DeclaringType);
         _userOrgService = userOrgService;
+        _expirioService = expirioService;
     }
 
     #endregion
@@ -63,6 +66,11 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     private readonly ILog _log;
 
     private readonly IUserOrgService _userOrgService;
+
+    /// <summary>
+    /// Expirio service
+    /// </summary>
+    private readonly IExpirioService _expirioService;
 
     /// <summary>
     ///     Session code expiration in seconds
@@ -217,9 +225,9 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,
         IEnumerable<Project> projects)
     {
-        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
+        var notFinishedJobs = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _expirioService)
             .GetNotFinishedJobInfosForSubmitterId(loggedUser.Id);
-        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys)
+        var nodeTypes = LogicFactory.GetLogicFactory().CreateClusterInformationLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _expirioService)
             .ListClusterNodeTypes();
 
         IList<ResourceUsage> result = new List<ResourceUsage>(nodeTypes.Count());
@@ -359,7 +367,8 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
         try
         {
             _log.Info($"LEXIS AAI: User \"{lexisCredentials.Username}\" wants to authenticate to the system.");
-            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken);
+            string instanceId = HPCConnectionFrameworkConfiguration.ScriptsSettings.InstanceIdentifierPath;
+            var result = await _userOrgService.GetUserInfoAsync(lexisCredentials.OpenIdLexisAccessToken, instanceId);
             return GetOrRegisterLexisCredentials(result);
         }
         catch (HttpRequestException ex)

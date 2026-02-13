@@ -76,14 +76,14 @@ namespace HEAppE.ConnectionPool
             }
         }
 
-        public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+        public ConnectionInfo GetConnectionForUser(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            return Task.Run(async () => await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken))
+            return Task.Run(async () => await GetConnectionForUserInternalAsync(credentials, cluster, sshCaToken, lexisToken))
                        .GetAwaiter()
                        .GetResult();
         }
 
-        private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken)
+        private async Task<ConnectionInfo> GetConnectionForUserInternalAsync(ClusterAuthenticationCredentials credentials, Cluster cluster, string sshCaToken, string lexisToken)
         {
             log.Debug($"[User:{credentials.Id}] Requesting connection.");
             var userContext = _userContexts.GetOrAdd(credentials.Id, id => {
@@ -126,7 +126,7 @@ namespace HEAppE.ConnectionPool
                     }
 
                     log.Debug($"[User:{credentials.Id}] Initializing new physical connection. Total connections: {_currentTotalPhysicalConnectionsCount + 1}");
-                    var newConnection = InitializeConnection(credentials, cluster, sshCaToken);
+                    var newConnection = InitializeConnection(credentials, cluster, sshCaToken, lexisToken);
                     slot.ConnectionInfo = newConnection;
                     
                     Interlocked.Increment(ref _currentTotalPhysicalConnectionsCount);
@@ -272,9 +272,9 @@ namespace HEAppE.ConnectionPool
             }
         }
         
-        private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken)
+        private ConnectionInfo InitializeConnection(ClusterAuthenticationCredentials cred, Cluster cluster, string sshCaToken, string lexisToken)
         {
-            var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, cluster.Port ?? _port);
+            var connectionObject = adapter.CreateConnectionObject(_masterNodeName, cred, cluster.ProxyConnection, sshCaToken, lexisToken, cluster.Port ?? _port);
             var connection = new ConnectionInfo { Connection = connectionObject, LastUsed = DateTime.UtcNow, AuthCredentials = cred };
             var username = connection.AuthCredentials.Username;
             if (connectionObject is SshClient info)

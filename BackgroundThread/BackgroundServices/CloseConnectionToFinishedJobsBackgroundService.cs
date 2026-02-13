@@ -7,6 +7,7 @@ using HEAppE.BusinessLogicTier.AuthMiddleware;
 using HEAppE.BusinessLogicTier.Factory;
 using HEAppE.DataAccessTier.UnitOfWork;
 using HEAppE.ExternalAuthentication.Configuration;
+using HEAppE.Services.Expirio;
 using HEAppE.Services.UserOrg;
 using log4net;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,14 +23,17 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
+    private readonly IExpirioService _expirioService;
 
     public CloseConnectionToFinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory, 
+        IExpirioService expirioService)
     {
         _log = LogManager.GetLogger(GetType());
         _userOrgService = userOrgService;
+        _expirioService = expirioService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _scopeFactory = scopeFactory;
     }
@@ -50,10 +54,10 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     var dataTransferLogic = LogicFactory.GetLogicFactory()
-                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService);
 
                     var jobManagementLogic = LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _expirioService);
 
                     var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
                     

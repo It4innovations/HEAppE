@@ -5,6 +5,7 @@ using HEAppE.DomainObjects.ClusterInformation;
 using HEAppE.DomainObjects.JobManagement;
 using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
 using HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
+using HEAppE.Services.Expirio;
 using SshCaAPI;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
@@ -46,13 +47,18 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// <param name="configuration">Cluster</param>
     /// <param name="jobInfoProject"></param>
     /// <returns></returns>
-    public override IRexScheduler CreateScheduler(Cluster configuration, Project project, ISshCertificateAuthorityService sshCertificateAuthorityService, long? adaptorUserId)
+    public override IRexScheduler CreateScheduler(
+        Cluster configuration, 
+        Project project, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, 
+        long? adaptorUserId,
+        IExpirioService expirio)
     {
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
         if (!_linuxSchedulerSingletons.ContainsKey(uniqueIdentifier))
             _linuxSchedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
-                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId),
+                GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, expirio),
                 CreateSchedulerAdapter()
             );
         return _linuxSchedulerSingletons[uniqueIdentifier];
@@ -81,10 +87,10 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     /// </summary>
     /// <param name="configuration">Cluster</param>
     /// <returns></returns>
-    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService)
+    protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, IExpirioService expirio)
     {
         if (!_linuxConnectorSingletons.ContainsKey(configuration.MasterNodeName))
-            _linuxConnectorSingletons[configuration.MasterNodeName] = new SshConnector(sshCertificateAuthorityService);
+            _linuxConnectorSingletons[configuration.MasterNodeName] = new SshConnector(sshCertificateAuthorityService, expirio);
         return _linuxConnectorSingletons[configuration.MasterNodeName];
     }
 
