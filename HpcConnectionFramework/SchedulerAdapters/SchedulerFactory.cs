@@ -93,6 +93,8 @@ public abstract class SchedulerFactory
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
                     CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService),
+                    HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
+                    HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
                     clusterConf.Port);
             });
     }
