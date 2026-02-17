@@ -120,22 +120,40 @@ public class DataTransferLogic : IDataTransferLogic
         var taskLock = GetLockForTask(transferMethod.SubmittedTaskId);
         lock (taskLock)
         {
-            if (_activeTunnels.TryGetValue(transferMethod.SubmittedTaskId, out var tunnels))
+            if (!_activeTunnels.TryGetValue(transferMethod.SubmittedTaskId, out var tunnels))
             {
-                var tunnel = tunnels.FirstOrDefault(t => t.LocalPort == transferMethod.Port && t.OwnerUserId == loggedUser.Id);
-                if (tunnel != null)
-                {
-                    var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser, true);
-                    var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-                    
-                    SchedulerFactory.GetInstance(cluster.SchedulerType)
-                        .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
-                        .RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
-
-                    tunnels.Remove(tunnel);
-                    if (!tunnels.Any()) _activeTunnels.TryRemove(transferMethod.SubmittedTaskId, out _);
-                }
+                throw new UnableToCreateConnectionException("NoActiveConnection", transferMethod.SubmittedTaskId);
             }
+
+            var tunnel = tunnels.FirstOrDefault(t => t.LocalPort == transferMethod.Port);
+        
+            if (tunnel == null)
+            {
+                throw new UnableToCreateConnectionException("ConnectionNotFound", transferMethod.SubmittedTaskId);
+            }
+
+            if (tunnel.OwnerUserId != loggedUser.Id)
+            {
+                _logger.Warn($"User {loggedUser.Id} attempted to close tunnel on port {transferMethod.Port} owned by user {tunnel.OwnerUserId}");
+                throw new UnauthorizedAccessException($"Access denied: You do not have permission to close this tunnel. It belongs to user ID {tunnel.OwnerUserId}.");
+            }
+
+            var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser, true);
+            var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
+        
+            SchedulerFactory.GetInstance(cluster.SchedulerType)
+                .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
+                .RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
+
+            tunnels.Remove(tunnel);
+        
+            if (!tunnels.Any())
+            {
+                _activeTunnels.TryRemove(transferMethod.SubmittedTaskId, out _);
+                _taskLocks.TryRemove(transferMethod.SubmittedTaskId, out _);
+            }
+        
+            _logger.Info($"Tunnel on port {transferMethod.Port} for task {transferMethod.SubmittedTaskId} successfully closed by owner {loggedUser.Id}.");
         }
     }
 
