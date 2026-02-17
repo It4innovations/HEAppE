@@ -608,8 +608,11 @@ public class SshConnector : IPoolableAdapter
     /// <returns></returns>
     private SshClient CreateConnectionObjectUsingKerberos(string masterNodeName, string username, string address, string lexisToken)
     {
-        byte[] krbtkt = GetKerberosTicket(lexisToken).GetAwaiter().GetResult();
-        Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
+        if(Tmds.Ssh.KrbLibSim.HasTicket(username, address) == false)
+        {
+            byte[] krbtkt = GetKerberosTicket(lexisToken).GetAwaiter().GetResult();
+            Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
+        }
         return new KerberosSshClient(masterNodeName, address, username);
     }
 
