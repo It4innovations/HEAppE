@@ -23,7 +23,7 @@ public class ModifyGenericCommandTemplateModel : SessionCodeModel
     /// Name
     /// </summary>
     [DataMember(Name = "Name", IsRequired = true)]
-    [StringLength(80)]
+    [StringLength(1000)]
     [Description("Name")]
     public string Name { get; set; }
 
@@ -31,7 +31,7 @@ public class ModifyGenericCommandTemplateModel : SessionCodeModel
     /// Description
     /// </summary>
     [DataMember(Name = "Description", IsRequired = true)]
-    [StringLength(200)]
+    [StringLength(1000)]
     [Description("Description")]
     public string Description { get; set; }
 
@@ -39,7 +39,7 @@ public class ModifyGenericCommandTemplateModel : SessionCodeModel
     /// Extended allocation command
     /// </summary>
     [DataMember(Name = "ExtendedAllocationCommand", IsRequired = false)]
-    [StringLength(100)]
+    [StringLength(1000)]
     [Description("Extended allocation command")]
     public string ExtendedAllocationCommand { get; set; }
 
@@ -47,7 +47,7 @@ public class ModifyGenericCommandTemplateModel : SessionCodeModel
     /// Preparation script
     /// </summary>
     [DataMember(Name = "PreparationScript", IsRequired = false)]
-    [StringLength(500)]
+    [StringLength(1000)]
     [Description("Preparation script")]
     public string PreparationScript { get; set; }
 

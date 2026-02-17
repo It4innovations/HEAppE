@@ -227,7 +227,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model">CreateCommandTemplateModel</param>
     /// <returns></returns>
     [HttpPost("CommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -264,7 +264,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
     [HttpPost("GenericCommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -304,7 +304,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="fromGenericModel">CreateCommandTemplateFromGenericModel</param>
     /// <returns></returns>
     [HttpPost("CommandTemplateFromGeneric")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(CommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -330,7 +330,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model">ModifyCommandTemplateModel</param>
     /// <returns></returns>
     [HttpPut("CommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -356,7 +356,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <returns></returns>
     /// <exception cref="InputValidationException"></exception>
     [HttpPut("GenericCommandTemplate")]
-    [RequestSizeLimit(1520)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ExtendedCommandTemplateExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1003,7 +1003,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPost("ProjectAssignmentToCluster")]
-    [RequestSizeLimit(600)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ClusterProjectExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -1029,7 +1029,7 @@ public class ManagementController : BaseController<ManagementController>
     /// <param name="model"></param>
     /// <returns></returns>
     [HttpPut("ProjectAssignmentToCluster")]
-    [RequestSizeLimit(600)]
+    [RequestSizeLimit(10000)]
     [ProducesResponseType(typeof(ClusterProjectExt), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(BadRequestResult), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
