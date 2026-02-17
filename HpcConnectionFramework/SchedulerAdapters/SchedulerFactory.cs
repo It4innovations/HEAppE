@@ -29,7 +29,6 @@ public abstract class SchedulerFactory
     /// </summary>
     public static SchedulerFactory GetInstance(SchedulerType type)
     {
-        // Tato statická metoda je již chráněna pomocí lock (_schedulerFactoryPoolSingletons), je Thread-Safe.
         lock (_schedulerFactoryPoolSingletons)
         {
             if (_schedulerFactoryPoolSingletons.ContainsKey(type)) return _schedulerFactoryPoolSingletons[type];
@@ -83,7 +82,6 @@ public abstract class SchedulerFactory
                 
                 if (adaptorUserId != null)
                 {
-                    // Použijeme AdaptorUserId z klíče
                     var currentAdaptorUserId = key.AdaptorUserId;
                     
                     connectionPoolMaxSize = clusterProject.ClusterProjectCredentials
@@ -92,8 +90,7 @@ public abstract class SchedulerFactory
                     if (connectionPoolMaxSize == 0)
                         throw new SchedulerException($"There are no credentials for 1:1 user mapping for this user.");
                 }
-
-                // Vytvoření nové instance ConnectionPool.ConnectionPool
+                
                 return new ConnectionPool.ConnectionPool(
                     clusterConf.MasterNodeName,
                     clusterConf.TimeZone,
@@ -102,6 +99,8 @@ public abstract class SchedulerFactory
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
                     CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, expirio),
+                    HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts,
+                    HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout,
                     clusterConf.Port);
             });
     }
@@ -109,11 +108,9 @@ public abstract class SchedulerFactory
     #endregion
 
     #region Instances
-
-    // OPRAVA: Změněno z Dictionary na ConcurrentDictionary pro bezpečné použití v GetSchedulerConnectionPool
+    
     private readonly ConcurrentDictionary<SchedulerEndpoint, IConnectionPool> _schedulerConnectionPoolSingletons = new();
     
-    // Zůstává Dictionary, chráněno lockem ve statické metodě GetInstance
     private static readonly Dictionary<SchedulerType, SchedulerFactory> _schedulerFactoryPoolSingletons = new();
 
     private static readonly ClusterConnectionPoolConfiguration _connectionPoolSettings =

@@ -12,6 +12,7 @@ namespace HEAppE.BackgroundThread
         /// <returns></returns>
         public static IServiceCollection AddBackgroundServices(this IServiceCollection services)
         {
+            services.AddHostedService<RoleAssignmentBackgroundService>();
             services.AddHostedService<CloseConnectionToFinishedJobsBackgroundService>();
             services.AddHostedService<ClusterAccountRotationJobBackgroundService>();
             services.AddHostedService<RemoveTemporaryFileTransferKeyBackgroundService>();

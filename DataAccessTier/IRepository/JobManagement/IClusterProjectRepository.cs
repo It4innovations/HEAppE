@@ -17,5 +17,5 @@ public interface IClusterProjectRepository : IRepository<ClusterProject>
 
     public void AddClusterProjectCredentialCheckLog(ClusterProjectCredentialCheckLog checkLog);
 
-    public List<ClusterProjectCredential> GetAllClusterProjectCredentialsUntracked();
+    public List<ClusterProjectCredential> GetAllActiveClusterProjectCredentialsUntracked();
 }

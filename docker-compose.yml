@@ -105,7 +105,6 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
-      - external_network
 
   vaultagent:
     image: hashicorp/vault:1.17.3
@@ -121,7 +120,6 @@ services:
       - IPC_LOCK
     networks:
       - vaultNet
-      - external_network
 
   vault_init:
     build:
@@ -142,7 +140,6 @@ services:
       - vaultNet
     profiles:
       - initVault
-      - external_network
 
   vault_unseal:
     build:
@@ -161,7 +158,6 @@ services:
       - ${PWD}:/app
     networks:
       - vaultNet
-      - external_network
     command: /opt/unsealOrInitHVault.sh
 
 volumes:

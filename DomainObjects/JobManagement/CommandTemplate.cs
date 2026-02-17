@@ -9,17 +9,17 @@ namespace HEAppE.DomainObjects.JobManagement;
 [Table("CommandTemplate")]
 public class CommandTemplate : IdentifiableDbEntity
 {
-    [Required] [StringLength(80)] public string Name { get; set; }
+    [Required] [StringLength(1000)] public string Name { get; set; }
 
-    [StringLength(200)] public string Description { get; set; }
+    [StringLength(1000)] public string Description { get; set; }
 
-    [StringLength(100)] public string ExtendedAllocationCommand { get; set; }
+    [StringLength(1000)] public string ExtendedAllocationCommand { get; set; }
 
-    [Required] [StringLength(255)] public string ExecutableFile { get; set; }
+    [Required] [StringLength(1000)] public string ExecutableFile { get; set; }
 
     [StringLength(1000)] public string CommandParameters { get; set; }
 
-    [StringLength(500)] public string PreparationScript { get; set; }
+    [StringLength(1000)] public string PreparationScript { get; set; }
 
     [Required] public bool IsGeneric { get; set; } = false;
 

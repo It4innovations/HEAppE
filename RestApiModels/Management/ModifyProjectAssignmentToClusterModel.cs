@@ -30,7 +30,7 @@ public class ModifyProjectAssignmentToClusterModel : SessionCodeModel
     /// Scratch storage path
     /// </summary>
     [DataMember(Name = "ScratchStoragePath", IsRequired = true)]
-    [StringLength(100)]
+    [StringLength(1000)]
     [Description("Scratch Storage Path")]
     public string ScratchStoragePath { get; set; }
     
@@ -38,7 +38,7 @@ public class ModifyProjectAssignmentToClusterModel : SessionCodeModel
     /// Project storage path
     /// </summary>
     [DataMember(Name = "ProjectStoragePath", IsRequired = true)]
-    [StringLength(100)]
+    [StringLength(1000)]
     [Description("Project Storage Path")]
     public string ProjectStoragePath { get; set; }
 }

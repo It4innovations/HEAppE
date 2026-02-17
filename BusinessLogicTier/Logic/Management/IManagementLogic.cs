@@ -45,14 +45,14 @@ public interface IManagementLogic
         DateTime endDate, bool? useAccountingStringForScheduler, bool isOneToOneMapping);
 
     void RemoveProject(long id);
-    Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId);
+    Task<List<SecureShellKey>> GetSecureShellKeys(long projectId, long? adaptorUserId, bool isAdministrator);
 
     Task<List<SecureShellKey>> RenameClusterAuthenticationCredentials(string oldUsername, string newUsername,
-        string newPassword, long projectId, long? adaptorUserId);
+        string newPassword, long projectId, long? adaptorUserId, bool isAdministrator);
     Task<List<SecureShellKey>> CreateSecureShellKey(IEnumerable<(string, string)> credentials, long projectId,
         long? adaptorUserId);
-    Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId);
-    Task RemoveSecureShellKey(string publicKey, long projectId);
+    Task<SecureShellKey> RegenerateSecureShellKey(string username, string password, long projectId, bool isAdministrator);
+    Task RemoveSecureShellKey(string publicKey, long projectId, bool isAdministrator);
     ClusterProject GetProjectAssignmentToClusterById(long projectId, long clusterId);
     List<ClusterProject> GetProjectAssignmentToClusters(long projectId);
     ClusterProject CreateProjectAssignmentToCluster(long projectId, long clusterId, string scratchStoragePath,
@@ -63,11 +63,11 @@ public interface IManagementLogic
 
     Task<List<ClusterInitReport>> InitializeClusterScriptDirectory(long projectId,
         bool overwriteExistingProjectRootDirectory,
-        long? adaptorUserId, string username);
+        long? adaptorUserId, string username, bool isAdministrator = false);
     
     public Task<List<ClusterAccessReport>> TestClusterAccessForAccount(long projectId, string username,
-        long? adaptorUserId);
-    public Task<List<ClusterAccountStatus>> ClusterAccountStatus(long projectId, string username, long? adaptorUserId);
+        long? adaptorUserId, bool isAdministrator = false);
+    public Task<List<ClusterAccountStatus>> ClusterAccountStatus(long projectId, string username, long? adaptorUserId, bool isAdministrator = false);
     CommandTemplateParameter GetCommandTemplateParameterById(long id);
 
     CommandTemplateParameter CreateCommandTemplateParameter(string modelIdentifier, string modelQuery,

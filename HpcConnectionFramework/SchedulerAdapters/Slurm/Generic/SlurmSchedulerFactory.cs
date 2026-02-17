@@ -17,13 +17,12 @@ namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Slurm.Generic;
 /// </summary>
 internal class SlurmSchedulerFactory : SchedulerFactory
 {
-    // NOVÉ: Objekt pro synchronizaci true singletonů (pro _convertorSingleton a _schedulerAdapterInstance)
     private static readonly object SingletonLock = new object();
     
     #region Instances
 
     /// <summary>
-    ///     Connectors (OPRAVA: Změněno na ConcurrentDictionary pro Thread Safety)
+    ///     Connectors 
     /// </summary>
     private readonly ConcurrentDictionary<string, IPoolableAdapter> _connectorSingletons = new();
 
@@ -56,10 +55,8 @@ internal class SlurmSchedulerFactory : SchedulerFactory
         long? adaptorUserId,
         IExpirioService expirio)
     {
-        // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var uniqueIdentifier = (configuration.MasterNodeName, project.Id, project.ModifiedAt, project.IsOneToOneMapping ? adaptorUserId : null);
-
-        // OPRAVA: Použití ConcurrentDictionary.GetOrAdd pro atomickou inicializaci
+        
         return _schedulerSingletons.GetOrAdd(
             uniqueIdentifier, 
             key => new RexSchedulerWrapper
@@ -75,7 +72,6 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// </summary>
     protected override ISchedulerAdapter CreateSchedulerAdapter()
     {
-        // OPRAVA: Inicializace pomocí Thread-Safe Double-Check Lockingu
         if (_schedulerAdapterInstance == null)
         {
             lock (SingletonLock)
@@ -94,7 +90,6 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// </summary>
     protected override ISchedulerDataConvertor CreateDataConvertor()
     {
-        // OPRAVA: Inicializace pomocí Thread-Safe Double-Check Lockingu
         if (_convertorSingleton == null)
         {
             lock (SingletonLock)
@@ -116,10 +111,8 @@ internal class SlurmSchedulerFactory : SchedulerFactory
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
         IExpirioService expirio)
     {
-        // Klíč pro identifikaci singletonu per key - BEZE ZMĚNY
         var masterNodeName = configuration.MasterNodeName;
-
-        // OPRAVA: Použití ConcurrentDictionary.GetOrAdd pro atomickou inicializaci
+        
         return _connectorSingletons.GetOrAdd(
             masterNodeName, 
             key => new SshConnector(sshCertificateAuthorityService, expirio)

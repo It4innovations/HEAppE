@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Renci.SshNet.Common;
 
 namespace HEAppE.RestApi;
 
@@ -114,6 +115,13 @@ public class ExceptionMiddleware
         var logLevel = LogLevel.Error;
         switch (exception)
         {
+            case InsufficientRoleException:
+            case UnauthorizedAccessException:
+                problem.Title = "Unauthorized Access";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status401Unauthorized;
+                logLevel = LogLevel.Warning;
+                break;
             case InputValidationException:
             case RequestedObjectDoesNotExistException:
                 problem.Title = "Validation Problem";
@@ -122,7 +130,7 @@ public class ExceptionMiddleware
                 logLevel = LogLevel.Warning;
                 break;
             case SessionCodeNotValidException:
-            case AdaptorUserNotAuthorizedForJobException:    
+            case AdaptorUserNotAuthorizedForJobException:
                 problem.Title = "Session Code Authentication Problem";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status401Unauthorized;
@@ -158,6 +166,16 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status400BadRequest;
                 break;
+            case SshException:
+                problem.Title = "SSH Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
+            case UnableToCreateTunnelException:
+                problem.Title = "Tunnel Exception";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
             case InternalException:
                 problem.Title = "Problem";
                 problem.Detail = _exceptionsLocalizer["InternalException"];
@@ -179,12 +197,6 @@ public class ExceptionMiddleware
                     "Not found." => StatusCodes.Status404NotFound,
                     _ => StatusCodes.Status400BadRequest
                 };
-                break;
-            case UnauthorizedAccessException:
-                problem.Title = "Unauthorized Access";
-                problem.Detail = GetExceptionMessage(exception);
-                problem.Status = StatusCodes.Status401Unauthorized;
-                logLevel = LogLevel.Warning;
                 break;
             default:
                 problem.Title = "Problem";

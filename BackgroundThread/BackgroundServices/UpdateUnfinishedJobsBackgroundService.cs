@@ -12,6 +12,7 @@ using log4net;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using SshCaAPI;
+using SshCaAPI.Configuration;
 
 namespace HEAppE.BackgroundThread.BackgroundServices;
 
@@ -41,7 +42,7 @@ internal class UpdateUnfinishedJobsBackgroundService : BackgroundService
     {
         await Task.Yield();
 
-        if (JwtTokenIntrospectionConfiguration.IsEnabled) return;
+        if (SshCaSettings.UseCertificateAuthorityForAuthentication) return;
 
         while (!stoppingToken.IsCancellationRequested)
         {

@@ -17,7 +17,7 @@ public class Project : IdentifiableDbEntity, ISoftDeletableEntity
 
     [StringLength(100)] public string Description { get; set; }
 
-    [Required] [StringLength(20)] public string AccountingString { get; set; }
+    [Required] [StringLength(150)] public string AccountingString { get; set; }
 
     [Required] public DateTime StartDate { get; set; }
 
