@@ -32,11 +32,13 @@ public sealed class KrbLibSim
     private static readonly ConcurrentDictionary<string, Krb5TicketCache> s_ticketCaches;
     private static ILoggerFactory s_loggerFactory;
     private static ILogger s_logger;
+    private static int _ticketValidityBufferSeconds = 30; // invalidates ticket, on HasTicket(), if less than this seconds remain.
     #endregion
 
     /********************************/
     public const bool USE_MEMORY_CACHE = true; // true: the ticket cache is in memory; false: ticket cache is in file.
-    public const bool ENABLED = true; // enable or disable this library
+    public const bool ENABLED = true; // enable or disable this library.
+    private const bool MEMORY_CACHE_ID_USERNAME_ONLY = true; // true: the memory cache id is the username; false: username and realm.
     /********************************/
 
     #region constructor
@@ -109,7 +111,10 @@ public sealed class KrbLibSim
     /// </summary>
     private static string GetMemoryCacheId(string username, string defaultRealm)
     {
-        return username + "@" + defaultRealm;
+        if(MEMORY_CACHE_ID_USERNAME_ONLY)
+            return username;
+        else
+            return username + "@" + defaultRealm;
     }
 
     #endregion
@@ -133,6 +138,26 @@ public sealed class KrbLibSim
         var ticketCache = new Krb5TicketCache(ticketCacheBytes, s_loggerFactory);
         s_ticketCaches[GetMemoryCacheId(ticketCache)] = ticketCache;
         return ticketCache.Krb5Cache.DefaultPrincipalName.FullyQualifiedName; // username
+    }
+
+    /// <summary>
+    /// Checks if the user has a valid ticket.
+    /// </summary>
+    public static bool HasTicket(string username, string address)
+    {
+        if(MEMORY_CACHE_ID_USERNAME_ONLY)
+        {
+            if(s_ticketCaches.TryGetValue(username, out Krb5TicketCache ticketCache))
+            {
+                var cacheEntry = ticketCache.GetCacheItem<KerberosClientCacheEntry>($"krbtgt/{s_krb5Conf.Defaults.DefaultRealm}");
+                // removes _ticketValidityBufferSeconds from current time and returns true if the ticket hasn't expired.
+                return cacheEntry.EndTime > DateTimeOffset.Now.AddSeconds(-_ticketValidityBufferSeconds);
+            }
+            else
+                return false;
+        }
+        else
+            throw new Exception("Error: Not implemented!");
     }
     #endregion
 
