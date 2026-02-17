@@ -125,9 +125,6 @@ release_job:
     - git config --global user.email "support.heappe@it4i.cz" 
     - git checkout master
     - git status
-  before_script:
-    - apk update && apk upgrade
-    - apk add git
   release:
     name: '${TAG_NAME}'
     description: '$(echo "${TAG_MESSAGE}" | base64 -d)'
