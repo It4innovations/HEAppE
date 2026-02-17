@@ -22,6 +22,7 @@ using PemReader = Org.BouncyCastle.OpenSsl.PemReader;
 using HEAppE.Services.Expirio;
 using Services.Expirio.Models;
 using System.Threading.Tasks;
+using Services.Expirio.Configuration;
 
 
 namespace HEAppE.HpcConnectionFramework.SystemConnectors.SSH;
@@ -591,26 +592,37 @@ public class SshConnector : IPoolableAdapter
     /// <param name="port"></param>
     /// <param name="username">Username</param>
     /// <returns></returns>
-    private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, int? port,
-        string username)
+    private static object CreateConnectionObjectUsingNoAuthentication(string masterNodeName, int? port, string username)
     {
         var client = new NoAuthenticationSshClient(masterNodeName, port, username);
         return client;
     }
 
-    private async Task<byte[]> GetKerberosTicket(string lexisToken)
-    {
-        //TODO: where does provider name comes from?
-        KerberosExchangeRequest request = new() { ProviderName = "e_infra" };
-        string ticket = await _expirio.ExchangeTokenForKerberosAsync(request, lexisToken);
-        return Convert.FromBase64String(ticket);
-    }
-
+    /// <summary>
+    ///     Create connection object using kerberos ticket.
+    /// </summary>
+    /// <param name="masterNodeName"></param>
+    /// <param name="username"></param>
+    /// <param name="address"></param>
+    /// <param name="lexisToken"></param>
+    /// <returns></returns>
     private SshClient CreateConnectionObjectUsingKerberos(string masterNodeName, string username, string address, string lexisToken)
     {
         byte[] krbtkt = GetKerberosTicket(lexisToken).GetAwaiter().GetResult();
         Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
         return new KerberosSshClient(masterNodeName, address, username);
+    }
+
+    /// <summary>
+    ///     Get the kerberos ticket for a user given the LEXIS token.
+    /// </summary>
+    /// <param name="lexisToken"></param>
+    /// <returns></returns>
+    private async Task<byte[]> GetKerberosTicket(string lexisToken)
+    {
+        KerberosExchangeRequest request = new() { ProviderName = ExpirioSettings.ProviderName };
+        string ticket = await _expirio.ExchangeTokenForKerberosAsync(request, lexisToken);
+        return Convert.FromBase64String(ticket);
     }
 
     #endregion
