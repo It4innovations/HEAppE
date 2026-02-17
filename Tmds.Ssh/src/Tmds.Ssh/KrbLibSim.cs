@@ -143,7 +143,7 @@ public sealed class KrbLibSim
     /// <summary>
     /// Checks if the user has a valid ticket.
     /// </summary>
-    public static bool HasTicket(string username, string address)
+    public static bool HasTicket(string username)
     {
         if(MEMORY_CACHE_ID_USERNAME_ONLY)
         {
