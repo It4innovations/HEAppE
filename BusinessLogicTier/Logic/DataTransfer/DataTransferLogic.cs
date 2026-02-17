@@ -59,6 +59,20 @@ public class DataTransferLogic : IDataTransferLogic
 
     private static object GetLockForTask(long taskId) => _taskLocks.GetOrAdd(taskId, _ => new object());
 
+    private int GetUserSpecificLocalPort(long taskId, string nodeIP, int nodePort, long userId)
+    {
+        if (_activeTunnels.TryGetValue(taskId, out var tunnels))
+        {
+            var userTunnel = tunnels.LastOrDefault(t => 
+                t.NodeIP == nodeIP && 
+                t.RemotePort == nodePort && 
+                t.OwnerUserId == userId);
+            
+            if (userTunnel != null) return userTunnel.LocalPort;
+        }
+        throw new UnableToCreateConnectionException("NoActiveConnectionForUser", taskId, nodeIP);
+    }
+
     public DataTransferMethod GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId, AdaptorUser loggedUser)
     {
         var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
@@ -108,12 +122,9 @@ public class DataTransferLogic : IDataTransferLogic
         {
             if (_activeTunnels.TryGetValue(transferMethod.SubmittedTaskId, out var tunnels))
             {
-                var tunnel = tunnels.FirstOrDefault(t => t.LocalPort == transferMethod.Port);
+                var tunnel = tunnels.FirstOrDefault(t => t.LocalPort == transferMethod.Port && t.OwnerUserId == loggedUser.Id);
                 if (tunnel != null)
                 {
-                    if (tunnel.OwnerUserId != loggedUser.Id)
-                        throw new UnauthorizedAccessException();
-
                     var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser, true);
                     var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
                     
@@ -122,6 +133,7 @@ public class DataTransferLogic : IDataTransferLogic
                         .RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
 
                     tunnels.Remove(tunnel);
+                    if (!tunnels.Any()) _activeTunnels.TryRemove(transferMethod.SubmittedTaskId, out _);
                 }
             }
         }
@@ -129,14 +141,9 @@ public class DataTransferLogic : IDataTransferLogic
 
     public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
-        var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
-        
-        var tunnel = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).LastOrDefault(f => f.RemotePort == nodePort);
-        if (tunnel == null) throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
+        int localPort = GetUserSpecificLocalPort(submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser.Id);
 
-        var options = new RestClientOptions($"http://localhost:{tunnel.LocalPort}") {
+        var options = new RestClientOptions($"http://localhost:{localPort}") {
             Encoding = Encoding.UTF8,
             Timeout = TimeSpan.FromSeconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds)
         };
@@ -151,14 +158,9 @@ public class DataTransferLogic : IDataTransferLogic
 
     public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
-        var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
-        
-        var tunnel = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).LastOrDefault(f => f.RemotePort == nodePort);
-        if (tunnel == null) throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
+        int localPort = GetUserSpecificLocalPort(submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser.Id);
 
-        var options = new RestClientOptions($"http://localhost:{tunnel.LocalPort}") {
+        var options = new RestClientOptions($"http://localhost:{localPort}") {
             Encoding = Encoding.UTF8,
             Timeout = TimeSpan.FromSeconds(BusinessLogicConfiguration.HTTPRequestConnectionTimeoutInSeconds)
         };
@@ -178,15 +180,10 @@ public class DataTransferLogic : IDataTransferLogic
 
     public async Task HttpPostToJobNodeStreamAsync(string httpRequest, IEnumerable<HTTPHeader> headers, string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser, Stream responseStream, CancellationToken cancellationToken)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
-        var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
-        var tunnel = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).LastOrDefault(f => f.RemotePort == nodePort);
-
-        if (tunnel == null) throw new UnableToCreateConnectionException("NoActiveConnection", submittedTaskInfoId, nodeIPAddress);
+        int localPort = GetUserSpecificLocalPort(submittedTaskInfoId, nodeIPAddress, nodePort, loggedUser.Id);
 
         using var httpClient = new HttpClient { Timeout = Timeout.InfiniteTimeSpan };
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{tunnel.LocalPort}{httpRequest}");
+        var requestMessage = new HttpRequestMessage(HttpMethod.Post, $"http://localhost:{localPort}{httpRequest}");
         
         foreach (var h in headers) {
             if (h.Name.Equals("content-type", StringComparison.OrdinalIgnoreCase))
