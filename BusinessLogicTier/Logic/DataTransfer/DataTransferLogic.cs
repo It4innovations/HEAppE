@@ -170,7 +170,7 @@ public class DataTransferLogic : IDataTransferLogic
         foreach (var h in headers) request.AddHeader(h.Name, h.Value);
 
         var response = await client.ExecuteAsync(request);
-        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
+        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk", response.Content);
         return response.Content;
     }
 
@@ -192,7 +192,7 @@ public class DataTransferLogic : IDataTransferLogic
             request.AddBody(Encoding.UTF8.GetBytes(httpPayload));
 
         var response = await client.ExecuteAsync(request);
-        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
+        if (response.StatusCode != HttpStatusCode.OK) throw new UnableToCreateConnectionException("ResponseNotOk", response.Content);
         return response.Content;
     }
 
@@ -212,7 +212,7 @@ public class DataTransferLogic : IDataTransferLogic
         if (requestMessage.Content == null) requestMessage.Content = new StringContent(httpPayload ?? "", Encoding.UTF8, "application/json");
 
         using var response = await httpClient.SendAsync(requestMessage, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
-        if (!response.IsSuccessStatusCode) throw new UnableToCreateConnectionException("ResponseNotOk", submittedTaskInfoId, nodeIPAddress);
+        if (!response.IsSuccessStatusCode) throw new UnableToCreateConnectionException("ResponseNotOk", response.Content);
 
         await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
         await contentStream.CopyToAsync(responseStream, cancellationToken);
