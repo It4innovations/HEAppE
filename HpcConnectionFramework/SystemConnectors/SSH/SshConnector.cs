@@ -46,12 +46,13 @@ public class SshConnector : IPoolableAdapter
     /// </summary>
     /// <param name="masterNodeName">Master node name</param>
     /// <param name="credentials">Credentials</param>
-    /// <param name="proxy">Proxy</param>
+    /// <param name="cluster">Cluster</param>
     /// <param name="port">Port</param>
     /// <returns></returns>
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, string sshCaToken, string lexisToken, int? port)
+        Cluster cluster, string sshCaToken, string lexisToken, int? port)
     {
+        ClusterProxyConnection proxy = cluster.ProxyConnection;
         SshClient sshClient = (SshClient)(credentials.AuthenticationType switch
         {
             ClusterAuthenticationCredentialsAuthType.Password
@@ -103,11 +104,11 @@ public class SshConnector : IPoolableAdapter
                     proxy.Port, proxy.Username, proxy.Password, masterNodeName, credentials, sshCaToken, port),
             
             ClusterAuthenticationCredentialsAuthType.Kerberos => 
-                CreateConnectionObjectUsingKerberos(masterNodeName, credentials.Username, proxy.Host, lexisToken), //TODO: WHAT is the address
+                CreateConnectionObjectUsingKerberos(masterNodeName, credentials.Username, cluster.DomainName, lexisToken),
 
             _ => throw new SshClientArgumentException("AuthenticationTypeNotAllowed")
         });
-        //TODO: support these properties
+        //TODO: Kerberos client need to support these properties.
         sshClient.ConnectionInfo.RetryAttempts = HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionRetryAttempts;
         sshClient.ConnectionInfo.Timeout = TimeSpan.FromMilliseconds(HPCConnectionFrameworkConfiguration.SshClientSettings.ConnectionTimeout);
         sshClient.KeepAliveInterval = TimeSpan.FromSeconds(30);

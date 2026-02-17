@@ -7,7 +7,7 @@ public interface IPoolableAdapter
 {
     
     object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials clusterCredentials,
-        ClusterProxyConnection proxy, string sshCaToken, string lexisToken, int? port);
+        Cluster cluster, string sshCaToken, string lexisToken, int? port);
 
     void Connect(object connection);
 

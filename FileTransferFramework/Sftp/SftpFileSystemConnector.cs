@@ -42,12 +42,13 @@ public class SftpFileSystemConnector : IPoolableAdapter
     /// </summary>
     /// <param name="masterNodeName">Master node name</param>
     /// <param name="credentials">Credentials</param>
-    /// <param name="proxy">Proxy</param>
+    /// <param name="cluster">Cluster</param>
     /// <param name="port">Port</param>
     /// <returns></returns>
     public object CreateConnectionObject(string masterNodeName, ClusterAuthenticationCredentials credentials,
-        ClusterProxyConnection proxy, string sshCaToken, string lexisToken, int? port)
+        Cluster cluster, string sshCaToken, string lexisToken, int? port)
     {
+        ClusterProxyConnection proxy = cluster.ProxyConnection;
         var sftpClient = (SftpClient)(credentials.AuthenticationType switch
         {
             ClusterAuthenticationCredentialsAuthType.Password
