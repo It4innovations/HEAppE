@@ -9,7 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Increased accounting string attribute length in the `Project` object to 150 characters.
-- Retry and timeout logic in the `ConnectionPool` when Initializing connection via `SSH`, `SFPT` client.
+- Enhanced HPC connection robustness to Retry and timeout logic when Initializing connection via `SSH`, `SFPT` client.
+- Extended length of string atrributes of `CommandTemplate` to 1000 characters.
+- Optimised data transfer and tunnel management
+- Propagated `SSH Client` error to HEAppE API responses. 
 
 
 ## V6.2.1

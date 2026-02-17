@@ -122,7 +122,6 @@ public class DataTransferLogic : IDataTransferLogic
                         .RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
 
                     tunnels.Remove(tunnel);
-                    if (!tunnels.Any()) _activeTunnels.TryRemove(transferMethod.SubmittedTaskId, out _);
                 }
             }
         }
