@@ -181,7 +181,7 @@ public class FileTransferLogic : IFileTransferLogic
                 FileTransferCipherType = clusterUserAuthCredentials.CipherType,
                 CredentialsAuthType = clusterUserAuthCredentials.AuthenticationType,
                 PrivateKey = clusterUserAuthCredentials.PrivateKey,
-                PrivateKeyCertificate = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) ? response.SshCert : clusterUserAuthCredentials.PrivateKeyCertificate,
+                PrivateKeyCertificate = (JwtTokenIntrospectionConfiguration.IsEnabled && SshCaSettings.UseCertificateAuthorityForAuthentication) ? response.SshCert : string.IsNullOrEmpty(clusterUserAuthCredentials.PrivateKeyCertificate)? null : clusterUserAuthCredentials.PrivateKeyCertificate,
                 Passphrase = clusterUserAuthCredentials.PrivateKeyPassphrase
             }
         };
@@ -223,7 +223,7 @@ public class FileTransferLogic : IFileTransferLogic
                 Username = jobInfo.Specification.ClusterUser.Username,
                 FileTransferCipherType = credentials.CipherType,
                 PrivateKey = credentials.PrivateKey,
-                PrivateKeyCertificate = credentials.PrivateKeyCertificate,
+                PrivateKeyCertificate = string.IsNullOrEmpty(credentials.PrivateKeyCertificate)? null : credentials.PrivateKeyCertificate,
                 PublicKey = credentials.PublicKey
             };
             return transferMethod;
