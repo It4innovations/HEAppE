@@ -608,7 +608,7 @@ public class SshConnector : IPoolableAdapter
     /// <returns></returns>
     private SshClient CreateConnectionObjectUsingKerberos(string masterNodeName, string username, string address, string lexisToken)
     {
-        if(Tmds.Ssh.KrbLibSim.HasTicket(username, address) == false)
+        if(Tmds.Ssh.KrbLibSim.HasTicket(username) == false)
         {
             byte[] krbtkt = GetKerberosTicket(lexisToken).GetAwaiter().GetResult();
             Tmds.Ssh.KrbLibSim.AddOrUpdateTicketCache(krbtkt);
