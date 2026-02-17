@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -71,18 +72,33 @@ public class DataTransferLogic : IDataTransferLogic
     private readonly IUserOrgService _userOrgService;
 
     /// <summary>
-    ///     HashSet tasks with opened tunnel
+    ///     Concurrent dictionary for tasks with opened tunnel. 
+    ///     Key = TaskID, Value = UserID (Owner of the tunnel)
     /// </summary>
-    private static readonly HashSet<long> _taskWithExistingTunnel = new();
+    private static readonly ConcurrentDictionary<long, long> _taskWithExistingTunnel = new();
 
     /// <summary>
-    ///     Lock tunnel object
+    ///     Concurrent dictionary for storing locks per task ID.
+    ///     Ensures we lock only the specific task, not the whole system.
     /// </summary>
-    private readonly object _lockTunnelObj = new();
+    private static readonly ConcurrentDictionary<long, object> _taskLocks = new();
     
     ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
     private IHttpContextKeys _httpContextKeys;
+
+    #endregion
+
+    #region Helper Methods
+
+    /// <summary>
+    /// Retrieves or creates a lock object specific to a Task ID.
+    /// This ensures thread safety for a specific task without blocking others.
+    /// </summary>
+    private static object GetLockForTask(long taskId)
+    {
+        return _taskLocks.GetOrAdd(taskId, _ => new object());
+    }
 
     #endregion
 
@@ -100,12 +116,15 @@ public class DataTransferLogic : IDataTransferLogic
     public DataTransferMethod GetDataTransferMethod(string nodeIPAddress, int nodePort, long submittedTaskInfoId,
         AdaptorUser loggedUser)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
         _logger.Info(
             $"Getting data transfer method for submitted task id: \"{submittedTaskInfoId}\" with user: \"{loggedUser.GetLogIdentification()}\"");
 
         if (taskInfo.State == TaskState.Running)
-            lock (_lockTunnelObj)
+        {
+            // Lock only for this specific task
+            var taskLock = GetLockForTask(submittedTaskInfoId);
+            lock (taskLock)
             {
                 var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
                 var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
@@ -113,11 +132,17 @@ public class DataTransferLogic : IDataTransferLogic
 
                 var getTunnelsInfos = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress);
                 if (getTunnelsInfos.Any(f => f.RemotePort == nodePort))
-                    throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress,
-                        nodePort);
+                {
+                    // Ensure it is marked as active with the current user ID
+                    _taskWithExistingTunnel.TryAdd(submittedTaskInfoId, loggedUser.Id);
+                    throw new UnableToCreateConnectionException("PortAlreadyInUse", submittedTaskInfoId, nodeIPAddress, nodePort);
+                }
 
                 scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken);
-                _taskWithExistingTunnel.Add(submittedTaskInfoId);
+                
+                // Store the User ID of the creator
+                _taskWithExistingTunnel.TryAdd(submittedTaskInfoId, loggedUser.Id);
+                
                 var tunnelInfo = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress).Where(w => w.RemotePort == nodePort)
                     .FirstOrDefault();
 
@@ -132,27 +157,43 @@ public class DataTransferLogic : IDataTransferLogic
                         NodePort = tunnelInfo.RemotePort
                     };
             }
+        }
 
         throw new UnableToCreateConnectionException("NotRunningTask", taskInfo.Id);
     }
 
     /// <summary>
-    ///     Close tunnel to cluster node
+    ///     Close tunnel to cluster node. 
+    ///     Only the user who created the tunnel is allowed to close it.
     /// </summary>
     /// <param name="transferMethod"></param>
     /// <param name="loggedUser">Logged user</param>
     public void EndDataTransfer(DataTransferMethod transferMethod, AdaptorUser loggedUser)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser);
+        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(transferMethod.SubmittedTaskId, loggedUser, true);
         _logger.Info(
             $"Removing data transfer method for submitted task id: \"{taskInfo.Id}\" with user: \"{loggedUser.GetLogIdentification()}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
-        lock (_lockTunnelObj)
+        
+        // Lock only for this specific task
+        var taskLock = GetLockForTask(transferMethod.SubmittedTaskId);
+        lock (taskLock)
         {
+            // SECURITY CHECK: Verify if the logged user is the owner of the tunnel
+            if (_taskWithExistingTunnel.TryGetValue(transferMethod.SubmittedTaskId, out long ownerId))
+            {
+                if (ownerId != loggedUser.Id)
+                {
+                    _logger.Warn($"User {loggedUser.Id} tried to close tunnel for task {transferMethod.SubmittedTaskId} owned by {ownerId}. Access denied.");
+                    throw new UnauthorizedAccessException($"Access denied: Only the user who created (ID {ownerId}) the tunnel can close it.");
+                }
+            }
+
             SchedulerFactory.GetInstance(cluster.SchedulerType).CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id)
                 .RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
-            _taskWithExistingTunnel.Remove(taskInfo.Id);
+            
+            _taskWithExistingTunnel.TryRemove(taskInfo.Id, out _);
         }
     }
 
@@ -162,7 +203,7 @@ public class DataTransferLogic : IDataTransferLogic
     /// <returns></returns>
     public IEnumerable<long> GetTaskIdsWithOpenTunnels()
     {
-        return _taskWithExistingTunnel;
+        return _taskWithExistingTunnel.Keys;
     }
 
     /// <summary>
@@ -175,17 +216,20 @@ public class DataTransferLogic : IDataTransferLogic
 
         var scheduler = SchedulerFactory.GetInstance(taskInfo.Specification.JobSpecification.Cluster.SchedulerType)
             .CreateScheduler(taskInfo.Specification.JobSpecification.Cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: taskInfo.Specification.JobSpecification.Submitter.Id);
-        lock (_lockTunnelObj)
+        
+        // Lock only for this specific task
+        var taskLock = GetLockForTask(taskInfo.Id);
+        lock (taskLock)
         {
             scheduler.RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
-            _taskWithExistingTunnel.Remove(taskInfo.Id);
+            _taskWithExistingTunnel.TryRemove(taskInfo.Id, out _);
         }
     }
 
     public async Task<string> HttpGetToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers,
         long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
         _logger.Info(
             $"HTTP GET from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\"");
 
@@ -221,15 +265,21 @@ public class DataTransferLogic : IDataTransferLogic
         {
             _logger.Error($"Connection refused for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
             _logger.Info($"Attempting to recreate tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
-            //try to open the tunnel again
-            lock (_lockTunnelObj)
+            
+            // Try to open the tunnel again - using granular lock
+            var taskLock = GetLockForTask(submittedTaskInfoId);
+            lock (taskLock)
             {
                 _logger.Info($"Recreating tunnel for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
                 scheduler.RemoveTunnel(taskInfo, _httpContextKeys.Context.SshCaToken);
                 scheduler.CreateTunnel(taskInfo, nodeIPAddress, nodePort, _httpContextKeys.Context.SshCaToken);
-                _taskWithExistingTunnel.Add(submittedTaskInfoId);
+                
+                // Update the owner to the current user who is fixing the connection
+                _taskWithExistingTunnel.AddOrUpdate(submittedTaskInfoId, loggedUser.Id, (key, oldValue) => loggedUser.Id);
+                
                 _logger.Info($"Tunnel recreated for task ID: {submittedTaskInfoId} on node IP: {nodeIPAddress} and port: {nodePort}");
             }
+
             var tunnel = scheduler.GetTunnelsInfos(taskInfo, nodeIPAddress)
                 .LastOrDefault(f => f.RemotePort == nodePort);
 
@@ -291,7 +341,7 @@ public class DataTransferLogic : IDataTransferLogic
     public async Task<string> HttpPostToJobNodeAsync(string httpRequest, IEnumerable<HTTPHeader> headers,
         string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
         _logger.Info(
             $"HTTP POST from task: \"{submittedTaskInfoId}\" with remote node IP address: \"{nodeIPAddress}\" HTTP request: \"{httpRequest}\" HTTP headers: \"{string.Join(",", headers.Select(h=>$"({h.Name}, {h.Value})"))}\" HTTP Payload: \"{httpPayload}\"");
 
@@ -389,7 +439,7 @@ public class DataTransferLogic : IDataTransferLogic
         string httpPayload, long submittedTaskInfoId, string nodeIPAddress, int nodePort, AdaptorUser loggedUser,
         Stream responseStream, CancellationToken cancellationToken)
     {
-        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser);
+        var taskInfo = _managementLogic.GetSubmittedTaskInfoById(submittedTaskInfoId, loggedUser, true);
         _logger.Info($"HTTP POST (streaming) from task: \"{submittedTaskInfoId}\" with remote node IP: \"{nodeIPAddress}\"");
 
         var cluster = taskInfo.Specification.ClusterNodeType.Cluster;

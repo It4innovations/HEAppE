@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Localization;
 using Microsoft.Extensions.Logging;
+using Renci.SshNet.Common;
 
 namespace HEAppE.RestApi;
 
@@ -164,6 +165,11 @@ public class ExceptionMiddleware
                 problem.Title = "Invalid Request";
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status400BadRequest;
+                break;
+            case SshException:
+                problem.Title = "SSH Problem";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
                 break;
             case InternalException:
                 problem.Title = "Problem";

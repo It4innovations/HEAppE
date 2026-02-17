@@ -20,6 +20,12 @@ internal class SubmittedJobInfoRepository : GenericRepository<SubmittedJobInfo>,
 
     #region Methods
 
+    public SubmittedJobInfo GetBySubmittedTaskId(long taskId)
+    {
+        return _dbSet.Include(j => j.Tasks)
+            .FirstOrDefault(j => j.Tasks.Any(t => t.Id == taskId));
+    }
+
     public IEnumerable<SubmittedJobInfo> GetNotFinishedForSubmitterId(long submitterId)
     {
         return GetAll().Where(w =>

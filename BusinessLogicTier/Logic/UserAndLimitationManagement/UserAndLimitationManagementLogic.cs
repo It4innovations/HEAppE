@@ -204,14 +204,24 @@ public class UserAndLimitationManagementLogic : IUserAndLimitationManagementLogi
                loggedUser.Groups.FirstOrDefault() ?? _unitOfWork.AdaptorUserGroupRepository.GetDefaultSubmitterGroup();
     }
 
-    public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo)
+    public bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo, bool isAdminOverride = false)
     {
+        if (isAdminOverride)
+        {
+            return true;
+        }
         return jobInfo.Submitter.Id == loggedUser.Id;
     }
 
-    public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo)
+    public bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo, bool checkSharedJobInfoAccess = false)
     {
-        return taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
+        bool isOwner = taskInfo.Specification.JobSpecification.Submitter.Id == loggedUser.Id;
+        if (isOwner) 
+            return true;
+        if (!checkSharedJobInfoAccess || taskInfo.Project == null) 
+            return false;
+        var project = _unitOfWork.ProjectRepository.GetById(taskInfo.Project.Id);
+        return project is { IsOneToOneMapping: false };
     }
 
     public IList<ResourceUsage> GetCurrentUsageAndLimitationsForUser(AdaptorUser loggedUser,

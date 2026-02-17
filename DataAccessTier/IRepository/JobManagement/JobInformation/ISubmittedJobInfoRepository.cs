@@ -7,6 +7,7 @@ namespace HEAppE.DataAccessTier.IRepository.JobManagement.JobInformation;
 
 public interface ISubmittedJobInfoRepository : IRepository<SubmittedJobInfo>
 {
+    public SubmittedJobInfo GetBySubmittedTaskId(long taskId);
     IEnumerable<SubmittedJobInfo> GetNotFinishedForSubmitterId(long submitterId);
     IEnumerable<SubmittedJobInfo> GetAllForSubmitterId(long submitterId);
     IEnumerable<SubmittedJobInfo> GetAllUnfinished();

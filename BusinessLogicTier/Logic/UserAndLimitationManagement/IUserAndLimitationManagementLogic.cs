@@ -22,8 +22,8 @@ public interface IUserAndLimitationManagementLogic
         IEnumerable<Project> projects);
 
     public Task<AdaptorUser> HandleTokenAsApiKeyAuthenticationAsync(LexisCredentials lexisCredentials);
-    bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo);
-    bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo);
+    bool AuthorizeUserForJobInfo(AdaptorUser loggedUser, SubmittedJobInfo jobInfo, bool isAdminOverride = false);
+    bool AuthorizeUserForTaskInfo(AdaptorUser loggedUser, SubmittedTaskInfo taskInfo, bool checkSharedJobInfoAccess = false);
     AdaptorUserGroup GetDefaultSubmitterGroup(AdaptorUser loggedUser, long projectId);
     IEnumerable<ProjectReference> ProjectsForCurrentUser(AdaptorUser loggedUser, IEnumerable<Project> projects);
 }

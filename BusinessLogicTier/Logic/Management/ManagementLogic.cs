@@ -2485,7 +2485,7 @@ public class ManagementLogic : IManagementLogic
     {
         _logger.Info("Starting CheckClusterProjectCredentialsStatus background task.");
         var clusterProjectCredentials = _unitOfWork.ClusterProjectRepository
-            .GetAllClusterProjectCredentialsUntracked()
+            .GetAllActiveClusterProjectCredentialsUntracked()
             .ToList();
         
         const int batchSize = 20;
