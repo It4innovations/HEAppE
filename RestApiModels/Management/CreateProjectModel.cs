@@ -34,7 +34,7 @@ public class CreateProjectModel : SessionCodeModel
     /// Accounting string
     /// </summary>
     [DataMember(Name = "AccountingString", IsRequired = true)]
-    [StringLength(20)]
+    [StringLength(150)]
     [Description("Accounting string")]
     public string AccountingString { get; set; }
 
