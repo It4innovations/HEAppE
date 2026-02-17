@@ -6,7 +6,7 @@
 # from folder /heappe-core
 cd DataAccessTier 
 $env:ASPNETCORE_RUNTYPE_ENVIRONMENT='LocalWindows'
-dotnet ef migrations add ExpandMaxLenghtOfClusterAndUserAttributes -c MiddlewareContext -o Migrations
+dotnet ef migrations add <migration-name> -c MiddlewareContext -o Migrations
 ```
 
 ### Dotnet core - Update database:

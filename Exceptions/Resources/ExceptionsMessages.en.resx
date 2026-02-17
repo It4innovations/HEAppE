@@ -304,7 +304,7 @@
     <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no Service Account Credentials reference in the HEAppE.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_ClusterProjectCombinationNotFound" xml:space="preserve">
-    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the HEAppE.</value>
+    <value>Requested combination for cluster Id '{0}' with Project Id '{1}' has no reference in the HEAppE or there is not active account.</value>
   </data>
   <data name="RequestedObjectDoesNotExistException_FailedToRetrieveOrInitializeClusterAccount" xml:space="preserve">
     <value>Failed to retrieve or initialize cluster account.</value>
@@ -430,7 +430,7 @@
     <value>TaskId '{0}' with remote node IP address '{1}' already has SSH tunnel for port '{2}'.</value>
   </data>
   <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
-    <value>Response code for Http request is not 200. Check your application.</value>
+    <value>{0}</value>
   </data>
   <data name="UnableToCreateTunnelException_ExceptionOccurs" xml:space="preserve">
     <value>Unable to create SSH tunnel.</value>

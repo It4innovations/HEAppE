@@ -176,14 +176,19 @@ public class JobManagementService : IJobManagementService
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
                 AdaptorUserRoleType.Submitter, job.Project.Id);
-
+            
+            long projectId = job.Project?.Id ?? 0;
+            //check if user is Admin
+            bool isAdmin = UserAndLimitationManagementService.CheckIfUserHasRoleForProject(loggedUser, AdaptorUserRoleType.Administrator, projectId, true);
+            bool isJobOwner = job.Submitter.Id == loggedUser.Id;
+            
             var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
-            if (JwtTokenIntrospectionConfiguration.IsEnabled)
+            if (JwtTokenIntrospectionConfiguration.IsEnabled && isJobOwner)
             {
                 var jobInfoFromHPC = await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
                 return jobInfoFromHPC.ConvertIntToExt();
             }
-            var jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser);
+            var jobInfo = jobLogic.GetSubmittedJobInfoById(submittedJobInfoId, loggedUser, isAdmin);
             return jobInfo.ConvertIntToExt();
         }
     }

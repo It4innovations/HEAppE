@@ -325,7 +325,19 @@ internal class JobManagementLogic : IJobManagementLogic
             MoveJobFiles(jobInfo, sourceDestinations, _httpContextKeys.Context.SshCaToken);
         return isArchived;
     }
-    
+
+    public SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser, bool isAdminOverride = false)
+    {
+        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
+
+        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
+                .AuthorizeUserForJobInfo(loggedUser, jobInfo, isAdminOverride))
+            throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
+                loggedUser.GetLogIdentification(), submittedJobInfoId);
+        return jobInfo;
+    }
+
     static Tuple<string, string> CreatePathTuple(string localBasePath, string jobLogArchivePath, TaskSpecification task, string fileName)
     {
         var localPath = Path.Join(localBasePath,
@@ -343,16 +355,17 @@ internal class JobManagementLogic : IJobManagementLogic
         return new Tuple<string, string>(localPath, archivePath);
     }
 
-    public virtual SubmittedJobInfo GetSubmittedJobInfoById(long submittedJobInfoId, AdaptorUser loggedUser)
+    public virtual SubmittedTaskInfo GetSubmittedTaskInfoById(long submittedTaskInfoId, AdaptorUser loggedUser,
+        bool checkSharedJobInfoAccess)
     {
-        var jobInfo = _unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId)
-                      ?? throw new RequestedObjectDoesNotExistException("NotExistingJobInfo", submittedJobInfoId);
+        var taskInfo = _unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId)
+                      ?? throw new RequestedObjectDoesNotExistException("NotExistingTaskInfo", submittedTaskInfoId);
 
-        if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
-                .AuthorizeUserForJobInfo(loggedUser, jobInfo))
+      if (!LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys)
+                .AuthorizeUserForTaskInfo(loggedUser, taskInfo, checkSharedJobInfoAccess))
             throw new AdaptorUserNotAuthorizedForJobException("UserNotAuthorizedToWorkWithJob",
-                loggedUser.GetLogIdentification(), submittedJobInfoId);
-        return jobInfo;
+                loggedUser.GetLogIdentification(), submittedTaskInfoId);
+        return taskInfo;
     }
 
 

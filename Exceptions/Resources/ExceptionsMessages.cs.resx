@@ -412,7 +412,7 @@
     <value>TaskId '{0}' s vzdálenou IP adresou uzlu: '{1}' již má SSH tunel pro port: '{2}'.</value>
   </data>
   <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
-    <value>Odpověď pro HttpGet nemá kód 200. Zkontrolujte svou aplikaci.</value>
+    <value>{0}</value>
   </data>
   <data name="UnableToCreateTunnelException_ExceptionOccurs" xml:space="preserve">
     <value>Během vytváření SSH tunelu došlo k výjimce.</value>
