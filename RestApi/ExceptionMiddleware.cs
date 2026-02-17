@@ -171,6 +171,11 @@ public class ExceptionMiddleware
                 problem.Detail = GetExceptionMessage(exception);
                 problem.Status = StatusCodes.Status502BadGateway;
                 break;
+            case UnableToCreateTunnelException:
+                problem.Title = "Tunnel Exception";
+                problem.Detail = GetExceptionMessage(exception);
+                problem.Status = StatusCodes.Status502BadGateway;
+                break;
             case InternalException:
                 problem.Title = "Problem";
                 problem.Detail = _exceptionsLocalizer["InternalException"];
