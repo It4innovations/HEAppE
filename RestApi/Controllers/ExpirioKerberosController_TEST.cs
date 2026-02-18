@@ -30,8 +30,7 @@ public class ExpirioController : ControllerBase
     [HttpPost("kerberos/exchange")]
     public async Task<IActionResult> GetKerberosTicket([FromBody] KerberosExchangeRequest request, CancellationToken ct)
     {
-        //var ticket = await _expirio.ExchangeTokenForKerberosAsync(request, _httpContextKeys.Context.LEXISToken, ct);
-        var ticket = "";
+        var ticket = await _expirio.ExchangeTokenForKerberosAsync(request, _httpContextKeys.Context.LEXISToken, ct);
         byte[] expirio_tkt = Convert.FromBase64String(ticket);
         string username = KrbLibSim.AddOrUpdateTicketCache(expirio_tkt);
 
@@ -61,42 +60,6 @@ public class ExpirioController : ControllerBase
 
         using (var client = new SshClient(address, sshConfigSettings, loggerFactory))
         {
-            //////////////////////////////////
-            /*
-            try
-            {
-                Console.WriteLine($"\n\n#############");
-                Console.WriteLine($"# User [{username}] connecting to [{address}]...");
-
-                var watch = Stopwatch.StartNew();
-                // Connect to the SSH client
-                await client.ConnectAsync();
-                watch.Stop();
-
-                string msg = $"--- User [{username}] connection to [{address}] successful! ({watch.ElapsedMilliseconds}ms) ---";
-                string msgExt = new('@', msg.Length);
-                string msgInt = new('-', msg.Length);
-
-                string command = "whoami";
-
-                Console.WriteLine($"User [{username}] on service [{address}] executing remote command: {command}\n...\n");
-                //
-                Renci.SshNet.ConnectionInfo connInfo = new (address, username, [new Renci.SshNet.NoneAuthenticationMethod(username)]);
-                var sshClient = new Renci.SshNet.SshClient(connInfo);
-                //sshClient.Connect();
-                var comm = sshClient.RunCommand(command);
-
-                Console.WriteLine($"{msgInt}\nUser [{username}], service [{address}], stdout: {"line1"}\n{msgInt}\n");
-
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"User [{username}], service [{address}] ### An error occurred: {ex.Message}");
-                Console.WriteLine($"User [{username}], service [{address}] ### StackTrace: {ex.StackTrace}\n");
-            }
-            if(false)
-            /**/
-            ////////////////////////////////
             try
             {
                 Console.WriteLine($"\n\n#############");
