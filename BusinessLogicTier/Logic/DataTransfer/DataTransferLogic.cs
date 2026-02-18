@@ -82,6 +82,20 @@ public class DataTransferLogic : IDataTransferLogic
         var taskLock = GetLockForTask(submittedTaskInfoId);
         lock (taskLock)
         {
+            if (_activeTunnels.TryGetValue(submittedTaskInfoId, out var existingTunnels))
+            {
+                var existingUserTunnel = existingTunnels.FirstOrDefault(t => t.OwnerUserId == loggedUser.Id);
+                if (existingUserTunnel != null)
+                {
+                    return new DataTransferMethod {
+                        SubmittedTaskId = submittedTaskInfoId,
+                        Port = existingUserTunnel.LocalPort,
+                        NodeIPAddress = existingUserTunnel.NodeIP,
+                        NodePort = existingUserTunnel.RemotePort
+                    };
+                }
+            }
+
             var cluster = taskInfo.Specification.ClusterNodeType.Cluster;
             var scheduler = SchedulerFactory.GetInstance(cluster.SchedulerType)
                 .CreateScheduler(cluster, taskInfo.Project, _sshCertificateAuthorityService, adaptorUserId: loggedUser.Id);
@@ -104,7 +118,10 @@ public class DataTransferLogic : IDataTransferLogic
 
             _activeTunnels.AddOrUpdate(submittedTaskInfoId, 
                 new List<ActiveTunnelState> { tunnelState }, 
-                (id, list) => { list.Add(tunnelState); return list; });
+                (id, list) => { 
+                    list.Add(tunnelState); 
+                    return list; 
+                });
 
             return new DataTransferMethod {
                 SubmittedTaskId = taskInfo.Id,
