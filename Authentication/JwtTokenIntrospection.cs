@@ -14,13 +14,13 @@ namespace HEAppE.Authentication;
 public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
 {
     private readonly HttpClient _httpClient;
-    private readonly ILogger<JwtTokenIntrospectionService> _logger;
+    private readonly ILogger<JwtTokenIntrospectionService>? _logger;
     private string? _introspectionEndpoint;
 
     public JwtTokenIntrospectionService(
         ILogger<JwtTokenIntrospectionService> logger)
     {
-        logger.LogInformation("Initializing JwtTokenIntrospectionService with Authority: {Authority}",
+        logger?.LogInformation("Initializing JwtTokenIntrospectionService with Authority: {Authority}",
             JwtTokenIntrospectionConfiguration.Authority);
         _httpClient = new HttpClient()
         {
@@ -35,7 +35,7 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
     {
         if(!JwtTokenIntrospectionConfiguration.IsEnabled)
         {
-            _logger.LogWarning("JWT token introspection is disabled. Returning inactive result.");
+            _logger?.LogWarning("JWT token introspection is disabled. Returning inactive result.");
             return new TokenIntrospectionResult { Active = false };
         }
         try
@@ -46,11 +46,11 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
                 _introspectionEndpoint = await GetIntrospectionEndpointAsync();
                 if (string.IsNullOrEmpty(_introspectionEndpoint))
                 {
-                    _logger.LogError("Introspection endpoint is not configured or could not be retrieved.");
+                    _logger?.LogError("Introspection endpoint is not configured or could not be retrieved.");
                     return new TokenIntrospectionResult { Active = false };
                 }
 
-                _logger.LogInformation("Using introspection endpoint: {IntrospectionEndpoint}", _introspectionEndpoint);
+                _logger?.LogInformation("Using introspection endpoint: {IntrospectionEndpoint}", _introspectionEndpoint);
             }
 
             // Prepare introspection request
@@ -75,7 +75,7 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
 
             if (response.IsSuccessStatusCode)
             {
-                _logger.LogInformation("Token introspection successful");
+                _logger?.LogInformation("Token introspection successful");
                 var content = await response.Content.ReadAsStringAsync();
                 var result = JsonSerializer.Deserialize<TokenIntrospectionResult>(content, new JsonSerializerOptions
                 {
@@ -85,19 +85,19 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
                 return result ?? new TokenIntrospectionResult { Active = false };
             }
 
-            _logger.LogWarning("Token introspection failed with status: {StatusCode}", response.StatusCode);
+            _logger?.LogWarning("Token introspection failed with status: {StatusCode}", response.StatusCode);
             return new TokenIntrospectionResult { Active = false };
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during token introspection");
+            _logger?.LogError(ex, "Error during token introspection");
             return new TokenIntrospectionResult { Active = false };
         }
     }
 
     private async Task<string?> GetIntrospectionEndpointAsync()
     {
-        _logger.LogInformation("Fetching introspection endpoint from well-known configuration");
+        _logger?.LogInformation("Fetching introspection endpoint from well-known configuration");
         try
         {
             var wellKnownUrl =
@@ -107,14 +107,14 @@ public class JwtTokenIntrospectionService : IJwtTokenIntrospectionService
 
             if (response == null)
             {
-                _logger.LogError("Failed to deserialize well-known configuration from: {Url}", wellKnownUrl);
+                _logger?.LogError("Failed to deserialize well-known configuration from: {Url}", wellKnownUrl);
                 return null;
             }
             return response.IntrospectionEndpoint;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error getting introspection endpoint");
+            _logger?.LogError(ex, "Error getting introspection endpoint");
             return null;
         }
     }

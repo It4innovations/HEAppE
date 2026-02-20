@@ -19,6 +19,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     
     private readonly ISshCertificateAuthorityService _sshCaService;
     private readonly IHttpContextKeys _httpContextKeys;
+    private readonly ILogger? _logger;
 
     public LocalAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -31,13 +32,14 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     {
         _sshCaService = sshCaService;
         _httpContextKeys = httpContextKeys;
+        _logger = this.Logger;
     }
 
     protected override async Task<AuthenticateResult> HandleAuthenticateAsync()
     {
         if (!Request.Headers.ContainsKey(ApiKeyHeaderName))
         {
-            this.Logger.LogInformation("No API Key header found, attempting internal service authentication.");
+            _logger?.LogInformation("No API Key header found, attempting internal service authentication.");
             // Create claims based on the authenticated service user
             var claims = new[]
             {
@@ -54,7 +56,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         
         if (!Request.Headers.TryGetValue(ApiKeyHeaderName, out var extractedApiKey))
         {
-            this.Logger.LogInformation("No API Key header found, attempting internal service authentication.");
+            _logger?.LogInformation("No API Key header found, attempting internal service authentication.");
             return AuthenticateResult.Fail("Missing API Key");
         }
 
@@ -62,7 +64,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         {
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                this.Logger.LogInformation("Getting Service API Key from header for authentication.");
+                _logger?.LogInformation("Getting Service API Key from header for authentication.");
                 var match = Regex.Match(extractedApiKey, @"^([^:]+):(.+)$");
                 if (!match.Success) return null;
 
@@ -71,7 +73,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 var user = unitOfWork.AdaptorUserRepository.GetByName(username);
                 if (user == null)
                 {
-                    this.Logger.LogInformation("User not found, attempting internal service authentication.");
+                    _logger?.LogInformation("User not found, attempting internal service authentication.");
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
                 string salt = user.CreatedAt.ToString("yyyy-MM-dd HH:mm:ss");
@@ -79,7 +81,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 string passwordHash = ComputeSha512Hash(saltedPassword);
                 if (!string.Equals(passwordHash, user.Password, StringComparison.OrdinalIgnoreCase))
                 {
-                    this.Logger.LogInformation("API Key hash mismatch, attempting internal service authentication.");
+                    _logger?.LogInformation("API Key hash mismatch, attempting internal service authentication.");
                     return AuthenticateResult.Fail("Invalid Service API Key");
                 }
                 
@@ -100,7 +102,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
                 
                 //set adaptor user id in context
                 _httpContextKeys.Context.AdaptorUserId = user.Id; 
-                this.Logger.LogInformation("API Key authentication successful for user {userID}({username}).", user.Id, user.Username);
+                _logger?.LogInformation("API Key authentication successful for user {userID}({username}).", user.Id, user.Username);
 
                 return AuthenticateResult.Success(ticket);
             }
@@ -108,7 +110,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
         }
         catch (System.Exception ex)
         {
-            Logger.LogError(ex, "Error during API Key authentication");
+            _logger?.LogError(ex, "Error during API Key authentication");
             return AuthenticateResult.Fail("Authentication process failed");
         }
     }

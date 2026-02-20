@@ -141,7 +141,7 @@ public class HEAppEHealth
     }
 }
 
-public class SqlServerHealthCheck(IMemoryCache cacheProvider = null, ILogger logger = null) : IHealthCheck
+public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILogger logger) : IHealthCheck
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/SQL";
@@ -201,7 +201,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider = null, ILogger log
     }
 }
 
-public class VaultHealthCheck(IMemoryCache cacheProvider = null, ILogger logger = null) : IHealthCheck
+public class VaultHealthCheck(IMemoryCache cacheProvider, ILogger logger) : IHealthCheck
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/Vault";

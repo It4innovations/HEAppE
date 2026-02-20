@@ -16,20 +16,20 @@ public class LexisAuthMiddleware
     private readonly RequestDelegate _next;
     private readonly ILogger? _logger = null;
 
-    public LexisAuthMiddleware(RequestDelegate next)
+    public LexisAuthMiddleware(RequestDelegate next, ILoggerFactory loggerFactory)
     {
         _next = next;
+        _logger = loggerFactory.CreateLogger("HEAppE.BusinessLogicTier.AuthMiddleware.LexisAuthMiddleware");
     }
 
     public async Task InvokeAsync(HttpContext context, IHttpContextKeys keys, ISshCertificateAuthorityService sshCaService, IUserOrgService userOrgService)
     {
-        ILogger logger = null;
-        logger?.LogInformation("AuthMiddleware invoked for request: " + context.Request.Path);
+        _logger?.LogInformation("AuthMiddleware invoked for request: " + context.Request.Path);
         // check if the endpoint allows anonymous access
         var endpoint = context.GetEndpoint();
         if (endpoint?.Metadata.GetMetadata<IAllowAnonymous>() != null)
         {
-            logger?.LogInformation("AuthMiddleware invoked for anonymous endpoint");
+            _logger?.LogInformation("AuthMiddleware invoked for anonymous endpoint");
             await _next(context);
             return;
         }
@@ -37,7 +37,7 @@ public class LexisAuthMiddleware
         string authHeader = context.Request.Headers["Authorization"].FirstOrDefault();
         if (LexisAuthenticationConfiguration.UseBearerAuth && authHeader?.StartsWith("Bearer ") == true)
         {
-            logger?.LogInformation("AuthMiddleware invoked for Bearer header");
+            _logger?.LogInformation("AuthMiddleware invoked for Bearer header");
             string token = authHeader["Bearer ".Length..].Trim();
             keys.Context.LEXISToken = token;
             
