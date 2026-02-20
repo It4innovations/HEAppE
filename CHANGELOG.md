@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Resilient Database Restore:** Optimized the restoration workflow by pre-fetching backup metadata, implementing atomic state switching to prevent connection hijacking, and adding automatic recovery failsafes to eliminate the risk of databases remaining in a "Restoring" state.
 - Added logic for invalidation all caches with required admin role.
 
+### Changed
+- UserOrg Command Template authorization service now grants access if the template is enabled in at least one matching project resource entry (if enabled).
+
 ## V6.2.2
 
 ### Changed
