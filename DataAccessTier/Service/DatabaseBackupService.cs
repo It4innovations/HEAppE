@@ -225,7 +225,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
     /// </summary>
     /// <param name="backupFileName"></param>
     /// <param name="includeLogs"></param>
-    public void RestoreDatabase(string backupFileName, bool includeLogs)
+   public void RestoreDatabase(string backupFileName, bool includeLogs)
     {
         var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
 
@@ -299,12 +299,24 @@ internal class DatabaseBackupService : IDatabaseBackupService
 
                     if (fileExists == 1)
                     {
-                        bool isLast = (logFile == logFiles.Last());
-                        command.CommandText = $"RESTORE LOG [{databaseName}] FROM DISK = @lp WITH {(isLast ? "RECOVERY" : "NORECOVERY")};";
-                        command.Parameters.Clear();
-                        command.Parameters.AddWithValue("@lp", logFile);
-                        command.ExecuteNonQuery();
-                        if (isLast) recoveryPerformed = true;
+                        try
+                        {
+                            bool isLast = (logFile == logFiles.Last());
+                            command.CommandText = $"RESTORE LOG [{databaseName}] FROM DISK = @lp WITH {(isLast ? "RECOVERY" : "NORECOVERY")};";
+                            command.Parameters.Clear();
+                            command.Parameters.AddWithValue("@lp", logFile);
+                            command.ExecuteNonQuery();
+                            
+                            if (isLast) recoveryPerformed = true;
+                        }
+                        catch (SqlException ex) when (ex.Number == 4305)
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
                     }
                 }
             }
@@ -320,8 +332,8 @@ internal class DatabaseBackupService : IDatabaseBackupService
         {
             try
             {
-                command.CommandText = $"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
                 command.Parameters.Clear();
+                command.CommandText = $"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
                 command.ExecuteNonQuery();
             }
             catch { }
