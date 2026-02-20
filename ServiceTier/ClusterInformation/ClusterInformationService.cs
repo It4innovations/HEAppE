@@ -130,27 +130,18 @@ public class ClusterInformationService : IClusterInformationService
 
         // Validate user and projects
         var (loggedUser, projectIds) = UserAndLimitationManagementService
-            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager);
+            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Administrator);
 
         if (loggedUser is null || !projectIds.Any())
             throw new Exception("Operation permission denied.");
 
         var clearedKeysCount = 0;
-
-        // Get memory cache keys
-        var memoryCache = _cacheProvider as MemoryCache;
-        var collection = memoryCache?.Keys ?? Array.Empty<object>();
-
-        // Remove only keys belonging to the current user
-        foreach (var item in collection)
+        if (_cacheProvider is MemoryCache memCache)
         {
-            var memoryCacheKey = item.ToString();
-            if (memoryCacheKey.StartsWith($"{nameof(ListAvailableClusters)}_{loggedUser.Id}_"))
-            {
-                _cacheProvider.Remove(memoryCacheKey);
-                clearedKeysCount++;
-            }
+            clearedKeysCount = memCache.Count;
         }
+
+        CacheUtils.InvalidateAllCache();
         
         return new ClusterClearCacheInfoExt
         {

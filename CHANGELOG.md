@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## V6.2.3
+
+### Added
+- **User-specific tunnel reuse**: Implemented logic to identify and reuse existing active tunnels for the same user and task. This prevents redundant SSH connection overhead and optimizes local port utilization.
+- **Resilient Database Restore:** Optimized the restoration workflow by pre-fetching backup metadata, implementing atomic state switching to prevent connection hijacking, and adding automatic recovery failsafes to eliminate the risk of databases remaining in a "Restoring" state.
+- Added logic for invalidation all caches with required admin role.
+
+### Changed
+- UserOrg Command Template authorization service now grants access if the template is enabled in at least one matching project resource entry (if enabled).
+
 ## V6.2.2
 
 ### Changed

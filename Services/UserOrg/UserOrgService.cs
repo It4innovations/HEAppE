@@ -65,17 +65,12 @@ public class UserOrgService(IHttpClientFactory httpClientFactory) : IUserOrgServ
 
     public bool IsTemplateEnabledInLexis(CommandTemplatePermissionsModel permissions, string clusterName, string queueName, string accountingString, string templateName)
     {
-        var permission = permissions.Permissions.FirstOrDefault(p =>
-            string.Equals(p.ClusterName, clusterName, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(p.QueueName, queueName, StringComparison.OrdinalIgnoreCase) &&
-            string.Equals(p.ProjectResource, accountingString, StringComparison.OrdinalIgnoreCase));
-
-        if (permission == null) return false;
-
-        var template = permission.CommandTemplates.FirstOrDefault(ct => 
-            string.Equals(ct.Name, templateName, StringComparison.OrdinalIgnoreCase));
-
-        return template != null && template.Enabled;
+        return permissions.Permissions
+        .Where(p => string.Equals(p.ProjectResource, accountingString, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(p.ClusterName, clusterName, StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(p.QueueName, queueName, StringComparison.OrdinalIgnoreCase))
+        .Any(p => p.CommandTemplates.Any(ct => 
+            string.Equals(ct.Name, templateName, StringComparison.OrdinalIgnoreCase) && ct.Enabled));
     }
 
     private HttpRequestMessage CreateRequest(HttpMethod method, string relativeUri, string accessToken, object body = null)

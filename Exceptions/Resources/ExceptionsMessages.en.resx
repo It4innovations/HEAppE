@@ -430,7 +430,7 @@
     <value>TaskId '{0}' with remote node IP address '{1}' already has SSH tunnel for port '{2}'.</value>
   </data>
   <data name="UnableToCreateConnectionException_ResponseNotOk" xml:space="preserve">
-    <value>{0}</value>
+    <value>'{0}'</value>
   </data>
   <data name="UnableToCreateTunnelException_ExceptionOccurs" xml:space="preserve">
     <value>Unable to create SSH tunnel.</value>
