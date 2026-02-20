@@ -243,7 +243,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
         connection.Open();
 
         using var command = connection.CreateCommand();
-        command.CommandTimeout = 0; 
+        command.CommandTimeout = 0;
 
         try
         {
@@ -280,43 +280,57 @@ internal class DatabaseBackupService : IDatabaseBackupService
                 }
             }
 
-            bool willRestoreLogs = includeLogs && logFiles.Count > 0;
-            string recoveryOption = willRestoreLogs ? "NORECOVERY" : "RECOVERY";
-
             command.CommandText = $@"
                 ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
-                RESTORE DATABASE [{databaseName}] FROM DISK = @bp WITH REPLACE, {recoveryOption};";
+                RESTORE DATABASE [{databaseName}] FROM DISK = @bp WITH REPLACE, NORECOVERY;";
             command.Parameters.AddWithValue("@bp", backupPath);
             command.ExecuteNonQuery();
             command.Parameters.Clear();
 
-            if (willRestoreLogs)
+            bool recoveryPerformed = false;
+            if (includeLogs && logFiles.Count > 0)
             {
-                for (int i = 0; i < logFiles.Count; i++)
+                foreach (var logFile in logFiles)
                 {
-                    string currentOption = (i == logFiles.Count - 1) ? "RECOVERY" : "NORECOVERY";
-                    command.CommandText = $"RESTORE LOG [{databaseName}] FROM DISK = @lp WITH {currentOption};";
-                    command.Parameters.AddWithValue("@lp", logFiles[i]);
-                    command.ExecuteNonQuery();
+                    command.CommandText = "DECLARE @exists INT; EXEC master.dbo.xp_fileexist @path, @exists OUTPUT; SELECT @exists;";
                     command.Parameters.Clear();
+                    command.Parameters.AddWithValue("@path", logFile);
+                    var fileExists = (int)command.ExecuteScalar();
+
+                    if (fileExists == 1)
+                    {
+                        bool isLast = (logFile == logFiles.Last());
+                        command.CommandText = $"RESTORE LOG [{databaseName}] FROM DISK = @lp WITH {(isLast ? "RECOVERY" : "NORECOVERY")};";
+                        command.Parameters.Clear();
+                        command.Parameters.AddWithValue("@lp", logFile);
+                        command.ExecuteNonQuery();
+                        if (isLast) recoveryPerformed = true;
+                    }
                 }
+            }
+
+            if (!recoveryPerformed)
+            {
+                command.CommandText = $"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
+                command.Parameters.Clear();
+                command.ExecuteNonQuery();
             }
         }
         catch (Exception ex)
         {
-            try 
+            try
             {
-                command.Parameters.Clear();
                 command.CommandText = $"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
+                command.Parameters.Clear();
                 command.ExecuteNonQuery();
-            } 
+            }
             catch { }
 
             throw new DatabaseRestoreException("RestoreDatabaseException", ex);
         }
         finally
         {
-            try 
+            try
             {
                 command.Parameters.Clear();
                 command.CommandText = $@"
