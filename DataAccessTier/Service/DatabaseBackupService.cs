@@ -229,105 +229,105 @@ internal class DatabaseBackupService : IDatabaseBackupService
     {
         var backupPath = Path.Combine(DatabaseFullBackupConfiguration.LocalPath, backupFileName);
 
-        // check if backup exists locally or NAS
         if (!File.Exists(backupPath))
         {
-            // try to find file in NAS
-            if (!string.IsNullOrEmpty(DatabaseFullBackupConfiguration.NASPath)
-                && File.Exists(Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName)))
-            {
-                backupPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath, backupFileName);
-            }
-            else
-            {
-                throw new DatabaseRestoreExternalException("BackupFileNameNotFoundException", backupFileName);
-            }
+            var nasPath = Path.Combine(DatabaseFullBackupConfiguration.NASPath ?? "", backupFileName);
+            if (File.Exists(nasPath)) backupPath = nasPath;
+            else throw new DatabaseRestoreExternalException("BackupFileNameNotFoundException", backupFileName);
         }
 
-        // need to use master database in order to restore
-        var builder = new SqlConnectionStringBuilder(_context.Database.GetConnectionString())
-        {
-            InitialCatalog = "master"
-        };
+        var builder = new SqlConnectionStringBuilder(_context.Database.GetConnectionString()) { InitialCatalog = "master" };
+        var databaseName = _context.Database.GetDbConnection().Database;
+
         using var connection = new SqlConnection(builder.ConnectionString);
         connection.Open();
 
-        var databaseName = _context.Database.GetDbConnection().Database;
         using var command = connection.CreateCommand();
-        command.CommandTimeout = 0;
+        command.CommandTimeout = 0; 
+
         try
         {
-            // set single-user (to not block restore from other users)
-            command.CommandText = $@"ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;";
-            command.ExecuteNonQuery();
-
-            // full restore
-            command.CommandText = $@"
-                RESTORE DATABASE [{databaseName}]
-                FROM DISK = '{backupPath}'
-                WITH REPLACE, {(includeLogs ? "NORECOVERY" : "RECOVERY")};";
-
-            command.ExecuteNonQuery();
-
-            // restore transaction logs
-            if (!includeLogs)
-                return;
-
-            // find time of FULL backup from msdb to find newer transaction log backups
-            command.CommandText = @"
-                SELECT backup_finish_date 
-                FROM msdb.dbo.backupset 
-                WHERE database_name = @db AND type = 'D'
-                ORDER BY backup_finish_date DESC;";
-            command.Parameters.AddWithValue("@db", databaseName);
-            DateTime fullBackupTime = (DateTime)command.ExecuteScalar();
-            command.Parameters.Clear();
-
-            // find all transaction log backups after specified backup
-            command.CommandText = @"
-                SELECT mf.physical_device_name
-                FROM msdb.dbo.backupset b
-                JOIN msdb.dbo.backupmediafamily mf
-                    ON b.media_set_id = mf.media_set_id
-                WHERE b.database_name = @db
-                  AND b.type = 'L'
-                  AND b.backup_finish_date > @fullTime
-                ORDER BY b.backup_finish_date ASC;";
-            command.Parameters.AddWithValue("@db", databaseName);
-            command.Parameters.AddWithValue("@fullTime", fullBackupTime);
-
             var logFiles = new List<string>();
-            using (var reader = command.ExecuteReader())
+
+            if (includeLogs)
             {
-                while (reader.Read())
-                    logFiles.Add(reader.GetString(0));
+                command.CommandText = @"
+                    SELECT TOP 1 b.backup_finish_date 
+                    FROM msdb.dbo.backupset b
+                    JOIN msdb.dbo.backupmediafamily mf ON b.media_set_id = mf.media_set_id
+                    WHERE mf.physical_device_name LIKE @path
+                    ORDER BY b.backup_finish_date DESC";
+                command.Parameters.AddWithValue("@path", "%" + backupFileName);
+                var finishDate = command.ExecuteScalar();
+                command.Parameters.Clear();
+
+                if (finishDate != null)
+                {
+                    command.CommandText = @"
+                        SELECT mf.physical_device_name
+                        FROM msdb.dbo.backupset b
+                        JOIN msdb.dbo.backupmediafamily mf ON b.media_set_id = mf.media_set_id
+                        WHERE b.database_name = @db AND b.type = 'L' AND b.backup_finish_date > @fullTime
+                        ORDER BY b.backup_finish_date ASC;";
+                    command.Parameters.AddWithValue("@db", databaseName);
+                    command.Parameters.AddWithValue("@fullTime", (DateTime)finishDate);
+
+                    using (var reader = command.ExecuteReader())
+                    {
+                        while (reader.Read()) logFiles.Add(reader.GetString(0));
+                    }
+                    command.Parameters.Clear();
+                }
             }
+
+            bool willRestoreLogs = includeLogs && logFiles.Count > 0;
+            string recoveryOption = willRestoreLogs ? "NORECOVERY" : "RECOVERY";
+
+            command.CommandText = $@"
+                ALTER DATABASE [{databaseName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE;
+                RESTORE DATABASE [{databaseName}] FROM DISK = @bp WITH REPLACE, {recoveryOption};";
+            command.Parameters.AddWithValue("@bp", backupPath);
+            command.ExecuteNonQuery();
             command.Parameters.Clear();
 
-            // restore transaction logs in order
-            foreach (var logFile in logFiles)
+            if (willRestoreLogs)
             {
-                command.CommandText = $@"
-                    RESTORE LOG [{databaseName}]
-                    FROM DISK = '{logFile}'
-                    WITH NORECOVERY;";
-                command.ExecuteNonQuery();
+                for (int i = 0; i < logFiles.Count; i++)
+                {
+                    string currentOption = (i == logFiles.Count - 1) ? "RECOVERY" : "NORECOVERY";
+                    command.CommandText = $"RESTORE LOG [{databaseName}] FROM DISK = @lp WITH {currentOption};";
+                    command.Parameters.AddWithValue("@lp", logFiles[i]);
+                    command.ExecuteNonQuery();
+                    command.Parameters.Clear();
+                }
             }
-
-            // finalize restore
-            command.CommandText = $@"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
-            command.ExecuteNonQuery();
-
         }
         catch (Exception ex)
         {
+            try 
+            {
+                command.Parameters.Clear();
+                command.CommandText = $"RESTORE DATABASE [{databaseName}] WITH RECOVERY;";
+                command.ExecuteNonQuery();
+            } 
+            catch { }
+
             throw new DatabaseRestoreException("RestoreDatabaseException", ex);
         }
         finally
         {
-            // set database back to MULTI_USER
-            command.CommandText = $@"ALTER DATABASE [{databaseName}] SET MULTI_USER;";
-            command.ExecuteNonQuery();
+            try 
+            {
+                command.Parameters.Clear();
+                command.CommandText = $@"
+                    IF EXISTS (SELECT 1 FROM sys.databases WHERE name = @db AND state = 0)
+                    BEGIN
+                        ALTER DATABASE [{databaseName}] SET MULTI_USER;
+                    END";
+                command.Parameters.AddWithValue("@db", databaseName);
+                command.ExecuteNonQuery();
+            }
+            catch { }
         }
     }
 
