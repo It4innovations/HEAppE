@@ -141,11 +141,11 @@ public class HEAppEHealth
     }
 }
 
-public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILogger logger) : IHealthCheck
+public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerFactory) : IHealthCheck
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/SQL";
-    readonly ILogger? _logger = logger;
+    readonly ILogger? _logger = loggerFactory.CreateLogger("HEAppE.RestApi.SqlServerHealthCheck");
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -167,7 +167,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILogger logger) : 
         return result;
     }
 
-    public static async Task<bool> DatabaseCanConnectAsync(ILogger logger, string connectionString, CancellationToken cancellationToken)
+    public static async Task<bool> DatabaseCanConnectAsync(ILogger? logger, string connectionString, CancellationToken cancellationToken)
     {
         try
         {
@@ -201,11 +201,11 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILogger logger) : 
     }
 }
 
-public class VaultHealthCheck(IMemoryCache cacheProvider, ILogger logger) : IHealthCheck
+public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerFactory) : IHealthCheck
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/Vault";
-    readonly ILogger? _logger = logger;
+    readonly ILogger? _logger = loggerFactory.CreateLogger("HEAppE.RestApi.VaultHealthCheck");
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -238,7 +238,8 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILogger logger) : IHea
         }
         return result;
     }
-    public static async Task<object> GetVaultHealth(ILogger logger, string vaultBaseAddress, int timeoutMs)
+
+    public static async Task<object> GetVaultHealth(ILogger? logger, string vaultBaseAddress, int timeoutMs)
     {
         using var httpClient = new HttpClient
         {
