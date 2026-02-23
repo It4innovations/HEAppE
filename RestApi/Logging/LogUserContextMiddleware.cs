@@ -106,7 +106,7 @@ namespace HEAppE.RestApi.Logging
             {
                 using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
                 var logic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(
-                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys);
+                    unitOfWork, userOrg, _sshCertificateAuthorityService, keys, _logger);
                 
                 var loggedUser = logic.GetUserForSessionCode(sessionCode);
 

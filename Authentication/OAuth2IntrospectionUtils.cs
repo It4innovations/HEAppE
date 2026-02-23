@@ -9,7 +9,7 @@ public class OAuth2IntrospectionUtils
     /// Extract relevant claims from OAuth2 introspection result
     /// </summary>
     /// <returns>Dictionary of claims from introspection</returns>
-    public static Dictionary<string, object> ExtractIntrospectionClaims(ClaimsPrincipal user, ILogger? logger)
+    public static Dictionary<string, object> ExtractIntrospectionClaims(ClaimsPrincipal user, ILogger logger)
     {
         var claims = new Dictionary<string, object>();
     

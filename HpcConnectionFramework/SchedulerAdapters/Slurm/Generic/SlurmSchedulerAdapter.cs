@@ -104,7 +104,7 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILogger? _logger;
+    protected ILogger _logger;
 
     /// <summary>
     ///     SSH tunnel

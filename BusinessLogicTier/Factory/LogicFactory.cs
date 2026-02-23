@@ -68,15 +68,15 @@ public abstract class LogicFactory
     public abstract IFileTransferLogic CreateFileTransferLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
         ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger);
     public abstract IJobManagementLogic CreateJobManagementLogic(IUnitOfWork unitOfWork, IUserOrgService userOrgService,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger);
     public abstract IJobReportingLogic CreateJobReportingLogic(IUnitOfWork unitOfWork, ILogger logger);
 
     public abstract IUserAndLimitationManagementLogic CreateUserAndLimitationManagementLogic(IUnitOfWork unitOfWork,
         IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService,
-        IHttpContextKeys httpContextKeys);
+        IHttpContextKeys httpContextKeys, ILogger logger);
 
     public abstract IManagementLogic CreateManagementLogic(IUnitOfWork unitOfWork,
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys);
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger);
 
     #endregion
 }

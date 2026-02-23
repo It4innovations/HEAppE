@@ -96,7 +96,7 @@ internal class MiddlewareContext : DbContext
 
     private static readonly object _lockObject = new();
     private static volatile bool _isMigrated;
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
     #endregion
 

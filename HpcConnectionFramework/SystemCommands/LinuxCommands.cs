@@ -52,7 +52,7 @@ internal class LinuxCommands : ICommands
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILogger? _logger;
+    protected ILogger _logger;
 
     /// <summary>
     ///     Interpreter command

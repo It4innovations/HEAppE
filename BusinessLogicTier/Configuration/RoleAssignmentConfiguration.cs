@@ -45,12 +45,12 @@ public class RoleAssignmentConfiguration
                 {
                     user.CreateSpecificUserRoleForUser(group, roleType);
                     unitOfWork.AdaptorUserRepository.Update(user);
-                    logger?.LogInformation($"SysUser '{username}' assigned to role '{roleType}' in group '{group.Name}'.");
+                    logger.LogInformation($"SysUser '{username}' assigned to role '{roleType}' in group '{group.Name}'.");
                 }
             }
             else
             {
-                logger?.LogWarning($"SysUser '{username}' found in config but not in Database");
+                logger.LogWarning($"SysUser '{username}' found in config but not in Database");
             }
         }
     }

@@ -20,7 +20,7 @@ public class SftpFileSystemConnector : IPoolableAdapter
 {
     #region Instances
 
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private ISshCertificateAuthorityService _sshCaService;
 
     #endregion

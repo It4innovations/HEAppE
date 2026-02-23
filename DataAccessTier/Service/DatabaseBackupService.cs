@@ -29,7 +29,7 @@ internal class DatabaseBackupService : IDatabaseBackupService
     #region Instances
 
     protected readonly MiddlewareContext _context;
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly IVaultConnector _vaultConnector;
 
     #endregion

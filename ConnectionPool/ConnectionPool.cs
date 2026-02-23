@@ -42,7 +42,7 @@ namespace HEAppE.ConnectionPool
         }
 
         private readonly IPoolableAdapter _adapter;
-        private readonly ILogger? _logger;
+        private readonly ILogger _logger;
         private readonly string _masterNodeName;
         private readonly int? _port;
         private readonly int _maxConnectionsPerUser;

@@ -25,7 +25,7 @@ public class LexisTokenExchangeMiddleware
 
     public async Task InvokeAsync(HttpContext context, ILexisTokenService lexisTokenService, IExpirioService expirioService)
     {
-        ILogger? logger = _logger;
+        ILogger logger = _logger;
         if ((LexisAuthenticationConfiguration.UseBearerAuth && 
             !JwtTokenIntrospectionConfiguration.LexisTokenFlowConfiguration.IsEnabled) &&
         context.Request.Headers.TryGetValue("Authorization", out var authHeaderLexis) &&

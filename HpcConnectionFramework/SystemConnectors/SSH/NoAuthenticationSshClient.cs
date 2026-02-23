@@ -58,7 +58,7 @@ public class NoAuthenticationSshClient : SshClient
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILogger? _logger;
+    protected ILogger _logger;
 
     #endregion
 

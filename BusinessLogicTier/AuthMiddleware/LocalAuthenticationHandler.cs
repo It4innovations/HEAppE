@@ -19,7 +19,7 @@ public class LocalAuthenticationHandler : AuthenticationHandler<AuthenticationSc
     
     private readonly ISshCertificateAuthorityService _sshCaService;
     private readonly IHttpContextKeys _httpContextKeys;
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
     public LocalAuthenticationHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,

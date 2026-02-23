@@ -61,7 +61,7 @@ public class ClusterInformationService : IClusterInformationService
         var roles = new List<AdaptorUserRoleType> { AdaptorUserRoleType.Reporter, AdaptorUserRoleType.ManagementAdmin, AdaptorUserRoleType.Manager };
 
         var (loggedUser, projects) = UserAndLimitationManagementService
-            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, roles);
+            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, roles);
 
         var memoryCacheKey = $"{nameof(ListAvailableClusters)}_{loggedUser.Id}_{clusterName}_{nodeTypeName}_{projectName}_{(accountingString != null ? string.Join(",", accountingString) : "")}_{commandTemplateName}";
 
@@ -128,7 +128,7 @@ public class ClusterInformationService : IClusterInformationService
 
         // Validate user and projects
         var (loggedUser, projectIds) = UserAndLimitationManagementService
-            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Manager);
+            .GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Manager);
 
         if (loggedUser is null || !projectIds.Any())
             throw new Exception("Operation permission denied.");
@@ -165,7 +165,7 @@ public class ClusterInformationService : IClusterInformationService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, projectId);
+                _logger, AdaptorUserRoleType.Submitter, projectId);
 
             var memoryCacheKey = StringUtils.CreateIdentifierHash(
                 new List<string>
@@ -198,7 +198,7 @@ public class ClusterInformationService : IClusterInformationService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Reporter, projectId);
+                _logger, AdaptorUserRoleType.Reporter, projectId);
 
             //Memory cache key with personal session code due security purpose of access to cluster reference to project
             var memoryCacheKey = StringUtils.CreateIdentifierHash(
@@ -229,7 +229,7 @@ public class ClusterInformationService : IClusterInformationService
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
     /// <summary>
     ///     Cache provider

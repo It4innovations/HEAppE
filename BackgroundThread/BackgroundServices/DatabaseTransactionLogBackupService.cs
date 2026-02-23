@@ -15,11 +15,11 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class DatabaseTransactionLogBackupService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(DatabaseTransactionLogBackupConfiguration.BackupScheduleIntervalInMinutes);
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
-    public DatabaseTransactionLogBackupService()
+    public DatabaseTransactionLogBackupService(ILoggerFactory loggerFactory)
     {
-        _logger = null;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseTransactionLogBackupService");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

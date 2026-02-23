@@ -36,7 +36,7 @@ public class DataStagingEndpoint : IApiRoute
                     {
                         LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
 
-                        logger?.LogDebug(
+                        logger.LogDebug(
                             """Endpoint: "DataStaging" Method: "GetFileTransferMethod" Parameters: "{@model}" """, model);
                         return Results.Ok(await
                             (new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger)).TrustfulRequestFileTransfer(model.SubmittedJobInfoId,
@@ -69,7 +69,7 @@ public class DataStagingEndpoint : IApiRoute
                 {
                     LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
 
-                    logger?.LogDebug(
+                    logger.LogDebug(
                         """Endpoint: "DataStaging" Method: "DownloadPartsOfJobFilesFromCluster" Parameters: "{@model}" """, model);
                     return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).DownloadPartsOfJobFilesFromCluster(model.SubmittedJobInfoId,
                         model.TaskFileOffsets, model.SessionCode));
@@ -108,7 +108,7 @@ public class DataStagingEndpoint : IApiRoute
                     var model = new AuthorizedSubmittedJobIdModel(sessionCode, submittedJobInfoId);
                     validator.ValidateAndThrow(model);
 
-                    logger?.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """,
+                    logger.LogDebug("""Endpoint: "DataStaging" Method: "ListChangedFilesForJob" Parameters: "{@model}" """,
                         model);
                     return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).ListChangedFilesForJob(submittedJobInfoId, sessionCode));
                 }
@@ -143,7 +143,7 @@ public class DataStagingEndpoint : IApiRoute
                     {
                         LoggingUtils.AddJobIdToLogThreadContext(model.SubmittedJobInfoId);
 
-                        logger?.LogDebug(
+                        logger.LogDebug(
                             """Endpoint: "FileTransfer" Method: "DownloadFileFromCluster" Parameters: "{@model}" """,
                             model);
                         return Results.Ok(new FileTransferService(userOrgService, sshCertificateAuthorityService, httpContextKeys, logger).DownloadFileFromCluster(model.SubmittedJobInfoId,
@@ -232,7 +232,7 @@ public class DataStagingEndpoint : IApiRoute
                 {
                     var model = new UploadFileToClusterModel() { SessionCode = sessionCode };
                     validator.ValidateAndThrow(model);
-                    logger?.LogDebug(
+                    logger.LogDebug(
                         """Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """,
                         model);
 
@@ -283,7 +283,7 @@ public class DataStagingEndpoint : IApiRoute
                 {
                     var model = new UploadJobScriptsToClusterProjectDirModel() { SessionCode = sessionCode };
                     validator.ValidateAndThrow(model);
-                    logger?.LogDebug(
+                    logger.LogDebug(
                         """Endpoint: "FileTransfer" Method: "UploadJobScriptsToClusterProjectDir" Parameters: "{@model}" """,
                         model);
 

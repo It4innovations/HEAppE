@@ -43,7 +43,7 @@ public class DataTransferLogic : IDataTransferLogic
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
         _userOrgService = userOrgService;
-        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+        _managementLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(_unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
     }
 
     #endregion
@@ -53,7 +53,7 @@ public class DataTransferLogic : IDataTransferLogic
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
     /// <summary>
     ///     Unit of work

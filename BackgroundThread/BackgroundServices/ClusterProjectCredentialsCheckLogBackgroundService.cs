@@ -17,15 +17,16 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromMinutes(BackGroundThreadConfiguration.ClusterProjectCredentialsCheckConfiguration.IntervalMinutes);
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
 
     public ClusterProjectCredentialsCheckLogBackgroundService(
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        ILoggerFactory loggerFactory)
     {
-        _logger = null;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.ClusterProjectCredentialsCheckLogBackgroundService");
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
     }
@@ -49,7 +50,7 @@ internal class ClusterProjectCredentialsCheckLogBackgroundService : BackgroundSe
                     IHttpContextKeys httpContextKeys = scope.ServiceProvider.GetRequiredService<IHttpContextKeys>();
 
                     IManagementLogic managementLogic = LogicFactory.GetLogicFactory()
-                        .CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, httpContextKeys, _logger);
                     
                     await managementLogic.CheckClusterProjectCredentialsStatus();
                 }

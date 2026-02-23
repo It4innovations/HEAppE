@@ -50,7 +50,7 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     /// <summary>
     ///     Logger
     /// </summary>
-    protected readonly ILogger? _logger;
+    protected readonly ILogger _logger;
 
     #endregion
 

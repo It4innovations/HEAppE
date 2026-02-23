@@ -27,7 +27,7 @@ public class JobManagementService : IJobManagementService
 {
     #region Instances
 
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
     private readonly IUserOrgService _userOrgService;
@@ -53,13 +53,13 @@ public class JobManagementService : IJobManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, specification.ProjectId);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, specification.ProjectId);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             SubProject subProject = null;
 
             if (!string.IsNullOrEmpty(specification.SubProjectIdentifier))
             {
-                var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+                var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
                 subProject =
                     managementLogic.CreateSubProject(specification.SubProjectIdentifier, specification.ProjectId);
             }
@@ -76,9 +76,9 @@ public class JobManagementService : IJobManagementService
         {
             var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.ProjectId);
+                _logger, AdaptorUserRoleType.Submitter, job.ProjectId);
             var jobInfo = jobLogic.SubmitJob(createdJobInfoId, loggedUser);
             return jobInfo.ConvertIntToExt();
         }
@@ -91,8 +91,8 @@ public class JobManagementService : IJobManagementService
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.Project.Id);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var jobInfo =  await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
             return jobInfo.ConvertIntToExt();
         }
@@ -105,8 +105,8 @@ public class JobManagementService : IJobManagementService
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.Project.Id);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var jobInfo = await jobLogic.CancelJob(submittedJobInfoId, loggedUser);
             return jobInfo.ConvertIntToExt();
         }
@@ -119,8 +119,8 @@ public class JobManagementService : IJobManagementService
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.Project.Id);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             if (archiveLogs)
             {
                 _logger?.LogInformation($"Archiving job logs {submittedJobInfoId} by user {loggedUser.Id}");
@@ -135,10 +135,10 @@ public class JobManagementService : IJobManagementService
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
 
         var (loggedUser, _) = UserAndLimitationManagementService.GetValidatedUserForSessionCode(
-            sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Submitter);
+            sessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Submitter);
 
         var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(
-            unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+            unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
 
 
         IQueryable<SubmittedJobInfo> query = jobLogic.GetJobsForUserQuery(loggedUser.Id)
@@ -175,9 +175,9 @@ public class JobManagementService : IJobManagementService
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(submittedJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", submittedJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.Project.Id);
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id);
 
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             if (JwtTokenIntrospectionConfiguration.IsEnabled)
             {
                 var jobInfoFromHPC = await jobLogic.GetActualTasksInfo(submittedJobInfoId, loggedUser);
@@ -195,8 +195,8 @@ public class JobManagementService : IJobManagementService
             var job = unitOfWork.SubmittedJobInfoRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.Project.Id);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
 
             jobLogic.CopyJobDataToTemp(createdJobInfoId, loggedUser, sessionCode, path);
         }
@@ -209,8 +209,8 @@ public class JobManagementService : IJobManagementService
             var job = unitOfWork.JobSpecificationRepository.GetById(createdJobInfoId) ??
                       throw new InputValidationException("NotExistingJob", createdJobInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, job.Project.Id);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, job.Project.Id);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
 
             jobLogic.CopyJobDataFromTemp(createdJobInfoId, loggedUser, tempSessionCode);
         }
@@ -223,8 +223,8 @@ public class JobManagementService : IJobManagementService
             var task = unitOfWork.SubmittedTaskInfoRepository.GetById(submittedTaskInfoId);
             if (task is null) throw new InputValidationException("NotExistingTask", submittedTaskInfoId);
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, task.Project.Id);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, task.Project.Id);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var nodesIPs = jobLogic.GetAllocatedNodesIPs(submittedTaskInfoId, loggedUser);
 
             return nodesIPs.ToArray();
@@ -238,8 +238,8 @@ public class JobManagementService : IJobManagementService
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(modelSessionCode, unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys,
-                AdaptorUserRoleType.Submitter, modelProjectId);
-            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                _logger, AdaptorUserRoleType.Submitter, modelProjectId);
+            var jobLogic = LogicFactory.GetLogicFactory().CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var dryRunResult = (await jobLogic.DryRunJob(modelProjectId, modelClusterNodeTypeId, modelNodes,
                 modelTasksPerNode, modelWallTimeInMinutes, loggedUser)).ConvertIntToExt();
             return dryRunResult;

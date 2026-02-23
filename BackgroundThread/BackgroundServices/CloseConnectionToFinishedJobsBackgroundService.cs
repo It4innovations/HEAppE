@@ -18,7 +18,7 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.CloseConnectionToFinishedJobsCheck);
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
@@ -26,9 +26,10 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
     public CloseConnectionToFinishedJobsBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        ILoggerFactory loggerFactory)
     {
-        _logger = null;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.CloseConnectionToFinishedJobsBackgroundService");
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _scopeFactory = scopeFactory;
@@ -53,7 +54,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                         .CreateDataTransferLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _logger);
 
                     var jobManagementLogic = LogicFactory.GetLogicFactory()
-                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys);
+                        .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _logger);
 
                     var taskIds = dataTransferLogic.GetTaskIdsWithOpenTunnels();
                     
@@ -67,7 +68,7 @@ internal class CloseConnectionToFinishedJobsBackgroundService : BackgroundServic
                         }
                         catch (Exception closeEx)
                         {
-                            _logger?.LogWarning($"Failed to close tunnels for task {task.Id}: ", closeEx);
+                            _logger.LogWarning($"Failed to close tunnels for task {task.Id}: ", closeEx);
                         }
                     }
                 }

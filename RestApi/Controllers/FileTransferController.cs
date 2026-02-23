@@ -290,7 +290,7 @@ public class FileTransferController : BaseController<FileTransferController>
                                           throw new Exception("TaskDoesNotBelongToJob");
                 }
                 var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService, sshCertificateAuthorityService, httpContextKeys,
-                                AdaptorUserRoleType.Submitter, job.Specification.ProjectId);
+                                _logger, AdaptorUserRoleType.Submitter, job.Specification.ProjectId);
                 if (job.Submitter.Id != loggedUser.Id)
                     throw new Exception("LoggedUserIsNotSubmitterOfJob");
             }

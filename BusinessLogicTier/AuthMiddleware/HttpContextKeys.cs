@@ -49,12 +49,12 @@ public class HttpContextKeys : IHttpContextKeys
 {
     private readonly IRequestContext _context;
     public IRequestContext Context => _context;
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
-    public HttpContextKeys(IRequestContext context)
+    public HttpContextKeys(IRequestContext context, ILoggerFactory loggerFactory)
     {
         _context = context;
-        _logger = null;
+        _logger = loggerFactory.CreateLogger("HEAppE.BusinessLogicTier.AuthMiddleware.HttpContextKeys");
     }
 
     public async Task<AdaptorUser> Authorize(ISshCertificateAuthorityService sshCertificateAuthorityService, IUserOrgService userOrgService)
@@ -62,7 +62,7 @@ public class HttpContextKeys : IHttpContextKeys
         _logger?.LogInformation("Authorizing with UserOrg");
 
         using var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork();
-        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this);
+        var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, this, _logger);
         AdaptorUser user = null;
         try
         {

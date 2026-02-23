@@ -17,7 +17,7 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundService
 {
     private readonly TimeSpan _interval = TimeSpan.FromSeconds(BackGroundThreadConfiguration.FileTransferKeyRemovalCheck);
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IUserOrgService _userOrgService;
@@ -25,12 +25,13 @@ internal class RemoveTemporaryFileTransferKeyBackgroundService : BackgroundServi
     public RemoveTemporaryFileTransferKeyBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        ILoggerFactory loggerFactory)
     {
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
-        _logger = null;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.RemoveTemporaryFileTransferKeyBackgroundService");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

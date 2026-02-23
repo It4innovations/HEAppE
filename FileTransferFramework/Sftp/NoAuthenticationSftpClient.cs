@@ -29,7 +29,7 @@ public class NoAuthenticationSftpClient : SftpClient
     private readonly string _masterNodeName;
     private readonly string _userName;
     private readonly int _port;
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
     #endregion
 

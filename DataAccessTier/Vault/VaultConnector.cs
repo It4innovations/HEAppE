@@ -23,7 +23,7 @@ public class VaultConnector : IVaultConnector
     };
 
     private readonly string _clusterAuthenticationCredentialsPath = VaultConnectorSettings.ClusterAuthenticationCredentialsPath;
-    protected readonly ILogger? _logger = null;
+    protected readonly ILogger _logger = null;
 
     /// <summary>
     /// Get cluster authentication credentials with cache support.

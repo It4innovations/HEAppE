@@ -54,7 +54,7 @@ internal static class SshCommandUtils
                 int delay = (int)Math.Pow(2, attempt - 1) * CommandRetryBaseDelayMs;
                 delay = Math.Min(delay, 10000); 
                 
-                logger?.LogWarning($"SSH transient error on attempt {attempt}/{MaxRetries}. " +
+                logger.LogWarning($"SSH transient error on attempt {attempt}/{MaxRetries}. " +
                           $"Retrying in {delay}ms. Error: {ex.Message}");
                 
                 Thread.Sleep(delay);
@@ -67,44 +67,44 @@ internal static class SshCommandUtils
     /// </summary>
     private static SshCommandWrapper ExecuteInternal(SshClientAdapter client, string command, int attempt, ILogger logger)
     {
-        logger?.LogInformation($"Executing SSH command (Attempt {attempt}). Command: {command}, Client: {client}");
+        logger.LogInformation($"Executing SSH command (Attempt {attempt}). Command: {command}, Client: {client}");
         
         var startTime = DateTime.UtcNow;
         // This call performs the actual synchronous network I/O
         var sshCommand = client.RunCommand(command); 
         var duration = DateTime.UtcNow - startTime;
 
-        logger?.LogInformation($"SSH command executed. Command: {command}, Duration: {duration.TotalMilliseconds}ms, Exit Code: {sshCommand.ExitStatus}");
+        logger.LogInformation($"SSH command executed. Command: {command}, Duration: {duration.TotalMilliseconds}ms, Exit Code: {sshCommand.ExitStatus}");
 
         // Handle specific error cases that should NOT be retried (permanent failures)
         if (sshCommand.ExitStatus != 0)
         {
             if (sshCommand.Error.Contains("No such file or directory"))
             {
-                logger?.LogWarning($"SSH command error (No such file or directory). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
+                logger.LogWarning($"SSH command error (No such file or directory). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
                 throw new InputValidationException("NoFileOrDirectory");
             }
 
             if (sshCommand.Error.Contains("GIT CLONE ERROR"))
             {
-                logger?.LogWarning($"SSH command error (git clone). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
+                logger.LogWarning($"SSH command error (git clone). Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
                 throw new InputValidationException("GitCloneCommandError");
             }
 
             // General command failure - throw exception to prevent automatic retry of logic errors
-            logger?.LogError($"SSH command failed. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
+            logger.LogError($"SSH command failed. Error: {sshCommand.Error}, Exit Code: {sshCommand.ExitStatus}");
             throw new SshCommandException(sshCommand.Error, sshCommand.ExitStatus, sshCommand.CommandText);
         }
 
         // Log warnings if stderr has content even with ExitCode 0
         if (!string.IsNullOrEmpty(sshCommand.Error))
         {
-            logger?.LogWarning($"SSH command finished with warnings. Error: {sshCommand.Error}, Command: {sshCommand.CommandText}");
+            logger.LogWarning($"SSH command finished with warnings. Error: {sshCommand.Error}, Command: {sshCommand.CommandText}");
         }
 
         if (!string.IsNullOrEmpty(sshCommand.Result))
         {
-            logger?.LogDebug($"SSH command output: {sshCommand.Result}");
+            logger.LogDebug($"SSH command output: {sshCommand.Result}");
         }
 
         return sshCommand;

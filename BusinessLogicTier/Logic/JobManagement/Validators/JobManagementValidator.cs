@@ -20,7 +20,7 @@ internal class JobManagementValidator : AsyncAbstractValidator
 {
     protected readonly IUnitOfWork _unitOfWork;
     protected readonly ISshCertificateAuthorityService _sshCertificateAuthorityService;
-    protected readonly ILogger? _logger;
+    protected readonly ILogger _logger;
     private readonly IHttpContextKeys _httpContextKeys;
 
     #region Constructors
@@ -29,13 +29,13 @@ internal class JobManagementValidator : AsyncAbstractValidator
     ///     Constructor
     /// </summary>
     /// <param name="validationObj">Validation Object</param>
-    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    internal JobManagementValidator(object validationObj, IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
         : base(validationObj)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _logger = null;
+        _logger = logger;
     }
 
     #endregion

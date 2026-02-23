@@ -37,7 +37,7 @@ namespace HEAppE.BusinessLogicTier.Logic.Management;
 
 public class ManagementLogic : IManagementLogic
 {
-    protected readonly ILogger? _logger;
+    protected readonly ILogger _logger;
 
     /// <summary>
     ///     Script Configuration
@@ -47,12 +47,12 @@ public class ManagementLogic : IManagementLogic
     protected IUnitOfWork _unitOfWork;
     protected ISshCertificateAuthorityService _sshCertificateAuthorityService;
     private readonly IHttpContextKeys _httpContextKeys;
-    public ManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys)
+    public ManagementLogic(IUnitOfWork unitOfWork, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger)
     {
         _unitOfWork = unitOfWork;
         _sshCertificateAuthorityService = sshCertificateAuthorityService;
         _httpContextKeys = httpContextKeys;
-        _logger = null;
+        _logger = logger;
     }
 
 

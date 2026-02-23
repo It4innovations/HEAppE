@@ -16,7 +16,7 @@ namespace HEAppE.Services.Expirio;
 
 public class ExpirioService : IExpirioService
 {
-    protected readonly ILogger? _logger;
+    protected readonly ILogger _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private const string CLIENT_NAME = "ExpirioClient";
 

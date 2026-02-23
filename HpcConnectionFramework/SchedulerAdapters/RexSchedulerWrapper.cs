@@ -51,7 +51,7 @@ public class RexSchedulerWrapper : IRexScheduler
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILogger? _logger;
+    protected ILogger _logger;
 
     #endregion
 

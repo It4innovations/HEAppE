@@ -26,9 +26,10 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
     public ClusterAccountRotationJobBackgroundService(
         IUserOrgService userOrgService, 
         ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IServiceScopeFactory scopeFactory)
+        IServiceScopeFactory scopeFactory,
+        ILoggerFactory loggerFactory)
     {
-        _logger = null;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.ClusterAccountRotationJobBackgroundService");
         _userOrgService = userOrgService;
         _sshCertificateAuthorityService = sshCertificateAuthorityService ?? throw new ArgumentNullException(nameof(sshCertificateAuthorityService));
         _scopeFactory = scopeFactory;
@@ -59,7 +60,7 @@ internal class ClusterAccountRotationJobBackgroundService : BackgroundService
                             {
                                 _logger.LogInformation($"Trying to submit waiting job {job.Id} for user {job.Submitter}");
                                 LogicFactory.GetLogicFactory()
-                                    .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys)
+                                    .CreateJobManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, httpContextKeys, _logger)
                                     .SubmitJob(job.Id, job.Submitter);
                             }
                             catch (Exception jobEx)

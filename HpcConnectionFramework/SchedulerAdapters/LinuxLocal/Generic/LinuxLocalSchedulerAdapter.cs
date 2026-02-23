@@ -76,7 +76,7 @@ public class LinuxLocalSchedulerAdapter : ISchedulerAdapter
     /// <summary>
     ///     Logger
     /// </summary>
-    protected ILogger? _logger;
+    protected ILogger _logger;
 
     /// <summary>
     ///     Convertor reference.

@@ -49,7 +49,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     /// <summary>
     ///     Log instance
     /// </summary>
-    protected readonly ILogger? _logger;
+    protected readonly ILogger _logger;
     
     /// <summary>
     /// SSH CA service
@@ -163,7 +163,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         var credentials = await
             _unitOfWork.ClusterAuthenticationCredentialsRepository.GetAuthenticationCredentialsForClusterAndProject(
                 clusterId, projectId, false, null, _logger);
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
         foreach (var credential in credentials)
         {
             var status = await managementLogic.InitializeClusterScriptDirectory(
@@ -180,7 +180,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
     public async Task<ClusterAuthenticationCredentials> InitializeCredential(
         ClusterAuthenticationCredentials credential, long projectId, long? adaptorUserId)
     {
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
         var status = await managementLogic.InitializeClusterScriptDirectory(
             projectId,
             true,
@@ -326,7 +326,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
         _logger?.LogInformation("Creating missing credentials for ClusterId: {0}, ProjectId: {1}", clusterId, projectId);
 
         //invoke management logic and run CreateSecureShellKey
-        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys);
+        var managementLogic = LogicFactory.GetLogicFactory().CreateManagementLogic(_unitOfWork, _sshCertificateAuthorityService, _httpContextKeys, _logger);
         await managementLogic.CreateSecureShellKey(
             credentials: new List<(string, string)> { ($"account_{projectId}_{adaptorUserId}", string.Empty) },
             projectId: projectId,

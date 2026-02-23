@@ -38,7 +38,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var result = new List<ClusterAuthenticationCredentials>();
         foreach (var item in credentials.Where(c => c != null))
         {
-            logger?.LogDebug($"Importing VaultInfo for id:{item.Id}");
+            logger.LogDebug($"Importing VaultInfo for id:{item.Id}");
             var vaultData = await _vaultConnector.GetClusterAuthenticationCredentials(item.Id);
             item.ImportVaultData(vaultData);
             result.Add(item);
@@ -111,7 +111,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = clusterProjectCredentials?.Select(c => c.ClusterAuthenticationCredentials).ToList();
         if(requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
             
         }
@@ -138,7 +138,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
         if(requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
@@ -154,7 +154,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
         var credentials = clusterAuthenticationCredentials?.Select(x => x).ToList();
         if(requireIsInitialized && (credentials == null || !credentials.Any()))
         {
-            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
+            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}. Please ensure that the credentials are initialized by `heappe/Management/InitializeClusterScriptDirectory` using accessing them.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 
@@ -247,7 +247,7 @@ internal class ClusterAuthenticationCredentialsRepository : GenericRepository<Cl
 
         if (requireIsInitialized && cred == null)
         {
-            logger?.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
+            logger.LogInformation($"No initialized credentials found for project {projectId} with adaptorUserId {adaptorUserId}.");
             throw new NotAllowedException("ClusterAccountNotInitialized", projectId);
         }
 

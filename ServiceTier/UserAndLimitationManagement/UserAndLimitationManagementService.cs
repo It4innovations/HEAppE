@@ -92,7 +92,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var userLogic =
-                LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             result = await userLogic.AuthenticateUserAsync(credentialsIn);
             if (!string.IsNullOrEmpty(result))
             { 
@@ -108,7 +108,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         if (credentials is OpenIdCredentialsExt openIdCredentials)
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
-                var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
                 var user = await userLogic.AuthenticateUserToOpenIdAsync(new OpenIdCredentials
                 {
                     OpenIdAccessToken = openIdCredentials.OpenIdAccessToken
@@ -144,8 +144,8 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var (loggedUser, projects) =
-                GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Reporter);
-            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Reporter);
+            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             return userLogic.CurrentUsageAndLimitationsForUserByProject(loggedUser, projects)
                 .Select(s => s.ConvertIntToExt());
         }
@@ -156,8 +156,8 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
             var (loggedUser, projects) =
-                GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, AdaptorUserRoleType.Reporter);
-            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+                GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, AdaptorUserRoleType.Reporter);
+            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             return userLogic.ProjectsForCurrentUser(loggedUser, projects).Select(p => p.ConvertIntToExt());
         }
     }
@@ -166,7 +166,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var (loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, requestedRole);
+            var (loggedUser, _) = GetValidatedUserForSessionCode(sessionCode, unitOfWork, _userOrgService,  _sshCertificateAuthorityService, _httpContextKeys, _logger, requestedRole);
             return loggedUser is not null;
         }
     }
@@ -175,7 +175,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     {
         using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
         {
-            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys);
+            var userLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, _userOrgService, _sshCertificateAuthorityService, _httpContextKeys, _logger);
             var loggedUser = userLogic.GetUserForSessionCode(sessionCode);
             return loggedUser.ConvertIntToExt();
         }
@@ -208,10 +208,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public static AdaptorUser GetValidatedUserForSessionCode(
         string sessionCode, IUnitOfWork unitOfWork, IUserOrgService userOrgService, 
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys,  ILogger logger,
         AdaptorUserRoleType requiredUserRole, long projectId, bool overrideProjectValidityCheck = false)
     {
-        var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
 
         CheckUserRoleForProject(loggedUser, requiredUserRole, projectId, overrideProjectValidityCheck);
@@ -224,10 +224,10 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
 
     public static (AdaptorUser, IEnumerable<Project> projects) GetValidatedUserForSessionCode(
         string sessionCode, IUnitOfWork unitOfWork, IUserOrgService userOrgService, 
-        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, 
+        ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, ILogger logger,
         AdaptorUserRoleType allowedRole)
     {
-        var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+        var authLogic = LogicFactory.GetLogicFactory().CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
         var loggedUser = AuthenticateUser(sessionCode, authLogic, httpContextKeys);
 
         if (loggedUser == null)
@@ -259,11 +259,11 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     public static (AdaptorUser User, IEnumerable<Project> Projects) GetValidatedUserForSessionCode(
         string sessionCode,
         IUnitOfWork unitOfWork, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, 
-        IHttpContextKeys httpContextKeys,
+        IHttpContextKeys httpContextKeys, ILogger logger,
         List<AdaptorUserRoleType> allowedRoles)
     {
         var authenticationLogic = LogicFactory.GetLogicFactory()
-            .CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys);
+            .CreateUserAndLimitationManagementLogic(unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger);
 
         var user = authenticationLogic.GetUserForSessionCode(sessionCode);
         if (user == null)
@@ -328,7 +328,7 @@ public class UserAndLimitationManagementService : IUserAndLimitationManagementSe
     /// <summary>
     ///     Logger
     /// </summary>
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
 
     /// <summary>
     ///     Cache provider

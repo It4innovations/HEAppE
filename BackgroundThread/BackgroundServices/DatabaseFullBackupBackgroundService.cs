@@ -17,12 +17,12 @@ namespace HEAppE.BackgroundThread.BackgroundServices;
 internal class DatabaseFullBackupBackgroundService : BackgroundService
 {
     private readonly TimeSpan _scheduledTime = TimeSpan.Parse(DatabaseFullBackupConfiguration.ScheduledRuntime, new CultureInfo("en-US"));
-    private readonly ILogger? _logger;
+    private readonly ILogger _logger;
     private readonly VaultConnector _vaultConnector = new VaultConnector();
 
-    public DatabaseFullBackupBackgroundService()
+    public DatabaseFullBackupBackgroundService(ILoggerFactory loggerFactory)
     {
-        _logger = null;
+        _logger = loggerFactory.CreateLogger("HEAppE.BackgroundThread.BackgroundServices.DatabaseFullBackupBackgroundService");
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)

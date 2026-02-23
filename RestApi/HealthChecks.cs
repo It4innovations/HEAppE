@@ -145,7 +145,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory log
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/SQL";
-    readonly ILogger? _logger = loggerFactory.CreateLogger("HEAppE.RestApi.SqlServerHealthCheck");
+    readonly ILogger _logger = loggerFactory.CreateLogger("HEAppE.RestApi.SqlServerHealthCheck");
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -167,7 +167,7 @@ public class SqlServerHealthCheck(IMemoryCache cacheProvider, ILoggerFactory log
         return result;
     }
 
-    public static async Task<bool> DatabaseCanConnectAsync(ILogger? logger, string connectionString, CancellationToken cancellationToken)
+    public static async Task<bool> DatabaseCanConnectAsync(ILogger logger, string connectionString, CancellationToken cancellationToken)
     {
         try
         {
@@ -205,7 +205,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerF
 {
     IMemoryCache _cacheProvider = cacheProvider;
     const string _cacheKey = "HealthCheck/Vault";
-    readonly ILogger? _logger = loggerFactory.CreateLogger("HEAppE.RestApi.VaultHealthCheck");
+    readonly ILogger _logger = loggerFactory.CreateLogger("HEAppE.RestApi.VaultHealthCheck");
 
     public async Task<HealthCheckResult> CheckHealthAsync(HealthCheckContext context, CancellationToken cancellationToken = default)
     {
@@ -239,7 +239,7 @@ public class VaultHealthCheck(IMemoryCache cacheProvider, ILoggerFactory loggerF
         return result;
     }
 
-    public static async Task<object> GetVaultHealth(ILogger? logger, string vaultBaseAddress, int timeoutMs)
+    public static async Task<object> GetVaultHealth(ILogger logger, string vaultBaseAddress, int timeoutMs)
     {
         using var httpClient = new HttpClient
         {
