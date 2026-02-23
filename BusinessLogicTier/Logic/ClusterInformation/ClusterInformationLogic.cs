@@ -447,7 +447,7 @@ internal class ClusterInformationLogic : IClusterInformationLogic
                 _unitOfWork.ClusterAuthenticationCredentialsRepository
                     .GetAuthenticationCredentialsForClusterAndProject(
                         clusterId, projectId, false, adaptorUserId);
-            notInitializedCredentials.Append(serviceAccount);
+            notInitializedCredentials = notInitializedCredentials.Append(serviceAccount);
         }
        
 
