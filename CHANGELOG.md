@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Corrected automatic `ClusterAccount` init procedure when calling any endpoint which directs to connection to cluster.
+- Extended allowed length for Cluster attributes validation for `Cluster` endpoints.
 
 
 ## V6.2.3
