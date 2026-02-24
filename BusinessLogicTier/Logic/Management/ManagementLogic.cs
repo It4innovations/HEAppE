@@ -597,7 +597,7 @@ public class ManagementLogic : IManagementLogic
                         IsServiceAccount = cpc.IsServiceAccount,
                         CreatedAt = modified,
                         IsDeleted = cpc.IsServiceAccount,
-                        IsInitialized = false,
+                        IsInitialized = cpc.IsInitialized,
                         AdaptorUserId = cpc.AdaptorUserId,
                     };
                     clusterProject.ClusterProjectCredentials.Add(newCpc);
