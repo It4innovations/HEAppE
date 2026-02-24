@@ -29,8 +29,6 @@ public class OpenStack
     /// <param name="openStackAddress">OpenStack address..</param>
     public OpenStack(string openStackAddress)
     {
-        _logger = null;
-
         if (string.IsNullOrEmpty(openStackAddress)) throw new AuthenticationTypeException("OpenStack-NotSpecifiedUrl");
 
         var options = new RestClientOptions($"{openStackAddress}:{OpenStackSettings.IdentityPort}/")
@@ -107,11 +105,6 @@ public class OpenStack
     }
 
     #region Instances
-
-    /// <summary>
-    ///     Logger
-    /// </summary>
-    protected readonly ILogger _logger;
 
     /// <summary>
     ///     Get RestClient for the base keycloak url.

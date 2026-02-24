@@ -1,5 +1,6 @@
 using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using Services.Expirio.Models;
 
 namespace HEAppE.Services.Expirio;
@@ -13,7 +14,7 @@ public interface IExpirioService
     /// <param name="token">Token to exchange</param>
     /// <param name="cancellationToken"></param>
     /// <returns>Kerberos ticket string</returns>
-    Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, CancellationToken cancellationToken = default);
+    Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Exchanges an authentication token.
@@ -22,5 +23,5 @@ public interface IExpirioService
     /// <param name="token">Token to exchange</param>
     /// <param name="cancellationToken"></param>
     /// <returns>Kerberos ticket string</returns>
-    Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, CancellationToken cancellationToken = default);
+    Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default);
 }

@@ -57,7 +57,7 @@ public class LexisTokenExchangeMiddleware
                         ClientName = JwtTokenIntrospectionConfiguration.ClientId
 
                     };
-                    var exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken);
+                    var exchanged = await expirioService.ExchangeTokenAsync(request, incomingToken, logger);
                     context.Request.Headers["Authorization"] = $"Bearer {exchanged}";
                     contextKeysService.Context.FIPToken = exchanged;
                 }

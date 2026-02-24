@@ -16,19 +16,17 @@ namespace HEAppE.Services.Expirio;
 
 public class ExpirioService : IExpirioService
 {
-    protected readonly ILogger _logger;
     private readonly IHttpClientFactory _httpClientFactory;
     private const string CLIENT_NAME = "ExpirioClient";
 
     public ExpirioService(IHttpClientFactory httpClientFactory)
     {
-        _logger = null;
         _httpClientFactory = httpClientFactory;
     }
 
-    public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, CancellationToken cancellationToken = default)
+    public async Task<string> ExchangeTokenForKerberosAsync(KerberosExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default)
     {
-        _logger?.LogInformation("Endpoint: \"ExpirioService\" Method: \"ExchangeTokenForKerberos\"\n\n");
+        logger.LogInformation("Endpoint: \"ExpirioService\" Method: \"ExchangeTokenForKerberos\"\n\n");
 
         var jsonRequest = JsonSerializer.Serialize(request);
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{ExpirioSettings.BaseUrl}/kerberos/exchange")
@@ -68,9 +66,9 @@ public class ExpirioService : IExpirioService
         }
     }
 
-    public async Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, CancellationToken cancellationToken = default)
+    public async Task<string> ExchangeTokenAsync(ExchangeRequest request, string token, ILogger logger, CancellationToken cancellationToken = default)
     {
-        _logger?.LogInformation("Endpoint: \"ExpirioService\" Method: \"ExchangeToken\"\n\n");
+        logger.LogInformation("Endpoint: \"ExpirioService\" Method: \"ExchangeToken\"\n\n");
 
         var jsonRequest = JsonSerializer.Serialize(request);
         var httpRequest = new HttpRequestMessage(HttpMethod.Post, $"{ExpirioSettings.BaseUrl}/exchange")

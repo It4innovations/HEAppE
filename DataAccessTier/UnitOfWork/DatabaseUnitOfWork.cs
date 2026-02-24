@@ -30,6 +30,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
     {
         _logger = logger;
         _context = new MiddlewareContext(logger);
+        _vaultConnector = new VaultConnector(_logger);
     }
 
     #endregion
@@ -64,8 +65,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
 
     private readonly ILogger _logger;
     private readonly MiddlewareContext _context;
-
-    private IVaultConnector _vaultConnector { get; } = new VaultConnector();
+    private readonly IVaultConnector _vaultConnector;
 
     private IAdaptorUserGroupRepository _adaptorUserGroupRepository;
     private IAdaptorUserRoleRepository _adaptorUserRoleRepository;
@@ -407,7 +407,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
         get
         {
             return _databaseBackupService =
-                _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector(), _logger);
+                _databaseBackupService ?? new DatabaseBackupService(_context, new VaultConnector(_logger), _logger);
         }
     }
 

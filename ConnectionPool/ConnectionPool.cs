@@ -237,7 +237,7 @@ namespace HEAppE.ConnectionPool
             var vaultTask = _vaultCache.GetOrAdd(cred.Id, async id =>
             {
                 _logger?.LogDebug($"[User:{id}] Fetching vault data from service (Shared Task).");
-                var connector = new VaultConnector();
+                var connector = new VaultConnector(_logger);
                 return await connector.GetClusterAuthenticationCredentials(id);
             });
             

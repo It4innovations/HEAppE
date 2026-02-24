@@ -14,6 +14,11 @@ namespace HEAppE.DataAccessTier.Vault;
 
 public class VaultConnector : IVaultConnector
 {
+    public VaultConnector(ILogger logger)
+    {
+        _logger = logger;
+    }
+
     // Static members ensure the cache and client are shared across all instances of VaultConnector
     private static readonly MemoryCache _cache = new MemoryCache(new MemoryCacheOptions());
     

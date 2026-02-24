@@ -388,7 +388,7 @@ internal class MiddlewareContext : DbContext
         IEnumerable<ClusterAuthenticationCredentials> credentials)
     {
         if (credentials == null) return Enumerable.Empty<ClusterAuthenticationCredentials>();
-        var _vaultConnector = new VaultConnector();
+        var _vaultConnector = new VaultConnector(_logger);
         foreach (var item in credentials)
         {
             var vaultData = _vaultConnector.GetClusterAuthenticationCredentials(item.Id).GetAwaiter().GetResult();
@@ -511,7 +511,7 @@ internal class MiddlewareContext : DbContext
 
                 if (entity_after_update is ClusterAuthenticationCredentials clusterProjectCredentialEntity)
                 {
-                    var vaultConnector = new VaultConnector();
+                    var vaultConnector = new VaultConnector(_logger);
                     var vaultData = await vaultConnector
                         .GetClusterAuthenticationCredentials(clusterProjectCredentialEntity.Id);
 

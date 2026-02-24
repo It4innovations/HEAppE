@@ -2060,7 +2060,7 @@ public class ManagementLogic : IManagementLogic
         _unitOfWork.ClusterAuthenticationCredentialsRepository.Insert(nonServiceCredentials);
         _unitOfWork.Save();
 
-        var vaultConnector = new VaultConnector();
+        var vaultConnector = new VaultConnector(_logger);
         bool vaultSuccess;
 
         if (serviceCredentialStored)
