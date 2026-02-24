@@ -584,6 +584,25 @@ public class ManagementLogic : IManagementLogic
         clusterProject.ModifiedAt = modified;
         clusterProject.IsDeleted = false;
         clusterProject.Project.ModifiedAt = modified;
+        //reference existing credentials if exist for the project, otherwise create new uninitialized credentials for the cluster-project mapping
+        var cps = _unitOfWork.ClusterProjectRepository.GetClusterProjectForProject(projectId);
+        foreach (var c in cps)        
+        {
+            foreach(var cpc in c.ClusterProjectCredentials.Where(a=> a.ClusterProject.ClusterId != clusterId))
+            {                
+                    var newCpc = new ClusterProjectCredential
+                    {                        
+                        ClusterProject = clusterProject,
+                        ClusterAuthenticationCredentials = cpc.ClusterAuthenticationCredentials,
+                        IsServiceAccount = cpc.IsServiceAccount,
+                        CreatedAt = modified,
+                        IsDeleted = cpc.IsServiceAccount,
+                        IsInitialized = false,
+                        AdaptorUserId = cpc.AdaptorUserId,
+                    };
+                    clusterProject.ClusterProjectCredentials.Add(newCpc);
+            }
+        }
         _unitOfWork.ProjectRepository.Update(clusterProject.Project);
         _unitOfWork.ClusterProjectRepository.Update(clusterProject);
         _unitOfWork.Save();
