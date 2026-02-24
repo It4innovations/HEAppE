@@ -49,19 +49,20 @@ internal class HyperQueueSchedulerFactory : SchedulerFactory
             _schedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
                 GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: logger),
-                CreateSchedulerAdapter()
+                CreateSchedulerAdapter(logger),
+                logger
             );
         return _schedulerSingletons[uniqueIdentifier];
     }
 
-    protected override ISchedulerAdapter CreateSchedulerAdapter()
+    protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _schedulerAdapterInstance ??= new HyperQueueSchedulerAdapter(CreateDataConvertor());
+        return _schedulerAdapterInstance ??= new HyperQueueSchedulerAdapter(CreateDataConvertor(logger), logger);
     }
 
-    protected override ISchedulerDataConvertor CreateDataConvertor()
+    protected override ISchedulerDataConvertor CreateDataConvertor(ILogger logger)
     {
-        return _convertorSingleton ??= new HyperQueueDataConvertor(new HyperQueueConversionAdapterFactory());
+        return _convertorSingleton ??= new HyperQueueDataConvertor(new HyperQueueConversionAdapterFactory(), logger);
     }
 
     protected override IPoolableAdapter CreateSchedulerConnector(Cluster configuration, ISshCertificateAuthorityService sshCertificateAuthorityService, ILogger logger)

@@ -29,9 +29,9 @@ public class PbsProSchedulerAdapter : ISchedulerAdapter
     ///     Constructor
     /// </summary>
     /// <param name="convertor">Convertor</param>
-    public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public PbsProSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _logger = null;
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
         _commands = new LinuxCommands();

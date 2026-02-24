@@ -74,7 +74,8 @@ public abstract class FileSystemFactory
                 ConnectionPoolCleaningInterval,
                 ConnectionPoolMaxUnusedInterval,
                 CreateFileSystemConnector(configuration, sshCertificateAuthorityService),
-                configuration.Cluster.Port);
+                configuration.Cluster.Port,
+                _logger);
 
             _schedulerConnPoolSingletons.Add(configuration, connection);
         }

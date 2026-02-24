@@ -60,7 +60,8 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             key => new RexSchedulerWrapper
             (
                 GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: logger),
-                CreateSchedulerAdapter()
+                CreateSchedulerAdapter(logger),
+                logger
             )
         );
     }
@@ -68,7 +69,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    protected override ISchedulerAdapter CreateSchedulerAdapter()
+    protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
         // OPRAVA: Inicializace pomocí Thread-Safe Double-Check Lockingu
         if (_schedulerAdapterInstance == null)
@@ -77,7 +78,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             {
                 if (_schedulerAdapterInstance == null)
                 {
-                    _schedulerAdapterInstance = new SlurmSchedulerAdapter(CreateDataConvertor());
+                    _schedulerAdapterInstance = new SlurmSchedulerAdapter(CreateDataConvertor(logger), logger);
                 }
             }
         }
@@ -87,7 +88,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    protected override ISchedulerDataConvertor CreateDataConvertor()
+    protected override ISchedulerDataConvertor CreateDataConvertor(ILogger logger)
     {
         // OPRAVA: Inicializace pomocí Thread-Safe Double-Check Lockingu
         if (_convertorSingleton == null)
@@ -96,7 +97,7 @@ internal class SlurmSchedulerFactory : SchedulerFactory
             {
                 if (_convertorSingleton == null)
                 {
-                    _convertorSingleton = new SlurmDataConvertor(new SlurmConversionAdapterFactory());
+                    _convertorSingleton = new SlurmDataConvertor(new SlurmConversionAdapterFactory(), logger);
                 }
             }
         }

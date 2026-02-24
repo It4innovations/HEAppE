@@ -25,9 +25,9 @@ internal class HyperQueueSchedulerAdapter : ISchedulerAdapter
 {
     #region Constructors
 
-    public HyperQueueSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public HyperQueueSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _logger = null;
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
         _commands = new LinuxCommands();

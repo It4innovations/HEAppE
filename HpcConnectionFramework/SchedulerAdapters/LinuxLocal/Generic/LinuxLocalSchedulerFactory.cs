@@ -54,7 +54,8 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
             _linuxSchedulerSingletons[uniqueIdentifier] = new RexSchedulerWrapper
             (
                 GetSchedulerConnectionPool(configuration, project, sshCertificateAuthorityService, adaptorUserId: adaptorUserId, logger: logger),
-                CreateSchedulerAdapter()
+                CreateSchedulerAdapter(logger),
+                logger
             );
         return _linuxSchedulerSingletons[uniqueIdentifier];
     }
@@ -63,18 +64,18 @@ public class LinuxLocalSchedulerFactory : SchedulerFactory
     ///     Create scheduler adapter
     /// </summary>
     /// <returns></returns>
-    protected override ISchedulerAdapter CreateSchedulerAdapter()
+    protected override ISchedulerAdapter CreateSchedulerAdapter(ILogger logger)
     {
-        return _linuxSchedulerAdapterInstance ??= new LinuxLocalSchedulerAdapter(CreateDataConvertor());
+        return _linuxSchedulerAdapterInstance ??= new LinuxLocalSchedulerAdapter(CreateDataConvertor(logger));
     }
 
     /// <summary>
     ///     Create data convertor
     /// </summary>
     /// <returns></returns>
-    protected override ISchedulerDataConvertor CreateDataConvertor()
+    protected override ISchedulerDataConvertor CreateDataConvertor(ILogger logger)
     {
-        return _convertorSingleton ??= new LinuxLocalDataConvertor();
+        return _convertorSingleton ??= new LinuxLocalDataConvertor(logger);
     }
 
     /// <summary>

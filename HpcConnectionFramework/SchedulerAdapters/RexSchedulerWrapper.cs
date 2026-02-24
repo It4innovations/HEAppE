@@ -27,9 +27,9 @@ public class RexSchedulerWrapper : IRexScheduler
     /// </summary>
     /// <param name="connectionPool">Connection pool</param>
     /// <param name="adapter">Scheduler adapter</param>
-    public RexSchedulerWrapper(IConnectionPool connectionPool, ISchedulerAdapter adapter)
+    public RexSchedulerWrapper(IConnectionPool connectionPool, ISchedulerAdapter adapter, ILogger logger)
     {
-        _logger = null;
+        _logger = logger;
         _connectionPool = connectionPool;
         _adapter = adapter;
     }

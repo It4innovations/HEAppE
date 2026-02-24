@@ -97,7 +97,8 @@ public abstract class SchedulerFactory
                     connectionPoolCleaningInterval,
                     connectionPoolMaxUnusedInterval,
                     CreateSchedulerConnector(clusterConf, sshCertificateAuthorityService, logger),
-                    clusterConf.Port);
+                    clusterConf.Port,
+                    logger);
             });
     }
 
@@ -126,12 +127,12 @@ public abstract class SchedulerFactory
     /// <summary>
     ///     Create scheduler adapter
     /// </summary>
-    protected abstract ISchedulerAdapter CreateSchedulerAdapter();
+    protected abstract ISchedulerAdapter CreateSchedulerAdapter(ILogger logger);
 
     /// <summary>
     ///     Create data convertor
     /// </summary>
-    protected abstract ISchedulerDataConvertor CreateDataConvertor();
+    protected abstract ISchedulerDataConvertor CreateDataConvertor(ILogger logger);
 
     /// <summary>
     ///     Create scheduler connector

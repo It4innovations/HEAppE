@@ -27,9 +27,9 @@ internal class MiddlewareContext : DbContext
 {
     #region Constructors
 
-    public MiddlewareContext()
+    public MiddlewareContext(ILogger logger)
     {
-        _logger = null;
+        _logger = logger;
 
         if (!_isMigrated)
             lock (_lockObject)

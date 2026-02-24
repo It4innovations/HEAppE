@@ -1,17 +1,18 @@
-﻿using HEAppE.DomainObjects.ClusterInformation;
-using HEAppE.DomainObjects.JobManagement;
-using HEAppE.DomainObjects.JobManagement.JobInformation;
-using HEAppE.HpcConnectionFramework.Configuration;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
-using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Runtime;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using HEAppE.DomainObjects.ClusterInformation;
+using HEAppE.DomainObjects.JobManagement;
+using HEAppE.DomainObjects.JobManagement.JobInformation;
+using HEAppE.HpcConnectionFramework.Configuration;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.Interfaces;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.DTO;
+using HEAppE.HpcConnectionFramework.SchedulerAdapters.LinuxLocal.Enums;
 
 namespace HEAppE.HpcConnectionFramework.SchedulerAdapters.Generic.LinuxLocal;
 
@@ -35,7 +36,7 @@ public class LinuxLocalDataConvertor : SchedulerDataConvertor
     /// <summary>
     ///     Constructor
     /// </summary>
-    public LinuxLocalDataConvertor() : base(null)
+    public LinuxLocalDataConvertor(ILogger logger) : base(null, logger)
     {
     }
 

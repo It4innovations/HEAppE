@@ -56,9 +56,9 @@ namespace HEAppE.ConnectionPool
             
         private readonly Timer poolCleanTimer;
 
-        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int? port)
+        public ConnectionPool(string masterNodeName, string remoteTimeZone, int minSize, int maxSize, int cleaningInterval, int maxUnusedDuration, IPoolableAdapter adapter, int? port, ILogger logger)
         {
-            _logger = null;
+            _logger = logger;
             _masterNodeName = masterNodeName;
             _port = port;
             _minSize = minSize;

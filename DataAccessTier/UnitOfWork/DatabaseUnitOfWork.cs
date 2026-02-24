@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using HEAppE.DataAccessTier.IRepository.ClusterInformation;
 using HEAppE.DataAccessTier.IRepository.FileTransfer;
 using HEAppE.DataAccessTier.IRepository.JobManagement;
@@ -27,7 +28,7 @@ public class DatabaseUnitOfWork : IUnitOfWork
 
     public DatabaseUnitOfWork()
     {
-        _context = new MiddlewareContext();
+        _context = new MiddlewareContext(logger: null);
     }
 
     #endregion

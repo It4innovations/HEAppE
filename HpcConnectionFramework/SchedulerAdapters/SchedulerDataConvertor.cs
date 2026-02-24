@@ -27,10 +27,10 @@ public abstract class SchedulerDataConvertor : ISchedulerDataConvertor
     ///     Constructor
     /// </summary>
     /// <param name="conversionAdapterFactory">Conversion adapter factory</param>
-    public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory)
+    public SchedulerDataConvertor(ConversionAdapterFactory conversionAdapterFactory, ILogger logger)
     {
         _conversionAdapterFactory = conversionAdapterFactory;
-        _logger = null;
+        _logger = logger;
     }
 
     #endregion

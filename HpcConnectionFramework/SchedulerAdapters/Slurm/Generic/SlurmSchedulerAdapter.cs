@@ -30,9 +30,9 @@ internal class SlurmSchedulerAdapter : ISchedulerAdapter
     ///     Constructor
     /// </summary>
     /// <param name="convertor"></param>
-    public SlurmSchedulerAdapter(ISchedulerDataConvertor convertor)
+    public SlurmSchedulerAdapter(ISchedulerDataConvertor convertor, ILogger logger)
     {
-        _logger = null;
+        _logger = logger;
         _convertor = convertor;
         _sshTunnelUtil = new SshTunnelUtils();
         _commands = new LinuxCommands();

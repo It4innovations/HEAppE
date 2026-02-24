@@ -208,12 +208,13 @@ public class DataStagingEndpoint : IApiRoute
             return result;
         }
 
-        static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService, IHttpContextKeys httpContextKeys, AdaptorUserRoleType requiredUserRole)
+        static void CheckValidatedUserForSessionCode(string sessionCode, long projectId, IUserOrgService userOrgService, ISshCertificateAuthorityService sshCertificateAuthorityService,
+            IHttpContextKeys httpContextKeys, ILogger logger, AdaptorUserRoleType requiredUserRole)
         {
             using (var unitOfWork = UnitOfWorkFactory.GetUnitOfWorkFactory().CreateUnitOfWork())
             {
                 var loggedUser = UserAndLimitationManagementService.GetValidatedUserForSessionCode(sessionCode, unitOfWork, userOrgService, sshCertificateAuthorityService, httpContextKeys,
-                    requiredUserRole, projectId);
+                    logger, requiredUserRole, projectId);
             }
         }
 
@@ -223,7 +224,7 @@ public class DataStagingEndpoint : IApiRoute
                     [FromQuery(Name = "ProjectId")] long projectId,
                     [FromQuery(Name = "ClusterId")] long clusterId,
                     [FromForm] IFormFileCollection files,
-                    [FromServices] ILogger<DataStagingEndpoint>? logger,
+                    [FromServices] ILogger<DataStagingEndpoint> logger,
                     [FromServices] IValidator<UploadFileToClusterModel> validator,
                     [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys,
@@ -236,7 +237,7 @@ public class DataStagingEndpoint : IApiRoute
                         """Endpoint: "FileTransfer" Method: "UploadFileToClusterModel" Parameters: "{@model}" """,
                         model);
 
-                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager);
 
                     var tasks = new List<Task<dynamic>>();
                     foreach (var file in files)
@@ -274,7 +275,7 @@ public class DataStagingEndpoint : IApiRoute
                     [FromQuery(Name = "ProjectId")] long projectId,
                     [FromQuery(Name = "ClusterId")] long clusterId,
                     [FromForm] IFormFileCollection files,
-                    [FromServices] ILogger<DataStagingEndpoint>? logger,
+                    [FromServices] ILogger<DataStagingEndpoint> logger,
                     [FromServices] IValidator<UploadJobScriptsToClusterProjectDirModel> validator,
                     [FromServices] ISshCertificateAuthorityService sshCertificateAuthorityService,
                     [FromServices] IHttpContextKeys httpContextKeys,
@@ -287,7 +288,7 @@ public class DataStagingEndpoint : IApiRoute
                         """Endpoint: "FileTransfer" Method: "UploadJobScriptsToClusterProjectDir" Parameters: "{@model}" """,
                         model);
 
-                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, AdaptorUserRoleType.Manager);
+                    CheckValidatedUserForSessionCode(sessionCode, projectId, userOrgService, sshCertificateAuthorityService, httpContextKeys, logger, AdaptorUserRoleType.Manager);
 
                     var tasks = new List<Task<dynamic>>();
                     foreach (var file in files)
